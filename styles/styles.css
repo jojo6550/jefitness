@@ -1,0 +1,38 @@
+/* Hero Section */
+.hero {
+  background: url('/images/hero.jpg') no-repeat top center;
+  background-size: cover;
+  height: 100vh;
+  padding: 100px 20px;
+}
+
+/* Adjust for small screens */
+@media (max-width: 768px) {
+  .hero {
+    height: auto;
+    padding: 60px 20px;
+    text-align: center;
+  }
+}
+
+/* Cards spacing */
+.card {
+  border: none;
+  border-radius: 12px;
+}
+
+/* Footer */
+footer i:hover {
+  color: #0d6efd;
+  transition: color 0.3s ease;
+}
+
+img-fluid rounded-4 shadow{
+
+  scale : 1;
+}
+
+img-fluid rounded-4 shadow:hover{
+  transform: scale(1.1);
+  
+}
