@@ -1,6 +1,6 @@
 /* Hero Section */
 .hero {
-  background: url('/images/hero.jpg') no-repeat top center;
+  background: url('hero.jpg') no-repeat top center;
   background-size: cover;
   height: 100vh;
   padding: 100px 20px;
