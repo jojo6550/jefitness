@@ -115,7 +115,7 @@
 
 /* Hero Section */
 .hero {
-  background: url('../frontend/images/logo.jpg') no-repeat center center;
+  background: url('/frontend/images/logo.jpg') no-repeat center center;
   background-size: cover;
   height: 100vh;
   padding: 100px 20px;
