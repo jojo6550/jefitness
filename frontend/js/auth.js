@@ -2,22 +2,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
     const messageDiv = document.getElementById('message');
-  
+    
+    // Determine the base URL based on the environment
+    const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://jojo6550.github.io';
+
     // LOGIN
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-  
+
         const email = loginForm.email.value;
         const password = loginForm.password.value;
-  
+
         try {
-          const res = await fetch('http://localhost:5000/api/auth/login', {
+          // Use the dynamic base URL for login
+          const res = await fetch(`${baseUrl}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-  
+
           const data = await res.json();
           if (res.ok) {
             localStorage.setItem('token', data.token); // store JWT
@@ -30,28 +34,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  
+
     // SIGNUP
     if (signupForm) {
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-  
+
         const username = signupForm.username.value;
         const email = signupForm.email.value;
         const password = signupForm.password.value;
         const confirm = document.getElementById('inputConfirmPassword').value;
-  
+
         if (password !== confirm) {
           return showMessage('Passwords do not match');
         }
-  
+
         try {
-          const res = await fetch('http://localhost:5000/api/auth/signup', {
+          // Use the dynamic base URL for signup
+          const res = await fetch(`${baseUrl}/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password })
           });
-  
+
           const data = await res.json();
           if (res.ok) {
             showMessage('Account created! Redirecting to login...');
@@ -66,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  
+
     function showMessage(msg) {
       if (messageDiv) {
         messageDiv.innerText = msg;
@@ -75,5 +80,4 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(msg);
       }
     }
-  });
-  
+});
