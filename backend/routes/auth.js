@@ -3,22 +3,51 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
 
 // Signup
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
+  const { firstName, lastName, email, dob } = req.body;
+
+  // Generate a unique ticket number
+  const ticketNumber = 'TICKET-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+  const signUpTime = new Date().toISOString();
+
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ msg: 'User already exists' });
+    // Send email to admin with the request details
+    const transporter = nodemailer.createTransport({
+        host: 'mail.protonmail.com',
+        port: 25,
+        secure: true, // or 'SSL'
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ email, password: hashedPassword });
-    await newUser.save();
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_ADMIN,
+      subject: `New Signup Request - Ticket #${ticketNumber}`,
+      text: `
+        A new user has requested to sign up with the following details:
 
-    res.status(201).json({ msg: 'User created' });
+        Full Name: ${firstName} ${lastName}
+        Email: ${email}
+        Date of Birth: ${dob}
+        Date of Signup: ${signUpTime}
+        Ticket Number: ${ticketNumber}
+
+        Please review and create the user profile.
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(201).json({ msg: 'Signup request sent to admin. Please wait for confirmation.' });
   } catch (err) {
-    console.error('Signup error:', err); // Keep this for debugging
-    res.status(500).json({ msg: 'Server error' });
+    console.error('Signup error:', err);
+    res.status(500).json({ msg: 'Error during signup' });
   }
 });
 
