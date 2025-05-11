@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageDiv = document.getElementById('message');
     
     // Determine the base URL based on the environment
-    const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://jojo6550.github.io';
+    const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://jojo6550-github-io.onrender.com';
 
     // LOGIN
     if (loginForm) {
