@@ -9,6 +9,7 @@ const connectDB = require('../config/dbis');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 connectDB();
 app.use('/api/auth', authRoutes);
