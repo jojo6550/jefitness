@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const data = await res.json();
           if (res.ok) {
             localStorage.setItem('token', data.token); // store JWT
-            window.location.href = '../public/dashboard.html'; // redirect
+            window.location.href = '../docs/dashboard.html'; // redirect
           } else {
             showMessage(data.message || 'Login failed');
           }
