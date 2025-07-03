@@ -3,51 +3,53 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
 
-// Signup
+// SIGNUP ROUTE
 router.post('/signup', async (req, res) => {
-  const { firstName, lastName, email, dob } = req.body;
+  const { firstName, lastName, email, password } = req.body;
+  console.log('Received signup:', req.body);
 
-  // Generate a unique ticket number
-  const ticketNumber = 'TICKET-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-  const signUpTime = new Date().toISOString();
+  // Validate input
+  if (!firstName || !lastName || !email || !password) {
+    return res.status(400).json({ msg: 'All fields are required.' });
+  }
 
   try {
-    // Send email to admin with the request details
-    const transporter = nodemailer.createTransport({
-        host: 'mail.protonmail.com',
-        port: 25,
-        secure: true, // or 'SSL'
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ msg: 'User already exists.' });
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_ADMIN,
-      subject: `New Signup Request - Ticket #${ticketNumber}`,
-      text: `
-        A new user has requested to sign up with the following details:
+    await newUser.save();
 
-        Full Name: ${firstName} ${lastName}
-        Email: ${email}
-        Date of Birth: ${dob}
-        Date of Signup: ${signUpTime}
-        Ticket Number: ${ticketNumber}
+    // Optional: Generate JWT token
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
 
-        Please review and create the user profile.
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(201).json({ msg: 'Signup request sent to admin. Please wait for confirmation.' });
+    res.status(201).json({
+      msg: 'Signup successful',
+      token,
+      user: {
+        id: newUser._id,
+        name: `${newUser.firstName} ${newUser.lastName}`,
+        email: newUser.email,
+      },
+    });
   } catch (err) {
-    console.error('Signup error:', err);
-    res.status(500).json({ msg: 'Error during signup' });
+    console.error('Signup Error:', err.message);
+    res.status(500).json({ msg: 'Server error. Please try again.' });
   }
 });
 
