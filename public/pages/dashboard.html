@@ -1,67 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JE Fitness</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link rel="stylesheet" href="./frontend/styles/styles.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard – JE Fitness</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="./frontend/styles/styles.css">
 
-  <!-- Favicon -->
-<link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="../favicons/favicon-16x16.png">
-<link rel="manifest" href="../favicons/site.webmanifest">
-
-
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../favicons/favicon-16x16.png">
+    <link rel="manifest" href="../favicons/site.webmanifest">
 </head>
 
 <body class="dashboard-page">
-      <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand" href="../index.html">JE Fitness</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" href="dashboard.html">User Profile</a></li>
-          <li class="nav-item"><a class="nav-link" href="workout-programs.html">Workout Programs</a></li>
-          <li class="nav-item"><a class="nav-link" href="schedule.html">Schedule</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="../index.html">JE Fitness</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="workout-programs.html">Workout Programs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="schedule.html">Schedule</a></li>
+                    <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li> <!-- Added Profile link -->
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-  <main class="container my-5">
-    <h1 class="mb-4">Dashboard</h1>
-    <div class="row g-4">
-      <div class="col-md-4">
-        <div class="card p-4 shadow-sm">
-          <h3>User Profile</h3>
-          <p>View and update your personal information, goals, and preferences.</p>
-          <a href="profile.html" class="btn btn-primary">Go to Profile</a>
+    <main class="container my-5">
+        <!-- Welcome Section -->
+        <div class="welcome-section text-center mb-5 p-4 rounded-4 shadow-sm">
+            <h1 class="display-4 fw-bold text-primary mb-3">Welcome Back, [User's First Name]!</h1>
+            <p class="lead text-muted">Your fitness journey continues. Here's a quick look at your progress and what's next.</p>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card p-4 shadow-sm">
-          <h3>Workout Programs</h3>
-          <p>Explore and manage your workout routines and plans.</p>
-          <a href="workout-programs.html" class="btn btn-primary">View Programs</a>
+
+        <!-- Quick Stats Section -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="quick-stats-card card text-center p-3 shadow-sm">
+                    <i class="bi bi-fire text-danger display-4 mb-2"></i>
+                    <h4 class="fw-bold">120 Days</h4>
+                    <p class="text-muted mb-0">Active Streak</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="quick-stats-card card text-center p-3 shadow-sm">
+                    <i class="bi bi-bar-chart-line-fill text-success display-4 mb-2"></i>
+                    <h4 class="fw-bold">175 lbs</h4>
+                    <p class="text-muted mb-0">Current Weight</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="quick-stats-card card text-center p-3 shadow-sm">
+                    <i class="bi bi-calendar-check text-info display-4 mb-2"></i>
+                    <h4 class="fw-bold">3 Workouts</h4>
+                    <p class="text-muted mb-0">This Week</p>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card p-4 shadow-sm">
-          <h3>Schedule</h3>
-          <p>Check your workout schedule and upcoming sessions.</p>
-          <a href="schedule.html" class="btn btn-primary">View Schedule</a>
+
+        <!-- Main Navigation Cards -->
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-person-circle text-primary"></i>
+                    </div>
+                    <h3 class="card-title">Your Profile</h3>
+                    <p class="card-text text-muted">Manage your personal information, fitness goals, and preferences.</p>
+                    <a href="profile.html" class="btn btn-outline-primary mt-auto">Go to Profile <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-lightning-charge-fill text-success"></i>
+                    </div>
+                    <h3 class="card-title">Workout Programs</h3>
+                    <p class="card-text text-muted">Explore and manage your personalized workout routines and plans.</p>
+                    <a href="workout-programs.html" class="btn btn-outline-success mt-auto">View Programs <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-calendar-event-fill text-info"></i>
+                    </div>
+                    <h3 class="card-title">Your Schedule</h3>
+                    <p class="card-text text-muted">Check your upcoming workout sessions and plan your week ahead.</p>
+                    <a href="schedule.html" class="btn btn-outline-info mt-auto">View Schedule <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <!-- Example of a "Next Workout" card - could be dynamic -->
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100 bg-light border-primary border-3">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-play-circle-fill text-dark"></i>
+                    </div>
+                    <h3 class="card-title">Next Workout</h3>
+                    <p class="card-text mb-2">
+                        <strong>Monday, July 14th</strong><br>
+                        <small class="text-muted">Morning Cardio & Abs</small>
+                    </p>
+                    <p class="card-text text-muted small">Location: Home Gym</p>
+                    <a href="workout-detail.html" class="btn btn-primary mt-auto">Start Workout <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </main>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- You might want a dashboard.js for dynamic content here later -->
 </body>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
 </html>
