@@ -1,3 +1,4 @@
+// routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -26,12 +27,14 @@ router.post('/signup', async (req, res) => {
             firstName,
             lastName,
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            role: 'user' // Default new signups to 'user' role
         });
 
         await newUser.save();
 
-        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+        // Include role in JWT payload
+        const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
             expiresIn: '1h',
         });
 
@@ -71,6 +74,7 @@ router.post('/signup', async (req, res) => {
                 id: newUser._id,
                 name: `${newUser.firstName} ${newUser.lastName}`,
                 email: newUser.email,
+                role: newUser.role // Include role in response
             },
         });
 
@@ -92,10 +96,11 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Include role in JWT payload
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
         res.json({
             token,
-            user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email }
+            user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
         });
     } catch (err) {
         res.status(500).json({ msg: 'Server error' });
@@ -117,7 +122,7 @@ router.get('/me', auth, async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            // You can add other basic fields you want to expose, but avoid sensitive ones
+            role: user.role // Include role in response
         });
     } catch (err) {
         console.error(err.message);
