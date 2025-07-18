@@ -1,157 +1,217 @@
-// profile.js
-document.addEventListener('DOMContentLoaded', function() {
-    // JavaScript for Profile Avatar Preview
-    const avatarUpload = document.getElementById('avatarUpload');
+// frontend/js/profile.js
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const userProfileForm = document.getElementById('userProfileForm');
+    const formMessage = document.getElementById('formMessage');
+
+    // Form fields (ensure these IDs match your HTML)
     const profileAvatar = document.getElementById('profileAvatar');
+    const avatarUpload = document.getElementById('avatarUpload');
+    const fullNameInput = document.getElementById('fullName');
+    const dobInput = document.getElementById('dob');
+    const genderSelect = document.getElementById('gender');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('phone');
+    const enrolledDaysInput = document.getElementById('enrolledDays'); // Read-only
+    const activityStatusSelect = document.getElementById('activityStatus');
+    const startWeightInput = document.getElementById('startWeight');
+    const currentWeightInput = document.getElementById('currentWeight');
+    const goalsTextarea = document.getElementById('goals');
+    const reasonTextarea = document.getElementById('reason');
 
-    if (avatarUpload && profileAvatar) {
-        avatarUpload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    profileAvatar.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    // Function to get the JWT from localStorage (or wherever you store it)
+    // Helper function to get JWT from localStorage
     function getAuthToken() {
-        return localStorage.getItem('token'); // Assuming you store the token here after login
+        return localStorage.getItem('token');
     }
 
-    // Function to load user profile data when the page loads
-    async function loadUserProfile() {
+    // Function to display messages (success/error)
+    function showMessage(message, type = 'success') {
+        formMessage.textContent = message;
+        formMessage.classList.remove('d-none', 'alert-success', 'alert-danger');
+        formMessage.classList.add(`alert-${type}`);
+        // Hide message after 5 seconds
+        setTimeout(() => {
+            formMessage.classList.add('d-none');
+        }, 5000);
+    }
+
+    // Function to fetch user profile data
+    async function fetchUserProfile() {
         const token = getAuthToken();
         if (!token) {
-            console.log('No token found, user not authenticated.');
-            // Redirect to login page or show a message
+            console.error('Profile: No authentication token found. Redirecting to login.');
+            // Assuming your login page is at /pages/login.html
+            window.location.href = '/pages/login.html';
             return;
         }
 
         try {
-            const response = await fetch('/api/profile/me', { // GET request to fetch current user profile
+            // This endpoint fetches the currently logged-in user's profile
+            const response = await fetch('/api/profile/me', {
                 method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
-            const userData = await response.json();
-
-            if (response.ok) {
-                // Populate the form fields with fetched data
-                document.getElementById('fullName').value = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-                document.getElementById('dob').value = userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : '';
-                document.getElementById('gender').value = userData.gender || '';
-                document.getElementById('email').value = userData.email || '';
-                document.getElementById('phone').value = userData.phone || '';
-                document.getElementById('activityStatus').value = userData.activityStatus || 'active';
-                document.getElementById('startWeight').value = userData.startWeight || '';
-                document.getElementById('currentWeight').value = userData.currentWeight || '';
-                document.getElementById('goals').value = userData.goals || '';
-                document.getElementById('reason').value = userData.reason || '';
-                if (userData.profilePicture) {
-                    profileAvatar.src = userData.profilePicture;
-                }
-
-                // Populate 'Days Enrolled' (example dynamic calculation)
-                const enrolledDaysInput = document.getElementById('enrolledDays');
-                if (enrolledDaysInput) {
-                    // In a real app, 'days enrolled' would likely come from the user's signup date from the backend.
-                    // For demonstration, let's just set a static value or calculate from a hypothetical join date.
-                    const joinDate = new Date(userData.createdAt || '2024-07-12'); // Use user's creation date if available
-                    const today = new Date();
-                    const diffTime = Math.abs(today - joinDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    enrolledDaysInput.value = diffDays;
-                }
-
-            } else {
-                console.error('Failed to load user profile:', userData.msg);
-                // Handle error, e.g., redirect to login or show error message
-            }
-        } catch (error) {
-            console.error('Network error while loading profile:', error);
-        }
-    }
-
-    // Call loadUserProfile when the page loads
-    loadUserProfile();
-
-
-    // JavaScript for Form Submission
-    const userProfileForm = document.getElementById('userProfileForm');
-    const formMessage = document.getElementById('formMessage');
-
-    if (userProfileForm && formMessage) {
-        userProfileForm.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Prevent default form submission
-
-            const token = getAuthToken();
-            if (!token) {
-                formMessage.classList.remove('d-none', 'alert-success');
-                formMessage.classList.add('alert-danger');
-                formMessage.textContent = 'You must be logged in to update your profile.';
-                setTimeout(() => formMessage.classList.add('d-none'), 5000);
+            if (response.status === 401) {
+                // Token expired or invalid, clear it and redirect to login
+                console.error('Profile: Token expired or invalid. Redirecting to login.');
+                localStorage.removeItem('token');
+                window.location.href = '/pages/login.html';
                 return;
             }
 
-            // Collect form data
-            const fullName = document.getElementById('fullName').value;
-            const [firstName, ...lastNameParts] = fullName.split(' ');
-            const lastName = lastNameParts.join(' '); // Handle multi-word last names
-
-            const formData = {
-                firstName: firstName,
-                lastName: lastName,
-                dob: document.getElementById('dob').value,
-                gender: document.getElementById('gender').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                activityStatus: document.getElementById('activityStatus').value,
-                startWeight: parseFloat(document.getElementById('startWeight').value),
-                currentWeight: parseFloat(document.getElementById('currentWeight').value),
-                goals: document.getElementById('goals').value,
-                reason: document.getElementById('reason').value,
-                // profilePicture: // This needs special handling for file uploads
-            };
-
-            try {
-                const response = await fetch('/api/profile', { // Your backend API endpoint
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // Send the JWT
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    formMessage.classList.remove('d-none', 'alert-danger');
-                    formMessage.classList.add('alert-success');
-                    formMessage.textContent = result.msg || 'Profile updated successfully!';
-                    // Optionally update frontend UI with new data from result.user
-                } else {
-                    formMessage.classList.remove('d-none', 'alert-success');
-                    formMessage.classList.add('alert-danger');
-                    formMessage.textContent = result.msg || 'Error updating profile. Please try again.';
-                }
-
-            } catch (error) {
-                console.error('Network or server error:', error);
-                formMessage.classList.remove('d-none', 'alert-success');
-                formMessage.classList.add('alert-danger');
-                formMessage.textContent = 'A network error occurred. Please try again.';
-            } finally {
-                setTimeout(() => {
-                    formMessage.classList.add('d-none');
-                }, 5000);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || `HTTP error! status: ${response.status}`);
             }
-        });
+
+            const userData = await response.json();
+            console.log('Profile: User data fetched:', userData);
+            populateForm(userData);
+
+        } catch (error) {
+            console.error('Profile: Error fetching user profile:', error);
+            // Handle cases where the response might not be valid JSON (e.g., HTML error page)
+            if (error.message.includes('json') || error.message.includes('JSON')) {
+                showMessage(`Failed to load profile. Server might have sent an invalid response. Check your backend console for errors.`, 'danger');
+            } else {
+                showMessage(`Failed to load profile: ${error.message}`, 'danger');
+            }
+        }
     }
+
+    // Function to populate form fields with fetched data
+    function populateForm(userData) {
+        // Combine firstName and lastName for the fullName input
+        fullNameInput.value = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+
+        // Format Date of Birth for HTML date input
+        if (userData.dob) {
+            const dobDate = new Date(userData.dob);
+            dobInput.value = dobDate.toISOString().split('T')[0];
+        } else {
+            dobInput.value = '';
+        }
+
+        genderSelect.value = userData.gender || '';
+        emailInput.value = userData.email || '';
+        emailInput.readOnly = true; // Email is typically not editable from profile page
+        emailInput.classList.add('readonly-field'); // Add class for styling read-only fields
+
+        phoneInput.value = userData.phone || '';
+
+        // Calculate and display "Days Enrolled"
+        if (userData.createdAt) {
+            const joinDate = new Date(userData.createdAt);
+            const today = new Date();
+            const diffTime = Math.abs(today - joinDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            enrolledDaysInput.value = diffDays;
+        } else {
+            enrolledDaysInput.value = 'N/A';
+        }
+
+        activityStatusSelect.value = userData.activityStatus || 'active';
+        // Display numerical values, handle null/undefined by showing empty string
+        startWeightInput.value = userData.startWeight !== null && userData.startWeight !== undefined ? userData.startWeight : '';
+        currentWeightInput.value = userData.currentWeight !== null && userData.currentWeight !== undefined ? userData.currentWeight : '';
+        goalsTextarea.value = userData.goals || '';
+        reasonTextarea.value = userData.reason || '';
+
+        // Set profile picture source
+        if (userData.profilePicture) {
+            // Assuming profilePicture is a URL relative to your static files root
+            profileAvatar.src = userData.profilePicture;
+        } else {
+            profileAvatar.src = '../images/default-avatar.png'; // Default avatar path
+        }
+    }
+
+    // Handle form submission (Save Changes)
+    userProfileForm.addEventListener('submit', async function(event) {
+        event.preventDefault(); // IMPORTANT: Prevent default form submission (page reload)
+
+        const token = getAuthToken();
+        if (!token) {
+            console.error('Profile: No authentication token found. Redirecting to login.');
+            window.location.href = '/pages/login.html';
+            return;
+        }
+
+        // Extract data from form fields
+        const fullName = fullNameInput.value.trim();
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const profileData = {
+            firstName: firstName,
+            lastName: lastName,
+            phone: phoneInput.value,
+            dob: dobInput.value, // Send as YYYY-MM-DD string
+            gender: genderSelect.value,
+            activityStatus: activityStatusSelect.value,
+            // Convert to number or null if empty string/null
+            startWeight: startWeightInput.value === '' ? null : parseFloat(startWeightInput.value),
+            currentWeight: currentWeightInput.value === '' ? null : parseFloat(currentWeightInput.value),
+            goals: goalsTextarea.value,
+            reason: reasonTextarea.value,
+            // profilePicture is not handled in this save logic; it would require file upload
+        };
+
+        // Basic client-side validation
+        if (!profileData.firstName || !profileData.lastName || !profileData.activityStatus) {
+            showMessage('Please fill in First Name, Last Name, and Activity Status.', 'danger');
+            return;
+        }
+
+        try {
+            // Send PUT request to update profile
+            const response = await fetch('/api/profile/me', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+            });
+
+            if (!response.ok) {
+                // Attempt to parse error JSON from backend
+                const errorData = await response.json();
+                throw new Error(errorData.msg || `HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Profile update successful:', result);
+            showMessage('Profile updated successfully!', 'success');
+            // Re-fetch profile data to ensure form reflects any backend-processed values
+            fetchUserProfile();
+
+        } catch (error) {
+            console.error('Profile: Error updating profile:', error);
+            if (error.message.includes('json') || error.message.includes('JSON')) {
+                showMessage(`Failed to update profile. Server sent an invalid response. Check your backend console.`, 'danger');
+            } else {
+                showMessage(`Failed to update profile: ${error.message}`, 'danger');
+            }
+        }
+    });
+
+    // Initial fetch of user profile data when the page loads
+    fetchUserProfile();
+
+    // Optional: Basic local preview for avatar upload (does not save to backend)
+    avatarUpload.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                profileAvatar.src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
 });

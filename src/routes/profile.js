@@ -10,14 +10,15 @@ const User = require('../models/User'); // Your User model
 router.get('/me', auth, async (req, res) => {
     try {
         // req.user is populated by the auth middleware (from middleware/auth.js)
-        const user = await User.findById(req.user.id).select('-password -role -createdAt'); // Exclude sensitive/admin fields
+        // Exclude password and Mongoose's internal __v field from the response
+        const user = await User.findById(req.user.id).select('-password -__v');
         if (!user) {
-            return res.status(404).json({ msg: 'User profile not found' });
+            return res.status(404).json({ msg: 'User profile not found.' });
         }
         res.json(user);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('GET /api/profile/me Error:', err.message);
+        res.status(500).json({ msg: 'Server Error.' }); // Ensure JSON response for errors
     }
 });
 
@@ -40,31 +41,32 @@ router.put('/me', auth, async (req, res) => {
         profilePicture // If you add client-side handling for this
     } = req.body;
 
-    // Build profile fields object
+    // Build profile fields object to update
     const profileFields = {};
-    if (firstName) profileFields.firstName = firstName;
-    if (lastName) profileFields.lastName = lastName;
-    if (phone) profileFields.phone = phone;
-    if (dob) profileFields.dob = dob;
-    if (gender) profileFields.gender = gender;
-    if (activityStatus) profileFields.activityStatus = activityStatus;
-    // Ensure numerical fields are parsed correctly
-    if (startWeight !== undefined && startWeight !== null) profileFields.startWeight = parseFloat(startWeight);
-    if (currentWeight !== undefined && currentWeight !== null) profileFields.currentWeight = parseFloat(currentWeight);
-    if (goals) profileFields.goals = goals;
-    if (reason) profileFields.reason = reason;
-    if (profilePicture) profileFields.profilePicture = profilePicture; // Assuming this is a URL string
+    // Only add to profileFields if the value is explicitly provided (not undefined)
+    // This allows frontend to send only changed fields
+    if (firstName !== undefined) profileFields.firstName = firstName;
+    if (lastName !== undefined) profileFields.lastName = lastName;
+    if (phone !== undefined) profileFields.phone = phone;
+    if (dob !== undefined) profileFields.dob = dob; // Mongoose will handle Date parsing if valid format
+    if (gender !== undefined) profileFields.gender = gender;
+    if (activityStatus !== undefined) profileFields.activityStatus = activityStatus;
+    // Handle numerical fields: convert empty string to null, otherwise parse float
+    if (startWeight !== undefined) profileFields.startWeight = startWeight === null || startWeight === '' ? null : parseFloat(startWeight);
+    if (currentWeight !== undefined) profileFields.currentWeight = currentWeight === null || currentWeight === '' ? null : parseFloat(currentWeight);
+    if (goals !== undefined) profileFields.goals = goals;
+    if (reason !== undefined) profileFields.reason = reason;
+    if (profilePicture !== undefined) profileFields.profilePicture = profilePicture; // Assuming this is a URL string
 
     try {
         let user = await User.findById(req.user.id);
 
         if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
+            return res.status(404).json({ msg: 'User not found.' });
         }
 
-        // Prevent users from changing their role or email via this route
-        // Password changes should be handled by a separate /change-password route
-        if (req.body.role || req.body.email || req.body.password) {
+        // IMPORTANT: Prevent users from changing their email, password, or role via this route
+        if (req.body.email || req.body.password || req.body.role) {
             return res.status(400).json({ msg: 'Email, password, and role cannot be updated via this route.' });
         }
 
@@ -73,17 +75,18 @@ router.put('/me', auth, async (req, res) => {
             { _id: req.user.id }, // Find by authenticated user's ID
             { $set: profileFields },
             { new: true, runValidators: true } // Return the updated document and run schema validators
-        ).select('-password -role -createdAt'); // Exclude sensitive/admin fields from the response
+        ).select('-password -__v'); // Exclude sensitive fields from the response
 
         res.json({ msg: 'Profile updated successfully!', user });
 
     } catch (err) {
-        console.error(err.message);
-        // Handle potential validation errors (e.g., if a field is required and missing)
+        console.error('PUT /api/profile/me Error:', err.message);
+        // Handle Mongoose validation errors (e.g., enum mismatch, required field missing)
         if (err.name === 'ValidationError') {
-            return res.status(400).json({ msg: err.message });
+            const errors = Object.values(err.errors).map(el => el.message);
+            return res.status(400).json({ msg: errors.join(', ') });
         }
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Server Error.' }); // Ensure JSON response for errors
     }
 });
 
