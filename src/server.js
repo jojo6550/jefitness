@@ -35,7 +35,6 @@ connectDB();
 
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/profile', require('./routes/profile'));
 
 
 // Basic test route
