@@ -24,15 +24,11 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="workout-programs.html">Workout Programs</a></li>
-                    <li class="nav-item"><a class="nav-link" href="schedule.html">Schedule</a></li>
-                    <li class="nav-item"><a class="nav-link" href="nutrition-tracker.html">Nutrition</a></li>
-                    <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
-                    <li class="nav-item"><a class="nav-link" href="admin-dashboard.html">Admin</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
-                </ul>
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link active" href="dashboard.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="workout-programs.html">Workout Programs</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
+      </ul>
             </div>
         </div>
     </nav>
@@ -42,19 +38,16 @@
         <div class="welcome-section text-center mb-5 p-4 rounded-4 shadow-sm">
             <h1 class="display-4 fw-bold text-primary mb-3">Welcome Back TO JEFITNESS876!</h1>
             <p class="lead text-muted">Your fitness journey continues. Here's a quick look at your progress and what's next.</p>
-            <!-- Removed Log Workout button from here -->
         </div>
 
         <!-- Quick Stats Section (Removed all cards from here) -->
-        <!-- You can add other content here if desired, or remove this div if it's empty -->
         <div class="row g-4 mb-5">
             <div class="col-12 text-center text-muted">
                 <p>No quick stats currently displayed. Explore other sections!</p>
             </div>
         </div>
 
-
-        <!-- Main Navigation Cards (These remain unchanged) -->
+        <!-- Main Navigation Cards -->
         <div class="row g-4">
             <div class="col-md-6 col-lg-4">
                 <div class="dashboard-nav-card card p-4 shadow-sm h-100">
@@ -79,6 +72,16 @@
             <div class="col-md-6 col-lg-4">
                 <div class="dashboard-nav-card card p-4 shadow-sm h-100">
                     <div class="card-icon mb-3">
+                        <i class="bi bi-egg-fried text-danger"></i>
+                    </div>
+                    <h3 class="card-title">Nutrition Tracker</h3>
+                    <p class="card-text text-muted">Log your meals, track macros, and monitor your daily caloric intake.</p>
+                    <a href="nutrition-tracker.html" class="btn btn-outline-danger mt-auto">Track Nutrition <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100">
+                    <div class="card-icon mb-3">
                         <i class="bi bi-calendar-event-fill text-info"></i>
                     </div>
                     <h3 class="card-title">Your Schedule</h3>
@@ -86,6 +89,55 @@
                     <a href="schedule.html" class="btn btn-outline-info mt-auto">View Schedule <i class="bi bi-arrow-right"></i></a>
                 </div>
             </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-stopwatch-fill text-warning"></i>
+                    </div>
+                    <h3 class="card-title">Workout Timer</h3>
+                    <p class="card-text text-muted">A simple timer for your workout intervals and rest periods.</p>
+                    <a href="timer.html" class="btn btn-outline-warning mt-auto">Go to Timer <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+            <!-- NEW: Sleep Tracker Card -->
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100 bg-light border-dark border-3">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-moon-stars-fill text-dark"></i>
+                    </div>
+                    <h3 class="card-title">Sleep Tracker</h3>
+                    <p class="card-text mb-2">
+                        Track your sleep patterns and ensure you're getting enough rest for recovery.
+                        <br><strong id="lastSleepHoursDisplay">Last Log: Not logged</strong>
+                    </p>
+                    <p class="card-text text-muted small">Aim for 7-9 hours!</p>
+                    <a href="sleep-tracker.html" class="btn btn-outline-dark mt-auto">View Sleep Data <i class="bi bi-arrow-right"></i></a>
+                    <button class="btn btn-sm btn-dark mt-2" data-bs-toggle="modal" data-bs-target="#sleepLogModal">Log Sleep</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sleep Log Modal -->
+    <div class="modal fade" id="sleepLogModal" tabindex="-1" aria-labelledby="sleepLogModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sleepLogModalLabel">Log Your Sleep</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sleepLogForm">
+                        <div class="mb-3">
+                            <label for="sleepHoursInput" class="form-label">Hours of Sleep</label>
+                            <input type="number" class="form-control" id="sleepHoursInput" placeholder="e.g., 7.5" step="0.5" min="0" max="24" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Save Sleep</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/dashboard.js"></script>
