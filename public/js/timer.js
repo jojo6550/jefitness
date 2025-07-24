@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Timer Variables ---
     let timerInterval; // Stores the setInterval ID for the main timer countdown
     let timeLeft = 0; // Time in seconds
+    let totalTime = 0; // Total time set for the timer in seconds
     let isRunning = false;
 
     // --- Helper Functions ---
@@ -78,10 +79,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const formattedSeconds = String(remainingSeconds).padStart(2, '0');
         return `${formattedMinutes}:${formattedSeconds}`;
     }
+    
+    // Get the progress ring circle element
+    const timerRingProgress = document.querySelector('.timer-ring-progress');
 
-    // Updates the timer display
+    // Updates the timer display and progress ring
     function updateDisplay() {
         timerDisplay.textContent = formatTime(timeLeft);
+        if (timeLeft > 0 && totalTime > 0) {
+            const progress = timeLeft / totalTime;
+            const dashoffset = 439.82 * progress;
+            timerRingProgress.style.strokeDashoffset = dashoffset;
+        } else {
+            timerRingProgress.style.strokeDashoffset = 439.82;
+        }
     }
 
     // --- Timer Core Logic ---
@@ -137,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function setTimer(minutes, seconds) {
         pauseTimer(); // Pause current timer and clear any active alarm
         timeLeft = (minutes * 60) + seconds;
+        totalTime = timeLeft;
         updateDisplay();
     }
 
@@ -167,6 +179,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 const seconds = parseInt(this.dataset.seconds);
                 setTimer(minutes, seconds);
             });
+        });
+    }
+
+    // Custom time input elements
+    const customMinutesInput = document.getElementById('customMinutes');
+    const customSecondsInput = document.getElementById('customSeconds');
+    const setCustomTimeBtn = document.getElementById('setCustomTimeBtn');
+
+    if (setCustomTimeBtn) {
+        setCustomTimeBtn.addEventListener('click', () => {
+            let minutes = parseInt(customMinutesInput.value);
+            let seconds = parseInt(customSecondsInput.value);
+
+            if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+                showCustomAlert("Please enter a valid number of minutes (0-59).");
+                return;
+            }
+            if (isNaN(seconds) || seconds < 0 || seconds > 59) {
+                showCustomAlert("Please enter a valid number of seconds (0-59).");
+                return;
+            }
+            if (minutes === 0 && seconds === 0) {
+                showCustomAlert("Please enter a time greater than 0.");
+                return;
+            }
+
+            setTimer(minutes, seconds);
         });
     }
 

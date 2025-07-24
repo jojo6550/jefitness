@@ -587,3 +587,111 @@ footer i:hover {
     padding-top: 0;
 }
 
+/* Timer Page Styles */
+.timer-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.timer-ring-container {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 1.5rem auto;
+}
+
+.timer-ring {
+    transform: rotate(-90deg);
+}
+
+.timer-ring-bg {
+    stroke: #e6e6e6;
+}
+
+.timer-ring-progress {
+    stroke: #0d6efd; /* Bootstrap primary blue */
+    stroke-dasharray: 439.82; /* 2 * PI * 70 (radius) */
+    stroke-dashoffset: 439.82;
+    transition: stroke-dashoffset 1s linear;
+}
+
+.timer-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3.5rem;
+    font-weight: 700;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #0d6efd;
+    user-select: none;
+    text-shadow: 0 0 8px rgba(13, 110, 253, 0.5);
+}
+
+.timer-controls button {
+    min-width: 120px;
+    font-size: 1.1rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#startPauseBtn.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+#startPauseBtn.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+#startPauseBtn.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #212529;
+}
+
+#startPauseBtn.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+    color: #212529;
+}
+
+#resetBtn.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+#resetBtn.btn-danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+
+.timer-presets {
+    margin-top: 1rem;
+}
+
+.timer-presets button {
+    margin: 0 0.25rem 0.5rem 0.25rem;
+    min-width: 60px;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.timer-presets button:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.timer-presets button:active {
+    background-color: #0a58ca;
+    color: white;
+}
+

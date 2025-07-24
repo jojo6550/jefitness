@@ -41,7 +41,13 @@
     <main class="container my-5">
         <div class="timer-container">
             <h2 class="mb-4 display-5 fw-bold text-primary">Workout Timer</h2>
-            <div id="timerDisplay">00:00</div>
+            <div class="timer-ring-container">
+                <svg class="timer-ring" width="160" height="160" viewBox="0 0 160 160">
+                    <circle class="timer-ring-bg" cx="80" cy="80" r="70" stroke-width="10" fill="none" />
+                    <circle class="timer-ring-progress" cx="80" cy="80" r="70" stroke-width="10" fill="none" stroke-linecap="round" />
+                </svg>
+                <div id="timerDisplay" class="timer-display">00:00</div>
+            </div>
             <div class="timer-controls mb-4">
                 <button id="startPauseBtn" class="btn btn-primary"><i class="bi bi-play-fill me-2"></i>Start</button>
                 <button id="resetBtn" class="btn btn-danger"><i class="bi bi-arrow-counterclockwise me-2"></i>Reset</button>
@@ -53,6 +59,15 @@
                 <button class="btn btn-outline-secondary btn-sm" data-minutes="2" data-seconds="0">2:00</button>
                 <button class="btn btn-outline-secondary btn-sm" data-minutes="5" data-seconds="0">5:00</button>
                 <button class="btn btn-outline-secondary btn-sm" data-minutes="10" data-seconds="0">10:00</button>
+            </div>
+            <div class="custom-timer-input mt-4">
+                <h5 class="text-muted mb-3">Set Custom Time:</h5>
+                <div class="input-group justify-content-center">
+                    <input type="number" id="customMinutes" class="form-control form-control-sm" placeholder="Minutes" min="0" max="59" aria-label="Minutes" style="max-width: 80px;">
+                    <span class="input-group-text">:</span>
+                    <input type="number" id="customSeconds" class="form-control form-control-sm" placeholder="Seconds" min="0" max="59" aria-label="Seconds" style="max-width: 80px;">
+                    <button id="setCustomTimeBtn" class="btn btn-outline-primary btn-sm ms-2">Set Time</button>
+                </div>
             </div>
         </div>
     </main>
