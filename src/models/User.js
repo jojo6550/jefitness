@@ -1,6 +1,17 @@
 // models/User.js
 const mongoose = require('mongoose');
 
+const NutritionLogSchema = new mongoose.Schema({
+    id: { type: Number, required: true },
+    date: { type: String, required: true },
+    mealType: { type: String, required: true },
+    foodItem: { type: String, required: true },
+    calories: { type: Number, required: true },
+    protein: { type: Number, required: true },
+    carbs: { type: Number, required: true },
+    fats: { type: Number, required: true }
+});
+
 const UserSchema = new mongoose.Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
@@ -32,6 +43,9 @@ const UserSchema = new mongoose.Schema({
     currentWeight: { type: Number },
     goals: { type: String },
     reason: { type: String },
+
+    // New nutrition logs field
+    nutritionLogs: [NutritionLogSchema]
 });
 
 module.exports = mongoose.model('User', UserSchema);

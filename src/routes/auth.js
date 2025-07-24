@@ -108,7 +108,7 @@ router.post('/login', async (req, res) => {
 });
 
 // @route   GET /api/auth/me
-// @desc    Get logged in user's basic details (for session check)
+// @desc    Get logged in user's full profile details (for session check and profile preload)
 // @access  Private
 router.get('/me', auth, async (req, res) => {
     try {
@@ -122,8 +122,141 @@ router.get('/me', auth, async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            role: user.role // Include role in response
+            role: user.role,
+            dob: user.dob,
+            gender: user.gender,
+            phone: user.phone,
+            activityStatus: user.activityStatus,
+            startWeight: user.startWeight,
+            currentWeight: user.currentWeight,
+            goals: user.goals,
+            reason: user.reason,
+            createdAt: user.createdAt
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+/**
+ * @route   PUT /api/auth/profile
+ * @desc    Update logged in user's profile information
+ * @access  Private
+ */
+router.put('/profile', auth, async (req, res) => {
+    const {
+        firstName,
+        lastName,
+        dob,
+        gender,
+        phone,
+        activityStatus,
+        startWeight,
+        currentWeight,
+        goals,
+        reason
+    } = req.body;
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Update fields if provided
+        if (firstName !== undefined) user.firstName = firstName;
+        if (lastName !== undefined) user.lastName = lastName;
+        if (dob !== undefined) user.dob = dob;
+        if (gender !== undefined) user.gender = gender;
+        if (phone !== undefined) user.phone = phone;
+        if (activityStatus !== undefined) user.activityStatus = activityStatus;
+        if (startWeight !== undefined) user.startWeight = startWeight;
+        if (currentWeight !== undefined) user.currentWeight = currentWeight;
+        if (goals !== undefined) user.goals = goals;
+        if (reason !== undefined) user.reason = reason;
+
+        await user.save();
+
+        res.json({
+            msg: 'Profile updated successfully',
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                dob: user.dob,
+                gender: user.gender,
+                phone: user.phone,
+                activityStatus: user.activityStatus,
+                startWeight: user.startWeight,
+                currentWeight: user.currentWeight,
+                goals: user.goals,
+                reason: user.reason,
+                createdAt: user.createdAt
+            }
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// GET /api/auth/nutrition - Get logged-in user's nutrition logs
+router.get('/nutrition', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('nutritionLogs');
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        res.json(user.nutritionLogs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// POST /api/auth/nutrition - Add a new meal log
+router.post('/nutrition', auth, async (req, res) => {
+    const { id, date, mealType, foodItem, calories, protein, carbs, fats } = req.body;
+    if (!id || !date || !mealType || !foodItem || calories === undefined || protein === undefined || carbs === undefined || fats === undefined) {
+        return res.status(400).json({ msg: 'Please provide all required fields' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        user.nutritionLogs.push({ id, date, mealType, foodItem, calories, protein, carbs, fats });
+        await user.save();
+
+        res.status(201).json({ msg: 'Meal log added', nutritionLogs: user.nutritionLogs });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// DELETE /api/auth/nutrition/:id - Delete a meal log by id
+router.delete('/nutrition/:id', auth, async (req, res) => {
+    const mealId = parseInt(req.params.id);
+    if (isNaN(mealId)) {
+        return res.status(400).json({ msg: 'Invalid meal id' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        user.nutritionLogs = user.nutritionLogs.filter(meal => meal.id !== mealId);
+        await user.save();
+
+        res.json({ msg: 'Meal log deleted', nutritionLogs: user.nutritionLogs });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
