@@ -32,7 +32,6 @@ const UserSchema = new mongoose.Schema({
     currentWeight: { type: Number },
     goals: { type: String },
     reason: { type: String },
-    profilePicture: { type: String, default: '/images/default-avatar.png' }
 });
 
 module.exports = mongoose.model('User', UserSchema);
