@@ -45,7 +45,19 @@ const UserSchema = new mongoose.Schema({
     reason: { type: String },
 
     // New nutrition logs field
-    nutritionLogs: [NutritionLogSchema]
+    nutritionLogs: [NutritionLogSchema],
+
+    // New schedule field to store weekly plans and last reset timestamp
+    schedule: {
+        lastReset: { type: Date, default: Date.now },
+        plans: [
+            {
+                day: { type: String, required: true }, // e.g., 'monday'
+                planTitles: [{ type: String }], // Array of plan titles for the day
+                notes: { type: String }
+            }
+        ]
+    }
 });
 
 module.exports = mongoose.model('User', UserSchema);

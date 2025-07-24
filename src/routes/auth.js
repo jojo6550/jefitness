@@ -263,4 +263,49 @@ router.delete('/nutrition/:id', auth, async (req, res) => {
     }
 });
 
+/**
+ * @route   GET /api/auth/schedule
+ * @desc    Get logged in user's schedule
+ * @access  Private
+ */
+router.get('/schedule', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('schedule');
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+        res.json(user.schedule);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+/**
+ * @route   PUT /api/auth/schedule
+ * @desc    Update logged in user's schedule
+ * @access  Private
+ */
+router.put('/schedule', auth, async (req, res) => {
+    const { schedule } = req.body;
+    if (!schedule) {
+        return res.status(400).json({ msg: 'Schedule data is required' });
+    }
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        user.schedule = schedule;
+        await user.save();
+
+        res.json({ msg: 'Schedule updated successfully', schedule: user.schedule });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;
