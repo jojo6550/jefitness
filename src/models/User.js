@@ -47,6 +47,14 @@ const UserSchema = new mongoose.Schema({
     // New nutrition logs field
     nutritionLogs: [NutritionLogSchema],
 
+    // New sleep logs field
+    sleepLogs: [
+        {
+            date: { type: Date, required: true },
+            hoursSlept: { type: Number, required: true, min: 0, max: 24 }
+        }
+    ],
+
     // New schedule field to store weekly plans and last reset timestamp
     schedule: {
         lastReset: { type: Date, default: Date.now },
