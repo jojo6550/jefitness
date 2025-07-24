@@ -1,0 +1,11 @@
+</head>
+
+<body class="dashboard-page">
+=======
+    <link rel="manifest" href="../favicons/site.webmanifest">
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="dashboard-page">

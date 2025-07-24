@@ -695,3 +695,54 @@ footer i:hover {
     color: white;
 }
 
+
+/* --- View Statistics Page Specific Styles --- */
+.view-statics-page {
+    background-color: #f0f2f5; /* A very light grey background */
+}
+
+.view-statics-page .main-container {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+}
+
+.view-statics-page .display-4 {
+    color: #2c3e50; /* A darker, more sophisticated blue-grey for headings */
+    font-weight: 700;
+    margin-bottom: 2.5rem; /* More space below the main title */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05); /* Subtle text shadow */
+}
+
+.view-statics-page .card {
+    background-color: #ffffff;
+    border: none; /* Remove default bootstrap border */
+    border-radius: 1rem; /* More rounded corners for cards */
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.08); /* A nicer, softer shadow */
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.view-statics-page .card:hover {
+    transform: translateY(-5px); /* Slight lift effect on hover */
+    box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.12); /* Enhanced shadow on hover */
+}
+
+.view-statics-page .card-title {
+    font-size: 1.75rem; /* Larger and more prominent card titles */
+    color: #34495e; /* Dark blue-grey for card titles */
+    font-weight: 600;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef; /* Subtle separator line */
+    margin-bottom: 1.5rem; /* Space below the separator */
+    text-align: center; /* Center the card titles */
+}
+
+/* Canvas styling for charts */
+.view-statics-page canvas {
+    max-width: 100%; /* Ensure charts are responsive */
+    height: auto; /* Maintain aspect ratio */
+}
+
+/* Optional: Add some padding to the body if the navbar is fixed-top */
+body.view-statics-page {
+    padding-top: 70px; /* Adjust if your navbar height is different */
+}
