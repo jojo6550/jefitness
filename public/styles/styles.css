@@ -708,6 +708,62 @@ footer i:hover {
     padding-bottom: 3rem;
 }
 
+/* --- PROFILE CARD ENHANCEMENTS --- */
+.profile-card-enhanced {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.6);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+}
+
+.profile-card-enhanced:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.8);
+}
+
+.profile-card-enhanced .card-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #d1c4e9;
+    transition: color 0.3s ease;
+}
+
+.profile-card-enhanced .animate-icon:hover {
+    color: #ffffff;
+    animation: pulse 1.5s infinite;
+}
+
+.btn-profile-cta {
+    background-color: #5a357a;
+    border: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 12px 24px;
+    border-radius: 50px;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 12px rgba(90, 53, 122, 0.6);
+}
+
+.btn-profile-cta:hover {
+    background-color: #764ba2;
+    box-shadow: 0 6px 18px rgba(118, 75, 162, 0.8);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+}
+
 .view-statics-page .display-4 {
     color: #2c3e50; /* A darker, more sophisticated blue-grey for headings */
     font-weight: 700;
