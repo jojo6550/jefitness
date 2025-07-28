@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderSleepChart(sleepLogs) {
     const ctx = document.getElementById("sleepChart").getContext("2d");
-    const labels = sleepLogs.map(log => new Date(log.date).toLocaleDateString());
+const labels = sleepLogs.map(log => new Date(log.date).toISOString().split('T')[0]);
     const data = sleepLogs.map(log => log.hoursSlept);
 
     if (sleepChart) {
