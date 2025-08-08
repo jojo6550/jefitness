@@ -30,7 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (res.ok) {
           localStorage.setItem('token', data.token);
-          window.location.href = '../pages/dashboard.html';
+          localStorage.setItem('userRole', data.user.role);
+          
+          // Role-based redirection
+          if (data.user.role === 'admin') {
+            window.location.href = '../pages/admin-dashboard.html';
+          } else {
+            window.location.href = '../pages/dashboard.html';
+          }
         } else {
           showMessage(data.msg || 'Login failed');
         }
