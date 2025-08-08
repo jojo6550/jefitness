@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const baseUrl = isLocalhost
     ? 'http://localhost:5000'
-    : 'https://your-backend-url.com'; // Replace with your real backend if deployed
+    : 'http://localhost:5001'; // Replace with your real backend if deployed
 
 
   // LOGIN
