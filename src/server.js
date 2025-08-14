@@ -1,35 +1,27 @@
-// server.js (or app.js)
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 
-
-// Load environment variables from .env file
 dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(express.json()); // Body parser for JSON requests
-app.use(cors()); // Enable CORS for all routes (adjust as needed for security in production)
+app.use(express.json());
+app.use(cors());
 
 // Serve static files from the 'public' directory
-// IMPORTANT: Ensure your frontend files (HTML, CSS, JS, images, favicons)
-// are organized within a 'public' folder at the root of your backend project.
-app.use(express.static('public')); // <--- ADDED THIS LINE
+app.use(express.static('public'));
 
 // Connect to MongoDB
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
-            // useCreateIndex: true, // Deprecated in Mongoose 6+
-            // useFindAndModify: false // Deprecated in Mongoose 6+
-        });
+        await mongoose.connect(process.env.MONGO_URI);
         console.log('MongoDB Connected...');
     } catch (err) {
         console.error('MongoDB Connection Error:', err.message);
-        process.exit(1); // Exit process with failure
+        process.exit(1);
     }
 };
 connectDB();
@@ -38,19 +30,14 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', require('./routes/sleep'));
 
-
-
-
-
 // Basic test route
 app.get('/', (req, res) => res.send('API Running'));
 
-// Generic Error Handling Middleware (IMPORTANT for catching unhandled errors and sending JSON)
-// This should be placed after all your routes
+// Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('Unhandled Server Error:', err.stack); // Log the full error stack for debugging
-    if (res.headersSent) { // Check if headers have already been sent
-        return next(err); // If so, defer to default Express error handler
+    console.error('Unhandled Server Error:', err.stack);
+    if (res.headersSent) {
+        return next(err);
     }
     res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
