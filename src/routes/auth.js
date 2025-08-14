@@ -306,6 +306,23 @@ router.put('/schedule', auth, async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
+
+// GET all clients (Admin only)
+router.get('/clients', auth, async (req, res) => {
+    try {
+        // Only allow admins
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ msg: 'Access denied: Admins only' });
+        }
+
+        const users = await User.find().select('-password'); // Exclude password
+        res.json(users);
+    } catch (err) {
+        console.error('Get Clients Error:', err.message);
+        res.status(500).json({ msg: 'Server error' });
+    }
+});
+
 });
 
 module.exports = router;

@@ -29,6 +29,8 @@ connectDB();
 // Define Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', require('./routes/sleep'));
+app.use('/api/clients', require('./routes/clients'));
+
 
 // Basic test route
 app.get('/', (req, res) => res.send('API Running'));
