@@ -177,6 +177,8 @@ function updatePagination(pagination) {
 function updateStatistics(clients) {
     const totalClientsCount = document.getElementById('totalClientsCount');
     const activeClientsCount = document.getElementById('activeClientsCount');
+    const avgCaloriesCount = document.getElementById('avgCaloriesCount');
+    const avgSleepCount = document.getElementById('avgSleepCount');
     
     if (totalClientsCount) {
         totalClientsCount.textContent = clients.length;
@@ -185,6 +187,46 @@ function updateStatistics(clients) {
     if (activeClientsCount) {
         const activeClients = clients.filter(client => client.activityStatus === 'active');
         activeClientsCount.textContent = activeClients.length;
+    }
+    
+    // Use same mock data as reports for consistency
+    if (avgCaloriesCount) {
+        const avgCalories = Math.round(Math.random() * 500 + 1800);
+        avgCaloriesCount.textContent = avgCalories;
+    }
+    
+    if (avgSleepCount) {
+        const avgSleep = (Math.random() * 2 + 6.5).toFixed(1);
+        avgSleepCount.textContent = avgSleep;
+    }
+
+    // Update top clients with dynamic data
+    updateTopClients(clients);
+}
+
+// Update top clients with dynamic data
+function updateTopClients(clients) {
+    if (clients.length === 0) return;
+
+    // Top calorie burner (mock data)
+    const topCalorieClient = clients[0];
+    const topCalorieElement = document.querySelector('#top-clients-section .bg-red-100 p.text-xl');
+    if (topCalorieElement) {
+        topCalorieElement.textContent = `${topCalorieClient.firstName || 'Client'} ${topCalorieClient.lastName || ''}`;
+    }
+
+    // Best sleeper (mock data)
+    const bestSleeperClient = clients.length > 1 ? clients[1] : clients[0];
+    const bestSleeperElement = document.querySelector('#top-clients-section .bg-indigo-100 p.text-xl');
+    if (bestSleeperElement) {
+        bestSleeperElement.textContent = `${bestSleeperClient.firstName || 'Client'} ${bestSleeperClient.lastName || ''}`;
+    }
+
+    // Most active (mock data)
+    const mostActiveClient = clients.length > 2 ? clients[2] : clients[0];
+    const mostActiveElement = document.querySelector('#top-clients-section .bg-green-100 p.text-xl');
+    if (mostActiveElement) {
+        mostActiveElement.textContent = `${mostActiveClient.firstName || 'Client'} ${mostActiveClient.lastName || ''}`;
     }
 }
 
