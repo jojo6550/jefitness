@@ -207,12 +207,30 @@
             <!-- Reports Section -->
             <section id="reports-section" class="mb-12">
                 <div class="bg-white rounded-lg shadow-lg">
-                    <div class="p-6 border-b border-gray-200">
+                    <div class="p-6 border-b border-gray-200 flex justify-between items-center">
                         <h2 class="text-2xl font-semibold text-gray-700">Reports</h2>
+                        <div class="flex space-x-2">
+                            <button data-filter="all" class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">All</button>
+                            <button data-filter="active" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Active</button>
+                            <button data-filter="inactive" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">Inactive</button>
+                            <button data-filter="new" class="px-3 py-1 bg-gray-200 text-gray-700 rounded text-sm hover:bg-gray-300">New</button>
+                            <button data-export="csv" class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600">Export CSV</button>
+                            <button data-export="pdf" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">Export PDF</button>
+                        </div>
                     </div>
-                    <div class="p-6 text-gray-500">
-                        <!-- Report content would be populated here dynamically -->
-                        <p>...</p>
+                    <div class="p-6">
+                        <div id="reports-error"></div>
+                        <div id="reports-summary" class="mb-6"></div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <div id="activity-chart"></div>
+                            <div id="client-breakdown"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div id="top-performers"></div>
+                            <div id="recent-activity"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -255,6 +273,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/admin-dashboard.js" defer></script>
+    <script src="../js/reports.js" defer></script>
 
     <script src="../js/logout.js" defer></script> 
     <script src="../js/role-guard.js" defer></script>
