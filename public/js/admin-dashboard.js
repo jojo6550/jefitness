@@ -173,60 +173,65 @@ function updatePagination(pagination) {
     paginationContainer.appendChild(nextLi);
 }
 
-// Update statistics
-function updateStatistics(clients) {
-    const totalClientsCount = document.getElementById('totalClientsCount');
-    const activeClientsCount = document.getElementById('activeClientsCount');
-    const avgCaloriesCount = document.getElementById('avgCaloriesCount');
-    const avgSleepCount = document.getElementById('avgSleepCount');
-    
-    if (totalClientsCount) {
-        totalClientsCount.textContent = clients.length;
-    }
-    
-    if (activeClientsCount) {
-        const activeClients = clients.filter(client => client.activityStatus === 'active');
-        activeClientsCount.textContent = activeClients.length;
-    }
-    
-    // Use same mock data as reports for consistency
-    if (avgCaloriesCount) {
-        const avgCalories = Math.round(Math.random() * 500 + 1800);
-        avgCaloriesCount.textContent = avgCalories;
-    }
-    
-    if (avgSleepCount) {
-        const avgSleep = (Math.random() * 2 + 6.5).toFixed(1);
-        avgSleepCount.textContent = avgSleep;
-    }
+// Update statistics from database
+async function updateStatistics() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/clients/statistics`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
 
-    // Update top clients with dynamic data
-    updateTopClients(clients);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const stats = await response.json();
+        
+        const totalClientsCount = document.getElementById('totalClientsCount');
+        const activeClientsCount = document.getElementById('activeClientsCount');
+        const avgCaloriesCount = document.getElementById('avgCaloriesCount');
+        const avgSleepCount = document.getElementById('avgSleepCount');
+        
+        if (totalClientsCount) {
+            totalClientsCount.textContent = stats.totalClients;
+        }
+        
+        if (activeClientsCount) {
+            activeClientsCount.textContent = stats.activeClients;
+        }
+        
+        if (avgCaloriesCount) {
+            avgCaloriesCount.textContent = stats.avgCalories;
+        }
+        
+        if (avgSleepCount) {
+            avgSleepCount.textContent = stats.avgSleep;
+        }
+
+        // Update top clients with database data
+        updateTopClientsFromStats(stats.topPerformers);
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+    }
 }
 
-// Update top clients with dynamic data
-function updateTopClients(clients) {
-    if (clients.length === 0) return;
-
-    // Top calorie burner (mock data)
-    const topCalorieClient = clients[0];
+// Update top clients with database statistics
+function updateTopClientsFromStats(topPerformers) {
     const topCalorieElement = document.querySelector('#top-clients-section .bg-red-100 p.text-xl');
-    if (topCalorieElement) {
-        topCalorieElement.textContent = `${topCalorieClient.firstName || 'Client'} ${topCalorieClient.lastName || ''}`;
+    if (topCalorieElement && topPerformers.topCalorieBurner) {
+        topCalorieElement.textContent = topPerformers.topCalorieBurner.name;
     }
 
-    // Best sleeper (mock data)
-    const bestSleeperClient = clients.length > 1 ? clients[1] : clients[0];
     const bestSleeperElement = document.querySelector('#top-clients-section .bg-indigo-100 p.text-xl');
-    if (bestSleeperElement) {
-        bestSleeperElement.textContent = `${bestSleeperClient.firstName || 'Client'} ${bestSleeperClient.lastName || ''}`;
+    if (bestSleeperElement && topPerformers.bestSleeper) {
+        bestSleeperElement.textContent = topPerformers.bestSleeper.name;
     }
 
-    // Most active (mock data)
-    const mostActiveClient = clients.length > 2 ? clients[2] : clients[0];
     const mostActiveElement = document.querySelector('#top-clients-section .bg-green-100 p.text-xl');
-    if (mostActiveElement) {
-        mostActiveElement.textContent = `${mostActiveClient.firstName || 'Client'} ${mostActiveClient.lastName || ''}`;
+    if (mostActiveElement && topPerformers.mostActive) {
+        mostActiveElement.textContent = topPerformers.mostActive.name;
     }
 }
 
