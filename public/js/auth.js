@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
 const baseUrl = isLocalhost
-    ? 'https://jojo6550-github-io.onrender.com'
+    ? 'http://localhost:10000'
     : 'https://jojo6550-github-io.onrender.com'; // Replace with your real backend if deployed
 
 
