@@ -1,7 +1,7 @@
 // Dynamic Reports Module for Admin Dashboard
 class ClientReports {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:5000';
+this.apiBaseUrl = 'https://jojo6550-github-io.onrender.com';
         this.token = localStorage.getItem('token');
         this.clients = [];
         this.filteredClients = [];

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('userProfileForm');
     const formMessage = document.getElementById('formMessage');
 
-    const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://jojo6550-github-io.onrender.com';
 
     // Helper to show messages
     function showMessage(message, type = 'success') {

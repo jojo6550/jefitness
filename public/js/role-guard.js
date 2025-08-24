@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function verifyToken(token) {
     try {
       const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      const baseUrl = isLocalhost ? 'http://localhost:5000' : 'http://localhost:5001';
+const baseUrl = isLocalhost ? 'https://jojo6550-github-io.onrender.com' : 'https://jojo6550-github-io.onrender.com';
       
       const response = await fetch(`${baseUrl}/api/auth/me`, {
         headers: {
