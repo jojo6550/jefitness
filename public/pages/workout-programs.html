@@ -22,11 +22,23 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="dashboard.html">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="workout-programs.html">Workout Programs</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
-                </ul>
+            <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+            <li class="nav-item"><a class="nav-link" href="sleep-tracker.html">Sleep Tracker</a></li>
+            <li class="nav-item"><a class="nav-link" href="timer.html">Timer</a></li>
+            <li class="nav-item"><a class="nav-link" href="view-statistics.html">View Statistics</a></li>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle active" href="#" id="programsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Programs
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="programsDropdown">
+                <li><a class="dropdown-item" href="programs/full-body-mobility.html">Full Body Mobility</a></li>
+                <li><a class="dropdown-item" href="programs/upper-lower-back-program.html">Upper Lower Back Program</a></li>
+              </ul>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
+          </ul>
             </div>
         </div>
     </nav>
@@ -71,57 +83,6 @@
                     </div>
                 </div>
             </div>
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="card-title fw-bold text-danger mb-3">4 Day Powerlifting Foundation</h4>
-                        <p class="card-text text-muted mb-4">
-                            Build a strong base in powerlifting with this 4-day beginner-friendly program focusing on squat, bench, and deadlift.
-                        </p>
-                        <ul class="list-unstyled mb-4">
-                            <li><i class="bi bi-calendar-event me-2 text-primary"></i>4 Days/Week</li>
-                            <li><i class="bi bi-bar-chart me-2 text-primary"></i>Beginner</li>
-                            <li><i class="bi bi-clock me-2 text-primary"></i>75-90 min/session</li>
-                        </ul>
-                        <a href="#" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="card-title fw-bold text-info mb-3">3 Day Home Bodyweight Challenge</h4>
-                        <p class="card-text text-muted mb-4">
-                            No gym? No problem! This 3-day program uses only your bodyweight to help you build strength and improve fitness from anywhere.
-                        </p>
-                        <ul class="list-unstyled mb-4">
-                            <li><i class="bi bi-calendar-event me-2 text-primary"></i>3 Days/Week</li>
-                            <li><i class="bi bi-bar-chart me-2 text-primary"></i>All Levels</li>
-                            <li><i class="bi bi-clock me-2 text-primary"></i>30-45 min/session</li>
-                        </ul>
-                        <a href="#" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="card-title fw-bold text-warning mb-3">6 Week Muscle Gain Journey</h4>
-                        <p class="card-text text-muted mb-4">
-                            A dedicated 6-week program focused on hypertrophy and building significant muscle mass. Ideal for those looking to bulk up.
-                        </p>
-                        <ul class="list-unstyled mb-4">
-                            <li><i class="bi bi-calendar-event me-2 text-primary"></i>4 Days/Week</li>
-                            <li><i class="bi bi-bar-chart me-2 text-primary"></i>Intermediate-Advanced</li>
-                            <li><i class="bi bi-clock me-2 text-primary"></i>60-80 min/session</li>
-                        </ul>
-                        <a href="#" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                </div>
-            </div>
-        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
