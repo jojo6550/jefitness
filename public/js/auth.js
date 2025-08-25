@@ -38,6 +38,26 @@ const baseUrl = isLocalhost
           } else {
             window.location.href = '../pages/dashboard.html';
           }
+        } else if (data.needsVerification) {
+          // Show verification message with option to resend
+          if (confirm(data.msg + '\n\nWould you like to resend the verification email?')) {
+            try {
+              const resendResponse = await fetch(`${baseUrl}/api/auth/resend-verification`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: loginForm.email.value })
+              });
+              
+              const resendData = await resendResponse.json();
+              if (resendResponse.ok) {
+                alert('Verification email sent! Please check your email.');
+              } else {
+                alert(resendData.msg || 'Failed to resend verification email.');
+              }
+            } catch (err) {
+              alert('Error resending verification email. Please try again later.');
+            }
+          }
         } else {
           showMessage(data.msg || 'Login failed');
         }
@@ -67,8 +87,8 @@ const baseUrl = isLocalhost
         const data = await response.json();
 
         if (response.ok) {
-          alert('Signup successful!');
-          window.location.href = '../pages/dashboard.html';
+          alert('Signup successful! Please check your email to verify your account before logging in.');
+          window.location.href = '../pages/login.html';
         } else {
           alert(data.msg || 'Signup failed.');
         }

@@ -27,6 +27,12 @@ const UserSchema = new mongoose.Schema({
             'Please fill a valid email address' // Custom error message for validation failure
         ]
     },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationToken: String,
+    verificationTokenExpires: Date,
     password: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
     role: {

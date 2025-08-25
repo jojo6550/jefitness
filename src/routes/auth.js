@@ -23,22 +23,24 @@ router.post('/signup', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Generate verification token
+        const crypto = require('crypto');
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
         const newUser = new User({
             firstName,
             lastName,
             email,
             password: hashedPassword,
-            role: 'user' // Default new signups to 'user' role
+            role: 'user', // Default new signups to 'user' role
+            verificationToken,
+            verificationTokenExpires
         });
 
         await newUser.save();
 
-        // Include role in JWT payload
-        const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
-        });
-
-        // Send confirmation email using SendGrid
+        // Send verification email using SendGrid
         const transporter = nodemailer.createTransport({
             host: 'smtp.sendgrid.net',
             port: 587,
@@ -49,32 +51,37 @@ router.post('/signup', async (req, res) => {
             },
         });
 
+        const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+        
         const mailOptions = {
             from: '"JE Fitness" <josiah.johnson6550@gmail.com>',
             to: email,
-            subject: 'Welcome to JE Fitness!',
-            text: `Hi ${firstName},\n\nThank you for signing up with JE Fitness. We're excited to have you onboard!\n\nBest,\nJE Fitness Team`,
+            subject: 'Verify Your JE Fitness Account',
+            text: `Hi ${firstName},\n\nThank you for signing up with JE Fitness! Please verify your email address by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.\n\nIf you didn't create this account, please ignore this email.\n\nBest regards,\nJE Fitness Team`,
             html: `<p>Hi <strong>${firstName}</strong>,</p>
-                   <p>Thank you for signing up with JE Fitness. We're excited to have you onboard!</p>
+                   <p>Thank you for signing up with JE Fitness! Please verify your email address by clicking the link below:</p>
+                   <p><a href="${verificationLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a></p>
+                   <p>This link will expire in 24 hours.</p>
+                   <p>If you didn't create this account, please ignore this email.</p>
                    <p>Best regards,<br>JE Fitness Team</p>`,
         };
 
         try {
             await transporter.sendMail(mailOptions);
-            console.log(`Confirmation email sent to ${email}`);
+            console.log(`Verification email sent to ${email}`);
         } catch (emailErr) {
             console.error('Email sending error:', emailErr.message);
-            // Do not stop signup because of email failure
+            // Continue with signup even if email fails
         }
 
         res.status(201).json({
-            msg: 'Signup successful!',
-            token,
+            msg: 'Signup successful! Please check your email to verify your account.',
             user: {
                 id: newUser._id,
                 name: `${newUser.firstName} ${newUser.lastName}`,
                 email: newUser.email,
-                role: newUser.role // Include role in response
+                role: newUser.role,
+                isVerified: false
             },
         });
 
@@ -96,14 +103,130 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
 
+        // Check if email is verified
+        if (!user.isVerified) {
+            return res.status(403).json({ 
+                msg: 'Please verify your email before logging in. Check your email for the verification link.',
+                needsVerification: true
+            });
+        }
+
         // Include role in JWT payload
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
         res.json({
             token,
-            user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
+            user: { 
+                id: user._id, 
+                name: `${user.firstName} ${user.lastName}`, 
+                email: user.email, 
+                role: user.role,
+                isVerified: user.isVerified
+            }
         });
     } catch (err) {
         res.status(500).json({ msg: 'Server error' });
+    }
+});
+
+// EMAIL VERIFICATION ROUTE
+router.get('/verify-email/:token', async (req, res) => {
+    const { token } = req.params;
+
+    try {
+        const user = await User.findOne({ 
+            verificationToken: token,
+            verificationTokenExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ 
+                msg: 'Invalid or expired verification token. Please request a new verification email.' 
+            });
+        }
+
+        // Update user to verified and clear verification token
+        user.isVerified = true;
+        user.verificationToken = undefined;
+        user.verificationTokenExpires = undefined;
+        await user.save();
+
+        res.json({ 
+            msg: 'Email verified successfully! You can now log in to your account.',
+            user: {
+                id: user._id,
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email,
+                isVerified: user.isVerified
+            }
+        });
+
+    } catch (err) {
+        console.error('Email verification error:', err.message);
+        res.status(500).json({ msg: 'Server error during email verification' });
+    }
+});
+
+// RESEND VERIFICATION EMAIL ROUTE
+router.post('/resend-verification', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ msg: 'Email is required' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ msg: 'Email is already verified' });
+        }
+
+        // Generate new verification token
+        const crypto = require('crypto');
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+        // Update user with new token
+        user.verificationToken = verificationToken;
+        user.verificationTokenExpires = verificationTokenExpires;
+        await user.save();
+
+        // Send verification email
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.sendgrid.net',
+            port: 587,
+            secure: false,
+            auth: {
+                user: 'apikey',
+                pass: process.env.SENDGRID_API_KEY,
+            },
+        });
+
+        const verificationLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+        
+        const mailOptions = {
+            from: '"JE Fitness" <josiah.johnson6550@gmail.com>',
+            to: email,
+            subject: 'Verify Your JE Fitness Account',
+            text: `Hi ${user.firstName},\n\nPlease verify your email address by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.\n\nBest regards,\nJE Fitness Team`,
+            html: `<p>Hi <strong>${user.firstName}</strong>,</p>
+                   <p>Please verify your email address by clicking the link below:</p>
+                   <p><a href="${verificationLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a></p>
+                   <p>This link will expire in 24 hours.</p>
+                   <p>Best regards,<br>JE Fitness Team</p>`,
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log(`Verification email resent to ${email}`);
+
+        res.json({ msg: 'Verification email sent successfully. Please check your email.' });
+
+    } catch (err) {
+        console.error('Resend verification error:', err.message);
+        res.status(500).json({ msg: 'Server error while resending verification email' });
     }
 });
 
@@ -307,6 +430,8 @@ router.put('/schedule', auth, async (req, res) => {
         res.status(500).send('Server Error');
     }
 
+});
+
 // GET all clients (Admin only)
 router.get('/clients', auth, async (req, res) => {
     try {
@@ -323,6 +448,5 @@ router.get('/clients', auth, async (req, res) => {
     }
 });
 
-});
 
 module.exports = router;
