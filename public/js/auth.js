@@ -67,8 +67,8 @@ const baseUrl = isLocalhost
         const data = await response.json();
 
         if (response.ok) {
-          alert('Signup successful!');
-          window.location.href = '../pages/dashboard.html';
+          localStorage.setItem('pendingEmail', email);
+          window.location.href = 'otp-verification.html';
         } else {
           alert(data.msg || 'Signup failed.');
         }
@@ -77,6 +77,69 @@ const baseUrl = isLocalhost
         alert('Signup failed. Please try again.');
       }
     });
+  }
+
+  // OTP VERIFICATION
+  const otpForm = document.getElementById('otp-form');
+  if (otpForm) {
+    // Pre-fill email from localStorage
+    const pendingEmail = localStorage.getItem('pendingEmail');
+    if (pendingEmail) {
+      document.getElementById('inputEmail').value = pendingEmail;
+    }
+
+    otpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('inputEmail').value;
+      const otp = document.getElementById('inputOtp').value;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('userRole', data.user.role);
+          localStorage.removeItem('pendingEmail');
+          // Role-based redirection
+          if (data.user.role === 'admin') {
+            window.location.href = '../pages/admin-dashboard.html';
+          } else {
+            window.location.href = '../pages/dashboard.html';
+          }
+        } else {
+          alert(data.msg || 'OTP verification failed.');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Verification failed. Please try again.');
+      }
+    });
+
+    // Resend OTP
+    const resendBtn = document.getElementById('resendOtp');
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        const email = document.getElementById('inputEmail').value;
+        try {
+          const response = await fetch(`${baseUrl}/api/auth/resend-otp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          const data = await response.json();
+          alert(data.msg || 'OTP sent.');
+        } catch (err) {
+          alert('Failed to resend OTP.');
+        }
+      });
+    }
   }
 
   function showMessage(msg) {
