@@ -156,7 +156,6 @@ async function showUserDetails(userId) {
             { label: 'First Name', value: user.firstName },
             { label: 'Last Name', value: user.lastName },
             { label: 'Email', value: user.email },
-            { label: 'Role', value: user.role },
             { label: 'Date of Birth', value: user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A' },
             { label: 'Gender', value: user.gender || 'N/A' },
             { label: 'Phone', value: user.phone || 'N/A' },
