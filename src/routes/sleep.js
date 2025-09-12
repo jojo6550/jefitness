@@ -52,6 +52,11 @@ router.post('/', auth, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Initialize sleepLogs if it doesn't exist (for backward compatibility)
+    if (!user.sleepLogs) {
+      user.sleepLogs = [];
+    }
+
     // Check if a log for the date already exists
     const existingLogIndex = user.sleepLogs.findIndex(log => new Date(log.date).toDateString() === new Date(date).toDateString());
     if (existingLogIndex !== -1) {
@@ -83,6 +88,11 @@ router.put('/:id', auth, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Initialize sleepLogs if it doesn't exist (for backward compatibility)
+    if (!user.sleepLogs) {
+      user.sleepLogs = [];
+    }
+
     const log = user.sleepLogs.id(logId);
     if (!log) return res.status(404).json({ message: 'Sleep log not found' });
 
@@ -104,6 +114,11 @@ router.delete('/:id', auth, async (req, res) => {
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Initialize sleepLogs if it doesn't exist (for backward compatibility)
+    if (!user.sleepLogs) {
+      user.sleepLogs = [];
+    }
 
     const log = user.sleepLogs.id(logId);
     if (!log) return res.status(404).json({ message: 'Sleep log not found' });
