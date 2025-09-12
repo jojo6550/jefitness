@@ -52,7 +52,7 @@ async function loadClients(page = 1, search = '', sortBy = 'firstName', sortOrde
 
         displayClients(clients);
         updatePagination(pagination);
-        updateStatistics(clients);
+        updateStatistics();
         showLoading(false);
     } catch (error) {
         console.error('Error loading clients:', error);
@@ -69,7 +69,7 @@ function displayClients(clients) {
     if (clients.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
                     ${currentSearch ? 'No clients found matching your search.' : 'No clients found'}
                 </td>
             </tr>
@@ -80,9 +80,9 @@ function displayClients(clients) {
     clients.forEach(client => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${client.firstName || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${client.lastName || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${client.email || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.firstName || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.lastName || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.email || 'N/A'}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     client.activityStatus === 'active' ? 'bg-green-100 text-green-800' : 
@@ -93,6 +93,7 @@ function displayClients(clients) {
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button data-id="${client._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-btn">View</button>
                 <button data-id="${client._id}" class="text-blue-600 hover:text-blue-900 mr-3 edit-btn">Edit</button>
                 <button data-id="${client._id}" class="text-red-600 hover:text-red-900 delete-btn">Delete</button>
             </td>
@@ -100,7 +101,15 @@ function displayClients(clients) {
         tbody.appendChild(row);
     });
 
-    // Add event listeners for edit and delete buttons
+    // Add event listeners for view, edit and delete buttons
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => showUserDetails(e.target.dataset.id));
+    });
+
+    document.querySelectorAll('.user-detail').forEach(cell => {
+        cell.addEventListener('click', (e) => showUserDetails(e.target.dataset.id));
+    });
+
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => editClient(e.target.dataset.id));
     });
@@ -109,6 +118,123 @@ function displayClients(clients) {
         btn.addEventListener('click', (e) => confirmDeleteClient(e.target.dataset.id));
     });
 }
+
+// Show user details in modal
+async function showUserDetails(userId) {
+    const modal = document.getElementById('userDetailsModal');
+    const content = document.getElementById('userDetailsContent');
+    const loading = document.getElementById('userDetailsLoading');
+
+    // Show modal and loading
+    modal.classList.remove('hidden');
+    loading.style.display = 'block';
+    content.querySelectorAll(':not(#userDetailsLoading)').forEach(el => el.remove());
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/clients/${userId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const user = data.client;
+
+        // Hide loading
+        loading.style.display = 'none';
+
+        // Create user details elements
+        const detailsDiv = document.createElement('div');
+        detailsDiv.classList.add('space-y-2');
+
+        const fields = [
+            { label: 'First Name', value: user.firstName },
+            { label: 'Last Name', value: user.lastName },
+            { label: 'Email', value: user.email },
+            { label: 'Role', value: user.role },
+            { label: 'Date of Birth', value: user.dob ? new Date(user.dob).toLocaleDateString() : 'N/A' },
+            { label: 'Gender', value: user.gender || 'N/A' },
+            { label: 'Phone', value: user.phone || 'N/A' },
+            { label: 'Activity Status', value: user.activityStatus || 'N/A' },
+            { label: 'Start Weight', value: user.startWeight !== undefined ? user.startWeight : 'N/A' },
+            { label: 'Current Weight', value: user.currentWeight !== undefined ? user.currentWeight : 'N/A' },
+            { label: 'Goals', value: user.goals || 'N/A' },
+            { label: 'Reason', value: user.reason || 'N/A' }
+        ];
+
+        fields.forEach(field => {
+            const p = document.createElement('p');
+            p.innerHTML = `<strong>${field.label}:</strong> ${field.value}`;
+            detailsDiv.appendChild(p);
+        });
+
+        // Nutrition Logs summary
+        if (user.nutritionLogs && user.nutritionLogs.length > 0) {
+            const nutritionHeader = document.createElement('h3');
+            nutritionHeader.textContent = 'Nutrition Logs';
+            nutritionHeader.classList.add('text-lg', 'font-semibold', 'mt-4');
+            detailsDiv.appendChild(nutritionHeader);
+
+            const nutritionList = document.createElement('ul');
+            nutritionList.classList.add('list-disc', 'pl-5', 'max-h-40', 'overflow-y-auto', 'border', 'p-2', 'rounded');
+
+            user.nutritionLogs.forEach(log => {
+                const li = document.createElement('li');
+                li.textContent = `${log.date} - ${log.mealType}: ${log.foodItem} (${log.calories} cal)`;
+                nutritionList.appendChild(li);
+            });
+
+            detailsDiv.appendChild(nutritionList);
+        }
+
+        // Sleep Logs summary
+        if (user.sleepLogs && user.sleepLogs.length > 0) {
+            const sleepHeader = document.createElement('h3');
+            sleepHeader.textContent = 'Sleep Logs';
+            sleepHeader.classList.add('text-lg', 'font-semibold', 'mt-4');
+            detailsDiv.appendChild(sleepHeader);
+
+            const sleepList = document.createElement('ul');
+            sleepList.classList.add('list-disc', 'pl-5', 'max-h-40', 'overflow-y-auto', 'border', 'p-2', 'rounded');
+
+            user.sleepLogs.forEach(log => {
+                const li = document.createElement('li');
+                li.textContent = `${new Date(log.date).toLocaleDateString()}: ${log.hoursSlept} hours`;
+                sleepList.appendChild(li);
+            });
+
+            detailsDiv.appendChild(sleepList);
+        }
+
+        content.appendChild(detailsDiv);
+    } catch (error) {
+        console.error('Error loading user details:', error);
+        loading.style.display = 'none';
+        content.innerHTML = `<p class="text-red-600">Failed to load user details. Please try again.</p>`;
+    }
+}
+
+// Close user details modal
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('closeUserDetailsModal');
+    const modal = document.getElementById('userDetailsModal');
+
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+    });
+
+    // Close modal on outside click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+});
 
 // Update pagination controls
 function updatePagination(pagination) {
@@ -286,7 +412,7 @@ function showLoading(show) {
     if (show) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-6 py-4 text-center">
+                <td colspan="6" class="px-6 py-4 text-center">
                     <div class="flex items-center justify-center">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                         <span class="ml-2">Loading clients...</span>
@@ -302,7 +428,7 @@ function showError(message) {
     const tbody = document.getElementById('clientTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="5" class="px-6 py-4 text-center text-red-600">
+            <td colspan="6" class="px-6 py-4 text-center text-red-600">
                 <i class="bi bi-exclamation-triangle mr-2"></i>${message}
             </td>
         </tr>
