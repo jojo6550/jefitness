@@ -49,40 +49,80 @@
             <p class="lead text-muted">Find the perfect program to challenge yourself and reach your fitness goals.</p>
         </div>
 
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="card-title fw-bold text-success mb-3">Upper & Lower Back Program</h4>
-                        <p class="card-text text-muted mb-4">
-                            A targeted program designed to strengthen and mobilize your entire back, improving posture and reducing discomfort.
-                        </p>
-                        <ul class="list-unstyled mb-4">
-                            <li><i class="bi bi-calendar-event me-2 text-primary"></i>1-2 Days/Week</li>
-                            <li><i class="bi bi-bar-chart me-2 text-primary"></i>All Levels</li>
-                            <li><i class="bi bi-clock me-2 text-primary"></i>30-45 min/session</li>
-                        </ul>
-                        <a href="./programs/upper-lower-back-program.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs justify-content-center mb-4" id="tierTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="beginner-tab" data-bs-toggle="tab" data-bs-target="#beginner" type="button" role="tab" aria-controls="beginner" aria-selected="true">Beginner</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="intermediate-tab" data-bs-toggle="tab" data-bs-target="#intermediate" type="button" role="tab" aria-controls="intermediate" aria-selected="false">Intermediate</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content" id="tierTabsContent">
+            <!-- Beginner Tab -->
+            <div class="tab-pane fade show active" id="beginner" role="tabpanel" aria-labelledby="beginner-tab">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h4 class="card-title fw-bold text-success mb-0">Upper & Lower Back Program</h4>
+                                    <span class="badge bg-success">Beginner</span>
+                                </div>
+                                <p class="card-text text-muted mb-4">
+                                    A targeted program designed to strengthen and mobilize your entire back, improving posture and reducing discomfort.
+                                </p>
+                                <ul class="list-unstyled mb-4">
+                                    <li><i class="bi bi-calendar-event me-2 text-primary"></i>1-2 Days/Week</li>
+                                    <li><i class="bi bi-bar-chart me-2 text-primary"></i>Beginner</li>
+                                    <li><i class="bi bi-clock me-2 text-primary"></i>30-45 min/session</li>
+                                </ul>
+                                <a href="./programs/upper-lower-back-program.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body p-4">
-                        <h4 class="card-title fw-bold text-info mb-3">Full Body Mobility Drills</h4>
-                        <p class="card-text text-muted mb-4">
-                            Improve posture, flexibility, and joint function from head to toe with these essential mobility drills.
-                        </p>
-                        <ul class="list-unstyled mb-4">
-                            <li><i class="bi bi-calendar-event me-2 text-primary"></i>3-5 Days/Week</li>
-                            <li><i class="bi bi-bar-chart me-2 text-primary"></i>All Levels</li>
-                            <li><i class="bi bi-clock me-2 text-primary"></i>20-30 min/session</li>
-                        </ul>
-                        <a href="./programs/full-body-mobility.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+            <!-- Intermediate Tab -->
+            <div class="tab-pane fade" id="intermediate" role="tabpanel" aria-labelledby="intermediate-tab">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border-0">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h4 class="card-title fw-bold text-info mb-0">Full Body Mobility Drills</h4>
+                                    <span class="badge bg-warning text-dark">Intermediate</span>
+                                </div>
+                                <p class="card-text text-muted mb-4">
+                                    Improve posture, flexibility, and joint function from head to toe with these essential mobility drills.
+                                </p>
+                                <ul class="list-unstyled mb-4">
+                                    <li><i class="bi bi-calendar-event me-2 text-primary"></i>3-5 Days/Week</li>
+                                    <li><i class="bi bi-bar-chart me-2 text-primary"></i>Intermediate</li>
+                                    <li><i class="bi bi-clock me-2 text-primary"></i>20-30 min/session</li>
+                                </ul>
+                                <a href="./programs/full-body-mobility.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Advanced Tab -->
+            <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced-tab">
+                <div class="text-center py-5">
+                    <i class="bi bi-tools text-muted" style="font-size: 3rem;"></i>
+                    <h4 class="text-muted mt-3">Advanced Programs Coming Soon</h4>
+                    <p class="text-muted">We're working on challenging programs for experienced fitness enthusiasts. Stay tuned!</p>
+                </div>
+            </div>
+        </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
