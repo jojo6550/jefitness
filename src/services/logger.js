@@ -1,6 +1,5 @@
 const winston = require('winston');
 const path = require('path');
-const Log = require('../models/Log');
 
 // Define log levels
 const levels = {
@@ -44,48 +43,7 @@ if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Custom MongoDB transport
-class MongoDBTransport extends winston.Transport {
-    constructor(opts) {
-        super(opts);
-        this.name = 'mongodb';
-        this.level = opts.level || 'info';
-    }
-
-    log(info, callback) {
-        setImmediate(() => {
-            this.emit('logged', info);
-        });
-
-        // Save to MongoDB asynchronously
-        const logEntry = {
-            timestamp: new Date(info.timestamp),
-            level: info.level,
-            category: this.getCategoryFromLogger(info),
-            message: info.message,
-            metadata: info.meta || {},
-            stack: info.stack || null
-        };
-
-        // Only save to MongoDB if not in test environment
-        if (process.env.NODE_ENV !== 'test') {
-            Log.create(logEntry).catch(err => {
-                console.error('Failed to save log to MongoDB:', err);
-            });
-        }
-
-        callback();
-    }
-
-    getCategoryFromLogger(info) {
-        // Determine category based on logger type or message content
-        if (info.message && info.message.includes('[ADMIN]')) return 'admin';
-        if (info.message && info.message.includes('[USER]')) return 'user';
-        if (info.message && info.message.includes('[SECURITY]')) return 'security';
-        if (info.message && info.message.includes('auth')) return 'auth';
-        return 'general';
-    }
-}
+// Note: MongoDB transport removed - logging now file-only
 
 // Define transports
 const transports = [
@@ -106,11 +64,6 @@ const transports = [
     new winston.transports.File({
         filename: path.join(logsDir, 'combined.log'),
         format: fileFormat,
-    }),
-
-    // MongoDB transport
-    new MongoDBTransport({
-        level: process.env.LOG_LEVEL || 'info',
     }),
 ];
 
