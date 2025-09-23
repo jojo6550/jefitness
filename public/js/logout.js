@@ -1,28 +1,28 @@
-// logout.js - Utility functions for logout functionality
+// logout.js
 
-// Global logout function that can be called from anywhere
-function logoutUser() {
-    // Remove the JWT token from localStorage
-    localStorage.removeItem('token');
-    console.log('Logout: Token removed from localStorage.');
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle the logout process
+    function logoutUser() {
+        // Remove the JWT token from localStorage
+        localStorage.removeItem('token');
+        console.log('Logout: Token removed from localStorage.');
 
-    // Clear browser history to prevent back button access to authenticated pages
-    if (window.history && window.history.replaceState) {
-        // Replace current history entry to prevent going back
-        window.history.replaceState(null, null, window.location.href);
+        // Redirect the user to the login page
+        // Adjust the path if your login page is located elsewhere
+        window.location.href = '../index.html';
     }
 
-    // Use replace instead of href to prevent caching
-    window.location.replace('../index.html');
-}
+    // Attach the logout function to a global event or specific button
+    // For simplicity, we'll look for an element with id 'logoutButton'
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', function(event) {
+            event.preventDefault(); // Prevent default link behavior
+            logoutUser();
+        });
+    }
 
-// Function to handle logout on 401/403 responses
-function handleAuthError() {
-    console.log('Authentication error detected, logging out...');
-    logoutUser();
-}
-
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { logoutUser, handleAuthError };
-}
+    // You might also want to call logoutUser() if a certain API call returns 401/403
+    // For example, in your fetchClients or profile fetch functions, if a 401 status
+    // is received, you could programmatically call logoutUser().
+});
