@@ -39,6 +39,7 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', require('./routes/sleep'));
 app.use('/api/clients', require('./routes/clients'));
+app.use('/api/logs', require('./routes/logs'));
 
 // Serve authenticated pages with no-cache headers to prevent back button access
 const authenticatedPages = [
