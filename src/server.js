@@ -31,6 +31,7 @@ connectDB();
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', require('./routes/sleep'));
 app.use('/api/clients', require('./routes/clients'));
+app.use('/api/appointments', require('./routes/appointments'));
 
 
 // Basic test route

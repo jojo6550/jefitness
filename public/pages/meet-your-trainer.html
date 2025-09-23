@@ -276,7 +276,7 @@
 
     <!-- ====== Appointment Script ====== -->
     <script>
-      document.getElementById('appointmentForm').addEventListener('submit', function (e) {
+      document.getElementById('appointmentForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const trainer = document.getElementById('trainerSelect').value;
@@ -289,15 +289,53 @@
           return;
         }
 
-        // Placeholder: Replace this alert with AJAX/Fetch to your backend
-        alert(
-          `Appointment booked with ${trainer.replace('-', ' ')} on ${date} at ${time}. Notes: ${notes || 'None'}.`
-        );
+        // Map trainer names to IDs (placeholder IDs for testing)
+        const trainerIdMap = {
+          'jamal-elliot': '507f1f77bcf86cd799439011',
+          'jermaine-elliot': '507f1f77bcf86cd799439012'
+        };
 
-        // Reset the form and close modal
-        this.reset();
-        const modal = bootstrap.Modal.getInstance(document.getElementById('appointmentModal'));
-        modal.hide();
+        const trainerId = trainerIdMap[trainer];
+
+        // Get JWT token from localStorage (assuming it's stored there after login)
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+          alert('You must be logged in to book an appointment.');
+          return;
+        }
+
+        try {
+          const response = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              trainerId,
+              date,
+              time,
+              notes
+            })
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log('Appointment booked successfully:', data);
+            alert(`Appointment booked with ${trainer.replace('-', ' ')} on ${date} at ${time}. Notes: ${notes || 'None'}.`);
+            // Reset the form and close modal
+            this.reset();
+            const modal = bootstrap.Modal.getInstance(document.getElementById('appointmentModal'));
+            modal.hide();
+          } else {
+            alert(`Error: ${data.msg}`);
+          }
+        } catch (error) {
+          console.error('Error booking appointment:', error);
+          alert('An error occurred while booking the appointment.');
+        }
       });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
