@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const { logger, logError } = require('./services/logger');
 
 dotenv.config();
 
@@ -18,9 +19,9 @@ app.use(express.static('public'));
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('MongoDB Connected...');
+        logger.info('MongoDB Connected successfully');
     } catch (err) {
-        console.error('MongoDB Connection Error:', err.message);
+        logError(err, { context: 'MongoDB Connection' });
         process.exit(1);
     }
 };
@@ -37,7 +38,7 @@ app.get('/', (req, res) => res.send('API Running'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('Unhandled Server Error:', err.stack);
+    logError(err, { context: 'Unhandled Server Error' });
     if (res.headersSent) {
         return next(err);
     }
@@ -47,4 +48,4 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+app.listen(PORT, () => logger.info(`Server started on port ${PORT}`));

@@ -6,11 +6,12 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
+const { logUserAction, logSecurityEvent, logError } = require('../services/logger');
 
 // SIGNUP ROUTE
 router.post('/signup', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
-    console.log('Received signup:', req.body);
+    logUserAction('signup_attempt', null, { email, firstName, lastName });
 
     if (!firstName || !lastName || !email || !password) {
         return res.status(400).json({ msg: 'All fields are required.' });
@@ -61,12 +62,13 @@ router.post('/signup', async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
-            console.log(`Confirmation email sent to ${email}`);
+            logUserAction('signup_email_sent', newUser._id, { email });
         } catch (emailErr) {
-            console.error('Email sending error:', emailErr.message);
+            logError(emailErr, { context: 'Email sending during signup', userId: newUser._id });
             // Do not stop signup because of email failure
         }
 
+        logUserAction('signup_success', newUser._id, { email, role: newUser.role });
         res.status(201).json({
             msg: 'Signup successful!',
             token,
@@ -79,7 +81,7 @@ router.post('/signup', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Signup Error:', err.message);
+        logError(err, { context: 'User signup', email });
         res.status(500).json({ msg: 'Server error. Please try again.' });
     }
 });
@@ -87,22 +89,36 @@ router.post('/signup', async (req, res) => {
 // LOGIN ROUTE
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: 'Missing fields' });
+    logSecurityEvent('login_attempt', null, { email });
+
+    if (!email || !password) {
+        logSecurityEvent('login_failed', null, { email, reason: 'Missing fields' });
+        return res.status(400).json({ msg: 'Missing fields' });
+    }
 
     try {
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+        if (!user) {
+            logSecurityEvent('login_failed', null, { email, reason: 'User not found' });
+            return res.status(400).json({ msg: 'Invalid credentials' });
+        }
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+        if (!isMatch) {
+            logSecurityEvent('login_failed', user._id, { email, reason: 'Invalid password' });
+            return res.status(400).json({ msg: 'Invalid credentials' });
+        }
 
         // Include role in JWT payload
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        logSecurityEvent('login_success', user._id, { email, role: user.role });
+
         res.json({
             token,
             user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
         });
     } catch (err) {
+        logError(err, { context: 'User login', email });
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -115,8 +131,11 @@ router.get('/me', auth, async (req, res) => {
         // req.user is populated by the auth middleware (from middleware/auth.js)
         const user = await User.findById(req.user.id).select('-password'); // Exclude password
         if (!user) {
+            logUserAction('profile_access_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
+
+        logUserAction('profile_accessed', req.user.id, { email: user.email });
         res.json({
             id: user._id,
             firstName: user.firstName,
@@ -134,7 +153,7 @@ router.get('/me', auth, async (req, res) => {
             createdAt: user.createdAt
         });
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Get user profile', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -161,6 +180,7 @@ router.put('/profile', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
+            logUserAction('profile_update_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
 
@@ -178,6 +198,7 @@ router.put('/profile', auth, async (req, res) => {
 
         await user.save();
 
+        logUserAction('profile_updated', req.user.id, { email: user.email });
         res.json({
             msg: 'Profile updated successfully',
             user: {
@@ -198,7 +219,7 @@ router.put('/profile', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Profile update', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -208,11 +229,14 @@ router.get('/nutrition', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('nutritionLogs');
         if (!user) {
+            logUserAction('nutrition_access_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
+
+        logUserAction('nutrition_accessed', req.user.id, { email: user.email });
         res.json(user.nutritionLogs);
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Get nutrition logs', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -227,15 +251,17 @@ router.post('/nutrition', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
+            logUserAction('nutrition_add_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.nutritionLogs.push({ id, date, mealType, foodItem, calories, protein, carbs, fats });
         await user.save();
 
+        logUserAction('nutrition_added', req.user.id, { email: user.email, mealType, foodItem });
         res.status(201).json({ msg: 'Meal log added', nutritionLogs: user.nutritionLogs });
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Add nutrition log', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -250,15 +276,17 @@ router.delete('/nutrition/:id', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
+            logUserAction('nutrition_delete_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.nutritionLogs = user.nutritionLogs.filter(meal => meal.id !== mealId);
         await user.save();
 
+        logUserAction('nutrition_deleted', req.user.id, { email: user.email, mealId });
         res.json({ msg: 'Meal log deleted', nutritionLogs: user.nutritionLogs });
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Delete nutrition log', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -272,11 +300,14 @@ router.get('/schedule', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('schedule');
         if (!user) {
+            logUserAction('schedule_access_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
+
+        logUserAction('schedule_accessed', req.user.id, { email: user.email });
         res.json(user.schedule);
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Get user schedule', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 });
@@ -295,15 +326,17 @@ router.put('/schedule', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
+            logUserAction('schedule_update_failed', req.user.id, { reason: 'User not found' });
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.schedule = schedule;
         await user.save();
 
+        logUserAction('schedule_updated', req.user.id, { email: user.email });
         res.json({ msg: 'Schedule updated successfully', schedule: user.schedule });
     } catch (err) {
-        console.error(err.message);
+        logError(err, { context: 'Update user schedule', userId: req.user.id });
         res.status(500).send('Server Error');
     }
 
@@ -312,13 +345,15 @@ router.get('/clients', auth, async (req, res) => {
     try {
         // Only allow admins
         if (req.user.role !== 'admin') {
+            logUserAction('clients_access_denied', req.user.id, { reason: 'Insufficient permissions', requestedRole: req.user.role });
             return res.status(403).json({ msg: 'Access denied: Admins only' });
         }
 
         const users = await User.find().select('-password'); // Exclude password
+        logUserAction('clients_accessed', req.user.id, { email: req.user.email, clientCount: users.length });
         res.json(users);
     } catch (err) {
-        console.error('Get Clients Error:', err.message);
+        logError(err, { context: 'Get all clients', userId: req.user.id });
         res.status(500).json({ msg: 'Server error' });
     }
 });
