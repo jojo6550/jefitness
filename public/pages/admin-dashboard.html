@@ -290,133 +290,7 @@
                 </div>
             </section>
 
-            <!-- System Logs Section -->
-            <section id="logs-section" class="mb-12">
-                <div class="bg-white rounded-lg shadow-lg">
-                    <div class="p-6 border-b border-gray-200">
-                        <div class="flex flex-wrap justify-between items-center mb-4">
-                            <h2 class="text-2xl font-semibold text-gray-700">System Logs</h2>
-                            <div class="flex space-x-2">
-                                <button id="refreshLogs" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                                    <i class="bi bi-arrow-clockwise mr-2"></i>Refresh
-                                </button>
-                                <button id="exportLogs" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                    <i class="bi bi-download mr-2"></i>Export CSV
-                                </button>
-                            </div>
-                        </div>
 
-                        <!-- Filters -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Log Level</label>
-                                <select id="logLevelFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">All Levels</option>
-                                    <option value="error">Error</option>
-                                    <option value="warn">Warning</option>
-                                    <option value="info">Info</option>
-                                    <option value="debug">Debug</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <select id="logCategoryFilter" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">All Categories</option>
-                                    <option value="general">General</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="user">User</option>
-                                    <option value="security">Security</option>
-                                    <option value="auth">Authentication</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                                <input type="date" id="logStartDate" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                                <input type="date" id="logEndDate" class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-
-                        <!-- Search -->
-                        <div class="relative">
-                            <input type="text" id="logSearch" placeholder="Search logs..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <i class="bi bi-search text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
-                        </div>
-                    </div>
-
-                    <!-- Log Statistics -->
-                    <div class="p-6 border-b border-gray-200 bg-gray-50">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Log Statistics</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4" id="logStats">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-red-600" id="errorCount">0</div>
-                                <div class="text-sm text-gray-600">Errors</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-yellow-600" id="warnCount">0</div>
-                                <div class="text-sm text-gray-600">Warnings</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-blue-600" id="infoCount">0</div>
-                                <div class="text-sm text-gray-600">Info</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-green-600" id="debugCount">0</div>
-                                <div class="text-sm text-gray-600">Debug</div>
-                            </div>
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-600" id="totalLogsCount">0</div>
-                                <div class="text-sm text-gray-600">Total</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Logs Table -->
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="timestamp">
-                                        Timestamp <i class="bi bi-sort-down ml-1"></i>
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="level">
-                                        Level <i class="bi bi-sort-down ml-1"></i>
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="category">
-                                        Category <i class="bi bi-sort-down ml-1"></i>
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Message
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="userId">
-                                        User <i class="bi bi-sort-down ml-1"></i>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200" id="logsTableBody">
-                                <tr>
-                                    <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
-                                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                                        <p class="mt-2">Loading logs...</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Logs Pagination -->
-                    <div class="p-6 border-t border-gray-200 flex justify-between items-center">
-                        <p class="text-sm text-gray-600" id="logsPaginationInfo">Loading logs...</p>
-                        <nav>
-                            <ul class="flex items-center space-x-1" id="logsPagination">
-                                <!-- Pagination buttons will be injected here by JavaScript -->
-                            </ul>
-                        </nav>
-                    </div>
-                </div>
-            </section>
         </main>
     </div>
 
@@ -474,7 +348,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/admin-dashboard.js" defer></script>
-    <script src="../js/admin-logs.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="../js/role-guard.js" defer></script>
     
