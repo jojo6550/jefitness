@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-09-23 20:12:51:1251"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-09-23 20:12:54:1254"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-09-24 09:55:08:558"}
@@ -20,3 +21,9 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 687944145ddc99f659de2717 | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-09-24 10:35:31:3531"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-09-24 10:35:40:3540"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-09-24 10:35:40:3540"}
+=======
+>>>>>>> parent of e0f5541 (`Refactored logout functionality and added security logging`)
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-09-24 11:33:15:3315"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-09-24 11:33:15:3315"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: auth_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"unknown\",\"role\":\"user\",\"ip\":\"::1\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0\"}\u001b[39m","timestamp":"2025-09-24 11:33:17:3317"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: auth_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"unknown\",\"role\":\"user\",\"ip\":\"::1\",\"userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0\"}\u001b[39m","timestamp":"2025-09-24 11:35:22:3522"}
