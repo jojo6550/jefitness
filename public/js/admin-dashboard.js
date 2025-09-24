@@ -526,11 +526,14 @@ function displayAppointments(appointments) {
                            appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                            'bg-yellow-100 text-yellow-800';
 
+        const clientName = appointment.clientId ? `${appointment.clientId.firstName || 'N/A'} ${appointment.clientId.lastName || ''}` : 'N/A';
+        const trainerName = appointment.trainerId ? `${appointment.trainerId.firstName || 'N/A'} ${appointment.trainerId.lastName || ''}` : 'N/A';
+
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${date}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.time}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.clientId.firstName} ${appointment.clientId.lastName}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.trainerId.firstName} ${appointment.trainerId.lastName}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${clientName}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${trainerName}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
                     ${appointment.status}
