@@ -469,10 +469,274 @@ async function deleteClient(clientId) {
     }
 }
 
+// Load appointments with search, sort, and pagination
+async function loadAppointments(page = 1, search = '', sortBy = 'date', sortOrder = 'asc', status = '') {
+    try {
+        const params = new URLSearchParams({
+            page,
+            limit: 10,
+            search,
+            sortBy,
+            sortOrder,
+            status
+        });
+
+        const response = await fetch(`${API_BASE_URL}/api/appointments?${params}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const { appointments, pagination } = data;
+
+        displayAppointments(appointments);
+        updateAppointmentsPagination(pagination);
+    } catch (error) {
+        console.error('Error loading appointments:', error);
+        showAppointmentsError('Failed to load appointments. Please try again.');
+    }
+}
+
+// Display appointments in table
+function displayAppointments(appointments) {
+    const tbody = document.getElementById('appointmentsTableBody');
+    tbody.innerHTML = '';
+
+    if (appointments.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                    No appointments found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    appointments.forEach(appointment => {
+        const row = document.createElement('tr');
+        const date = new Date(appointment.date).toLocaleDateString();
+        const statusClass = appointment.status === 'scheduled' ? 'bg-green-100 text-green-800' :
+                           appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                           'bg-yellow-100 text-yellow-800';
+
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${date}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.time}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.clientId.firstName} ${appointment.clientId.lastName}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.trainerId.firstName} ${appointment.trainerId.lastName}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                    ${appointment.status}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button data-id="${appointment._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-appointment-btn">View</button>
+                <button data-id="${appointment._id}" class="text-blue-600 hover:text-blue-900 mr-3 edit-appointment-btn">Edit</button>
+                <button data-id="${appointment._id}" class="text-red-600 hover:text-red-900 delete-appointment-btn">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Add event listeners for view, edit and delete buttons
+    document.querySelectorAll('.view-appointment-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => viewAppointment(e.target.dataset.id));
+    });
+
+    document.querySelectorAll('.edit-appointment-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => editAppointment(e.target.dataset.id));
+    });
+
+    document.querySelectorAll('.delete-appointment-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => confirmDeleteAppointment(e.target.dataset.id));
+    });
+}
+
+// Update appointments pagination controls
+function updateAppointmentsPagination(pagination) {
+    const paginationInfo = document.getElementById('appointmentsPaginationInfo');
+    const paginationContainer = document.getElementById('appointmentsPagination');
+
+    const { currentPage, totalPages, totalAppointments } = pagination;
+
+    // Update pagination info text
+    const startEntry = (currentPage - 1) * 10 + 1;
+    const endEntry = Math.min(currentPage * 10, totalAppointments);
+    paginationInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalAppointments} entries`;
+
+    // Clear existing pagination
+    paginationContainer.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.innerHTML = `
+        <button class="px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+                ${currentPage === 1 ? 'disabled' : ''}>
+            Previous
+        </button>
+    `;
+    if (currentPage > 1) {
+        prevLi.querySelector('button').addEventListener('click', () => changeAppointmentsPage(currentPage - 1));
+    }
+    paginationContainer.appendChild(prevLi);
+
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.innerHTML = `
+            <button class="px-3 py-1 rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}">
+                ${i}
+            </button>
+        `;
+        if (i !== currentPage) {
+            pageLi.querySelector('button').addEventListener('click', () => changeAppointmentsPage(i));
+        }
+        paginationContainer.appendChild(pageLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.innerHTML = `
+        <button class="px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+                ${currentPage === totalPages ? 'disabled' : ''}>
+            Next
+        </button>
+    `;
+    if (currentPage < totalPages) {
+        nextLi.querySelector('button').addEventListener('click', () => changeAppointmentsPage(currentPage + 1));
+    }
+    paginationContainer.appendChild(nextLi);
+}
+
+// Change appointments page
+function changeAppointmentsPage(page) {
+    loadAppointments(page, '', 'date', 'asc', '');
+}
+
+// Show appointments error message
+function showAppointmentsError(message) {
+    const tbody = document.getElementById('appointmentsTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-6 py-4 text-center text-red-600">
+                <i class="bi bi-exclamation-triangle mr-2"></i>${message}
+            </td>
+        </tr>
+    `;
+}
+
+// View appointment details
+function viewAppointment(appointmentId) {
+    console.log('View appointment:', appointmentId);
+    // TODO: Implement view functionality
+}
+
+// Edit appointment
+function editAppointment(appointmentId) {
+    console.log('Edit appointment:', appointmentId);
+    // TODO: Implement edit functionality
+}
+
+// Confirm delete appointment
+function confirmDeleteAppointment(appointmentId) {
+    if (confirm('Are you sure you want to delete this appointment?')) {
+        deleteAppointment(appointmentId);
+    }
+}
+
+// Delete appointment
+async function deleteAppointment(appointmentId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        // Reload appointments after deletion
+        loadAppointments(1, '', 'date', 'asc', '');
+    } catch (error) {
+        console.error('Error deleting appointment:', error);
+        alert('Failed to delete appointment. Please try again.');
+    }
+}
+
+// Export appointments to CSV
+function exportAppointments() {
+    // Get all appointments for export
+    fetch(`${API_BASE_URL}/api/appointments`, {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const appointments = data.appointments || [];
+
+        if (appointments.length === 0) {
+            alert('No appointments to export');
+            return;
+        }
+
+        // Create CSV content
+        const csvContent = [
+            ['Date', 'Time', 'Client Name', 'Client Email', 'Trainer Name', 'Trainer Email', 'Status', 'Notes'],
+            ...appointments.map(appointment => [
+                new Date(appointment.date).toLocaleDateString(),
+                appointment.time,
+                `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+                appointment.clientId.email,
+                `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
+                appointment.trainerId.email,
+                appointment.status,
+                appointment.notes || ''
+            ])
+        ].map(row => row.join(',')).join('\n');
+
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `appointments_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+        console.error('Error exporting appointments:', error);
+        alert('Failed to export appointments. Please try again.');
+    });
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     loadClients();
-    
+    loadAppointments();
+
     // Search input
     const searchInput = document.getElementById('clientSearch');
     if (searchInput) {
@@ -496,5 +760,19 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             loadClients(currentPage, currentSearch, currentSortBy, currentSortOrder, currentStatus);
         });
+    }
+
+    // Appointments refresh button
+    const refreshAppointmentsBtn = document.getElementById('refreshAppointments');
+    if (refreshAppointmentsBtn) {
+        refreshAppointmentsBtn.addEventListener('click', () => {
+            loadAppointments(1, '', 'date', 'asc', '');
+        });
+    }
+
+    // Appointments export button
+    const exportAppointmentsBtn = document.getElementById('exportAppointments');
+    if (exportAppointmentsBtn) {
+        exportAppointmentsBtn.addEventListener('click', exportAppointments);
     }
 });

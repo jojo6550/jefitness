@@ -4,14 +4,88 @@ const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
-// GET /api/appointments - Get all appointments (admin only)
+// GET /api/appointments - Get all appointments (admin only) with pagination and filtering
 router.get('/', auth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        const appointments = await Appointment.find()
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            sortBy = 'date',
+            sortOrder = 'asc',
+            status = ''
+        } = req.query;
+
+        // Build filter object
+        let filter = {};
+
+        // Add status filter
+        if (status) {
+            filter.status = status;
+        }
+
+        // Add search filter (search in client and trainer names)
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            filter.$or = [
+                { 'clientId.firstName': searchRegex },
+                { 'clientId.lastName': searchRegex },
+                { 'trainerId.firstName': searchRegex },
+                { 'trainerId.lastName': searchRegex }
+            ];
+        }
+
+        // Build sort object
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        // Calculate skip value for pagination
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination
+        const totalAppointments = await Appointment.countDocuments(filter);
+
+        // Get appointments with pagination
+        const appointments = await Appointment.find(filter)
+            .populate('clientId', 'firstName lastName email')
+            .populate('trainerId', 'firstName lastName email')
+            .sort(sort)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Calculate pagination info
+        const totalPages = Math.ceil(totalAppointments / limit);
+        const pagination = {
+            currentPage: parseInt(page),
+            totalPages,
+            totalAppointments,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
+        };
+
+        res.json({
+            appointments,
+            pagination
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server error' });
+    }
+});
+
+// GET /api/appointments/user - Get user's appointments
+router.get('/user', auth, async (req, res) => {
+    try {
+        const appointments = await Appointment.find({
+            $or: [
+                { clientId: req.user.id },
+                { trainerId: req.user.id }
+            ]
+        })
             .populate('clientId', 'firstName lastName email')
             .populate('trainerId', 'firstName lastName email')
             .sort({ date: 1, time: 1 });
@@ -66,6 +140,25 @@ router.post('/', auth, async (req, res) => {
 
         // Set clientId from authenticated user
         const clientId = req.user.id;
+
+        // Check the 10-client limit per 1:30 min period
+        const appointmentDate = new Date(date);
+        const requestedTime = new Date(`${date}T${time}`);
+        const timeSlotEnd = new Date(requestedTime.getTime() + 90 * 60 * 1000); // 1:30 hours later
+
+        const existingAppointments = await Appointment.find({
+            trainerId,
+            date: appointmentDate,
+            $or: [
+                { time: { $gte: time, $lt: timeSlotEnd.toTimeString().slice(0, 5) } },
+                { time: { $lte: time, $gte: new Date(timeSlotEnd.getTime() - 90 * 60 * 1000).toTimeString().slice(0, 5) } }
+            ],
+            status: { $ne: 'cancelled' }
+        });
+
+        if (existingAppointments.length >= 10) {
+            return res.status(400).json({ msg: 'Time slot is fully booked (maximum 10 clients per 1:30 min period)' });
+        }
 
         // Create appointment
         const appointment = new Appointment({
