@@ -71,3 +71,7 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 10:18:45:1845"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 10:18:47:1847"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAppointment booked successfully: Client Cleyon Mclennon with Trainer admin admin on Thu Apr 03 2025 19:00:00 GMT-0500 (Eastern Standard Time) at 03:03\u001b[39m","timestamp":"2025-09-24 10:28:38:2838"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:50:48:5048"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 11:50:49:5049"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 13:28:46:2846"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 13:28:47:2847"}
