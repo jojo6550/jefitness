@@ -276,26 +276,48 @@
 
     <!-- ====== Appointment Script ====== -->
     <script>
+      // Load trainers on page load
+      document.addEventListener('DOMContentLoaded', async function () {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert('You must be logged in to book an appointment.');
+          return;
+        }
+
+        try {
+          const response = await fetch('http://localhost:10000/api/users/trainers', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const trainers = await response.json();
+            const trainerSelect = document.getElementById('trainerSelect');
+            trainerSelect.innerHTML = '<option value="">Choose...</option>';
+            trainers.forEach(trainer => {
+              trainerSelect.innerHTML += `<option value="${trainer._id}">${trainer.firstName} ${trainer.lastName}</option>`;
+            });
+          } else {
+            console.error('Failed to load trainers');
+          }
+        } catch (error) {
+          console.error('Error loading trainers:', error);
+        }
+      });
+
       document.getElementById('appointmentForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        const trainer = document.getElementById('trainerSelect').value;
+        const trainerId = document.getElementById('trainerSelect').value;
         const date = document.getElementById('appointmentDate').value;
         const time = document.getElementById('appointmentTime').value;
         const notes = document.getElementById('appointmentNotes').value;
 
-        if (!trainer || !date || !time) {
+        if (!trainerId || !date || !time) {
           alert('Please fill in all required fields.');
           return;
         }
-
-        // Map trainer names to IDs (placeholder IDs for testing)
-        const trainerIdMap = {
-          'jamal-elliot': '507f1f77bcf86cd799439011',
-          'jermaine-elliot': '507f1f77bcf86cd799439012'
-        };
-
-        const trainerId = trainerIdMap[trainer];
 
         // Get JWT token from localStorage (assuming it's stored there after login)
         const token = localStorage.getItem('token');
@@ -306,7 +328,7 @@
         }
 
         try {
-          const response = await fetch('/api/appointments', {
+          const response = await fetch('http://localhost:10000/api/appointments', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -324,7 +346,7 @@
 
           if (response.ok) {
             console.log('Appointment booked successfully:', data);
-            alert(`Appointment booked with ${trainer.replace('-', ' ')} on ${date} at ${time}. Notes: ${notes || 'None'}.`);
+            alert(`Appointment booked successfully on ${date} at ${time}.`);
             // Reset the form and close modal
             this.reset();
             const modal = bootstrap.Modal.getInstance(document.getElementById('appointmentModal'));

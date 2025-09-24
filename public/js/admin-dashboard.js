@@ -469,7 +469,6 @@ async function deleteClient(clientId) {
     }
 }
 
-<<<<<<< HEAD
 // Load appointments with search, sort, and pagination
 async function loadAppointments(page = 1, search = '', sortBy = 'date', sortOrder = 'asc', status = '') {
     try {
@@ -736,12 +735,11 @@ function exportAppointments() {
     });
 }
 
-=======
->>>>>>> parent of f8d2942 (`Added appointment management features to admin dashboard and schedule pages, including loading, viewing, editing, and deleting appointments, as well as exporting appointments to CSV.`)
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     loadClients();
-    
+    loadAppointments();
+
     // Search input
     const searchInput = document.getElementById('clientSearch');
     if (searchInput) {
@@ -765,5 +763,19 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             loadClients(currentPage, currentSearch, currentSortBy, currentSortOrder, currentStatus);
         });
+    }
+
+    // Appointments refresh button
+    const refreshAppointmentsBtn = document.getElementById('refreshAppointments');
+    if (refreshAppointmentsBtn) {
+        refreshAppointmentsBtn.addEventListener('click', () => {
+            loadAppointments(1, '', 'date', 'asc', '');
+        });
+    }
+
+    // Appointments export button
+    const exportAppointmentsBtn = document.getElementById('exportAppointments');
+    if (exportAppointmentsBtn) {
+        exportAppointmentsBtn.addEventListener('click', exportAppointments);
     }
 });
