@@ -1,6 +1,5 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-22 20:12:41:1241"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-22 20:12:43:1243"}
-<<<<<<< HEAD
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-22 22:46:05:465"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-22 22:46:45:4645"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-22 22:46:46:4646"}
@@ -72,13 +71,3 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 10:18:45:1845"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 10:18:47:1847"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAppointment booked successfully: Client Cleyon Mclennon with Trainer admin admin on Thu Apr 03 2025 19:00:00 GMT-0500 (Eastern Standard Time) at 03:03\u001b[39m","timestamp":"2025-09-24 10:28:38:2838"}
-=======
->>>>>>> parent of e0f5541 (`Refactored logout functionality and added security logging`)
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:31:28:3128"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:31:41:3141"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:31:56:3156"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 11:31:57:3157"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:33:04:334"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 11:33:05:335"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-24 11:33:10:3310"}
-{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-24 11:33:11:3311"}
