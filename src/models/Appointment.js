@@ -30,9 +30,4 @@ const AppointmentSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Add indexes for efficient querying
-AppointmentSchema.index({ date: 1, time: 1 });
-AppointmentSchema.index({ trainerId: 1 });
-AppointmentSchema.index({ clientId: 1 });
-
 module.exports = mongoose.model('Appointment', AppointmentSchema);
