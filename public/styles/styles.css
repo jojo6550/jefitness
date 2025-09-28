@@ -21,8 +21,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    /* Added a default font for the entire page */
-    font-family: 'Inter', sans-serif; /* Assuming Inter is available or linked */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Other existing styles... */

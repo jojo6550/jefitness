@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="./styles/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="./favicons/apple-touch-icon.png">
@@ -18,7 +20,7 @@
 <body class="home-page">
 
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="index.html">JE Fitness</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -81,6 +83,66 @@
         </div>
     </section>
 
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-5 bg-white">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">What Our Clients Say</h2>
+                <p class="lead text-muted">Real results from real people. Hear from those who've transformed their lives with JE Fitness.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card card h-100 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                            </div>
+                            <p class="card-text text-muted mb-3">"Jamol pushed me beyond my limits and helped me lose 20 pounds in 3 months. Highly recommend!"</p>
+                            <h6 class="card-title fw-bold mb-1">Sarah K.</h6>
+                            <small class="text-muted">Weight Loss Client</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card card h-100 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                            </div>
+                            <p class="card-text text-muted mb-3">"Jermaine's massages are life-changing. I feel rejuvenated after every session."</p>
+                            <h6 class="card-title fw-bold mb-1">Mike T.</h6>
+                            <small class="text-muted">Massage Therapy Client</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card card h-100 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="mb-3">
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i>
+                            </div>
+                            <p class="card-text text-muted mb-3">"Built serious muscle and confidence. The personalized plans are top-notch."</p>
+                            <h6 class="card-title fw-bold mb-1">Alex R.</h6>
+                            <small class="text-muted">Strength Training Client</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- About Me Section -->
     <section id="about" class="py-5 bg-light">
         <div class="container">
@@ -98,6 +160,48 @@
         </div>
     </section>
 
+    <!-- Meet the Trainers Section -->
+    <section id="trainers" class="py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Meet Our Trainers</h2>
+                <p class="lead text-muted">Get to know our expert trainers who are dedicated to your success.</p>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6">
+                    <div class="trainer-card card h-100 shadow-sm text-center">
+                        <div class="card-body p-4">
+                            <img src="https://via.placeholder.com/150/0d6efd/FFFFFF?text=Jamol+E" alt="Jamol Elliot" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                            <h5 class="card-title fw-bold mb-2">Jamol Elliot</h5>
+                            <p class="card-text text-muted mb-3">Specializes in strength training, weight loss, and functional fitness to help you achieve your goals.</p>
+                            <div class="mb-3">
+                                <span class="badge bg-primary me-1">Strength Training</span>
+                                <span class="badge bg-danger me-1">Weight Loss</span>
+                                <span class="badge bg-success">Functional Fitness</span>
+                            </div>
+                            <a href="./pages/meet-your-trainer.html" class="btn btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="trainer-card card h-100 shadow-sm text-center">
+                        <div class="card-body p-4">
+                            <img src="https://via.placeholder.com/150/6c757d/FFFFFF?text=Jermaine+E" alt="Jermaine Elliot" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                            <h5 class="card-title fw-bold mb-2">Jermaine Elliot</h5>
+                            <p class="card-text text-muted mb-3">Expert in massage therapy, weight loss, and muscle relaxation for recovery and well-being.</p>
+                            <div class="mb-3">
+                                <span class="badge bg-success me-1">Massage Therapy</span>
+                                <span class="badge bg-danger me-1">Weight Loss</span>
+                                <span class="badge bg-info">Muscle Relaxation</span>
+                            </div>
+                            <a href="./pages/meet-your-trainer.html" class="btn btn-outline-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Call to Action / Testimonial Section (New) -->
     <section class="cta-section text-white text-center py-5">
         <div class="container">
@@ -106,6 +210,64 @@
             <a href="./pages/signup.html" class="btn btn-light btn-lg animate__animated animate__pulse animate__infinite">Sign Up Today!</a>
         </div>
     </section>
+
+    <!-- Questionnaire Section -->
+    <section id="questionnaire" class="py-5 bg-light">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">Find Your Perfect Trainer</h2>
+                <p class="lead text-muted">Answer a few quick questions to get a personalized trainer recommendation.</p>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="questionnaire-card card shadow-lg p-4">
+                        <form id="trainerQuestionnaire">
+                            <div class="mb-4">
+                                <label for="primaryGoal" class="form-label fw-bold">What is your primary fitness goal?</label>
+                                <select id="primaryGoal" class="form-select form-select-lg" required>
+                                    <option value="">Select your goal</option>
+                                    <option value="strength">Strength Training</option>
+                                    <option value="weight-loss">Weight Loss</option>
+                                    <option value="massage">Massage Therapy & Recovery</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label for="experienceLevel" class="form-label fw-bold">What is your experience level?</label>
+                                <select id="experienceLevel" class="form-select form-select-lg" required>
+                                    <option value="">Select your level</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                </select>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">Get My Trainer Recommendation <i class="bi bi-search ms-2"></i></button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trainer Suggestion Modal -->
+    <div class="modal fade" id="trainerModal" tabindex="-1" aria-labelledby="trainerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="trainerModalLabel">Your Recommended Trainer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center" id="trainerSuggestion">
+                    <!-- Content will be populated by JS -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="./pages/meet-your-trainer.html" class="btn btn-primary">Learn More About Trainers</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Contact Form -->
     <section id="contact" class="py-5">
@@ -153,6 +315,54 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Questionnaire JS -->
+    <script>
+        document.getElementById('trainerQuestionnaire').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const goal = document.getElementById('primaryGoal').value;
+            const level = document.getElementById('experienceLevel').value;
+
+            let suggestedTrainer = '';
+            let trainerImage = '';
+            let trainerBio = '';
+            let specialties = '';
+
+            if (goal === 'strength') {
+                suggestedTrainer = 'Jamol Elliot';
+                trainerImage = 'https://via.placeholder.com/150/0d6efd/FFFFFF?text=Jamol+E';
+                trainerBio = 'Jamol specializes in strength training and will help you build muscle and increase your performance.';
+                specialties = 'Strength Training, Weight Loss, Functional Fitness';
+            } else if (goal === 'massage') {
+                suggestedTrainer = 'Jermaine Elliot';
+                trainerImage = 'https://via.placeholder.com/150/6c757d/FFFFFF?text=Jermaine+E';
+                trainerBio = 'Jermaine is an expert in massage therapy and will help you recover and relax.';
+                specialties = 'Massage Therapy, Weight Loss, Muscle Relaxation';
+            } else if (goal === 'weight-loss') {
+                // For weight loss, suggest Jamol as primary
+                suggestedTrainer = 'Jamol Elliot';
+                trainerImage = 'https://via.placeholder.com/150/0d6efd/FFFFFF?text=Jamol+E';
+                trainerBio = 'Jamol has extensive experience in weight loss programs and will guide you to sustainable results.';
+                specialties = 'Strength Training, Weight Loss, Functional Fitness';
+            }
+
+            const suggestionHTML = `
+                <img src="${trainerImage}" alt="${suggestedTrainer}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                <h4 class="fw-bold">${suggestedTrainer}</h4>
+                <p class="text-muted mb-3">${trainerBio}</p>
+                <div class="mb-3">
+                    <strong>Specialties:</strong> ${specialties}
+                </div>
+                <p>Based on your goal of ${goal.replace('-', ' ')} and ${level} experience level, we recommend ${suggestedTrainer} as your trainer.</p>
+            `;
+
+            document.getElementById('trainerSuggestion').innerHTML = suggestionHTML;
+
+            const modal = new bootstrap.Modal(document.getElementById('trainerModal'));
+            modal.show();
+        });
+    </script>
     <!-- Removed config.js and main.js as they are not found -->
 </body>
 </html>
