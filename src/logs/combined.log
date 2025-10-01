@@ -79,3 +79,5 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAppointment booked successfully: Client Jamin Johnson with Trainer Jamal Elliot on Thu Apr 03 2025 19:00:00 GMT-0500 (Eastern Standard Time) at 15:03\u001b[39m","timestamp":"2025-09-24 13:38:11:3811"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-09-28 13:34:33:3433"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-09-28 13:34:34:3434"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 08:52:59:5259"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 08:53:00:530"}
