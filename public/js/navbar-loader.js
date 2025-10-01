@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 navbarPlaceholder.innerHTML = html;
                 // After loading, set the active link
                 setActiveNavLink();
+                // Attach the logout listener after navbar is loaded
+                if (window.attachLogoutListener) {
+                    window.attachLogoutListener();
+                }
             })
             .catch(error => console.error('Error loading navbar:', error));
     }
