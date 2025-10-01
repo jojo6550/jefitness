@@ -739,6 +739,7 @@ function exportAppointments() {
 document.addEventListener('DOMContentLoaded', () => {
     loadClients();
     loadAppointments();
+    attachLogoutListener();
 
     // Search input
     const searchInput = document.getElementById('clientSearch');
