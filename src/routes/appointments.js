@@ -3,6 +3,7 @@ const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 
 // GET /api/appointments - Get all appointments (admin only) with pagination and filtering
 router.get('/', auth, async (req, res) => {
@@ -66,6 +67,9 @@ router.get('/', auth, async (req, res) => {
             hasNext: page < totalPages,
             hasPrev: page > 1
         };
+
+        // Log admin action
+        logAdminAction('view_all_appointments', req.user.id, { query: req.query });
 
         res.json({
             appointments,
@@ -174,8 +178,7 @@ router.post('/', auth, async (req, res) => {
         await appointment.populate('trainerId', 'firstName lastName email');
 
         // Log the successful booking
-        const { logger } = require('../services/logger');
-        logger.info(`Appointment booked successfully: Client ${appointment.clientId.firstName} ${appointment.clientId.lastName} with Trainer ${appointment.trainerId.firstName} ${appointment.trainerId.lastName} on ${appointment.date} at ${appointment.time}`);
+        logUserAction('book_appointment', req.user.id, { appointmentId: appointment._id, trainerId, date, time });
 
         res.status(201).json(appointment);
     } catch (err) {
@@ -210,6 +213,13 @@ router.put('/:id', auth, async (req, res) => {
         await appointment.populate('clientId', 'firstName lastName email');
         await appointment.populate('trainerId', 'firstName lastName email');
 
+        // Log the action
+        if (appointment.clientId.toString() === req.user.id && status === 'cancelled') {
+            logUserAction('cancel_appointment', req.user.id, { appointmentId: req.params.id });
+        } else {
+            logAdminAction('update_appointment', req.user.id, { appointmentId: req.params.id, updates: req.body });
+        }
+
         res.json(appointment);
     } catch (err) {
         console.error(err.message);
@@ -230,6 +240,9 @@ router.delete('/:id', auth, async (req, res) => {
         if (req.user.role !== 'admin' && appointment.trainerId.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
+
+        // Log admin action
+        logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
 
         await Appointment.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Appointment deleted successfully' });
