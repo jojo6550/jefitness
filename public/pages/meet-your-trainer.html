@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Meet Your Trainer – JE Fitness</title>
+    <title>Appointments & Meet Your Trainers – JE Fitness</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
@@ -140,8 +140,8 @@
     <div id="navbar-placeholder"></div>
 
     <main class="container py-5">
-        <h2 class="mb-4 text-center">Meet Our Trainers</h2>
-        <p class="lead text-center text-muted mb-5">Our expert trainers are dedicated to helping you achieve your fitness goals. Get to know them below!</p>
+        <h2 class="mb-4 text-center">Meet Our Trainers and Manage Your Appointments</h2>
+        <p class="lead text-center text-muted mb-5">Our expert trainers are dedicated to helping you achieve your fitness goals. Get to know them below and book or view your appointments!</p>
 
         <div id="trainerCards" class="row g-4">
             <div class="col-lg-6">
@@ -242,6 +242,36 @@
       </div>
     </div>
 
+    <div class="container py-5">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Your Appointments</h5>
+          <button id="refreshAppointments" class="btn btn-light btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Trainer</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="appointmentsTableBody">
+                <!-- Appointments will be loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="contact-section py-5">
         <div class="container">
             <h2 class="text-center mb-4">Ready to Get Started?</h2>
@@ -274,92 +304,7 @@
         <p>&copy; 2025 JE Fitness. All rights reserved.</p>
     </footer>
 
-    <!-- ====== Appointment Script ====== -->
-    <script>
-      // Load trainers on page load
-      document.addEventListener('DOMContentLoaded', async function () {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          alert('You must be logged in to book an appointment.');
-          return;
-        }
-
-        try {
-          const response = await fetch('http://localhost:10000/api/users/trainers', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            const trainers = await response.json();
-            const trainerSelect = document.getElementById('trainerSelect');
-            trainerSelect.innerHTML = '<option value="">Choose...</option>';
-            trainers.forEach(trainer => {
-              trainerSelect.innerHTML += `<option value="${trainer._id}">${trainer.firstName} ${trainer.lastName}</option>`;
-            });
-          } else {
-            console.error('Failed to load trainers');
-          }
-        } catch (error) {
-          console.error('Error loading trainers:', error);
-        }
-      });
-
-      document.getElementById('appointmentForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        const trainerId = document.getElementById('trainerSelect').value;
-        const date = document.getElementById('appointmentDate').value;
-        const time = document.getElementById('appointmentTime').value;
-        const notes = document.getElementById('appointmentNotes').value;
-
-        if (!trainerId || !date || !time) {
-          alert('Please fill in all required fields.');
-          return;
-        }
-
-        // Get JWT token from localStorage (assuming it's stored there after login)
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-          alert('You must be logged in to book an appointment.');
-          return;
-        }
-
-        try {
-          const response = await fetch('http://localhost:10000/api/appointments', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              trainerId,
-              date,
-              time,
-              notes
-            })
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            console.log('Appointment booked successfully:', data);
-            alert(`Appointment booked successfully on ${date} at ${time}.`);
-            // Reset the form and close modal
-            this.reset();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('appointmentModal'));
-            modal.hide();
-          } else {
-            alert(`Error: ${data.msg}`);
-          }
-        } catch (error) {
-          console.error('Error booking appointment:', error);
-          alert('An error occurred while booking the appointment.');
-        }
-      });
-    </script>
+    <script src="../js/appointments.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/navbar-loader.js"></script>
     <script src="../js/logout.js" defer></script>
