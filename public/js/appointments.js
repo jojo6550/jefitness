@@ -27,10 +27,13 @@ async function loadAppointments() {
 
 // Display appointments in table
 function displayAppointments(appointments) {
+    // Filter out cancelled appointments
+    const activeAppointments = appointments.filter(app => app.status !== 'cancelled');
+
     const tbody = document.getElementById('appointmentsTableBody');
     tbody.innerHTML = '';
 
-    if (appointments.length === 0) {
+    if (activeAppointments.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-muted">No appointments found</td>
@@ -39,7 +42,7 @@ function displayAppointments(appointments) {
         return;
     }
 
-    appointments.forEach(appointment => {
+    activeAppointments.forEach(appointment => {
         const row = document.createElement('tr');
         const date = new Date(appointment.date).toLocaleDateString();
         const statusClass = appointment.status === 'scheduled' ? 'text-success' :
