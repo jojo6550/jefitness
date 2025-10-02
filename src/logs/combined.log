@@ -109,3 +109,15 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:07:57:757"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:08:04:84"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:08:07:87"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:18:15:1815"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:18:19:1819"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:22:18:2218"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:22:21:2221"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:22:35:2235"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:22:37:2237"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:22:42:2242"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:22:45:2245"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:22:49:2249"}
+{"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: Server selection timed out after 30000 ms | Context: {\"context\":\"MongoDB Connection\"} | Stack: MongooseServerSelectionError: Server selection timed out after 30000 ms\u001b[39m\n\u001b[31m    at _handleConnectionErrors (C:\\Users\\josia\\jojo6550.github.io\\node_modules\\mongoose\\lib\\connection.js:1165:11)\u001b[39m\n\u001b[31m    at NativeConnection.openUri (C:\\Users\\josia\\jojo6550.github.io\\node_modules\\mongoose\\lib\\connection.js:1096:11)\u001b[39m\n\u001b[31m    at async connectDB (C:\\Users\\josia\\jojo6550.github.io\\src\\server.js:21:9)\u001b[39m","timestamp":"2025-10-01 19:23:19:2319"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:24:24:2424"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:24:31:2431"}

@@ -1,6 +1,9 @@
-- [x] Add testimonials section to landing page for professionalism
-- [x] Integrate 'Meet the Trainers' preview section with cards linking to full page
-- [x] Add questionnaire section with form asking about goals (primary goal: strength/weight loss/massage, experience level)
-- [x] Implement JavaScript logic to suggest trainer based on questionnaire answers (strength -> Jamol, massage -> Jermaine, weight loss -> either)
-- [x] Refine overall styling for more professional look
-- [x] Test the updated landing page functionality
+# TODO: Enable Users to Delete Appointments
+
+## Tasks
+- [x] Update `src/routes/appointments.js`: Modify DELETE route to allow clients to delete their own appointments and adjust logging for client deletions.
+- [x] Update `public/js/appointments.js`: Change "Cancel" button to "Delete", replace cancelAppointment function with deleteAppointment using DELETE method, and update confirmation message.
+
+## Followup Steps
+- [x] Test deletion functionality from the frontend.
+- [x] Verify that deleted appointments are removed from the database and no longer appear in the UI.
