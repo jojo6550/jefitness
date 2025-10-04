@@ -122,9 +122,12 @@
 {"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: Server selection timed out after 30000 ms | Context: {\"context\":\"MongoDB Connection\"} | Stack: MongooseServerSelectionError: Server selection timed out after 30000 ms\u001b[39m\n\u001b[31m    at _handleConnectionErrors (C:\\Users\\josia\\jojo6550.github.io\\node_modules\\mongoose\\lib\\connection.js:1165:11)\u001b[39m\n\u001b[31m    at NativeConnection.openUri (C:\\Users\\josia\\jojo6550.github.io\\node_modules\\mongoose\\lib\\connection.js:1096:11)\u001b[39m\n\u001b[31m    at async connectDB (C:\\Users\\josia\\jojo6550.github.io\\src\\server.js:21:9)\u001b[39m","timestamp":"2025-10-01 19:23:19:2319"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:24:24:2424"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:24:31:2431"}
+<<<<<<< HEAD
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-01 19:48:49:4849"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-01 19:48:51:4851"}
 =======
 >>>>>>> parent of c2e7a09 (`Implement appointment deletion functionality`)
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-04 13:20:02:202"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-04 13:20:03:203"}
+=======
+>>>>>>> parent of 9364d61 (`Added appointment management feature to meet-your-trainer page, refactored appointment booking script, and updated logs.`)
