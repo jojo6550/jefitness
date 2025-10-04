@@ -93,9 +93,36 @@ function showError(message) {
 }
 
 // View appointment details
-function viewAppointment(appointmentId) {
-    console.log('View appointment:', appointmentId);
-    // TODO: Implement view functionality
+async function viewAppointment(appointmentId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const appointment = await response.json();
+
+        // Populate modal
+        document.getElementById('modalDate').textContent = new Date(appointment.date).toLocaleDateString();
+        document.getElementById('modalTime').textContent = appointment.time;
+        document.getElementById('modalTrainer').textContent = appointment.trainerId ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}` : 'N/A';
+        document.getElementById('modalStatus').textContent = appointment.status;
+        document.getElementById('modalClient').textContent = appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A';
+        document.getElementById('modalNotes').textContent = appointment.notes || 'N/A';
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error viewing appointment:', error);
+        alert('Failed to load appointment details. Please try again.');
+    }
 }
 
 // Edit appointment

@@ -1,6 +1,5 @@
-- [x] Add testimonials section to landing page for professionalism
-- [x] Integrate 'Meet the Trainers' preview section with cards linking to full page
-- [x] Add questionnaire section with form asking about goals (primary goal: strength/weight loss/massage, experience level)
-- [x] Implement JavaScript logic to suggest trainer based on questionnaire answers (strength -> Jamol, massage -> Jermaine, weight loss -> either)
-- [x] Refine overall styling for more professional look
-- [x] Test the updated landing page functionality
+# TODO: Add View Functionality to Appointments
+
+- [x] Add Bootstrap modal to public/pages/appointments.html for displaying appointment details
+- [x] Implement viewAppointment function in public/js/appointments.js to fetch and display details
+- [ ] Test the view functionality
