@@ -236,13 +236,21 @@ router.delete('/:id', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Appointment not found' });
         }
 
-        // Allow delete if user is admin or trainer
-        if (req.user.role !== 'admin' && appointment.trainerId.toString() !== req.user.id) {
+        // Allow delete if user is admin, trainer, or the client who owns the appointment
+        if (req.user.role !== 'admin' &&
+            appointment.trainerId.toString() !== req.user.id &&
+            appointment.clientId.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        // Log admin action
-        logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
+        // Log the action
+        if (req.user.role === 'admin') {
+            logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
+        } else if (appointment.trainerId.toString() === req.user.id) {
+            logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
+        } else {
+            logUserAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
+        }
 
         await Appointment.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Appointment deleted successfully' });

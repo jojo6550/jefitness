@@ -60,7 +60,8 @@ function displayAppointments(appointments) {
             <td>
                 <button data-id="${appointment._id}" class="btn btn-sm btn-outline-primary view-btn">View</button>
                 <button data-id="${appointment._id}" class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
-                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-danger delete-btn">Cancel</button>
+                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-warning cancel-btn">Cancel</button>
+                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -75,8 +76,12 @@ function displayAppointments(appointments) {
         btn.addEventListener('click', (e) => editAppointment(e.target.dataset.id));
     });
 
-    document.querySelectorAll('.delete-btn').forEach(btn => {
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
         btn.addEventListener('click', (e) => cancelAppointment(e.target.dataset.id));
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => deleteAppointment(e.target.dataset.id));
     });
 }
 
@@ -126,6 +131,30 @@ async function cancelAppointment(appointmentId) {
         } catch (error) {
             console.error('Error cancelling appointment:', error);
             alert('Failed to cancel appointment. Please try again.');
+        }
+    }
+}
+
+// Delete appointment
+async function deleteAppointment(appointmentId) {
+    if (confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+            }
+
+            // Reload appointments after deletion
+            loadAppointments();
+        } catch (error) {
+            console.error('Error deleting appointment:', error);
+            alert('Failed to delete appointment. Please try again.');
         }
     }
 }
