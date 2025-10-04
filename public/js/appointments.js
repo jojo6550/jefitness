@@ -126,10 +126,75 @@ async function viewAppointment(appointmentId) {
 }
 
 // Edit appointment
+let currentEditAppointmentId = null;
+const editModalElement = document.getElementById('editAppointmentModal');
+const editModal = new bootstrap.Modal(editModalElement);
+
 function editAppointment(appointmentId) {
-    console.log('Edit appointment:', appointmentId);
-    // TODO: Implement edit functionality
+    currentEditAppointmentId = appointmentId;
+    // Fetch appointment details
+    fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(appointment => {
+        // Populate form fields
+        document.getElementById('editDate').value = new Date(appointment.date).toISOString().slice(0, 10);
+        document.getElementById('editTime').value = appointment.time;
+        document.getElementById('editNotes').value = appointment.notes || '';
+
+        // Show modal
+        editModal.show();
+    })
+    .catch(error => {
+        console.error('Error fetching appointment for edit:', error);
+        alert('Failed to load appointment details for editing. Please try again.');
+    });
 }
+
+// Save edited appointment
+document.getElementById('saveEditBtn').addEventListener('click', () => {
+    const date = document.getElementById('editDate').value;
+    const time = document.getElementById('editTime').value;
+    const notes = document.getElementById('editNotes').value;
+
+    if (!date || !time) {
+        alert('Date and time are required.');
+        return;
+    }
+
+    fetch(`${API_BASE_URL}/api/appointments/${currentEditAppointmentId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        },
+        body: JSON.stringify({ date, time, notes })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(updatedAppointment => {
+        editModal.hide();
+        loadAppointments();
+        alert('Appointment updated successfully.');
+    })
+    .catch(error => {
+        console.error('Error updating appointment:', error);
+        alert('Failed to update appointment. Please try again.');
+    });
+});
 
 // Delete appointment
 async function deleteAppointment(appointmentId) {
