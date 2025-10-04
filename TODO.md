@@ -1,7 +1,10 @@
-# TODO: Add Edit Functionality to Appointments
+# TODO List
 
-- [x] Add Bootstrap modal to public/pages/appointments.html for editing appointment details (date, time, notes)
-- [x] Implement editAppointment function in public/js/appointments.js to fetch appointment data and open edit modal
-- [x] Implement save handler to send PUT request to update appointment
-- [x] Refresh appointments list after successful update
-- [ ] Test the edit functionality end-to-end
+## Completed Tasks
+- [x] Update appointment booking limit from 10 clients per 1:30 minutes to 10 clients per 1 hour
+  - [x] Changed time slot calculation from 90 minutes to 60 minutes in src/routes/appointments.js
+  - [x] Updated comment from "1:30 min period" to "1 hour period"
+  - [x] Updated error message to reflect "1 hour period"
+
+## Pending Tasks
+- [ ] Test the booking functionality to verify 1-hour limit works correctly
