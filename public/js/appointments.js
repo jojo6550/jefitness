@@ -60,7 +60,6 @@ function displayAppointments(appointments) {
             <td>
                 <button data-id="${appointment._id}" class="btn btn-sm btn-outline-primary view-btn">View</button>
                 <button data-id="${appointment._id}" class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
-                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-warning cancel-btn">Cancel</button>
                 <button data-id="${appointment._id}" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
             </td>
         `;
@@ -74,10 +73,6 @@ function displayAppointments(appointments) {
 
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', (e) => editAppointment(e.target.dataset.id));
-    });
-
-    document.querySelectorAll('.cancel-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => cancelAppointment(e.target.dataset.id));
     });
 
     document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -107,32 +102,6 @@ function viewAppointment(appointmentId) {
 function editAppointment(appointmentId) {
     console.log('Edit appointment:', appointmentId);
     // TODO: Implement edit functionality
-}
-
-// Cancel appointment
-async function cancelAppointment(appointmentId) {
-    if (confirm('Are you sure you want to cancel this appointment?')) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                },
-                body: JSON.stringify({ status: 'cancelled' })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-            }
-
-            // Reload appointments after cancellation
-            loadAppointments();
-        } catch (error) {
-            console.error('Error cancelling appointment:', error);
-            alert('Failed to cancel appointment. Please try again.');
-        }
-    }
 }
 
 // Delete appointment
