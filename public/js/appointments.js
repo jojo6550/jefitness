@@ -115,6 +115,8 @@ async function viewAppointment(appointmentId) {
         document.getElementById('modalStatus').textContent = appointment.status;
         document.getElementById('modalClient').textContent = appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A';
         document.getElementById('modalNotes').textContent = appointment.notes || 'N/A';
+        document.getElementById('modalCreatedAt').textContent = new Date(appointment.createdAt).toLocaleString();
+        document.getElementById('modalUpdatedAt').textContent = new Date(appointment.updatedAt).toLocaleString();
 
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));

@@ -406,6 +406,36 @@
         </div>
     </div>
 
+    <!-- Appointment Details Modal -->
+    <div id="appointmentDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h5 class="text-2xl font-bold text-gray-800">Appointment Details</h5>
+                <button id="closeAppointmentDetailsModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="bi bi-x-lg text-2xl"></i>
+                </button>
+            </div>
+            <div id="appointmentDetailsContent" class="space-y-4">
+                <!-- Loading state -->
+                <div id="appointmentDetailsLoading" class="text-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p class="mt-4 text-gray-600">Loading appointment details...</p>
+                </div>
+                <!-- Appointment details will be populated here -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p><strong>Date:</strong> <span id="modalAppointmentDate"></span></p>
+                    <p><strong>Time:</strong> <span id="modalAppointmentTime"></span></p>
+                    <p><strong>Client:</strong> <span id="modalAppointmentClient"></span></p>
+                    <p><strong>Trainer:</strong> <span id="modalAppointmentTrainer"></span></p>
+                    <p><strong>Status:</strong> <span id="modalAppointmentStatus"></span></p>
+                    <p><strong>Notes:</strong> <span id="modalAppointmentNotes"></span></p>
+                    <p><strong>Created At:</strong> <span id="modalAppointmentCreatedAt"></span></p>
+                    <p><strong>Last Updated:</strong> <span id="modalAppointmentUpdatedAt"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/admin-dashboard.js" defer></script>
     <script src="../js/logout.js" defer></script>

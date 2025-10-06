@@ -233,6 +233,21 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.classList.add('hidden');
         }
     });
+
+    // Close appointment details modal
+    const closeAppointmentBtn = document.getElementById('closeAppointmentDetailsModal');
+    const appointmentModal = document.getElementById('appointmentDetailsModal');
+
+    closeAppointmentBtn.addEventListener('click', () => {
+        appointmentModal.classList.add('hidden');
+    });
+
+    // Close appointment modal on outside click
+    appointmentModal.addEventListener('click', (e) => {
+        if (e.target === appointmentModal) {
+            appointmentModal.classList.add('hidden');
+        }
+    });
 });
 
 // Update pagination controls
@@ -646,9 +661,47 @@ function showAppointmentsError(message) {
 }
 
 // View appointment details
-function viewAppointment(appointmentId) {
-    console.log('View appointment:', appointmentId);
-    // TODO: Implement view functionality
+async function viewAppointment(appointmentId) {
+    const modal = document.getElementById('appointmentDetailsModal');
+    const content = document.getElementById('appointmentDetailsContent');
+    const loading = document.getElementById('appointmentDetailsLoading');
+
+    // Show modal and loading
+    modal.classList.remove('hidden');
+    loading.style.display = 'block';
+    content.querySelectorAll(':not(#appointmentDetailsLoading)').forEach(el => el.remove());
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const appointment = await response.json();
+
+        // Hide loading
+        loading.style.display = 'none';
+
+        // Populate modal
+        document.getElementById('modalAppointmentDate').textContent = new Date(appointment.date).toLocaleDateString();
+        document.getElementById('modalAppointmentTime').textContent = appointment.time;
+        document.getElementById('modalAppointmentClient').textContent = appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A';
+        document.getElementById('modalAppointmentTrainer').textContent = appointment.trainerId ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}` : 'N/A';
+        document.getElementById('modalAppointmentStatus').textContent = appointment.status;
+        document.getElementById('modalAppointmentNotes').textContent = appointment.notes || 'N/A';
+        document.getElementById('modalAppointmentCreatedAt').textContent = new Date(appointment.createdAt).toLocaleString();
+        document.getElementById('modalAppointmentUpdatedAt').textContent = new Date(appointment.updatedAt).toLocaleString();
+    } catch (error) {
+        console.error('Error loading appointment details:', error);
+        loading.style.display = 'none';
+        content.innerHTML = `<p class="text-red-600">Failed to load appointment details. Please try again.</p>`;
+    }
 }
 
 // Edit appointment
@@ -733,6 +786,17 @@ function exportAppointments() {
         console.error('Error exporting appointments:', error);
         alert('Failed to export appointments. Please try again.');
     });
+}
+
+// Attach logout listener
+function attachLogoutListener() {
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = '/pages/login.html';
+        });
+    }
 }
 
 // Event listeners

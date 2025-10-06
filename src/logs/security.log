@@ -64,3 +64,5 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68d43968482f62ebeea92474 | Details: {\"email\":\"noreplyjefitness@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-04 13:29:10:2910"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-04 13:30:45:3045"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-10-04 13:30:45:3045"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-06 10:36:52:3652"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-10-06 10:36:53:3653"}

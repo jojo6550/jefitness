@@ -7,4 +7,5 @@
   - [x] Updated error message to reflect "1 hour period"
 
 ## Pending Tasks
+- [ ] Enable viewing appointment details (including createdAt and updatedAt) on both admin and user sides
 - [ ] Test the booking functionality to verify 1-hour limit works correctly
