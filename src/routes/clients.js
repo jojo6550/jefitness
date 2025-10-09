@@ -43,9 +43,10 @@ router.get('/', auth, async (req, res) => {
         // Get total count for pagination
         const totalCount = await User.countDocuments(query);
 
-        // Get clients with pagination and sorting
+        // Get clients with pagination and sorting (case-insensitive for string fields)
         const clients = await User.find(query)
             .select('-password')
+            .collation({ locale: 'en', strength: 2 })
             .sort({ [sortBy]: sortDirection })
             .skip(skip)
             .limit(parseInt(limit));
