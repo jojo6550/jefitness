@@ -85,13 +85,14 @@ function displayClients(clients) {
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.email || 'N/A'}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    client.activityStatus === 'active' ? 'bg-green-100 text-green-800' : 
-                    client.activityStatus === 'inactive' ? 'bg-red-100 text-red-800' : 
+                    client.activityStatus === 'active' ? 'bg-green-100 text-green-800' :
+                    client.activityStatus === 'inactive' ? 'bg-red-100 text-red-800' :
                     'bg-gray-100 text-gray-800'
                 }">
                     ${client.activityStatus || 'Unknown'}
                 </span>
             </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A'}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <button data-id="${client._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-btn">View</button>
                 <button data-id="${client._id}" class="text-blue-600 hover:text-blue-900 mr-3 edit-btn">Edit</button>
