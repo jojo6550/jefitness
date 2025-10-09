@@ -67,8 +67,8 @@ const baseUrl = isLocalhost
         const data = await response.json();
 
         if (response.ok) {
-          alert('Signup successful!');
-          window.location.href = '../pages/dashboard.html';
+          alert('Account has been created!');
+          window.location.href = 'login.html';
         } else {
           alert(data.msg || 'Signup failed.');
         }

@@ -1145,6 +1145,14 @@ body.view-statics-page {
     padding-top: 70px; /* Adjust if your navbar height is different */
 }
 
+/* Video responsiveness for mobile */
+video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
 /* --- NAVBAR CUSTOM STYLES --- */
 .navbar {
     background: linear-gradient(90deg, #667eea, #764ba2);
