@@ -1,11 +1,6 @@
-# TODO List
-
-## Completed Tasks
-- [x] Update appointment booking limit from 10 clients per 1:30 minutes to 10 clients per 1 hour
-  - [x] Changed time slot calculation from 90 minutes to 60 minutes in src/routes/appointments.js
-  - [x] Updated comment from "1:30 min period" to "1 hour period"
-  - [x] Updated error message to reflect "1 hour period"
-
-## Pending Tasks
-- [ ] Enable viewing appointment details (including createdAt and updatedAt) on both admin and user sides
-- [ ] Test the booking functionality to verify 1-hour limit works correctly
+- [x] Edit public/pages/meet-your-trainer.html to add the appointments table section after the trainer cards.
+- [x] Include the appointment details and edit modals in the HTML.
+- [x] Add the script tag for ../js/appointments.js at the end.
+- [x] Update the page title and heading to "Meet Your Trainers & Manage Appointments".
+- [x] Check public/pages/partials/navbar.html for links to appointments.html and update to meet-your-trainer.html.
+- [ ] Test the combined page functionality.

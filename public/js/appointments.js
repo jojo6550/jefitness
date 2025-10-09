@@ -93,8 +93,10 @@ function showError(message) {
 }
 
 // View appointment details
+let currentViewAppointmentId = null;
 async function viewAppointment(appointmentId) {
     try {
+        currentViewAppointmentId = appointmentId;
         const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
             headers: {
                 'Content-Type': 'application/json',
@@ -109,14 +111,17 @@ async function viewAppointment(appointmentId) {
         const appointment = await response.json();
 
         // Populate modal
-        document.getElementById('modalDate').textContent = new Date(appointment.date).toLocaleDateString();
-        document.getElementById('modalTime').textContent = appointment.time;
-        document.getElementById('modalTrainer').textContent = appointment.trainerId ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}` : 'N/A';
-        document.getElementById('modalStatus').textContent = appointment.status;
-        document.getElementById('modalClient').textContent = appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A';
-        document.getElementById('modalNotes').textContent = appointment.notes || 'N/A';
-        document.getElementById('modalCreatedAt').textContent = new Date(appointment.createdAt).toLocaleString();
-        document.getElementById('modalUpdatedAt').textContent = new Date(appointment.updatedAt).toLocaleString();
+        const detailsDiv = document.getElementById('appointmentDetails');
+        detailsDiv.innerHTML = `
+            <p><strong>Date:</strong> ${new Date(appointment.date).toLocaleDateString()}</p>
+            <p><strong>Time:</strong> ${appointment.time}</p>
+            <p><strong>Trainer:</strong> ${appointment.trainerId ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}` : 'N/A'}</p>
+            <p><strong>Status:</strong> ${appointment.status}</p>
+            <p><strong>Client:</strong> ${appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A'}</p>
+            <p><strong>Notes:</strong> ${appointment.notes || 'N/A'}</p>
+            <p><strong>Created At:</strong> ${new Date(appointment.createdAt).toLocaleString()}</p>
+            <p><strong>Updated At:</strong> ${new Date(appointment.updatedAt).toLocaleString()}</p>
+        `;
 
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('appointmentModal'));
@@ -149,9 +154,9 @@ function editAppointment(appointmentId) {
     })
     .then(appointment => {
         // Populate form fields
-        document.getElementById('editDate').value = new Date(appointment.date).toISOString().slice(0, 10);
-        document.getElementById('editTime').value = appointment.time;
-        document.getElementById('editNotes').value = appointment.notes || '';
+        document.getElementById('editAppointmentDate').value = new Date(appointment.date).toISOString().slice(0, 10);
+        document.getElementById('editAppointmentTime').value = appointment.time;
+        document.getElementById('editAppointmentNotes').value = appointment.notes || '';
 
         // Show modal
         editModal.show();
@@ -163,10 +168,11 @@ function editAppointment(appointmentId) {
 }
 
 // Save edited appointment
-document.getElementById('saveEditBtn').addEventListener('click', () => {
-    const date = document.getElementById('editDate').value;
-    const time = document.getElementById('editTime').value;
-    const notes = document.getElementById('editNotes').value;
+document.getElementById('editAppointmentForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const date = document.getElementById('editAppointmentDate').value;
+    const time = document.getElementById('editAppointmentTime').value;
+    const notes = document.getElementById('editAppointmentNotes').value;
 
     if (!date || !time) {
         alert('Date and time are required.');
@@ -230,5 +236,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshBtn = document.getElementById('refreshAppointments');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', loadAppointments);
+    }
+
+    // Edit button in view modal
+    const editBtn = document.getElementById('editAppointmentBtn');
+    if (editBtn) {
+        editBtn.addEventListener('click', () => {
+            if (currentViewAppointmentId) {
+                editAppointment(currentViewAppointmentId);
+            }
+        });
     }
 });

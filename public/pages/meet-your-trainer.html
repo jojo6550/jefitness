@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Meet Your Trainer – JE Fitness</title>
+    <title>Meet Your Trainers & Manage Appointments – JE Fitness</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
@@ -140,8 +140,8 @@
     <div id="navbar-placeholder"></div>
 
     <main class="container py-5">
-        <h2 class="mb-4 text-center">Meet Our Trainers</h2>
-        <p class="lead text-center text-muted mb-5">Our expert trainers are dedicated to helping you achieve your fitness goals. Get to know them below!</p>
+        <h2 class="mb-4 text-center">Meet Our Trainers & Manage Your Appointments</h2>
+        <p class="lead text-center text-muted mb-5">Our expert trainers are dedicated to helping you achieve your fitness goals. Get to know them below and manage your appointments!</p>
 
         <div id="trainerCards" class="row g-4">
             <div class="col-lg-6">
@@ -183,6 +183,41 @@
             
             </div>
         </div>
+
+        <div class="card mt-5">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Your Appointments</h2>
+                <button id="refreshAppointments" class="btn btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Trainer</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Loading appointments...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- ====== Book an Appointment Section ====== -->
@@ -193,18 +228,18 @@
           Schedule a one-on-one session with your favorite trainer at JE Fitness.
         </p>
         <!-- Button to trigger modal -->
-        <button class="btn btn-success btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#appointmentModal">
+        <button class="btn btn-success btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#bookingModal">
           Book Now <i class="bi bi-calendar-check"></i>
         </button>
       </div>
     </section>
 
-    <!-- ====== Appointment Modal ====== -->
-    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel" aria-hidden="true">
+    <!-- ====== Booking Modal ====== -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 shadow">
           <div class="modal-header">
-            <h5 class="modal-title fw-bold" id="appointmentModalLabel">Book an Appointment</h5>
+            <h5 class="modal-title fw-bold" id="bookingModalLabel">Book an Appointment</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -235,6 +270,65 @@
 
               <button type="submit" class="btn btn-primary w-100">
                 Confirm Booking
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appointment Details Modal -->
+    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="appointmentModalLabel">Appointment Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="appointmentDetails">
+              <!-- Details will be populated here -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="editAppointmentBtn">Edit Appointment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Appointment Modal -->
+    <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editAppointmentModalLabel">Edit Appointment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="editAppointmentForm">
+              <input type="hidden" id="editAppointmentId">
+              <div class="mb-3">
+                <label for="editTrainerSelect" class="form-label">Select Trainer</label>
+                <select id="editTrainerSelect" class="form-select" required>
+                  <option value="">Choose...</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="editAppointmentDate" class="form-label">Date</label>
+                <input type="date" id="editAppointmentDate" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label for="editAppointmentTime" class="form-label">Time</label>
+                <input type="time" id="editAppointmentTime" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label for="editAppointmentNotes" class="form-label">Notes (Optional)</label>
+                <textarea id="editAppointmentNotes" class="form-control" rows="3" placeholder="Any special requests or goals..."></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary w-100">
+                Update Appointment
               </button>
             </form>
           </div>
@@ -349,7 +443,7 @@
             alert(`Appointment booked successfully on ${date} at ${time}.`);
             // Reset the form and close modal
             this.reset();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('appointmentModal'));
+            const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
             modal.hide();
           } else {
             alert(`Error: ${data.msg}`);
@@ -361,6 +455,7 @@
       });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/appointments.js"></script>
     <script src="../js/navbar-loader.js"></script>
     <script src="../js/logout.js" defer></script>
 </body>
