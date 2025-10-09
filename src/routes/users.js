@@ -6,7 +6,13 @@ const auth = require('../middleware/auth');
 // GET /api/users/trainers - Get all trainers
 router.get('/trainers', auth, async (req, res) => {
     try {
-        const trainers = await User.find({ role: 'admin' }).select('firstName lastName email');
+        const trainers = await User.find({
+            role: 'admin',
+            $or: [
+                { firstName: { $ne: 'admin' } },
+                { lastName: { $ne: 'admin' } }
+            ]
+        }).select('firstName lastName email');
         res.json(trainers);
     } catch (err) {
         console.error(err.message);
