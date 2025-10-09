@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.attachLogoutListener) {
                     window.attachLogoutListener();
                 }
+                // Initialize dashboard if function exists
+                if (window.initDashboard) {
+                    window.initDashboard();
+                }
             })
             .catch(error => console.error('Error loading navbar:', error));
     }

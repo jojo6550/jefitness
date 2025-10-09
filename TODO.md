@@ -3,4 +3,5 @@
 - [x] Add the script tag for ../js/appointments.js at the end.
 - [x] Update the page title and heading to "Meet Your Trainers & Manage Appointments".
 - [x] Check public/pages/partials/navbar.html for links to appointments.html and update to meet-your-trainer.html.
-- [ ] Test the combined page functionality.
+- [x] Test the combined page functionality.
+- [x] Delete appointments.html page and update dashboard card title to "Meet Your Trainers".
