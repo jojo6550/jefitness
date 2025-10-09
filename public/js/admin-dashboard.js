@@ -8,6 +8,8 @@ let currentSearch = '';
 let currentSortBy = 'firstName';
 let currentSortOrder = 'asc';
 let currentStatus = '';
+let currentAppointmentsSortBy = 'date';
+let currentAppointmentsSortOrder = 'asc';
 
 // Debounce function for search
 function debounce(func, wait) {
@@ -410,13 +412,41 @@ function updateSortIndicators() {
     document.querySelectorAll('[data-sort]').forEach(header => {
         const column = header.dataset.sort;
         const icon = header.querySelector('i');
-        
+
         if (column === currentSortBy) {
-            icon.className = currentSortOrder === 'asc' 
-                ? 'bi bi-sort-alpha-up ml-1' 
+            icon.className = currentSortOrder === 'asc'
+                ? 'bi bi-sort-alpha-up ml-1'
                 : 'bi bi-sort-alpha-down-alt ml-1';
         } else {
             icon.className = 'bi bi-sort-alpha-down ml-1';
+        }
+    });
+}
+
+// Handle appointments sort
+function handleAppointmentsSort(column) {
+    if (currentAppointmentsSortBy === column) {
+        currentAppointmentsSortOrder = currentAppointmentsSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentAppointmentsSortBy = column;
+        currentAppointmentsSortOrder = 'asc';
+    }
+    loadAppointments(1, '', currentAppointmentsSortBy, currentAppointmentsSortOrder, '');
+    updateAppointmentsSortIndicators();
+}
+
+// Update appointments sort indicators
+function updateAppointmentsSortIndicators() {
+    document.querySelectorAll('#appointments-section [data-sort]').forEach(header => {
+        const column = header.dataset.sort;
+        const icon = header.querySelector('i');
+
+        if (column === currentAppointmentsSortBy) {
+            icon.className = currentAppointmentsSortOrder === 'asc'
+                ? 'bi bi-sort-up ml-1'
+                : 'bi bi-sort-down ml-1';
+        } else {
+            icon.className = 'bi bi-sort-down ml-1';
         }
     });
 }
@@ -486,7 +516,7 @@ async function deleteClient(clientId) {
 }
 
 // Load appointments with search, sort, and pagination
-async function loadAppointments(page = 1, search = '', sortBy = 'date', sortOrder = 'asc', status = '') {
+async function loadAppointments(page = 1, search = '', sortBy = currentAppointmentsSortBy, sortOrder = currentAppointmentsSortOrder, status = '') {
     try {
         const params = new URLSearchParams({
             page,
@@ -646,7 +676,7 @@ function updateAppointmentsPagination(pagination) {
 
 // Change appointments page
 function changeAppointmentsPage(page) {
-    loadAppointments(page, '', 'date', 'asc', '');
+    loadAppointments(page, '', currentAppointmentsSortBy, currentAppointmentsSortOrder, '');
 }
 
 // Show appointments error message
@@ -835,9 +865,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const refreshAppointmentsBtn = document.getElementById('refreshAppointments');
     if (refreshAppointmentsBtn) {
         refreshAppointmentsBtn.addEventListener('click', () => {
-            loadAppointments(1, '', 'date', 'asc', '');
+            loadAppointments(1, '', currentAppointmentsSortBy, currentAppointmentsSortOrder, '');
         });
     }
+
+    // Appointments sort headers
+    document.querySelectorAll('#appointments-section [data-sort]').forEach(header => {
+        header.addEventListener('click', () => {
+            handleAppointmentsSort(header.dataset.sort);
+        });
+    });
 
     // Appointments export button
     const exportAppointmentsBtn = document.getElementById('exportAppointments');
