@@ -33,8 +33,8 @@ router.get('/', auth, async (req, res) => {
         // Build status filter
         const statusQuery = status ? { activityStatus: status } : {};
 
-        // Combine queries
-        const query = { ...searchQuery, ...statusQuery };
+        // Combine queries (exclude admins)
+        const query = { ...searchQuery, ...statusQuery, role: { $ne: 'admin' } };
 
         // Calculate pagination
         const skip = (page - 1) * limit;
@@ -74,8 +74,8 @@ router.get('/statistics', auth, async (req, res) => {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        // Get all clients for statistics
-        const clients = await User.find({}).select('-password');
+        // Get all clients for statistics (excluding admins)
+        const clients = await User.find({ role: { $ne: 'admin' } }).select('-password');
 
         // Calculate statistics
         const totalClients = clients.length;
