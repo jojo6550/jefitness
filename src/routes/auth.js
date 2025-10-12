@@ -109,6 +109,10 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
+        // Update lastLoggedIn timestamp
+        user.lastLoggedIn = new Date();
+        await user.save();
+
         // Include role in JWT payload
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
         logSecurityEvent('login_success', user._id, { email, role: user.role });

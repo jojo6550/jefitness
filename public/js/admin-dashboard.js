@@ -166,7 +166,8 @@ async function showUserDetails(userId) {
             { label: 'Start Weight', value: user.startWeight !== undefined ? user.startWeight : 'N/A' },
             { label: 'Current Weight', value: user.currentWeight !== undefined ? user.currentWeight : 'N/A' },
             { label: 'Goals', value: user.goals || 'N/A' },
-            { label: 'Reason', value: user.reason || 'N/A' }
+            { label: 'Reason', value: user.reason || 'N/A' },
+            { label: 'Last Logged In', value: user.lastLoggedIn ? new Date(user.lastLoggedIn).toLocaleString() : 'Never' }
         ];
 
         fields.forEach(field => {
