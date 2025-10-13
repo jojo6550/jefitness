@@ -148,15 +148,16 @@ router.post('/', auth, async (req, res) => {
         // Check the 10-client limit per 1 hour period
         const appointmentDate = new Date(date);
         const requestedTime = new Date(`${date}T${time}`);
+        const timeSlotStart = new Date(requestedTime);
         const timeSlotEnd = new Date(requestedTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
         const existingAppointments = await Appointment.find({
             trainerId,
             date: appointmentDate,
-            $or: [
-                { time: { $gte: time, $lt: timeSlotEnd.toTimeString().slice(0, 5) } },
-                { time: { $lte: time, $gte: new Date(timeSlotEnd.getTime() - 60 * 60 * 1000).toTimeString().slice(0, 5) } }
-            ],
+            time: {
+                $gte: timeSlotStart.toTimeString().slice(0, 5),
+                $lt: timeSlotEnd.toTimeString().slice(0, 5)
+            },
             status: { $ne: 'cancelled' }
         });
 

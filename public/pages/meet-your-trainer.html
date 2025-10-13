@@ -370,6 +370,11 @@
 
     <!-- ====== Appointment Script ====== -->
     <script>
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      const API_BASE_URL = isLocalhost
+        ? 'http://localhost:10000'
+        : 'https://jojo6550-github-io.onrender.com';
+
       // Load trainers on page load
       document.addEventListener('DOMContentLoaded', async function () {
         const token = localStorage.getItem('token');
@@ -379,7 +384,7 @@
         }
 
         try {
-          const response = await fetch('http://localhost:10000/api/users/trainers', {
+          const response = await fetch(`${API_BASE_URL}/api/users/trainers`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -422,7 +427,7 @@
         }
 
         try {
-          const response = await fetch('http://localhost:10000/api/appointments', {
+          const response = await fetch(`${API_BASE_URL}/api/appointments`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
