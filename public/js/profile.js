@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const API_BASE_URL = isLocalhost
     ? 'http://localhost:10000'
-    : 'https://jojo6550-github-io.onrender.com';
+    : 'https://jefitness.onrender.com';
 
     // Helper to show messages
     function showMessage(message, type = 'success') {

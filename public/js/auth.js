@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const baseUrl = isLocalhost
     ? 'http://localhost:10000'
-    : 'https://jojo6550-github-io.onrender.com'; // Replace with your real backend if deployed
+    : 'https://jefitness.onrender.com'; // Replace with your real backend if deployed
 
 
   // LOGIN
