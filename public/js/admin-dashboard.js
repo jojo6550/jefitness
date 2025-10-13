@@ -214,11 +214,91 @@ async function showUserDetails(userId) {
             detailsDiv.appendChild(sleepList);
         }
 
+        // Medical files
+        if (user.medicalFiles && user.medicalFiles.length > 0) {
+            const medicalHeader = document.createElement('h3');
+            medicalHeader.innerHTML = '<i class="bi bi-file-earmark-medical-fill"></i> Medical Files';
+            medicalHeader.classList.add('text-lg', 'font-semibold', 'mt-4');
+            detailsDiv.appendChild(medicalHeader);
+
+            const medicalList = document.createElement('ul');
+            medicalList.classList.add('medical-files-list', 'max-h-40', 'overflow-y-auto', 'border', 'p-2', 'rounded');
+
+            user.medicalFiles.forEach(file => {
+                const li = document.createElement('li');
+                const uploadDate = new Date(file.uploadedAt).toLocaleDateString();
+                const fileSize = (file.data.length / 1024).toFixed(2) + ' KB';
+                li.innerHTML = `
+                    <div class="file-info">
+                        <i class="bi bi-file-earmark-medical-fill"></i>
+                        <div>
+                            <strong>${file.filename}</strong>
+                            <div class="file-details">Uploaded: ${uploadDate} | Size: ${fileSize}</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary download-file-btn" data-user-id="${user._id}" data-filename="${file.filename}">
+                        <i class="bi bi-download me-1"></i>Download
+                    </button>
+                `;
+                medicalList.appendChild(li);
+            });
+
+            detailsDiv.appendChild(medicalList);
+
+            // Add event listeners for download buttons
+            document.querySelectorAll('.download-file-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const userId = e.target.dataset.userId;
+                    const filename = e.target.dataset.filename;
+                    downloadMedicalFile(userId, filename);
+                });
+            });
+        } else {
+            const medicalHeader = document.createElement('h3');
+            medicalHeader.innerHTML = '<i class="bi bi-file-earmark-medical-fill"></i> Medical Files';
+            medicalHeader.classList.add('text-lg', 'font-semibold', 'mt-4');
+            detailsDiv.appendChild(medicalHeader);
+
+            const noFilesP = document.createElement('p');
+            noFilesP.classList.add('text-gray-600');
+            noFilesP.textContent = 'No medical files uploaded.';
+            detailsDiv.appendChild(noFilesP);
+        }
+
         content.appendChild(detailsDiv);
     } catch (error) {
         console.error('Error loading user details:', error);
         loading.style.display = 'none';
         content.innerHTML = `<p class="text-red-600">Failed to load user details. Please try again.</p>`;
+    }
+}
+
+// Download medical file
+async function downloadMedicalFile(userId, filename) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/medical/${userId}/${encodeURIComponent(filename)}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        alert('Failed to download file. Please try again.');
     }
 }
 

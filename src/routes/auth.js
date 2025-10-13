@@ -364,4 +364,98 @@ router.get('/clients', auth, async (req, res) => {
 
 });
 
+/**
+ * @route   POST /api/auth/medical
+ * @desc    Upload medical files for the logged-in user
+ * @access  Private
+ */
+router.post('/medical', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            logUserAction('medical_upload_failed', req.user.id, { reason: 'User not found' });
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Check if files were uploaded
+        if (!req.files || !req.files.medicalFiles) {
+            return res.status(400).json({ msg: 'No files uploaded' });
+        }
+
+        const files = Array.isArray(req.files.medicalFiles) ? req.files.medicalFiles : [req.files.medicalFiles];
+
+        // Process each file
+        for (const file of files) {
+            // Validate file type
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/jpg', 'image/png'];
+            if (!allowedTypes.includes(file.mimetype)) {
+                return res.status(400).json({ msg: `File type ${file.mimetype} not allowed. Only PDF, DOC, DOCX, JPG, JPEG, PNG are allowed.` });
+            }
+
+            // Validate file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                return res.status(400).json({ msg: 'File size too large. Maximum 10MB allowed.' });
+            }
+
+            // Add file to user's medicalFiles array
+            user.medicalFiles.push({
+                filename: file.name,
+                data: file.data,
+                mimetype: file.mimetype,
+                uploadedAt: new Date()
+            });
+        }
+
+        await user.save();
+
+        logUserAction('medical_uploaded', req.user.id, { email: user.email, fileCount: files.length });
+        res.status(201).json({ msg: 'Medical files uploaded successfully', fileCount: files.length });
+    } catch (err) {
+        logError(err, { context: 'Upload medical files', userId: req.user.id });
+        res.status(500).send('Server Error');
+    }
+});
+
+/**
+ * @route   GET /api/auth/medical/:userId/:filename
+ * @desc    Download a specific medical file for a user (Admin only)
+ * @access  Private (Admin)
+ */
+router.get('/medical/:userId/:filename', auth, async (req, res) => {
+    try {
+        // Only allow admins
+        if (req.user.role !== 'admin') {
+            logUserAction('medical_download_denied', req.user.id, { reason: 'Insufficient permissions', requestedUserId: req.params.userId });
+            return res.status(403).json({ msg: 'Access denied: Admins only' });
+        }
+
+        const { userId, filename } = req.params;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            logUserAction('medical_download_failed', req.user.id, { reason: 'User not found', requestedUserId: userId });
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Find the file in user's medicalFiles
+        const file = user.medicalFiles.find(f => f.filename === filename);
+        if (!file) {
+            logUserAction('medical_download_failed', req.user.id, { reason: 'File not found', requestedUserId: userId, filename });
+            return res.status(404).json({ msg: 'File not found' });
+        }
+
+        // Set appropriate headers for download
+        res.set({
+            'Content-Type': file.mimetype,
+            'Content-Disposition': `attachment; filename="${file.filename}"`
+        });
+
+        logUserAction('medical_downloaded', req.user.id, { requestedUserId: userId, filename });
+        res.send(file.data);
+    } catch (err) {
+        logError(err, { context: 'Download medical file', userId: req.user.id, requestedUserId: req.params.userId });
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

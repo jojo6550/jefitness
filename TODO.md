@@ -1,7 +1,14 @@
-- [x] Edit public/pages/meet-your-trainer.html to add the appointments table section after the trainer cards.
-- [x] Include the appointment details and edit modals in the HTML.
-- [x] Add the script tag for ../js/appointments.js at the end.
-- [x] Update the page title and heading to "Meet Your Trainers & Manage Appointments".
-- [x] Check public/pages/partials/navbar.html for links to appointments.html and update to meet-your-trainer.html.
-- [x] Test the combined page functionality.
-- [x] Delete appointments.html page and update dashboard card title to "Meet Your Trainers".
+# Medical Information Upload Feature
+
+## Pending Tasks
+- [x] Update User.js: Add medicalFiles array field with filename, data (Buffer), mimetype, uploadedAt
+- [x] Update profile.html: Add a new "Medical Information" section with file input for multiple files
+- [x] Update profile.js: Add file upload handling using FormData to a new POST /api/auth/medical route
+- [x] Update auth.js: Add POST /api/auth/medical for uploading files and GET /api/auth/medical/:userId/:filename for downloading
+- [ ] Update admin-dashboard.html: Add medical files section in user details modal with download links
+- [ ] Update admin-dashboard.js: Modify showUserDetails to display medical files list with download buttons
+
+## Followup Steps
+- [ ] Test file upload from profile
+- [ ] Test download from admin modal
+- [ ] Ensure proper error handling and security
