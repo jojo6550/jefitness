@@ -69,17 +69,7 @@ const UserSchema = new mongoose.Schema({
                 notes: { type: String }
             }
         ]
-    },
-
-    // New medical files field to store uploaded medical information
-    medicalFiles: [
-        {
-            filename: { type: String, required: true },
-            data: { type: Buffer, required: true },
-            mimetype: { type: String, required: true },
-            uploadedAt: { type: Date, default: Date.now }
-        }
-    ]
+    }
 });
 
 module.exports = mongoose.model('User', UserSchema);

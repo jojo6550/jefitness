@@ -118,47 +118,5 @@ const API_BASE_URL = isLocalhost
         }
     });
 
-    // Handle medical file upload
-    document.getElementById('uploadMedicalFilesButton').addEventListener('click', async () => {
-        const fileInput = document.getElementById('medicalFiles');
-        const files = fileInput.files;
-
-        if (files.length === 0) {
-            showMessage('Please select at least one file to upload.', 'warning');
-            return;
-        }
-
-        const formData = new FormData();
-        for (let i = 0; i < files.length; i++) {
-            formData.append('medicalFiles', files[i]);
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/medical`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to upload files');
-            }
-
-            const data = await response.json();
-            showMessage('Medical files uploaded successfully.');
-
-            // Clear file input
-            fileInput.value = '';
-
-            // Refresh profile to show updated medical files
-            loadProfile();
-        } catch (error) {
-            showMessage(error.message, 'danger');
-        }
-    });
-
     loadProfile();
 });

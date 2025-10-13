@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const fileupload = require('express-fileupload');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -12,7 +11,6 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use(fileupload());
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
