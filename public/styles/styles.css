@@ -261,6 +261,91 @@ footer i:hover {
     overflow: hidden; /* Hide overflow from content */
 }
 
+/* PWA Install Banner */
+.pwa-install-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.pwa-install-banner.show {
+    display: block;
+}
+
+.pwa-install-banner .btn {
+    margin-left: 10px;
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.pwa-install-banner .btn:hover {
+    background: #f8f9fa;
+}
+
+/* Offline Banner */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #dc3545;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.offline-banner.show {
+    display: block;
+}
+
+/* Mobile Touch Enhancements */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .service-card,
+    .testimonial-card,
+    .trainer-card {
+        cursor: pointer;
+    }
+
+    .service-card:active,
+    .testimonial-card:active,
+    .trainer-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+    }
+}
+
+/* Swipe Gestures Support (if implemented) */
+.swipe-container {
+    touch-action: pan-y;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+}
+
+.swipe-item {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+}
+
 .hero-overlay {
     position: absolute;
     top: 0;
