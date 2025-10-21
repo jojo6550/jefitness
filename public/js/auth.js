@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const loginForm = document.getElementById('login-form');
   const signupForm = document.getElementById('signup-form');
+  const forgotPasswordForm = document.getElementById('forgot-password-form');
+  const resetPasswordForm = document.getElementById('reset-password-form');
   const messageDiv = document.getElementById('message');
 
   // Determine the base URL
@@ -134,6 +136,78 @@ const baseUrl = isLocalhost
       } catch (err) {
         console.error('Error:', err);
         alert('Failed to resend OTP.');
+      }
+    });
+  }
+
+  // FORGOT PASSWORD
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = forgotPasswordForm.email.value;
+
+      try {
+        const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showMessage(data.msg || 'If an account with that email exists, a reset link has been sent.');
+        } else {
+          showMessage(data.msg || 'Error sending reset email');
+        }
+      } catch (err) {
+        showMessage('Error connecting to server');
+      }
+    });
+  }
+
+  // RESET PASSWORD
+  if (resetPasswordForm) {
+    // Get token from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (!token) {
+      showMessage('Invalid reset link. Please request a new password reset.');
+      return;
+    }
+
+    resetPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const password = resetPasswordForm.password.value;
+      const confirmPassword = resetPasswordForm.confirmPassword.value;
+
+      if (password !== confirmPassword) {
+        showMessage('Passwords do not match');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${baseUrl}/api/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showMessage(data.msg || 'Password reset successfully');
+          setTimeout(() => {
+            window.location.href = 'login.html';
+          }, 2000);
+        } else {
+          showMessage(data.msg || 'Error resetting password');
+        }
+      } catch (err) {
+        showMessage('Error connecting to server');
       }
     });
   }

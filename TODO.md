@@ -1,36 +1,35 @@
-# TODO: Implement Email Verification via OTP using Mailjet API
+# TODO: Implement Password Reset Functionality
 
-## Step 1: Install Mailjet SDK
-- [x] Add `node-mailjet` to package.json dependencies.
-- [x] Run `npm install` to install the new dependency.
+## Step 1: Update User Model
+- [x] Add fields to User.js: `resetToken` (String), `resetExpires` (Date).
 
-## Step 2: Update User Model
-- [x] Add fields to User.js: `isEmailVerified` (Boolean, default false), `emailVerificationToken` (String), `emailVerificationExpires` (Date).
+## Step 2: Add "Forgot Password?" Link to Login Page
+- [x] Update `public/pages/login.html` to include a "Forgot Password?" link below the login button.
 
-## Step 3: Modify Signup Route
-- [x] In `src/routes/auth.js`, update `/signup` POST:
-  - Generate a 6-digit OTP.
-  - Send OTP email via Mailjet.
-  - Save user with verification fields, but do not issue JWT or send confirmation email yet.
-  - Respond with a message indicating OTP sent.
+## Step 3: Create Forgot Password Page
+- [x] Create `public/pages/forgot-password.html` with a form to enter email address.
 
-## Step 4: Add Email Verification Route
-- [x] Add new route `/verify-email` in `src/routes/auth.js`:
-  - Accept email and OTP.
-  - Verify OTP against stored token and expiry.
-  - If valid, set `isEmailVerified` to true, clear verification fields, issue JWT, and send confirmation email via Mailjet.
+## Step 4: Create Reset Password Page
+- [x] Create `public/pages/reset-password.html` with a form to enter new password (token from URL).
 
-## Step 5: Update Frontend Signup
-- [x] In `public/js/auth.js`, modify signup handler:
-  - After successful signup response, show OTP input form.
-  - Add submit handler for OTP verification, call `/verify-email`.
+## Step 5: Add Forgot Password Route
+- [x] Add POST `/forgot-password` route in `src/routes/auth.js`:
+  - Generate secure reset token.
+  - Save token and expiration to user.
+  - Send reset email via Mailjet with link containing token.
 
-## Step 6: Update Signup HTML
-- [x] In `public/pages/signup.html`, add hidden OTP input section that appears after signup.
+## Step 6: Add Reset Password Route
+- [x] Add POST `/reset-password` route in `src/routes/auth.js`:
+  - Verify token and expiration.
+  - Hash new password and update user.
+  - Clear reset fields.
 
-## Step 7: Test the Implementation
-- [ ] Test signup flow: Submit form, receive OTP email, enter OTP, verify, receive confirmation email.
-- [ ] Ensure error handling for invalid OTP, expired tokens, etc.
+## Step 7: Update Frontend Auth JS
+- [x] Update `public/js/auth.js` to handle forgot password and reset password forms.
 
-## Step 8: Update Environment Variables
-- [x] Ensure MAILJET_API_KEY and MAILJET_SECRET_KEY are set in .env.
+## Step 8: Test the Implementation
+- [ ] Test full flow: Request reset, receive email, reset password, login with new password.
+- [ ] Ensure security: Tokens expire, one-time use, proper error handling.
+
+## Step 9: Update Environment Variables
+- [x] Ensure FRONTEND_URL is set in .env for reset links.

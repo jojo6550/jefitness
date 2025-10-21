@@ -74,7 +74,11 @@ const UserSchema = new mongoose.Schema({
     // Email verification fields
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String },
-    emailVerificationExpires: { type: Date }
+    emailVerificationExpires: { type: Date },
+
+    // Password reset fields
+    resetToken: { type: String },
+    resetExpires: { type: Date }
 });
 
 module.exports = mongoose.model('User', UserSchema);

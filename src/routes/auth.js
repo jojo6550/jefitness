@@ -374,6 +374,113 @@ router.get('/clients', auth, async (req, res) => {
 
 });
 
+// FORGOT PASSWORD ROUTE
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    logSecurityEvent('forgot_password_attempt', null, { email });
+
+    if (!email) {
+        return res.status(400).json({ msg: 'Email is required.' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            // Do not reveal if user exists or not for security
+            logSecurityEvent('forgot_password_failed', null, { email, reason: 'User not found' });
+            return res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.resetToken = resetToken;
+        user.resetExpires = resetExpires;
+        await user.save();
+
+        // Send reset email via Mailjet
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
+            Messages: [
+                {
+                    From: {
+                        Email: 'noreplyjefitness@gmail.com',
+                        Name: 'JE Fitness'
+                    },
+                    To: [
+                        {
+                            Email: email,
+                            Name: `${user.firstName} ${user.lastName}`
+                        }
+                    ],
+                    Subject: 'Password Reset - JE Fitness',
+                    TextPart: `Hi ${user.firstName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nJE Fitness Team`,
+                    HTMLPart: `<p>Hi <strong>${user.firstName}</strong>,</p>
+                               <p>You requested a password reset. Click the link below to reset your password:</p>
+                               <p><a href="${resetUrl}">Reset Password</a></p>
+                               <p>This link will expire in 10 minutes.</p>
+                               <p>If you didn't request this, please ignore this email.</p>
+                               <p>Best regards,<br>JE Fitness Team</p>`
+                }
+            ]
+        });
+
+        try {
+            await request;
+            logSecurityEvent('reset_email_sent', user._id, { email });
+        } catch (emailErr) {
+            logError(emailErr, { context: 'Reset email sending', userId: user._id });
+            return res.status(500).json({ msg: 'Error sending email. Please try again.' });
+        }
+
+        res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
+
+    } catch (err) {
+        logError(err, { context: 'Forgot password', email });
+        res.status(500).json({ msg: 'Server error. Please try again.' });
+    }
+});
+
+// RESET PASSWORD ROUTE
+router.post('/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    logSecurityEvent('reset_password_attempt', null, { token: token ? 'provided' : 'missing' });
+
+    if (!token || !password) {
+        return res.status(400).json({ msg: 'Token and new password are required.' });
+    }
+
+    try {
+        const user = await User.findOne({
+            resetToken: token,
+            resetExpires: { $gt: new Date() }
+        });
+
+        if (!user) {
+            logSecurityEvent('reset_password_failed', null, { reason: 'Invalid or expired token' });
+            return res.status(400).json({ msg: 'Invalid or expired reset token.' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Update password and clear reset fields
+        user.password = hashedPassword;
+        user.resetToken = undefined;
+        user.resetExpires = undefined;
+        await user.save();
+
+        logSecurityEvent('password_reset_success', user._id, { email: user.email });
+        res.status(200).json({ msg: 'Password reset successfully. You can now log in with your new password.' });
+
+    } catch (err) {
+        logError(err, { context: 'Reset password', token });
+        res.status(500).json({ msg: 'Server error. Please try again.' });
+    }
+});
+
 // EMAIL VERIFICATION ROUTE
 router.post('/verify-email', async (req, res) => {
     const { email, otp } = req.body;
