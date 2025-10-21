@@ -511,13 +511,70 @@ footer i:hover {
     color: #0d6efd !important; /* Use !important to override Bootstrap's text-white */
 }
 
-/* Responsive adjustments for smaller screens */
-@media (max-width: 992px) {
+/* Enhanced Responsive Design with Device Dimension Checks */
+
+/* Extra Large Screens (1440px and up) */
+@media (min-width: 1440px) {
+    .hero h1 {
+        font-size: 5rem;
+    }
+    .hero p.lead {
+        font-size: 2rem;
+    }
+    .hero .btn-primary {
+        font-size: 1.5rem;
+        padding: 1.5rem 3rem;
+    }
+    .container {
+        max-width: 1400px;
+    }
+}
+
+/* Large Screens (1200px to 1439px) */
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .hero h1 {
+        font-size: 4.5rem;
+    }
+    .hero p.lead {
+        font-size: 1.75rem;
+    }
+    .hero .btn-primary {
+        font-size: 1.25rem;
+        padding: 1.25rem 2.5rem;
+    }
+}
+
+/* Medium Screens (992px to 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .hero h1 {
+        font-size: 4rem;
+    }
+    .hero p.lead {
+        font-size: 1.5rem;
+    }
+    #services h2, #about h2, #contact h2, .cta-section h2 {
+        font-size: 2.75rem;
+    }
+    .cta-section p.lead {
+        font-size: 1.25rem;
+    }
+    .row.g-4 > .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+/* Small Screens (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
     .hero h1 {
         font-size: 3.5rem;
     }
     .hero p.lead {
         font-size: 1.25rem;
+    }
+    .hero .btn-primary {
+        font-size: 1.1rem;
+        padding: 1rem 2rem;
     }
     #services h2, #about h2, #contact h2, .cta-section h2 {
         font-size: 2.5rem;
@@ -525,11 +582,142 @@ footer i:hover {
     .cta-section p.lead {
         font-size: 1.2rem;
     }
+    .service-card, .testimonial-card, .trainer-card {
+        margin-bottom: 2rem;
+    }
+    .row.g-4 > .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
 }
 
-@media (max-width: 768px) {
+/* Extra Small Screens (576px to 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
     .hero {
-        height: 70vh; /* Shorter hero on small screens */
+        height: 75vh;
+        padding: 2rem 1rem;
+    }
+    .hero h1 {
+        font-size: 2.75rem;
+    }
+    .hero p.lead {
+        font-size: 1.1rem;
+    }
+    .hero .btn-primary {
+        font-size: 1rem;
+        padding: 0.875rem 1.75rem;
+        width: 100%;
+        max-width: 300px;
+    }
+    #services h2, #about h2, #contact h2, .cta-section h2 {
+        font-size: 2rem;
+    }
+    .cta-section {
+        padding: 2.5rem 1rem;
+    }
+    .cta-section h2 {
+        font-size: 1.75rem;
+    }
+    .cta-section p.lead {
+        font-size: 1rem;
+    }
+    .cta-section .btn-light {
+        font-size: 1rem;
+        padding: 0.75rem 2rem;
+        width: 100%;
+        max-width: 300px;
+    }
+    .service-card, .testimonial-card, .trainer-card {
+        margin-bottom: 1.5rem;
+    }
+    .questionnaire-card {
+        padding: 1.5rem;
+    }
+    .modal-dialog {
+        margin: 1rem;
+    }
+}
+
+/* Very Small Screens (up to 575px) */
+@media (max-width: 575px) {
+    .hero {
+        height: 60vh;
+        padding: 1.5rem 1rem;
+    }
+    .hero h1 {
+        font-size: 2.25rem;
+        line-height: 1.2;
+    }
+    .hero p.lead {
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+    .hero .btn-primary {
+        font-size: 0.95rem;
+        padding: 0.75rem 1.5rem;
+        width: 100%;
+        max-width: 250px;
+    }
+    #services h2, #about h2, #contact h2, .cta-section h2 {
+        font-size: 1.75rem;
+    }
+    .cta-section {
+        padding: 2rem 1rem;
+    }
+    .cta-section h2 {
+        font-size: 1.5rem;
+    }
+    .cta-section p.lead {
+        font-size: 0.95rem;
+    }
+    .cta-section .btn-light {
+        font-size: 0.95rem;
+        padding: 0.625rem 1.5rem;
+        width: 100%;
+        max-width: 250px;
+    }
+    .service-card, .testimonial-card, .trainer-card {
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    .service-card .card-body {
+        padding: 1rem 0;
+    }
+    .questionnaire-card {
+        padding: 1rem;
+    }
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100vw - 1rem);
+    }
+    .modal-content {
+        border-radius: 0.5rem;
+    }
+    .contact-form-card {
+        padding: 1rem;
+    }
+    .contact-form-card .form-control-lg {
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+    }
+    .contact-form-card .btn-success {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+    .footer .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .footer .fs-3 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Orientation-specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    .hero {
+        height: 100vh;
+        padding: 1rem;
     }
     .hero h1 {
         font-size: 2.5rem;
@@ -538,24 +726,46 @@ footer i:hover {
         font-size: 1rem;
     }
     .hero .btn-primary {
-        font-size: 1rem;
-        padding: 0.75rem 2rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
     }
-    #services .card-body, .contact-form-card {
-        padding: 1.5rem;
+}
+
+/* High DPI screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .hero {
+        background-attachment: fixed;
     }
-    .cta-section {
-        padding: 3rem 1rem;
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.75rem 1.5rem;
     }
-    .cta-section h2 {
-        font-size: 2rem;
+    .form-control {
+        min-height: 44px;
+        font-size: 16px; /* Prevents zoom on iOS */
     }
-    .cta-section p.lead {
-        font-size: 1rem;
+    .navbar-toggler {
+        min-height: 44px;
+        min-width: 44px;
     }
-    .cta-section .btn-light {
-        font-size: 1rem;
-        padding: 0.75rem 2rem;
+}
+
+/* Print styles */
+@media print {
+    .hero {
+        background: none !important;
+        color: black !important;
+    }
+    .hero-overlay {
+        display: none;
+    }
+    .btn {
+        display: none;
     }
 }
 
