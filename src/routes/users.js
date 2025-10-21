@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logger } = require('../services/logger');
 
 // GET /api/users/trainers - Get all trainers
 router.get('/trainers', auth, async (req, res) => {
@@ -15,7 +16,7 @@ router.get('/trainers', auth, async (req, res) => {
         }).select('firstName lastName email');
         res.json(trainers);
     } catch (err) {
-        console.error(err.message);
+        logger.error('Error retrieving trainers', { error: err.message, stack: err.stack, userId: req.user?.id });
         res.status(500).json({ msg: 'Server error' });
     }
 });

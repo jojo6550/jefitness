@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logger } = require('../services/logger');
 
 // GET /api/nutrition - Get user's nutrition logs
 router.get('/', auth, async (req, res) => {
@@ -12,7 +13,7 @@ router.get('/', auth, async (req, res) => {
         }
         res.json({ nutritionLogs: user.nutritionLogs || [] });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Error retrieving nutrition logs', { error: err.message, stack: err.stack, userId: req.user?.id });
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -51,7 +52,7 @@ router.post('/', auth, async (req, res) => {
 
         res.status(201).json({ msg: 'Nutrition log added successfully', log: newLog });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Error adding nutrition log', { error: err.message, stack: err.stack, userId: req.user?.id, body: req.body });
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -91,7 +92,7 @@ router.put('/:id', auth, async (req, res) => {
 
         res.json({ msg: 'Nutrition log updated successfully', log: user.nutritionLogs[logIndex] });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Error updating nutrition log', { error: err.message, stack: err.stack, userId: req.user?.id, logId: req.params.id, body: req.body });
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -114,7 +115,7 @@ router.delete('/:id', auth, async (req, res) => {
 
         res.json({ msg: 'Nutrition log deleted successfully' });
     } catch (err) {
-        console.error(err.message);
+        logger.error('Error deleting nutrition log', { error: err.message, stack: err.stack, userId: req.user?.id, logId: req.params.id });
         res.status(500).json({ msg: 'Server error' });
     }
 });

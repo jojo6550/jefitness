@@ -1,28 +1,26 @@
-# Security Enhancements TODO
+# Structured Logging Implementation TODO
 
-## Dependencies
-- [ ] Install express-rate-limit for API rate limiting
-- [ ] Install helmet for security headers
-- [ ] Install express-validator for input sanitization and validation
+## Overview
+Replace all console.log/error/warn statements in server-side code with structured logging using the Winston logger service.
 
-## User Model Updates
-- [ ] Add failedLoginAttempts field to User schema
-- [ ] Add lockoutUntil field to User schema
-
-## Server.js Updates
-- [ ] Add helmet middleware for security headers
-
-## Auth Routes Updates
-- [ ] Add rate limiting middleware to auth routes
-- [ ] Add input validation and sanitization to signup route
-- [ ] Add password strength validation to signup route
-- [ ] Implement account lockout logic in login route
-- [ ] Add input validation to login route
-- [ ] Add input validation to other auth routes (forgot-password, reset-password, verify-email)
+## Files to Update
+- [ ] config/db.js - Replace console.log/error with logger
+- [ ] src/routes/users.js - Replace console.error with logger.error
+- [ ] src/routes/clients.js - Replace console.error with logger.error
+- [ ] src/routes/nutrition.js - Replace console.error with logger.error
+- [ ] src/routes/sleep.js - Replace console.error with logger.error
+- [ ] src/routes/appointments.js - Replace console.error with logger.error
+- [ ] src/middleware/auth.js - Replace console.error with logger.error
+- [ ] src/scripts/migrate-users.js - Replace console.log/error with logger
+- [ ] src/routes/auth.js - Check and replace any remaining console statements
+- [ ] src/routes/logs.js - Already uses structured logging (verify)
+- [ ] src/server.js - Already uses structured logging (verify)
 
 ## Testing
-- [ ] Test rate limiting functionality
-- [ ] Test security headers with helmet
-- [ ] Test input sanitization
-- [ ] Test password strength requirements
-- [ ] Test account lockout after failed attempts
+- [ ] Test application startup and verify logs are written to files
+- [ ] Test error scenarios and verify error logging
+- [ ] Verify console output shows colored logs
+- [ ] Check log files in src/logs/ directory
+
+## Completion
+- [ ] Update this TODO.md to mark task as complete

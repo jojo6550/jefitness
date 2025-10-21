@@ -1,5 +1,6 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
+const { logger } = require('../services/logger');
 
 function auth(req, res, next) {
     const authHeader = req.header('Authorization');
@@ -12,20 +13,24 @@ function auth(req, res, next) {
     }
 
     if (!token) {
-        console.error('Auth Middleware: No token provided, authorization denied.');
+        logger.warn('Authentication failed: No token provided', { ip: req.ip, userAgent: req.get('User-Agent') });
         return res.status(401).json({ msg: 'No token, authorization denied' });
     }
 
     try {
         if (!process.env.JWT_SECRET) {
-            console.error('Auth Middleware Error: JWT_SECRET is not defined in environment variables!');
+            logger.error('Server configuration error: JWT_SECRET is not defined in environment variables');
             return res.status(500).json({ msg: 'Server configuration error: JWT secret missing.' });
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
-        console.error('Auth Middleware: Token verification failed:', err.message);
+        logger.warn('Authentication failed: Token verification failed', {
+            error: err.message,
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+        });
         return res.status(401).json({ msg: 'Token is not valid' });
     }
 }
