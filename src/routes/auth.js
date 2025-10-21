@@ -415,6 +415,7 @@ router.put('/schedule', auth, async (req, res) => {
         logError(err, { context: 'Update user schedule', userId: req.user.id });
         res.status(500).send('Server Error');
     }
+});
 
 // GET all clients (Admin only)
 router.get('/clients', auth, async (req, res) => {
