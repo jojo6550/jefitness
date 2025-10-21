@@ -51,6 +51,31 @@ const baseUrl = isLocalhost
 
   // SIGNUP
   if (signupForm) {
+    // Password requirements checker
+    const passwordInput = document.getElementById('inputPassword');
+    const reqLength = document.getElementById('req-length');
+    const reqUppercase = document.getElementById('req-uppercase');
+    const reqLowercase = document.getElementById('req-lowercase');
+    const reqNumber = document.getElementById('req-number');
+    const reqSpecial = document.getElementById('req-special');
+
+    function checkPasswordRequirements() {
+      const password = passwordInput.value;
+      const minLength = password.length >= 8;
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumbers = /\d/.test(password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+      reqLength.className = minLength ? 'text-success' : 'text-muted';
+      reqUppercase.className = hasUpperCase ? 'text-success' : 'text-muted';
+      reqLowercase.className = hasLowerCase ? 'text-success' : 'text-muted';
+      reqNumber.className = hasNumbers ? 'text-success' : 'text-muted';
+      reqSpecial.className = hasSpecialChar ? 'text-success' : 'text-muted';
+    }
+
+    passwordInput.addEventListener('input', checkPasswordRequirements);
+
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
