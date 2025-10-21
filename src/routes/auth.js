@@ -51,7 +51,7 @@ router.post('/signup', async (req, res) => {
             Messages: [
                 {
                     From: {
-                        Email: 'noreplyjefitness@gmail.com',
+                        Email: 'josiah.johnson6550@gmail.com',
                         Name: 'JE Fitness'
                     },
                     To: [
@@ -405,7 +405,7 @@ router.post('/forgot-password', async (req, res) => {
             Messages: [
                 {
                     From: {
-                        Email: 'noreplyjefitness@gmail.com',
+                        Email: 'josiah.johnson6550@gmail.com',
                         Name: 'JE Fitness'
                     },
                     To: [
@@ -523,7 +523,7 @@ router.post('/verify-email', async (req, res) => {
             Messages: [
                 {
                     From: {
-                        Email: 'noreplyjefitness@gmail.com',
+                        Email: 'josiah.johnson6550@gmail.com',
                         Name: 'JE Fitness'
                     },
                     To: [
