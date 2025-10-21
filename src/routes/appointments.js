@@ -5,7 +5,21 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 
-// GET /api/appointments - Get all appointments (admin only) with pagination and filtering
+/**
+ * @route   GET /api/appointments
+ * @desc    Get all appointments with pagination and filtering (admin only)
+ * @access  Private (Admin only)
+ * @query   {number} page - Page number for pagination (default: 1)
+ * @query   {number} limit - Number of appointments per page (default: 10)
+ * @query   {string} search - Search term for client/trainer names
+ * @query   {string} sortBy - Field to sort by (default: 'date')
+ * @query   {string} sortOrder - Sort order 'asc' or 'desc' (default: 'asc')
+ * @query   {string} status - Filter by appointment status
+ * @returns {Object} appointments - Array of appointments with pagination info
+ * @returns {Object} pagination - Pagination metadata
+ * @throws  {403} Access denied if not admin
+ * @throws  {500} Server error
+ */
 router.get('/', auth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -82,6 +96,13 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET /api/appointments/user - Get user's appointments
+/**
+ * @route   GET /api/appointments/user
+ * @desc    Get appointments for the authenticated user (as client or trainer)
+ * @access  Private
+ * @returns {Array} Array of user's appointments with populated client/trainer info
+ * @throws  {500} Server error
+ */
 router.get('/user', auth, async (req, res) => {
     try {
         const appointments = await Appointment.find({
@@ -102,6 +123,16 @@ router.get('/user', auth, async (req, res) => {
 });
 
 // GET /api/appointments/:id - Get specific appointment
+/**
+ * @route   GET /api/appointments/:id
+ * @desc    Get a specific appointment by ID
+ * @access  Private (Admin, or appointment client/trainer)
+ * @param   {string} id - Appointment ID
+ * @returns {Object} Appointment object with populated client/trainer info
+ * @throws  {403} Access denied if not authorized
+ * @throws  {404} Appointment not found
+ * @throws  {500} Server error
+ */
 router.get('/:id', auth, async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id)
@@ -127,6 +158,18 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // POST /api/appointments - Create new appointment
+/**
+ * @route   POST /api/appointments
+ * @desc    Create a new appointment booking
+ * @access  Private
+ * @body    {string} trainerId - ID of the trainer (must be admin role)
+ * @body    {string} date - Appointment date (YYYY-MM-DD format)
+ * @body    {string} time - Appointment time (HH:MM format)
+ * @body    {string} [notes] - Optional appointment notes
+ * @returns {Object} Created appointment object with populated client/trainer info
+ * @throws  {400} Missing required fields or invalid trainer or time slot full
+ * @throws  {500} Server error
+ */
 router.post('/', auth, async (req, res) => {
     try {
         const { trainerId, date, time, notes } = req.body;
@@ -189,6 +232,20 @@ router.post('/', auth, async (req, res) => {
 });
 
 // PUT /api/appointments/:id - Update appointment
+/**
+ * @route   PUT /api/appointments/:id
+ * @desc    Update an existing appointment
+ * @access  Private (Admin or appointment trainer)
+ * @param   {string} id - Appointment ID
+ * @body    {string} [date] - Updated appointment date
+ * @body    {string} [time] - Updated appointment time
+ * @body    {string} [status] - Updated appointment status ('scheduled', 'completed', 'cancelled')
+ * @body    {string} [notes] - Updated appointment notes
+ * @returns {Object} Updated appointment object with populated client/trainer info
+ * @throws  {403} Access denied if not authorized
+ * @throws  {404} Appointment not found
+ * @throws  {500} Server error
+ */
 router.put('/:id', auth, async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);
@@ -229,6 +286,16 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // DELETE /api/appointments/:id - Delete appointment
+/**
+ * @route   DELETE /api/appointments/:id
+ * @desc    Delete an appointment
+ * @access  Private (Admin, appointment trainer, or appointment client)
+ * @param   {string} id - Appointment ID
+ * @returns {Object} Success message
+ * @throws  {403} Access denied if not authorized
+ * @throws  {404} Appointment not found
+ * @throws  {500} Server error
+ */
 router.delete('/:id', auth, async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);

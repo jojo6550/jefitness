@@ -42,7 +42,18 @@ const validatePasswordStrength = (password) => {
     return null; // Password is strong
 };
 
-// SIGNUP ROUTE
+/**
+ * @route   POST /api/auth/signup
+ * @desc    Register a new user account
+ * @access  Public
+ * @body    {string} firstName - User's first name (required)
+ * @body    {string} lastName - User's last name (required)
+ * @body    {string} email - User's email address (required, must be valid)
+ * @body    {string} password - User's password (required, must meet strength requirements)
+ * @returns {Object} Success message and user email
+ * @throws  {400} Validation failed or user already exists or weak password
+ * @throws  {500} Server error
+ */
 router.post('/signup', [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
@@ -130,7 +141,17 @@ router.post('/signup', [
     }
 });
 
-// LOGIN ROUTE
+/**
+ * @route   POST /api/auth/login
+ * @desc    Authenticate user and return JWT token
+ * @access  Public
+ * @body    {string} email - User's email address (required, must be valid)
+ * @body    {string} password - User's password (required)
+ * @returns {Object} JWT token and user info
+ * @throws  {400} Validation failed or invalid credentials or email not verified
+ * @throws  {423} Account locked due to too many failed attempts
+ * @throws  {500} Server error
+ */
 router.post('/login', [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
@@ -199,9 +220,14 @@ router.post('/login', [
     }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get logged in user's full profile details (for session check and profile preload)
-// @access  Private
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get logged in user's full profile details (for session check and profile preload)
+ * @access  Private
+ * @returns {Object} User profile object with all user details
+ * @throws  {404} User not found
+ * @throws  {500} Server error
+ */
 router.get('/me', auth, async (req, res) => {
     try {
         // req.user is populated by the auth middleware (from middleware/auth.js)
@@ -238,6 +264,19 @@ router.get('/me', auth, async (req, res) => {
  * @route   PUT /api/auth/profile
  * @desc    Update logged in user's profile information
  * @access  Private
+ * @body    {string} [firstName] - User's first name
+ * @body    {string} [lastName] - User's last name
+ * @body    {string} [dob] - Date of birth
+ * @body    {string} [gender] - Gender
+ * @body    {string} [phone] - Phone number
+ * @body    {string} [activityStatus] - Activity status
+ * @body    {number} [startWeight] - Starting weight
+ * @body    {number} [currentWeight] - Current weight
+ * @body    {string} [goals] - Fitness goals
+ * @body    {string} [reason] - Reason for joining
+ * @returns {Object} Success message and updated user object
+ * @throws  {404} User not found
+ * @throws  {500} Server error
  */
 router.put('/profile', auth, async (req, res) => {
     const {
@@ -300,7 +339,14 @@ router.put('/profile', auth, async (req, res) => {
     }
 });
 
-// GET /api/auth/nutrition - Get logged-in user's nutrition logs
+/**
+ * @route   GET /api/auth/nutrition
+ * @desc    Get logged-in user's nutrition logs
+ * @access  Private
+ * @returns {Array} Array of nutrition log objects
+ * @throws  {404} User not found
+ * @throws  {500} Server error
+ */
 router.get('/nutrition', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('nutritionLogs');
@@ -317,7 +363,23 @@ router.get('/nutrition', auth, async (req, res) => {
     }
 });
 
-// POST /api/auth/nutrition - Add a new meal log
+/**
+ * @route   POST /api/auth/nutrition
+ * @desc    Add a new meal log for the logged-in user
+ * @access  Private
+ * @body    {number} id - Unique identifier for the meal log
+ * @body    {string} date - Date of the meal (required)
+ * @body    {string} mealType - Type of meal (e.g., breakfast, lunch) (required)
+ * @body    {string} foodItem - Name of the food item (required)
+ * @body    {number} calories - Calories in the food item (required)
+ * @body    {number} protein - Protein in grams (required)
+ * @body    {number} carbs - Carbohydrates in grams (required)
+ * @body    {number} fats - Fats in grams (required)
+ * @returns {Object} Success message and updated nutrition logs array
+ * @throws  {400} Missing required fields
+ * @throws  {404} User not found
+ * @throws  {500} Server error
+ */
 router.post('/nutrition', auth, async (req, res) => {
     const { id, date, mealType, foodItem, calories, protein, carbs, fats } = req.body;
     if (!id || !date || !mealType || !foodItem || calories === undefined || protein === undefined || carbs === undefined || fats === undefined) {
@@ -342,7 +404,16 @@ router.post('/nutrition', auth, async (req, res) => {
     }
 });
 
-// DELETE /api/auth/nutrition/:id - Delete a meal log by id
+/**
+ * @route   DELETE /api/auth/nutrition/:id
+ * @desc    Delete a meal log by id for the logged-in user
+ * @access  Private
+ * @param   {number} id - Meal log ID (URL parameter)
+ * @returns {Object} Success message and updated nutrition logs array
+ * @throws  {400} Invalid meal id
+ * @throws  {404} User not found
+ * @throws  {500} Server error
+ */
 router.delete('/nutrition/:id', auth, async (req, res) => {
     const mealId = parseInt(req.params.id);
     if (isNaN(mealId)) {
@@ -369,8 +440,11 @@ router.delete('/nutrition/:id', auth, async (req, res) => {
 
 /**
  * @route   GET /api/auth/schedule
- * @desc    Get logged in user's schedule
+ * @desc    Get logged-in user's schedule
  * @access  Private
+ * @returns {Object} User's schedule object
+ * @throws  {404} User not found
+ * @throws  {500} Server error
  */
 router.get('/schedule', auth, async (req, res) => {
     try {
@@ -390,8 +464,13 @@ router.get('/schedule', auth, async (req, res) => {
 
 /**
  * @route   PUT /api/auth/schedule
- * @desc    Update logged in user's schedule
+ * @desc    Update logged-in user's schedule
  * @access  Private
+ * @body    {Object} schedule - Schedule data object
+ * @returns {Object} Success message and updated schedule object
+ * @throws  {400} Schedule data is required
+ * @throws  {404} User not found
+ * @throws  {500} Server error
  */
 router.put('/schedule', auth, async (req, res) => {
     const { schedule } = req.body;
@@ -415,8 +494,16 @@ router.put('/schedule', auth, async (req, res) => {
         logError(err, { context: 'Update user schedule', userId: req.user.id });
         res.status(500).send('Server Error');
     }
+});
 
-// GET all clients (Admin only)
+/**
+ * @route   GET /api/auth/clients
+ * @desc    Get all clients (Admin only)
+ * @access  Private (Admin)
+ * @returns {Array} Array of user objects
+ * @throws  {403} Access denied: Admins only
+ * @throws  {500} Server error
+ */
 router.get('/clients', auth, async (req, res) => {
     try {
         // Only allow admins
@@ -432,8 +519,6 @@ router.get('/clients', auth, async (req, res) => {
         logError(err, { context: 'Get all clients', userId: req.user.id });
         res.status(500).json({ msg: 'Server error' });
     }
-});
-
 });
 
 // FORGOT PASSWORD ROUTE
