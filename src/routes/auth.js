@@ -1,6 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const { Client } = require('node-mailjet');
+const mailjet = new Client({
+  apiKey: process.env.MAILJET_API_KEY,
+  apiSecret: process.env.MAILJET_SECRET_KEY
+});
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
@@ -126,8 +132,8 @@ router.post('/signup', [
 
         await newUser.save();
 
-        // Send OTP email via Mailjet API
-        const mailjetData = {
+        // Send OTP email via Mailjet
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
             Messages: [
                 {
                     From: {
@@ -148,22 +154,10 @@ router.post('/signup', [
                                <p>Best regards,<br>JE Fitness Team</p>`
                 }
             ]
-        };
+        });
 
         try {
-            const response = await fetch('https://api.mailjet.com/v3.1/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${Buffer.from(`${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`).toString('base64')}`
-                },
-                body: JSON.stringify(mailjetData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Mailjet API error: ${response.status} ${response.statusText}`);
-            }
-
+            await request;
             logUserAction('otp_email_sent', newUser._id, { email });
         } catch (emailErr) {
             logError(emailErr, { context: 'OTP email sending during signup', userId: newUser._id });
@@ -890,9 +884,9 @@ router.post('/forgot-password', passwordResetLimiter, [
         user.resetExpires = resetExpires;
         await user.save();
 
-        // Send reset email via Mailjet API
+        // Send reset email via Mailjet
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
-        const mailjetData = {
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
             Messages: [
                 {
                     From: {
@@ -915,22 +909,10 @@ router.post('/forgot-password', passwordResetLimiter, [
                                <p>Best regards,<br>JE Fitness Team</p>`
                 }
             ]
-        };
+        });
 
         try {
-            const response = await fetch('https://api.mailjet.com/v3.1/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${Buffer.from(`${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`).toString('base64')}`
-                },
-                body: JSON.stringify(mailjetData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Mailjet API error: ${response.status} ${response.statusText}`);
-            }
-
+            await request;
             logSecurityEvent('reset_email_sent', user._id, { email });
         } catch (emailErr) {
             logError(emailErr, { context: 'Reset email sending', userId: user._id });
@@ -1021,8 +1003,8 @@ router.post('/verify-email', async (req, res) => {
         // Issue JWT token
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        // Send confirmation email via Mailjet API
-        const mailjetData = {
+        // Send confirmation email via Mailjet
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
             Messages: [
                 {
                     From: {
@@ -1042,22 +1024,10 @@ router.post('/verify-email', async (req, res) => {
                                <p>Best regards,<br>JE Fitness Team</p>`
                 }
             ]
-        };
+        });
 
         try {
-            const response = await fetch('https://api.mailjet.com/v3.1/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Basic ${Buffer.from(`${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`).toString('base64')}`
-                },
-                body: JSON.stringify(mailjetData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Mailjet API error: ${response.status} ${response.statusText}`);
-            }
-
+            await request;
             logUserAction('confirmation_email_sent', user._id, { email });
         } catch (emailErr) {
             logError(emailErr, { context: 'Confirmation email sending after verification', userId: user._id });

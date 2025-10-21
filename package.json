@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/jojo6550/jojo6550.github.io#readme",
   "dependencies": {
-    "@sendgrid/mail": "^8.1.5",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -32,7 +31,6 @@
     "mongoose": "^8.16.3",
     "node-cron": "^4.2.1",
 
-    "nodemailer": "^7.0.5",
     "nodemon": "^3.1.10",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
