@@ -1,7 +1,12 @@
-- [x] Edit public/pages/meet-your-trainer.html to add the appointments table section after the trainer cards.
-- [x] Include the appointment details and edit modals in the HTML.
-- [x] Add the script tag for ../js/appointments.js at the end.
-- [x] Update the page title and heading to "Meet Your Trainers & Manage Appointments".
-- [x] Check public/pages/partials/navbar.html for links to appointments.html and update to meet-your-trainer.html.
-- [x] Test the combined page functionality.
-- [x] Delete appointments.html page and update dashboard card title to "Meet Your Trainers".
+# TODO: Add Logs Section to Admin Dashboard
+
+## Tasks
+- [x] Add "Logs" navigation link to the sidebar in admin-dashboard.html
+- [x] Add new "Logs" section HTML after client list section in admin-dashboard.html (including table, filters, pagination, and controls)
+- [x] Include admin-logs.js script in admin-dashboard.html
+- [x] Update admin-dashboard.js to load logs on DOMContentLoaded event
+
+## Followup Steps
+- [ ] Test logs section loads and displays data
+- [ ] Verify filtering, pagination, and export functionality
+- [ ] Ensure responsive design matches other sections

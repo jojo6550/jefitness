@@ -11,6 +11,14 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
+// Middleware to ensure authentication (for all routes)
+const requireAuth = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ msg: 'Authentication required' });
+    }
+    next();
+};
+
 // Get logs with filtering and pagination
 router.get('/', requireAdmin, async (req, res) => {
     try {

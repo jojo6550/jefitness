@@ -28,10 +28,11 @@ const connectDB = async () => {
 connectDB();
 
 // Define Routes
+const auth = require('./middleware/auth');
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', require('./routes/sleep'));
 app.use('/api/clients', require('./routes/clients'));
-app.use('/api/logs', require('./routes/logs'));
+app.use('/api/logs', auth, require('./routes/logs'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/nutrition', require('./routes/nutrition'));
