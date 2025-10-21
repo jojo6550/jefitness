@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const cron = require('node-cron');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -33,6 +35,46 @@ connectDB();
 // Import rate limiters
 const { apiLimiter } = require('./middleware/rateLimiter');
 
+const PORT = process.env.PORT || 10000;
+
+// Swagger configuration
+const swaggerOptions = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'JE Fitness API',
+            version: '1.0.0',
+            description: 'API documentation for JE Fitness application',
+        },
+        servers: [
+            {
+                url: `http://localhost:${PORT}`,
+                description: 'Development server',
+            },
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+        },
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
+    },
+    apis: ['./src/routes/*.js'], // Path to the API docs
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Define Routes
 const auth = require('./middleware/auth');
 app.use('/api/auth', require('./routes/auth'));
@@ -55,9 +97,6 @@ app.use((err, req, res, next) => {
     }
     res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
-
-
-const PORT = process.env.PORT || 10000;
 
 // Import User model for cleanup job
 const User = require('./models/User');

@@ -1,20 +1,14 @@
-# Documentation Tasks
+# TODO: Add OpenAPI Documentation
 
-## Route Files
-- [x] src/routes/appointments.js - Add JSDoc to all route handlers
-- [ ] src/routes/auth.js - Add JSDoc to all route handlers
-- [ ] src/routes/clients.js - Add JSDoc to all route handlers
-- [ ] src/routes/users.js - Add JSDoc to all route handlers
-- [ ] src/routes/nutrition.js - Add JSDoc to all route handlers
-- [ ] src/routes/sleep.js - Add JSDoc to all route handlers
+## Plan
+- Install swagger-jsdoc and swagger-ui-express packages.
+- Configure swagger in server.js to generate docs from JSDoc comments in route files.
+- Serve the API documentation at /api-docs endpoint.
+- Test the documentation by running the server and accessing /api-docs.
 
-## Model Files
-- [ ] src/models/User.js - Add JSDoc to schema and sub-schemas
-- [ ] src/models/Appointment.js - Add JSDoc to schema
-
-## Service Files
-- [ ] src/services/logger.js - Add JSDoc to all exported functions and loggers
-
-## Verification
-- [ ] Verify all documentation is consistent and complete
-- [ ] Ensure documentation follows JSDoc standards
+## Steps
+- [x] Install required packages: swagger-jsdoc and swagger-ui-express.
+- [x] Update server.js to include swagger setup and middleware.
+- [x] Verify JSDoc comments in route files are compatible with OpenAPI generation.
+- [x] Run the server and check /api-docs for the generated documentation.
+- [x] Fix JSDoc comments to use @swagger tags with OpenAPI YAML format for proper generation.

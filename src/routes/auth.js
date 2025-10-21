@@ -42,16 +42,52 @@ const validatePasswordStrength = (password) => {
 };
 
 /**
- * @route   POST /api/auth/signup
- * @desc    Register a new user account
- * @access  Public
- * @body    {string} firstName - User's first name (required)
- * @body    {string} lastName - User's last name (required)
- * @body    {string} email - User's email address (required, must be valid)
- * @body    {string} password - User's password (required, must meet strength requirements)
- * @returns {Object} Success message and user email
- * @throws  {400} Validation failed or user already exists or weak password
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/signup:
+ *   post:
+ *     summary: Register a new user account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - password
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 description: User's first name
+ *               lastName:
+ *                 type: string
+ *                 description: User's last name
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               password:
+ *                 type: string
+ *                 description: User's password (must meet strength requirements)
+ *     responses:
+ *       201:
+ *         description: Signup successful, verification email sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *       400:
+ *         description: Validation failed, user already exists, or weak password
+ *       500:
+ *         description: Server error
  */
 router.post('/signup', [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
@@ -141,15 +177,56 @@ router.post('/signup', [
 });
 
 /**
- * @route   POST /api/auth/login
- * @desc    Authenticate user and return JWT token
- * @access  Public
- * @body    {string} email - User's email address (required, must be valid)
- * @body    {string} password - User's password (required)
- * @returns {Object} JWT token and user info
- * @throws  {400} Validation failed or invalid credentials or email not verified
- * @throws  {423} Account locked due to too many failed attempts
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Authenticate user and return JWT token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               password:
+ *                 type: string
+ *                 description: User's password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *                   description: JWT token
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *       400:
+ *         description: Validation failed, invalid credentials, or email not verified
+ *       423:
+ *         description: Account locked due to too many failed attempts
+ *       500:
+ *         description: Server error
  */
 router.post('/login', [
     body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
@@ -220,12 +297,54 @@ router.post('/login', [
 });
 
 /**
- * @route   GET /api/auth/me
- * @desc    Get logged in user's full profile details (for session check and profile preload)
- * @access  Private
- * @returns {Object} User profile object with all user details
- * @throws  {404} User not found
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get logged in user's full profile details
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 firstName:
+ *                   type: string
+ *                 lastName:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 role:
+ *                   type: string
+ *                 dob:
+ *                   type: string
+ *                 gender:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 activityStatus:
+ *                   type: string
+ *                 startWeight:
+ *                   type: number
+ *                 currentWeight:
+ *                   type: number
+ *                 goals:
+ *                   type: string
+ *                 reason:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.get('/me', auth, async (req, res) => {
     try {
@@ -260,22 +379,96 @@ router.get('/me', auth, async (req, res) => {
 });
 
 /**
- * @route   PUT /api/auth/profile
- * @desc    Update logged in user's profile information
- * @access  Private
- * @body    {string} [firstName] - User's first name
- * @body    {string} [lastName] - User's last name
- * @body    {string} [dob] - Date of birth
- * @body    {string} [gender] - Gender
- * @body    {string} [phone] - Phone number
- * @body    {string} [activityStatus] - Activity status
- * @body    {number} [startWeight] - Starting weight
- * @body    {number} [currentWeight] - Current weight
- * @body    {string} [goals] - Fitness goals
- * @body    {string} [reason] - Reason for joining
- * @returns {Object} Success message and updated user object
- * @throws  {404} User not found
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update logged in user's profile information
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 description: User's first name
+ *               lastName:
+ *                 type: string
+ *                 description: User's last name
+ *               dob:
+ *                 type: string
+ *                 description: Date of birth
+ *               gender:
+ *                 type: string
+ *                 description: Gender
+ *               phone:
+ *                 type: string
+ *                 description: Phone number
+ *               activityStatus:
+ *                 type: string
+ *                 description: Activity status
+ *               startWeight:
+ *                 type: number
+ *                 description: Starting weight
+ *               currentWeight:
+ *                 type: number
+ *                 description: Current weight
+ *               goals:
+ *                 type: string
+ *                 description: Fitness goals
+ *               reason:
+ *                 type: string
+ *                 description: Reason for joining
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     dob:
+ *                       type: string
+ *                     gender:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     activityStatus:
+ *                       type: string
+ *                     startWeight:
+ *                       type: number
+ *                     currentWeight:
+ *                       type: number
+ *                     goals:
+ *                       type: string
+ *                     reason:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.put('/profile', auth, async (req, res) => {
     const {
@@ -339,12 +532,43 @@ router.put('/profile', auth, async (req, res) => {
 });
 
 /**
- * @route   GET /api/auth/nutrition
- * @desc    Get logged-in user's nutrition logs
- * @access  Private
- * @returns {Array} Array of nutrition log objects
- * @throws  {404} User not found
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/nutrition:
+ *   get:
+ *     summary: Get logged-in user's nutrition logs
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Nutrition logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: number
+ *                   date:
+ *                     type: string
+ *                   mealType:
+ *                     type: string
+ *                   foodItem:
+ *                     type: string
+ *                   calories:
+ *                     type: number
+ *                   protein:
+ *                     type: number
+ *                   carbs:
+ *                     type: number
+ *                   fats:
+ *                     type: number
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.get('/nutrition', auth, async (req, res) => {
     try {
@@ -363,21 +587,90 @@ router.get('/nutrition', auth, async (req, res) => {
 });
 
 /**
- * @route   POST /api/auth/nutrition
- * @desc    Add a new meal log for the logged-in user
- * @access  Private
- * @body    {number} id - Unique identifier for the meal log
- * @body    {string} date - Date of the meal (required)
- * @body    {string} mealType - Type of meal (e.g., breakfast, lunch) (required)
- * @body    {string} foodItem - Name of the food item (required)
- * @body    {number} calories - Calories in the food item (required)
- * @body    {number} protein - Protein in grams (required)
- * @body    {number} carbs - Carbohydrates in grams (required)
- * @body    {number} fats - Fats in grams (required)
- * @returns {Object} Success message and updated nutrition logs array
- * @throws  {400} Missing required fields
- * @throws  {404} User not found
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/nutrition:
+ *   post:
+ *     summary: Add a new meal log for the logged-in user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - date
+ *               - mealType
+ *               - foodItem
+ *               - calories
+ *               - protein
+ *               - carbs
+ *               - fats
+ *             properties:
+ *               id:
+ *                 type: number
+ *                 description: Unique identifier for the meal log
+ *               date:
+ *                 type: string
+ *                 description: Date of the meal
+ *               mealType:
+ *                 type: string
+ *                 description: Type of meal (e.g., breakfast, lunch)
+ *               foodItem:
+ *                 type: string
+ *                 description: Name of the food item
+ *               calories:
+ *                 type: number
+ *                 description: Calories in the food item
+ *               protein:
+ *                 type: number
+ *                 description: Protein in grams
+ *               carbs:
+ *                 type: number
+ *                 description: Carbohydrates in grams
+ *               fats:
+ *                 type: number
+ *                 description: Fats in grams
+ *     responses:
+ *       201:
+ *         description: Meal log added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 nutritionLogs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: number
+ *                       date:
+ *                         type: string
+ *                       mealType:
+ *                         type: string
+ *                       foodItem:
+ *                         type: string
+ *                       calories:
+ *                         type: number
+ *                       protein:
+ *                         type: number
+ *                       carbs:
+ *                         type: number
+ *                       fats:
+ *                         type: number
+ *       400:
+ *         description: Missing required fields
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.post('/nutrition', auth, async (req, res) => {
     const { id, date, mealType, foodItem, calories, protein, carbs, fats } = req.body;
@@ -404,14 +697,57 @@ router.post('/nutrition', auth, async (req, res) => {
 });
 
 /**
- * @route   DELETE /api/auth/nutrition/:id
- * @desc    Delete a meal log by id for the logged-in user
- * @access  Private
- * @param   {number} id - Meal log ID (URL parameter)
- * @returns {Object} Success message and updated nutrition logs array
- * @throws  {400} Invalid meal id
- * @throws  {404} User not found
- * @throws  {500} Server error
+ * @swagger
+ * /api/auth/nutrition/{id}:
+ *   delete:
+ *     summary: Delete a meal log by id for the logged-in user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: Meal log ID
+ *     responses:
+ *       200:
+ *         description: Meal log deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 nutritionLogs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: number
+ *                       date:
+ *                         type: string
+ *                       mealType:
+ *                         type: string
+ *                       foodItem:
+ *                         type: string
+ *                       calories:
+ *                         type: number
+ *                       protein:
+ *                         type: number
+ *                       carbs:
+ *                         type: number
+ *                       fats:
+ *                         type: number
+ *       400:
+ *         description: Invalid meal id
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.delete('/nutrition/:id', auth, async (req, res) => {
     const mealId = parseInt(req.params.id);
