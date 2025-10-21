@@ -59,6 +59,20 @@
 
     <button type="submit" class="btn btn-signup">Sign Up</button>
   </form>
+
+  <!-- OTP Verification Form (hidden initially) -->
+  <div id="otp-container" style="display: none;">
+    <form class="otp-form" id="otp-form" novalidate>
+      <h2>Verify Your Email</h2>
+      <p id="otp-message">We sent a verification code to your email.</p>
+      <div class="mb-3">
+        <label for="inputOtp" class="form-label">Enter 6-digit code</label>
+        <input type="text" class="form-control" id="inputOtp" name="otp" placeholder="123456" maxlength="6" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Verify</button>
+      <button type="button" class="btn btn-secondary ms-2" id="resendOtp">Resend Code</button>
+    </form>
+  </div>
 </div>
 
 

@@ -3,6 +3,12 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { Client } = require('node-mailjet');
+const mailjet = new Client({
+  apiKey: process.env.MAILJET_API_KEY,
+  apiSecret: process.env.MAILJET_SECRET_KEY
+});
+const crypto = require('crypto');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
@@ -24,60 +30,58 @@ router.post('/signup', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Generate 6-digit OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
         const newUser = new User({
             firstName,
             lastName,
             email,
             password: hashedPassword,
-            role: 'user' // Default new signups to 'user' role
+            role: 'user', // Default new signups to 'user' role
+            emailVerificationToken: otp,
+            emailVerificationExpires: otpExpires
         });
 
         await newUser.save();
 
-        // Include role in JWT payload
-        const token = jwt.sign({ id: newUser._id, role: newUser.role }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
+        // Send OTP email via Mailjet
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
+            Messages: [
+                {
+                    From: {
+                        Email: 'josiah.johnson6550@gmail.com',
+                        Name: 'JE Fitness'
+                    },
+                    To: [
+                        {
+                            Email: email,
+                            Name: `${firstName} ${lastName}`
+                        }
+                    ],
+                    Subject: 'Verify Your Email - JE Fitness',
+                    TextPart: `Hi ${firstName},\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nBest,\nJE Fitness Team`,
+                    HTMLPart: `<p>Hi <strong>${firstName}</strong>,</p>
+                               <p>Your verification code is: <strong>${otp}</strong></p>
+                               <p>This code will expire in 10 minutes.</p>
+                               <p>Best regards,<br>JE Fitness Team</p>`
+                }
+            ]
         });
-
-        // Send confirmation email using SendGrid
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.sendgrid.net',
-            port: 587,
-            secure: false,
-            auth: {
-                user: 'apikey', // Must be this literal string
-                pass: process.env.SENDGRID_API_KEY,
-            },
-        });
-
-        const mailOptions = {
-            from: '"JE Fitness" <josiah.johnson6550@gmail.com>',
-            to: email,
-            subject: 'Welcome to JE Fitness!',
-            text: `Hi ${firstName},\n\nThank you for signing up with JE Fitness. We're excited to have you onboard!\n\nBest,\nJE Fitness Team`,
-            html: `<p>Hi <strong>${firstName}</strong>,</p>
-                   <p>Thank you for signing up with JE Fitness. We're excited to have you onboard!</p>
-                   <p>Best regards,<br>JE Fitness Team</p>`,
-        };
 
         try {
-            await transporter.sendMail(mailOptions);
-            logUserAction('signup_email_sent', newUser._id, { email });
+            await request;
+            logUserAction('otp_email_sent', newUser._id, { email });
         } catch (emailErr) {
-            logError(emailErr, { context: 'Email sending during signup', userId: newUser._id });
+            logError(emailErr, { context: 'OTP email sending during signup', userId: newUser._id });
             // Do not stop signup because of email failure
         }
 
-        logUserAction('signup_success', newUser._id, { email, role: newUser.role });
+        logUserAction('signup_pending_verification', newUser._id, { email });
         res.status(201).json({
-            msg: 'Signup successful!',
-            token,
-            user: {
-                id: newUser._id,
-                name: `${newUser.firstName} ${newUser.lastName}`,
-                email: newUser.email,
-                role: newUser.role // Include role in response
-            },
+            msg: 'Signup successful! Please check your email for the verification code.',
+            email: newUser.email
         });
 
     } catch (err) {
@@ -101,6 +105,12 @@ router.post('/login', async (req, res) => {
         if (!user) {
             logSecurityEvent('login_failed', null, { email, reason: 'User not found' });
             return res.status(400).json({ msg: 'Invalid credentials' });
+        }
+
+        // Check if email is verified
+        if (!user.isEmailVerified) {
+            logSecurityEvent('login_failed', user._id, { email, reason: 'Email not verified' });
+            return res.status(400).json({ msg: 'Please verify your email before logging in.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -362,6 +372,92 @@ router.get('/clients', auth, async (req, res) => {
     }
 });
 
+});
+
+// EMAIL VERIFICATION ROUTE
+router.post('/verify-email', async (req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        return res.status(400).json({ msg: 'Email and OTP are required.' });
+    }
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ msg: 'User not found.' });
+        }
+
+        if (user.isEmailVerified) {
+            return res.status(400).json({ msg: 'Email already verified.' });
+        }
+
+        if (!user.emailVerificationToken || user.emailVerificationToken !== otp) {
+            logSecurityEvent('otp_verification_failed', user._id, { email, reason: 'Invalid OTP' });
+            return res.status(400).json({ msg: 'Invalid OTP.' });
+        }
+
+        if (new Date() > user.emailVerificationExpires) {
+            logSecurityEvent('otp_verification_failed', user._id, { email, reason: 'OTP expired' });
+            return res.status(400).json({ msg: 'OTP has expired. Please request a new one.' });
+        }
+
+        // Verify the email
+        user.isEmailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+        await user.save();
+
+        // Issue JWT token
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Send confirmation email via Mailjet
+        const request = mailjet.post('send', { version: 'v3.1' }).request({
+            Messages: [
+                {
+                    From: {
+                        Email: 'josiah.johnson6550@gmail.com',
+                        Name: 'JE Fitness'
+                    },
+                    To: [
+                        {
+                            Email: email,
+                            Name: `${user.firstName} ${user.lastName}`
+                        }
+                    ],
+                    Subject: 'Welcome to JE Fitness!',
+                    TextPart: `Hi ${user.firstName},\n\nThank you for signing up with JE Fitness. We're excited to have you onboard!\n\nBest,\nJE Fitness Team`,
+                    HTMLPart: `<p>Hi <strong>${user.firstName}</strong>,</p>
+                               <p>Thank you for signing up with JE Fitness. We're excited to have you onboard!</p>
+                               <p>Best regards,<br>JE Fitness Team</p>`
+                }
+            ]
+        });
+
+        try {
+            await request;
+            logUserAction('confirmation_email_sent', user._id, { email });
+        } catch (emailErr) {
+            logError(emailErr, { context: 'Confirmation email sending after verification', userId: user._id });
+            // Do not stop verification because of email failure
+        }
+
+        logUserAction('email_verified', user._id, { email, role: user.role });
+        res.status(200).json({
+            msg: 'Email verified successfully! Welcome to JE Fitness.',
+            token,
+            user: {
+                id: user._id,
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (err) {
+        logError(err, { context: 'Email verification', email });
+        res.status(500).json({ msg: 'Server error. Please try again.' });
+    }
 });
 
 module.exports = router;

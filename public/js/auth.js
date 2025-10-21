@@ -67,14 +67,73 @@ const baseUrl = isLocalhost
         const data = await response.json();
 
         if (response.ok) {
-          alert('Account has been created!');
-          window.location.href = 'login.html';
+          // Hide signup form and show OTP verification form
+          signupForm.style.display = 'none';
+          document.getElementById('otp-container').style.display = 'block';
+          document.getElementById('otp-message').textContent = `We sent a verification code to ${email}`;
         } else {
           alert(data.msg || 'Signup failed.');
         }
       } catch (err) {
         console.error('Error:', err);
         alert('Signup failed. Please try again.');
+      }
+    });
+  }
+
+  // OTP Verification
+  const otpForm = document.getElementById('otp-form');
+  if (otpForm) {
+    otpForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('inputEmail').value;
+      const otp = document.getElementById('inputOtp').value;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/auth/verify-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('userRole', data.user.role);
+          alert('Email verified! Welcome to JE Fitness.');
+          window.location.href = '../pages/dashboard.html';
+        } else {
+          alert(data.msg || 'Verification failed.');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Verification failed. Please try again.');
+      }
+    });
+
+    // Resend OTP functionality
+    document.getElementById('resendOtp').addEventListener('click', async () => {
+      const firstName = document.getElementById('inputFirstName').value;
+      const lastName = document.getElementById('inputLastName').value;
+      const email = document.getElementById('inputEmail').value;
+      const password = document.getElementById('inputPassword').value;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/auth/signup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ firstName, lastName, email, password })
+        });
+
+        if (response.ok) {
+          alert('OTP resent to your email.');
+        } else {
+          alert('Failed to resend OTP.');
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        alert('Failed to resend OTP.');
       }
     });
   }
