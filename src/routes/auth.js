@@ -9,18 +9,58 @@ const mailjet = new Client({
   apiSecret: process.env.MAILJET_SECRET_KEY
 });
 const crypto = require('crypto');
+const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
+const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { logUserAction, logSecurityEvent, logError } = require('../services/logger');
 
+// Password strength validation function
+const validatePasswordStrength = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) {
+        return 'Password must be at least 8 characters long.';
+    }
+    if (!hasUpperCase) {
+        return 'Password must contain at least one uppercase letter.';
+    }
+    if (!hasLowerCase) {
+        return 'Password must contain at least one lowercase letter.';
+    }
+    if (!hasNumbers) {
+        return 'Password must contain at least one number.';
+    }
+    if (!hasSpecialChar) {
+        return 'Password must contain at least one special character.';
+    }
+    return null; // Password is strong
+};
+
 // SIGNUP ROUTE
-router.post('/signup', async (req, res) => {
+router.post('/signup', [
+    body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
+    body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 1 }).withMessage('Password is required')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+    }
+
     const { firstName, lastName, email, password } = req.body;
     logUserAction('signup_attempt', null, { email, firstName, lastName });
 
-    if (!firstName || !lastName || !email || !password) {
-        return res.status(400).json({ msg: 'All fields are required.' });
+    // Validate password strength
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+        return res.status(400).json({ msg: passwordError });
     }
 
     try {
@@ -91,20 +131,30 @@ router.post('/signup', async (req, res) => {
 });
 
 // LOGIN ROUTE
-router.post('/login', async (req, res) => {
+router.post('/login', [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('password').isLength({ min: 1 }).withMessage('Password is required')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+    }
+
     const { email, password } = req.body;
     logSecurityEvent('login_attempt', null, { email });
-
-    if (!email || !password) {
-        logSecurityEvent('login_failed', null, { email, reason: 'Missing fields' });
-        return res.status(400).json({ msg: 'Missing fields' });
-    }
 
     try {
         const user = await User.findOne({ email });
         if (!user) {
             logSecurityEvent('login_failed', null, { email, reason: 'User not found' });
             return res.status(400).json({ msg: 'Invalid credentials' });
+        }
+
+        // Check if account is locked
+        if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+            const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60); // minutes
+            logSecurityEvent('login_failed', user._id, { email, reason: 'Account locked', lockoutMinutes: remainingTime });
+            return res.status(423).json({ msg: `Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.` });
         }
 
         // Check if email is verified
@@ -115,11 +165,23 @@ router.post('/login', async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            logSecurityEvent('login_failed', user._id, { email, reason: 'Invalid password' });
+            // Increment failed login attempts
+            user.failedLoginAttempts += 1;
+
+            // Lock account after 5 failed attempts for 2 hours
+            if (user.failedLoginAttempts >= 5) {
+                user.lockoutUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+                logSecurityEvent('account_locked', user._id, { email, reason: 'Too many failed attempts' });
+            }
+
+            await user.save();
+            logSecurityEvent('login_failed', user._id, { email, reason: 'Invalid password', attempts: user.failedLoginAttempts });
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
-        // Update lastLoggedIn timestamp
+        // Reset failed attempts on successful login
+        user.failedLoginAttempts = 0;
+        user.lockoutUntil = undefined;
         user.lastLoggedIn = new Date();
         await user.save();
 
@@ -375,13 +437,16 @@ router.get('/clients', auth, async (req, res) => {
 });
 
 // FORGOT PASSWORD ROUTE
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required')
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+    }
+
     const { email } = req.body;
     logSecurityEvent('forgot_password_attempt', null, { email });
-
-    if (!email) {
-        return res.status(400).json({ msg: 'Email is required.' });
-    }
 
     try {
         const user = await User.findOne({ email });

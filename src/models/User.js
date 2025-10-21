@@ -78,7 +78,11 @@ const UserSchema = new mongoose.Schema({
 
     // Password reset fields
     resetToken: { type: String },
-    resetExpires: { type: Date }
+    resetExpires: { type: Date },
+
+    // Account lockout fields
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockoutUntil: { type: Date }
 });
 
 module.exports = mongoose.model('User', UserSchema);
