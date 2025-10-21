@@ -15,6 +15,17 @@ app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(cors());
 
+// Enforce HTTPS in production (for Render deployment)
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.header('x-forwarded-proto') !== 'https') {
+            res.redirect(`https://${req.header('host')}${req.url}`);
+        } else {
+            next();
+        }
+    });
+}
+
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 

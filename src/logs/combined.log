@@ -400,3 +400,9 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:24:07:247"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:24:13:2413"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:24:14:2414"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 03:46:47:4647"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 03:46:48:4648"}
+{"error":"jwt malformed","ip":"::1","level":"\u001b[33mwarn\u001b[39m","message":"\u001b[33mAuthentication failed: Token verification failed\u001b[39m","timestamp":"2025-10-21 03:47:38:4738","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"}
+{"error":"jwt malformed","ip":"::1","level":"\u001b[33mwarn\u001b[39m","message":"\u001b[33mAuthentication failed: Token verification failed\u001b[39m","timestamp":"2025-10-21 03:47:38:4738","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"}
+{"error":"jwt malformed","ip":"::1","level":"\u001b[33mwarn\u001b[39m","message":"\u001b[33mAuthentication failed: Token verification failed\u001b[39m","timestamp":"2025-10-21 03:47:38:4738","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"}
+{"error":"jwt malformed","level":"\u001b[33mwarn\u001b[39m","message":"\u001b[33mAuthentication failed: Token verification failed\u001b[39m","timestamp":"2025-10-21 03:47:38:4738","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"}
