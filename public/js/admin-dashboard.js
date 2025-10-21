@@ -882,4 +882,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exportAppointmentsBtn) {
         exportAppointmentsBtn.addEventListener('click', exportAppointments);
     }
+
+    // Clients refresh button
+    const refreshClientsBtn = document.getElementById('refreshClients');
+    if (refreshClientsBtn) {
+        refreshClientsBtn.addEventListener('click', () => {
+            loadClients(currentPage, currentSearch, currentSortBy, currentSortOrder, currentStatus);
+        });
+    }
 });
