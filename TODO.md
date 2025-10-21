@@ -1,26 +1,26 @@
-# Structured Logging Implementation TODO
+# Performance Optimization TODO
 
-## Overview
-Replace all console.log/error/warn statements in server-side code with structured logging using the Winston logger service.
+## Image Optimization
+- [x] Install image optimization tools (e.g., sharp for WebP conversion)
+- [x] Convert hero.jpg to WebP format
+- [x] Convert logo.jpg to WebP format
+- [x] Update public/index.html to use <picture> elements with WebP sources and JPEG fallbacks
+- [ ] Add lazy loading attribute to images not in viewport
 
-## Files to Update
-- [ ] config/db.js - Replace console.log/error with logger
-- [ ] src/routes/users.js - Replace console.error with logger.error
-- [ ] src/routes/clients.js - Replace console.error with logger.error
-- [ ] src/routes/nutrition.js - Replace console.error with logger.error
-- [ ] src/routes/sleep.js - Replace console.error with logger.error
-- [ ] src/routes/appointments.js - Replace console.error with logger.error
-- [ ] src/middleware/auth.js - Replace console.error with logger.error
-- [ ] src/scripts/migrate-users.js - Replace console.log/error with logger
-- [ ] src/routes/auth.js - Check and replace any remaining console statements
-- [ ] src/routes/logs.js - Already uses structured logging (verify)
-- [ ] src/server.js - Already uses structured logging (verify)
+## Minification
+- [x] Install minification tools (uglify-js for JS, cssnano for CSS)
+- [x] Add build scripts to package.json for minification
+- [x] Minify public/styles/styles.css
+- [x] Minify all JS files in public/js/ (app.js, auth.js, etc.)
+- [x] Update HTML to reference minified files
 
-## Testing
-- [ ] Test application startup and verify logs are written to files
-- [ ] Test error scenarios and verify error logging
-- [ ] Verify console output shows colored logs
-- [ ] Check log files in src/logs/ directory
+## CDN for Assets
+- [ ] Replace local video references in program pages with YouTube iframe embeds for CDN delivery
+- [ ] Suggest uploading images to a CDN (e.g., Cloudinary) or use GitHub raw URLs for faster delivery
+- [ ] Update image sources in HTML to use CDN URLs
 
-## Completion
-- [ ] Update this TODO.md to mark task as complete
+## Testing and Verification
+- [ ] Test site loading after optimizations
+- [ ] Verify images load correctly with fallbacks
+- [ ] Check minified files are served
+- [ ] Confirm videos embed properly from YouTube
