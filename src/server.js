@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const cron = require('node-cron');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -52,5 +53,26 @@ app.use((err, req, res, next) => {
 
 
 const PORT = process.env.PORT || 10000;
+
+// Import User model for cleanup job
+const User = require('./models/User');
+
+// Schedule cleanup job to run every 30 minutes
+cron.schedule('*/30 * * * *', async () => {
+    try {
+        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+
+        const result = await User.deleteMany({
+            isEmailVerified: false,
+            createdAt: { $lt: thirtyMinutesAgo }
+        });
+
+        if (result.deletedCount > 0) {
+            logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than 30 minutes`);
+        }
+    } catch (err) {
+        logError(err, { context: 'Unverified accounts cleanup job' });
+    }
+});
 
 app.listen(PORT, () => logger.info(`Server started on port ${PORT}`));
