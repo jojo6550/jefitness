@@ -1,7 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const { Client } = require('node-mailjet');
 const mailjet = new Client({
   apiKey: process.env.MAILJET_API_KEY,
