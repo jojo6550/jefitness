@@ -46,7 +46,7 @@ const validatePasswordStrength = (password) => {
 router.post('/signup', [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -132,7 +132,7 @@ router.post('/signup', [
 
 // LOGIN ROUTE
 router.post('/login', [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {
     const errors = validationResult(req);
@@ -434,11 +434,9 @@ router.get('/clients', auth, async (req, res) => {
     }
 });
 
-});
-
 // FORGOT PASSWORD ROUTE
 router.post('/forgot-password', passwordResetLimiter, [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required')
+    body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required')
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
