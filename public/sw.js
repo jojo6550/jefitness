@@ -1,6 +1,6 @@
-const CACHE_NAME = 'fitlife-pro-v1';
-const STATIC_CACHE = 'fitlife-pro-static-v1';
-const DYNAMIC_CACHE = 'fitlife-pro-dynamic-v1';
+const CACHE_NAME = 'JEFitness-pro-v1';
+const STATIC_CACHE = 'JEFitness-pro-static-v1';
+const DYNAMIC_CACHE = 'JEFitness-pro-dynamic-v1';
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -150,7 +150,7 @@ self.addEventListener('push', event => {
   };
 
   event.waitUntil(
-    self.registration.showNotification('FitLife Pro', options)
+    self.registration.showNotification('JEFitness Pro', options)
   );
 });
 

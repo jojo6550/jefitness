@@ -23,6 +23,7 @@
   "homepage": "https://github.com/jojo6550/jojo6550.github.io#readme",
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",
+    "@sentry/node": "^10.21.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",

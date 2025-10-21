@@ -4,9 +4,17 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const cron = require('node-cron');
+const Sentry = require('@sentry/node');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
+
+// Initialize Sentry
+Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+    environment: process.env.NODE_ENV || 'development',
+});
 
 const app = express();
 
@@ -61,6 +69,7 @@ app.get('/', (req, res) => res.send('API Running'));
 // Error handling middleware
 app.use((err, req, res, next) => {
     logError(err, { context: 'Unhandled Server Error' });
+    Sentry.captureException(err);
     if (res.headersSent) {
         return next(err);
     }
