@@ -350,6 +350,7 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:10:36:1036"}
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:15:01:151"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:15:02:152"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:19:16:1916"}
@@ -514,3 +515,7 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-22 11:10:01:101"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-22 11:10:02:102"}
 {"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: read ECONNRESET | Context: {\"context\":\"Unverified accounts cleanup job\"} | Stack: MongoNetworkError: read ECONNRESET\u001b[39m\n\u001b[31m    at Connection.onSocketError (C:\\Users\\josia\\jefitness\\node_modules\\mongodb\\lib\\cmap\\connection.js:109:22)\u001b[39m\n\u001b[31m    at TLSSocket.emit (node:events:530:35)\u001b[39m\n\u001b[31m    at emitErrorNT (node:internal/streams/destroy:170:8)\u001b[39m\n\u001b[31m    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\u001b[39m\n\u001b[31m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\u001b[39m","timestamp":"2025-10-22 11:30:00:300"}
+=======
+>>>>>>> parent of 755a865 (`Refactor server-side code to use structured logging with Winston logger service`)
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-22 12:06:41:641"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-22 12:06:42:642"}

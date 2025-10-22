@@ -90,7 +90,7 @@ router.get('/', auth, async (req, res) => {
             pagination
         });
     } catch (err) {
-        logger.error('Error retrieving appointments', { error: err.message, stack: err.stack, userId: req.user?.id, query: req.query });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -117,7 +117,7 @@ router.get('/user', auth, async (req, res) => {
 
         res.json(appointments);
     } catch (err) {
-        logger.error('Error retrieving user appointments', { error: err.message, stack: err.stack, userId: req.user?.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -152,7 +152,7 @@ router.get('/:id', auth, async (req, res) => {
 
         res.json(appointment);
     } catch (err) {
-        logger.error('Error retrieving specific appointment', { error: err.message, stack: err.stack, userId: req.user?.id, appointmentId: req.params.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -226,7 +226,7 @@ router.post('/', auth, async (req, res) => {
 
         res.status(201).json(appointment);
     } catch (err) {
-        logger.error('Error creating appointment', { error: err.message, stack: err.stack, userId: req.user?.id, body: req.body });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -280,7 +280,7 @@ router.put('/:id', auth, async (req, res) => {
 
         res.json(appointment);
     } catch (err) {
-        logger.error('Error updating appointment', { error: err.message, stack: err.stack, userId: req.user?.id, appointmentId: req.params.id, body: req.body });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -323,7 +323,7 @@ router.delete('/:id', auth, async (req, res) => {
         await Appointment.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Appointment deleted successfully' });
     } catch (err) {
-        logger.error('Error deleting appointment', { error: err.message, stack: err.stack, userId: req.user?.id, appointmentId: req.params.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });

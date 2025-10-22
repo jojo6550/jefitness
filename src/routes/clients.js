@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // optional if admin-only
-const { logger } = require('../services/logger');
 
 // GET /api/clients - return all users with search, filter, sort, and pagination
 router.get('/', auth, async (req, res) => {
@@ -63,7 +62,7 @@ router.get('/', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error('Error retrieving clients', { error: err.message, stack: err.stack, userId: req.user?.id, query: req.query });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -154,7 +153,7 @@ router.get('/statistics', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        logger.error('Error retrieving client statistics', { error: err.message, stack: err.stack, userId: req.user?.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -174,7 +173,7 @@ router.get('/:id', auth, async (req, res) => {
 
         res.json({ client });
     } catch (err) {
-        logger.error('Error retrieving client details', { error: err.message, stack: err.stack, userId: req.user?.id, clientId: req.params.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -195,7 +194,7 @@ router.delete('/:id', auth, async (req, res) => {
         await User.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Client deleted successfully' });
     } catch (err) {
-        logger.error('Error deleting client', { error: err.message, stack: err.stack, userId: req.user?.id, clientId: req.params.id });
+        console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });

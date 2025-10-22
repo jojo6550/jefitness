@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { logger } = require('../services/logger');
 
 // Helper function to sort sleep logs
 function sortSleepLogs(logs, sortBy, order) {
@@ -37,7 +36,7 @@ router.get('/', auth, async (req, res) => {
 
     res.json(sleepLogs);
   } catch (err) {
-    logger.error('Error retrieving sleep logs', { error: err.message, stack: err.stack, userId: req.user?.id, query: req.query });
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -71,7 +70,7 @@ router.post('/', auth, async (req, res) => {
     await user.save();
     res.status(201).json(user.sleepLogs);
   } catch (err) {
-    logger.error('Error adding/updating sleep log', { error: err.message, stack: err.stack, userId: req.user?.id, body: req.body });
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -103,7 +102,7 @@ router.put('/:id', auth, async (req, res) => {
     await user.save();
     res.json(log);
   } catch (err) {
-    logger.error('Error updating sleep log', { error: err.message, stack: err.stack, userId: req.user?.id, logId: req.params.id, body: req.body });
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -128,7 +127,7 @@ router.delete('/:id', auth, async (req, res) => {
     await user.save();
     res.json({ message: 'Sleep log deleted' });
   } catch (err) {
-    logger.error('Error deleting sleep log', { error: err.message, stack: err.stack, userId: req.user?.id, logId: req.params.id });
+    console.error('Error deleting sleep log:', err.stack);
     res.status(500).json({ message: 'Server error' });
   }
 });
