@@ -17,21 +17,25 @@ app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors());
 
-// Security headers with Helmet (includes CSP fix)
-app.use((req, res, next) => {
-  if (req.path.endsWith('.html')) {
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'self'; " +
-      "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
-      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-      "img-src 'self' data: https:; " +
-      "font-src 'self' https://cdn.jsdelivr.net;"
-    );
-  }
-  next();
-});
-
+// Security headers with Helmet
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // all scripts are now local
+        styleSrc: ["'self'", "'unsafe-inline'"],  // all styles are now local
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"]
+      }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  })
+);
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
@@ -69,9 +73,7 @@ app.get('/', (req, res) => res.send('API Running'));
 // Error handling middleware
 app.use((err, req, res, next) => {
   logError(err, { context: 'Unhandled Server Error' });
-  if (res.headersSent) {
-    return next(err);
-  }
+  if (res.headersSent) return next(err);
   res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
 
