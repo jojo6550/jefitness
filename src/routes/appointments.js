@@ -188,24 +188,23 @@ router.post('/', auth, async (req, res) => {
         // Set clientId from authenticated user
         const clientId = req.user.id;
 
-        // Check the 10-client limit per 1 hour period
+        // Check the 10-client limit per fixed hour block (e.g., 14:00-15:00)
         const appointmentDate = new Date(date);
-        const requestedTime = new Date(`${date}T${time}`);
-        const timeSlotStart = new Date(requestedTime);
-        const timeSlotEnd = new Date(requestedTime.getTime() + 60 * 60 * 1000); // 1 hour later
+        const [hours, minutes] = time.split(':').map(Number);
+        const hourBlock = `${hours.toString().padStart(2, '0')}:00`;
 
         const existingAppointments = await Appointment.find({
             trainerId,
             date: appointmentDate,
             time: {
-                $gte: timeSlotStart.toTimeString().slice(0, 5),
-                $lt: timeSlotEnd.toTimeString().slice(0, 5)
+                $gte: hourBlock,
+                $lt: `${(hours + 1).toString().padStart(2, '0')}:00`
             },
             status: { $ne: 'cancelled' }
         });
 
         if (existingAppointments.length >= 10) {
-            return res.status(400).json({ msg: 'Time slot is fully booked (maximum 10 clients per 1 hour period)' });
+            return res.status(400).json({ msg: `Time slot ${hourBlock}-${(hours + 1).toString().padStart(2, '0')}:00 is fully booked (maximum 10 clients per hour)` });
         }
 
         // Create appointment
