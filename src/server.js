@@ -18,33 +18,20 @@ app.use(express.json());
 app.use(cors());
 
 // Security headers with Helmet (includes CSP fix)
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net"
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.jsdelivr.net"
-        ],
-        imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://api.render.com"],
-        objectSrc: ["'none'"],
-        frameAncestors: ["'none'"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-  })
-);
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html')) {
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
+      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' https://cdn.jsdelivr.net;"
+    );
+  }
+  next();
+});
+
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
