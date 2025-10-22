@@ -2,10 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const helmet = require('helmet');
 const cron = require('node-cron');
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -13,7 +10,6 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(helmet()); // Security headers
 app.use(express.json());
 app.use(cors());
 
@@ -36,44 +32,6 @@ connectDB();
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 const PORT = process.env.PORT || 10000;
-
-// Swagger configuration
-const swaggerOptions = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'JE Fitness API',
-            version: '1.0.0',
-            description: 'API documentation for JE Fitness application',
-        },
-        servers: [
-            {
-                url: `http://localhost:${PORT}`,
-                description: 'Development server',
-            },
-        ],
-        components: {
-            securitySchemes: {
-                bearerAuth: {
-                    type: 'http',
-                    scheme: 'bearer',
-                    bearerFormat: 'JWT',
-                },
-            },
-        },
-        security: [
-            {
-                bearerAuth: [],
-            },
-        ],
-    },
-    apis: ['./src/routes/*.js'], // Path to the API docs
-};
-
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
-// Serve Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Define Routes
 const auth = require('./middleware/auth');
