@@ -253,14 +253,24 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Appointment not found' });
         }
 
-        // Allow update if user is admin or trainer
-        if (req.user.role !== 'admin' && appointment.trainerId.toString() !== req.user.id) {
+        // Allow update if user is admin, trainer, or the client who owns the appointment
+        if (req.user.role !== 'admin' &&
+            appointment.trainerId.toString() !== req.user.id &&
+            appointment.clientId.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        const { date, time, status, notes } = req.body;
+        const { trainerId, date, time, status, notes } = req.body;
 
         // Update fields
+        if (trainerId) {
+            // Validate trainer exists and is admin
+            const trainer = await User.findById(trainerId);
+            if (!trainer || trainer.role !== 'admin') {
+                return res.status(400).json({ msg: 'Invalid trainer' });
+            }
+            appointment.trainerId = trainerId;
+        }
         if (date) appointment.date = date;
         if (time) appointment.time = time;
         if (status) appointment.status = status;
