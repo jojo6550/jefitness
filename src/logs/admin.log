@@ -141,7 +141,10 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin 687944145ddc99f659de2717 retrieved logs\u001b[39m","meta":{"filters":{},"pagination":{"limit":"50","page":"1"},"total":15},"timestamp":"2025-10-21 00:06:31:631"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin action: view_all_appointments | User ID: 687944145ddc99f659de2717 | Details: {\"query\":{\"page\":\"1\",\"limit\":\"10\",\"search\":\"\",\"sortBy\":\"date\",\"sortOrder\":\"asc\",\"status\":\"\"}}\u001b[39m","timestamp":"2025-10-21 00:06:48:648"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin 687944145ddc99f659de2717 retrieved logs\u001b[39m","meta":{"filters":{},"pagination":{"limit":"50","page":"1"},"total":15},"timestamp":"2025-10-21 00:06:49:649"}
+<<<<<<< HEAD
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin action: view_all_appointments | User ID: 68f7477c80c632193d1a378b | Details: {\"query\":{\"page\":\"1\",\"limit\":\"10\",\"search\":\"\",\"sortBy\":\"date\",\"sortOrder\":\"asc\",\"status\":\"\"}}\u001b[39m","timestamp":"2025-10-21 19:21:26:2126"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin 68f7477c80c632193d1a378b retrieved logs\u001b[39m","meta":{"filters":{},"pagination":{"limit":"50","page":"1"},"total":15},"timestamp":"2025-10-21 19:21:27:2127"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin action: view_all_appointments | User ID: 68f7477c80c632193d1a378b | Details: {\"query\":{\"page\":\"1\",\"limit\":\"10\",\"search\":\"\",\"sortBy\":\"date\",\"sortOrder\":\"asc\",\"status\":\"\"}}\u001b[39m","timestamp":"2025-10-21 19:37:40:3740"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mAdmin 68f7477c80c632193d1a378b retrieved logs\u001b[39m","meta":{"filters":{},"pagination":{"limit":"50","page":"1"},"total":15},"timestamp":"2025-10-21 19:37:40:3740"}
+=======
+>>>>>>> parent of 0a70507 (`Added new log entries for admin actions, server restarts, and authentication failures.`)
