@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const cron = require('node-cron');
+const helmet = require('helmet');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -16,24 +17,47 @@ app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors());
 
-// Content Security Policy middleware
-app.use((req, res, next) => {
-    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;");
-    next();
-});
+// Security headers with Helmet (includes CSP fix)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.tailwindcss.com",
+          "https://cdn.jsdelivr.net"
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net"
+        ],
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://api.render.com"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  })
+);
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 
 // Connect to MongoDB
 const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        logger.info('MongoDB Connected successfully');
-    } catch (err) {
-        logError(err, { context: 'MongoDB Connection' });
-        process.exit(1);
-    }
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    logger.info('MongoDB Connected successfully');
+  } catch (err) {
+    logError(err, { context: 'MongoDB Connection' });
+    process.exit(1);
+  }
 };
 connectDB();
 
@@ -52,17 +76,16 @@ app.use('/api/appointments', apiLimiter, require('./routes/appointments'));
 app.use('/api/users', apiLimiter, require('./routes/users'));
 app.use('/api/nutrition', apiLimiter, require('./routes/nutrition'));
 
-
 // Basic test route
 app.get('/', (req, res) => res.send('API Running'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-    logError(err, { context: 'Unhandled Server Error' });
-    if (res.headersSent) {
-        return next(err);
-    }
-    res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
+  logError(err, { context: 'Unhandled Server Error' });
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
 
 // Import User model for cleanup job
@@ -70,20 +93,19 @@ const User = require('./models/User');
 
 // Schedule cleanup job to run every 30 minutes
 cron.schedule('*/30 * * * *', async () => {
-    try {
-        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+  try {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+    const result = await User.deleteMany({
+      isEmailVerified: false,
+      createdAt: { $lt: thirtyMinutesAgo }
+    });
 
-        const result = await User.deleteMany({
-            isEmailVerified: false,
-            createdAt: { $lt: thirtyMinutesAgo }
-        });
-
-        if (result.deletedCount > 0) {
-            logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than 30 minutes`);
-        }
-    } catch (err) {
-        logError(err, { context: 'Unverified accounts cleanup job' });
+    if (result.deletedCount > 0) {
+      logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than 30 minutes`);
     }
+  } catch (err) {
+    logError(err, { context: 'Unverified accounts cleanup job' });
+  }
 });
 
 app.listen(PORT, () => logger.info(`Server started on port ${PORT}`));
