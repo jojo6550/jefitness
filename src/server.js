@@ -9,6 +9,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust proxy for accurate IP identification (required for Render deployment)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json());
 app.use(cors());
