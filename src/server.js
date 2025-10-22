@@ -13,7 +13,18 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'sha256-0IqLuRSbwQOEA0Qqhtck6wOhKlo7B4SscfX0ePP4zX8='", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"],
+        },
+    },
+})); // Security headers with custom CSP
 app.use(express.json());
 app.use(cors());
 
