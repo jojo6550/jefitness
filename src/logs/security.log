@@ -135,9 +135,14 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 687944145ddc99f659de2717 | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-20 23:09:36:936"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"josiah.johnson6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-20 23:25:42:2542"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 687944145ddc99f659de2717 | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-20 23:25:42:2542"}
+<<<<<<< Updated upstream
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"noreplyjefitness@gmail.com\"}\u001b[39m","timestamp":"2025-10-21 02:25:50:2550"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68d43968482f62ebeea92474 | Details: {\"email\":\"noreplyjefitness@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-21 02:25:50:2550"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"josiah.johnson6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-22 10:03:57:357"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68f7477c80c632193d1a378b | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-22 10:03:57:357"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"josiah.johnson6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-22 10:49:07:497"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68f7477c80c632193d1a378b | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-10-22 10:49:07:497"}
+=======
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-10-22 13:38:51:3851"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-10-22 13:38:51:3851"}
+>>>>>>> Stashed changes

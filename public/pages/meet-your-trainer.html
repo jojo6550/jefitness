@@ -248,8 +248,7 @@
                 <label for="trainerSelect" class="form-label">Select Trainer</label>
                 <select id="trainerSelect" class="form-select" required>
                   <option value="">Choose...</option>
-                  <option value="jamol-elliot">Jamol Elliot</option>
-                  <option value="jermaine-elliot">Jermaine Ritchie</option>
+                  <!-- Trainers will be populated dynamically by JavaScript -->
                 </select>
               </div>
 
@@ -679,8 +678,11 @@
             this.reset();
             const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
             modal.hide();
+            // Refresh the appointments list
+            loadAppointments();
           } else {
-            alert(`Error: ${data.msg}`);
+            console.error('Error booking appointment:', data);
+            alert(`Error: ${data.msg || 'Failed to book appointment'}`);
           }
         } catch (error) {
           console.error('Error booking appointment:', error);

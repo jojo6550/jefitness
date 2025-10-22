@@ -403,6 +403,7 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:24:07:247"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:24:13:2413"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:24:14:2414"}
+<<<<<<< Updated upstream
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:32:17:3217"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-21 00:32:20:3220"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-21 00:32:25:3225"}
@@ -519,3 +520,9 @@
 >>>>>>> parent of 755a865 (`Refactor server-side code to use structured logging with Winston logger service`)
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-22 12:06:41:641"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-22 12:06:42:642"}
+=======
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-22 13:36:09:369"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-22 13:36:11:3611"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-10-22 13:42:30:4230"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-10-22 13:42:31:4231"}
+>>>>>>> Stashed changes
