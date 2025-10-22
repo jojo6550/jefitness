@@ -13,13 +13,14 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Content Security Policy middleware
+app.use((req, res, next) => {
+    res.setHeader("Content-Security-Policy", "script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net");
+    next();
+});
+
 // Serve static files from the 'public' directory
-app.use(express.static('public', {
-    setHeaders: (res, path) => {
-        // Remove CSP headers set by serve-static
-        res.removeHeader('Content-Security-Policy');
-    }
-}));
+app.use(express.static('public'));
 
 // Connect to MongoDB
 const connectDB = async () => {
