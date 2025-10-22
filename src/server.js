@@ -18,7 +18,7 @@ app.use(cors());
 
 // Content Security Policy middleware
 app.use((req, res, next) => {
-    res.setHeader("Content-Security-Policy", "script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net;");
     next();
 });
 
