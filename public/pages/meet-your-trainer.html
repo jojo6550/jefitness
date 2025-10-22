@@ -374,8 +374,10 @@
         ? 'http://localhost:10000'
         : 'https://jefitness.onrender.com';
 
-      // Load trainers and appointments on page load
+      // Initialize page when DOM is loaded
       document.addEventListener('DOMContentLoaded', async function () {
+        console.log('DOMContentLoaded fired'); // Debug log
+
         const token = localStorage.getItem('token');
         if (!token) {
           alert('You must be logged in to book an appointment.');
@@ -392,6 +394,7 @@
 
           if (response.ok) {
             const trainers = await response.json();
+            console.log('Trainers loaded:', trainers); // Debug log
             const trainerSelect = document.getElementById('trainerSelect');
             trainerSelect.innerHTML = '<option value="">Choose...</option>';
             trainers.forEach(trainer => {
@@ -399,14 +402,92 @@
             });
           } else {
             console.error('Failed to load trainers');
+            alert('Failed to load trainers. Please check your login status.');
           }
         } catch (error) {
           console.error('Error loading trainers:', error);
+          alert('Error loading trainers. Please try again.');
         }
 
         // Load appointments
         loadAppointments();
+
+        // Set up event listeners
+        setupEventListeners(token);
       });
+
+      // Set up all event listeners
+      function setupEventListeners(token) {
+        // Refresh button
+        const refreshBtn = document.getElementById('refreshAppointments');
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', loadAppointments);
+        }
+
+        // Edit button in view modal
+        const editBtn = document.getElementById('editAppointmentBtn');
+        if (editBtn) {
+          editBtn.addEventListener('click', () => {
+            if (currentViewAppointmentId) {
+              editAppointment(currentViewAppointmentId);
+            }
+          });
+        }
+
+        // Appointment form submission
+        const appointmentForm = document.getElementById('appointmentForm');
+        if (appointmentForm) {
+          appointmentForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            console.log('Form submitted'); // Debug log
+
+            const trainerId = document.getElementById('trainerSelect').value;
+            const date = document.getElementById('appointmentDate').value;
+            const time = document.getElementById('appointmentTime').value;
+            const notes = document.getElementById('appointmentNotes').value;
+
+            if (!trainerId || !date || !time) {
+              alert('Please fill in all required fields.');
+              return;
+            }
+
+            try {
+              const response = await fetch(`${API_BASE_URL}/api/appointments`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  trainerId,
+                  date,
+                  time,
+                  notes
+                })
+              });
+
+              const data = await response.json();
+
+              if (response.ok) {
+                console.log('Appointment booked successfully:', data);
+                alert(`Appointment booked successfully on ${date} at ${time}.`);
+                // Reset the form and close modal
+                this.reset();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                modal.hide();
+                // Refresh the appointments list
+                loadAppointments();
+              } else {
+                console.error('Error booking appointment:', data);
+                alert(`Error: ${data.msg || 'Failed to book appointment'}`);
+              }
+            } catch (error) {
+              console.error('Error booking appointment:', error);
+              alert('An error occurred while booking the appointment.');
+            }
+          });
+        }
+      }
 
       // Load user's appointments
       async function loadAppointments() {
@@ -633,62 +714,7 @@
         }
       }
 
-      document.getElementById('appointmentForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
 
-        const trainerId = document.getElementById('trainerSelect').value;
-        const date = document.getElementById('appointmentDate').value;
-        const time = document.getElementById('appointmentTime').value;
-        const notes = document.getElementById('appointmentNotes').value;
-
-        if (!trainerId || !date || !time) {
-          alert('Please fill in all required fields.');
-          return;
-        }
-
-        // Get JWT token from localStorage (assuming it's stored there after login)
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-          alert('You must be logged in to book an appointment.');
-          return;
-        }
-
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/appointments`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              trainerId,
-              date,
-              time,
-              notes
-            })
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            console.log('Appointment booked successfully:', data);
-            alert(`Appointment booked successfully on ${date} at ${time}.`);
-            // Reset the form and close modal
-            this.reset();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
-            modal.hide();
-            // Refresh the appointments list
-            loadAppointments();
-          } else {
-            console.error('Error booking appointment:', data);
-            alert(`Error: ${data.msg || 'Failed to book appointment'}`);
-          }
-        } catch (error) {
-          console.error('Error booking appointment:', error);
-          alert('An error occurred while booking the appointment.');
-        }
-      });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/navbar-loader.js"></script>
