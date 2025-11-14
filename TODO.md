@@ -1,12 +1,7 @@
-# Fix Appointment Maker Issues
+# Fix Meet Your Trainer Page Issues
 
-## Steps to Complete:
-- [x] Update src/routes/users.js to include all admin users in trainer list (remove exclusion of 'admin' 'admin')
-- [x] Update src/routes/appointments.js to fix time slot logic - change from sliding 1-hour window to fixed hour blocks (e.g., 14:00-15:00)
-- [ ] Test trainer population in meet-your-trainer.html
-- [ ] Test appointment booking functionality
-
-## Details:
-- Trainer list was excluding default admin accounts, causing empty dropdown
-- Time slot limit was using sliding windows instead of fixed hours, making it too restrictive
-- Need to ensure bookings work after fixes
+## Tasks
+- [ ] Start the server with `npm start` to resolve ERR_CONNECTION_REFUSED
+- [ ] Modify PUT /api/appointments/:id route to allow clients to update their own appointments (fix 403 Forbidden)
+- [ ] Replace placeholder image URLs in meet-your-trainer.html with local alternatives
+- [ ] Test the fixes by opening the page in browser

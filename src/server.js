@@ -23,10 +23,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"], // all scripts are now local
-        styleSrc: ["'self'", "'unsafe-inline'"],  // all styles are now local
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], // allow Bootstrap JS from CDN
+        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],  // allow Bootstrap CSS, Google Fonts, and Animate.css from CDN
         imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"], // allow Google Fonts
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"]
