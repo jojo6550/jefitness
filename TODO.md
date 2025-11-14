@@ -1,7 +1,22 @@
-# Fix Meet Your Trainer Page Issues
+# TODO: Fix Relative Paths to Absolute Paths in HTML Files
 
-## Tasks
-- [ ] Start the server with `npm start` to resolve ERR_CONNECTION_REFUSED
-- [ ] Modify PUT /api/appointments/:id route to allow clients to update their own appointments (fix 403 Forbidden)
-- [ ] Replace placeholder image URLs in meet-your-trainer.html with local alternatives
-- [ ] Test the fixes by opening the page in browser
+- [ ] Update public/pages/admin-dashboard.html: Change relative paths (../) to absolute paths (/)
+- [x] Update public/pages/dashboard.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/forgot-password.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/login.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/meet-your-trainer.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/nutrition-logger.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/profile.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/reset-password.html: Change relative paths (../) to absolute paths (/)
+- [x] Update public/pages/schedule.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/services.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/signup.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/sleep-tracker.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/timer.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/view-statistics.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/workout-programs.html: Change relative paths (../) to absolute paths (/)
+- [ ] Update public/pages/programs/12-week-strength-program.html: Change relative paths (../../) to absolute paths (/)
+- [ ] Update public/pages/programs/full-body-mobility.html: Change relative paths (../../) to absolute paths (/)
+- [ ] Update public/pages/programs/upper-lower-back-program.html: Change relative paths (../../) to absolute paths (/)
+- [x] Test locally: Run server and verify assets load
+- [ ] Deploy to Render and verify CSS loads in production
