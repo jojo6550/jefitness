@@ -17,27 +17,19 @@ app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors());
 
-// Security headers with Helmet
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"], // allow Bootstrap JS from CDN
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        styleSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],  // allow Bootstrap CSS, Google Fonts, and Animate.css from CDN
-        imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"], // allow Google Fonts
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        frameAncestors: ["'none'"]
-      }
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-  })
-);
+// Override Render's default CSP
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+    "img-src 'self' https: data:; " +
+    "script-src 'self' https: 'unsafe-inline'; " +
+    "style-src 'self' https: 'unsafe-inline'; " +
+    "connect-src 'self' https:; " +
+    "font-src 'self' https:;"
+  );
+  next();
+});
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
