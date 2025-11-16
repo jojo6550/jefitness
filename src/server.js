@@ -23,8 +23,8 @@ app.use((req, res, next) => {
     "Content-Security-Policy",
     "default-src 'self'; " +
     "img-src 'self' https: data:; " +
-    "script-src 'self' https: 'unsafe-inline'; " +
-    "style-src 'self' https: 'unsafe-inline'; " +
+    "script-src 'self' https: 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "style-src 'self' https: 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
     "connect-src 'self' https:; " +
     "font-src 'self' https:;"
   );
