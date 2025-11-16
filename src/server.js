@@ -13,26 +13,24 @@ const app = express();
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
+// Configure CSP with Helmet (added to fix external resource loading issues)
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],  // Restrict to same origin by default
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap CSS and inline styles
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap JS
+      // Add more directives if needed, e.g., imgSrc: ["'self'", "https://example.com"] for images
+    },
+  },
+}));
+
 // Middleware
 app.use(express.json());
 app.use(cors());
 
-// Override Render's default CSP
-app.use((req, res, next) => {
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-    "img-src 'self' https: data:; " +
-    "script-src 'self' https: 'unsafe-inline' https://cdn.jsdelivr.net; " +
-    "style-src 'self' https: 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
-    "connect-src 'self' https:; " +
-    "font-src 'self' https:;"
-  );
-  next();
-});
-
 // Serve static files from the 'public' directory
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 // Connect to MongoDB
 const connectDB = async () => {
