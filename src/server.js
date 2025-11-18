@@ -19,9 +19,9 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],  // Restrict to same origin by default
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap CSS and inline styles
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap JS
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "'sha256-782Awk1qhdoOGWnR+DkncgQKVcjsQlHt0ojtKE4PwMw='"],  // Allows Bootstrap JS and inline script hash
       connectSrc: ["'self'", "https://cdn.jsdelivr.net"],  // Allows connections for source maps and other resources
-      // Add more directives if needed, e.g., imgSrc: ["'self'", "https://example.com"] for images
+      imgSrc: ["'self'", "data:", "https://via.placeholder.com"],  // Allows images from self, data URIs, and placeholder service
     },
   },
 }));
