@@ -1,22 +1,18 @@
-# TODO: Fix Relative Paths to Absolute Paths in HTML Files
+# Notification System Implementation
 
-- [ ] Update public/pages/admin-dashboard.html: Change relative paths (../) to absolute paths (/)
-- [x] Update public/pages/dashboard.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/forgot-password.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/login.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/meet-your-trainer.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/nutrition-logger.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/profile.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/reset-password.html: Change relative paths (../) to absolute paths (/)
-- [x] Update public/pages/schedule.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/services.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/signup.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/sleep-tracker.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/timer.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/view-statistics.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/workout-programs.html: Change relative paths (../) to absolute paths (/)
-- [ ] Update public/pages/programs/12-week-strength-program.html: Change relative paths (../../) to absolute paths (/)
-- [ ] Update public/pages/programs/full-body-mobility.html: Change relative paths (../../) to absolute paths (/)
-- [ ] Update public/pages/programs/upper-lower-back-program.html: Change relative paths (../../) to absolute paths (/)
-- [x] Test locally: Run server and verify assets load
-- [ ] Deploy to Render and verify CSS loads in production
+## Backend Implementation
+- [ ] Create Notification model (src/models/Notification.js)
+- [ ] Create notification API routes (src/routes/notifications.js)
+- [ ] Update server.js to include notification routes
+- [ ] Update User model to store push subscriptions
+
+## Frontend Implementation
+- [ ] Implement admin notification sending (public/js/admin-notifications.js)
+- [ ] Update user dashboard to display notifications (public/js/dashboard.js)
+- [ ] Update service worker for push notifications (public/sw.js)
+
+## Testing & Polish
+- [ ] Test notification sending and receiving
+- [ ] Handle notification permissions
+- [ ] Implement notification dismissal
+- [ ] Update dashboard UI to show notifications section

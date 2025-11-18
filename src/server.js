@@ -58,6 +58,7 @@ app.use('/api/logs', auth, apiLimiter, require('./routes/logs'));
 app.use('/api/appointments', apiLimiter, require('./routes/appointments'));
 app.use('/api/users', apiLimiter, require('./routes/users'));
 app.use('/api/nutrition', apiLimiter, require('./routes/nutrition'));
+app.use('/api/notifications', apiLimiter, require('./routes/notifications'));
 
 // Basic test route
 app.get('/', (req, res) => res.send('API Running'));

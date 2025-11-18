@@ -82,7 +82,10 @@ const UserSchema = new mongoose.Schema({
 
     // Account lockout fields
     failedLoginAttempts: { type: Number, default: 0 },
-    lockoutUntil: { type: Date }
+    lockoutUntil: { type: Date },
+
+    // Push notification subscription
+    pushSubscription: { type: Object }
 });
 
 module.exports = mongoose.model('User', UserSchema);
