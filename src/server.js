@@ -20,6 +20,7 @@ app.use(helmet({
       defaultSrc: ["'self'"],  // Restrict to same origin by default
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap CSS and inline styles
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],  // Allows Bootstrap JS
+      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],  // Allows connections for source maps and other resources
       // Add more directives if needed, e.g., imgSrc: ["'self'", "https://example.com"] for images
     },
   },
