@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard – JE Fitness</title>
     <!-- Use Tailwind CSS for a clean, modern look -->
-    <script src="/js/tailwind.js"></script>
-    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="../js/tailwind.js"></script>
+    <link href="../styles/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css">
     <link rel="stylesheet" href="../styles/user-details-cards.css">
 
@@ -362,6 +362,91 @@
                 </div>
             </section>
 
+            <!-- Notifications Section -->
+            <section id="notifications-section" class="mb-12">
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex flex-wrap justify-between items-center mb-4">
+                            <h2 class="text-2xl font-semibold text-gray-700">Send Notification</h2>
+                            <button id="sendNotificationBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="bi bi-send-fill mr-2"></i>Send Notification
+                            </button>
+                        </div>
+
+                        <!-- Notification Form -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="notificationTitle" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input type="text" id="notificationTitle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Notification title" maxlength="100">
+                            </div>
+                            <div>
+                                <label for="notificationType" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select id="notificationType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="general-announcement">General Announcement</option>
+                                    <option value="admin-alert">Admin Alert</option>
+                                    <option value="appointment-reminder">Appointment Reminder</option>
+                                    <option value="workout-update">Workout Update</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="notificationMessage" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea id="notificationMessage" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Notification message" maxlength="500"></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label for="notificationPriority" class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                                <select id="notificationPriority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="broadcastNotification" class="mr-2">
+                                <label for="broadcastNotification" class="text-sm font-medium text-gray-700">Send to all users</label>
+                            </div>
+                            <div id="userSelectContainer" class="hidden">
+                                <label for="selectedUsers" class="block text-sm font-medium text-gray-700 mb-1">Select Users</label>
+                                <select id="selectedUsers" multiple class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" size="3">
+                                    <!-- Users will be populated here -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification History -->
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex flex-wrap justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-700">Notification History</h3>
+                            <button id="refreshNotifications" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="bi bi-arrow-clockwise mr-2"></i>Refresh
+                            </button>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent At</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="notificationsTableBody">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Loading notifications...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Logs Section -->
             <section id="logs-section" class="mb-12">
                 <div class="bg-white rounded-lg shadow-lg">
@@ -578,8 +663,9 @@
         </div>
     </div>
 
-    <script src="/js/bootstrap.bundle.min.js"></script>    
+    <script src="../js/bootstrap.bundle.min.js"></script>
     <script src="../js/admin-dashboard.js" defer></script>
+    <script src="../js/admin-notifications.js" defer></script>
     <script src="../js/admin-logs.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="../js/role-guard.js" defer></script>
