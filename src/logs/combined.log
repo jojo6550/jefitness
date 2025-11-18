@@ -611,3 +611,11 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-11-17 20:29:30:2930"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-11-17 20:29:32:2932"}
 {"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: read ECONNRESET | Context: {\"context\":\"Unverified accounts cleanup job\"} | Stack: MongoNetworkError: read ECONNRESET\u001b[39m\n\u001b[31m    at Connection.onSocketError (C:\\Users\\josia\\jefitness\\node_modules\\mongodb\\lib\\cmap\\connection.js:109:22)\u001b[39m\n\u001b[31m    at TLSSocket.emit (node:events:530:35)\u001b[39m\n\u001b[31m    at emitErrorNT (node:internal/streams/destroy:170:8)\u001b[39m\n\u001b[31m    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\u001b[39m\n\u001b[31m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\u001b[39m","timestamp":"2025-11-17 20:30:00:300"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-11-17 20:44:16:4416"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-11-17 20:44:19:4419"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-11-17 20:44:30:4430"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-11-17 20:44:32:4432"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-11-17 20:44:41:4441"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-11-17 20:44:43:4443"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-11-17 20:44:50:4450"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-11-17 20:44:52:4452"}
