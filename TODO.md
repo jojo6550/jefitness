@@ -1,18 +1,21 @@
-# Notification System Implementation
+# TODO: Fix PWA Errors and Paths
 
-## Backend Implementation
-- [ ] Create Notification model (src/models/Notification.js)
-- [ ] Create notification API routes (src/routes/notifications.js)
-- [ ] Update server.js to include notification routes
-- [ ] Update User model to store push subscriptions
+## Issues Identified
+- Service Worker registration failing due to incorrect path (/sw.js instead of /public/sw.js)
+- Manifest icon paths missing /public/ prefix
+- Service Worker cache assets missing /public/ prefix
+- Placeholder images in index.html failing (external URLs)
+- Favicon 404 due to path issues
 
-## Frontend Implementation
-- [ ] Implement admin notification sending (public/js/admin-notifications.js)
-- [ ] Update user dashboard to display notifications (public/js/dashboard.js)
-- [ ] Update service worker for push notifications (public/sw.js)
+## Tasks
+- [x] Update service worker registration path in public/js/app.js
+- [x] Update manifest.json icon paths to include ./
+- [x] Update STATIC_ASSETS in public/sw.js to include favicons and images
+- [x] Replace placeholder images in public/index.html with local images
+- [ ] Test PWA functionality after changes
 
-## Testing & Polish
-- [ ] Test notification sending and receiving
-- [ ] Handle notification permissions
-- [ ] Implement notification dismissal
-- [ ] Update dashboard UI to show notifications section
+## Followup Steps
+- Run the development server and verify no 404 errors
+- Check service worker registration in browser dev tools
+- Verify manifest icons load correctly
+- Ensure images display properly

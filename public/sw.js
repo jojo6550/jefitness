@@ -38,7 +38,14 @@ const STATIC_ASSETS = [
   '/pages/meet-your-trainer.html',
   '/pages/admin-dashboard.html',
   '/pages/partials/navbar.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicons/android-chrome-192x192.png',
+  '/favicons/android-chrome-512x512.png',
+  '/favicons/favicon-32x32.png',
+  '/favicons/favicon-16x16.png',
+  '/favicons/favicon.ico',
+  '/images/hero.jpg',
+  '/images/logo.jpg'
 ];
 
 // Install event - cache static assets
