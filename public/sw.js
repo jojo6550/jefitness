@@ -4,48 +4,48 @@ const DYNAMIC_CACHE = 'fitlife-pro-dynamic-v1';
 
 // Files to cache immediately
 const STATIC_ASSETS = [
-  '/public/',
-  '/public/index.html',
-  '/public/styles/styles.css',
-  '/public/js/app.js',
-  '/public/js/navbar-loader.js',
-  '/public/js/auth.js',
-  '/public/js/dashboard.js',
-  '/public/js/profile.js',
-  '/public/js/bmi.js',
-  '/public/js/timer.js',
-  '/public/js/sleep-tracker.js',
-  '/public/js/nutrition-logger.js',
-  '/public/js/view-statistics.js',
-  '/public/js/schedule.js',
-  '/public/js/appointments.js',
-  '/public/js/reports.js',
-  '/public/js/admin-dashboard.js',
-  '/public/js/admin-logs.js',
-  '/public/js/role-guard.js',
-  '/public/js/logout.js',
-  '/public/pages/dashboard.html',
-  '/public/pages/profile.html',
-  '/public/pages/login.html',
-  '/public/pages/signup.html',
-  '/public/pages/sleep-tracker.html',
-  '/public/pages/timer.html',
-  '/public/pages/schedule.html',
-  '/public/pages/view-statistics.html',
-  '/public/pages/workout-programs.html',
-  '/public/pages/nutrition-logger.html',
-  '/public/pages/services.html',
-  '/public/pages/meet-your-trainer.html',
-  '/public/pages/admin-dashboard.html',
-  '/public/pages/partials/navbar.html',
-  '/public/manifest.json',
-  '/public/favicons/android-chrome-192x192.png',
-  '/public/favicons/android-chrome-512x512.png',
-  '/public/favicons/favicon-32x32.png',
-  '/public/favicons/favicon-16x16.png',
-  '/public/favicons/favicon.ico',
-  '/public/images/hero.jpg',
-  '/public/images/logo.jpg'
+  '/',
+  '/index.html',
+  '/styles/styles.css',
+  '/js/app.js',
+  '/js/navbar-loader.js',
+  '/js/auth.js',
+  '/js/dashboard.js',
+  '/js/profile.js',
+  '/js/bmi.js',
+  '/js/timer.js',
+  '/js/sleep-tracker.js',
+  '/js/nutrition-logger.js',
+  '/js/view-statistics.js',
+  '/js/schedule.js',
+  '/js/appointments.js',
+  '/js/reports.js',
+  '/js/admin-dashboard.js',
+  '/js/admin-logs.js',
+  '/js/role-guard.js',
+  '/js/logout.js',
+  '/pages/dashboard.html',
+  '/pages/profile.html',
+  '/pages/login.html',
+  '/pages/signup.html',
+  '/pages/sleep-tracker.html',
+  '/pages/timer.html',
+  '/pages/schedule.html',
+  '/pages/view-statistics.html',
+  '/pages/workout-programs.html',
+  '/pages/nutrition-logger.html',
+  '/pages/services.html',
+  '/pages/meet-your-trainer.html',
+  '/pages/admin-dashboard.html',
+  '/pages/partials/navbar.html',
+  '/manifest.json',
+  '/favicons/android-chrome-192x192.png',
+  '/favicons/android-chrome-512x512.png',
+  '/favicons/favicon-32x32.png',
+  '/favicons/favicon-16x16.png',
+  '/favicons/favicon.ico',
+  '/images/hero.jpg',
+  '/images/logo.jpg'
 ];
 
 // Install event - cache static assets
@@ -115,7 +115,7 @@ self.addEventListener('fetch', event => {
       }).catch(() => {
         // Return offline fallback for HTML pages
         if (request.headers.get('accept').includes('text/html')) {
-          return caches.match('/public/pages/offline.html') || caches.match('/public/index.html');
+          return caches.match('/pages/offline.html') || caches.match('/index.html');
         }
       });
     })
@@ -141,8 +141,8 @@ self.addEventListener('push', event => {
 
   const options = {
     body: event.data ? event.data.text() : 'New update available!',
-    icon: '/public/favicons/android-chrome-192x192.png',
-    badge: '/public/favicons/favicon-32x32.png',
+    icon: '/favicons/android-chrome-192x192.png',
+    badge: '/favicons/favicon-32x32.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -152,12 +152,12 @@ self.addEventListener('push', event => {
       {
         action: 'explore',
         title: 'View Details',
-        icon: '/public/favicons/favicon-16x16.png'
+        icon: '/favicons/favicon-16x16.png'
       },
       {
         action: 'close',
         title: 'Close',
-        icon: '/public/favicons/favicon-16x16.png'
+        icon: '/favicons/favicon-16x16.png'
       }
     ]
   };
