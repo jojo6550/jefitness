@@ -367,7 +367,12 @@
     </footer>
 
     <script src="../js/navbar-loader.js"></script>
-    <script src="../js/appointments.js" defer></script>
     <script src="../js/logout.js" defer></script>
+    <script>
+      document.write(`<script src="../js/appointments.js?v=${Date.now()}" defer><\/script>`);
+    </script>
+
+
+    
 </body>
 </html>
