@@ -17,7 +17,6 @@ async function loadAppointments() {
         });
 
         if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-
         const appointments = await response.json();
         displayAppointments(appointments);
     } catch (error) {
@@ -32,35 +31,31 @@ function displayAppointments(appointments) {
     tbody.innerHTML = '';
 
     if (activeAppointments.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center text-muted">No appointments found</td>
-            </tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No appointments found</td></tr>`;
         return;
     }
 
-    activeAppointments.forEach(appointment => {
+    activeAppointments.forEach(app => {
         const row = document.createElement('tr');
-        const date = new Date(appointment.date).toLocaleDateString();
-        const statusClass = appointment.status === 'scheduled' ? 'text-success' :
-                            appointment.status === 'cancelled' ? 'text-danger' : 'text-warning';
-        const trainerName = appointment.trainerId ? `${appointment.trainerId.firstName || 'N/A'} ${appointment.trainerId.lastName || ''}` : 'N/A';
+        const date = new Date(app.date).toLocaleDateString();
+        const statusClass = app.status === 'scheduled' ? 'text-success' :
+                            app.status === 'cancelled' ? 'text-danger' : 'text-warning';
+        const trainerName = app.trainerId ? `${app.trainerId.firstName || 'N/A'} ${app.trainerId.lastName || ''}` : 'N/A';
 
         row.innerHTML = `
             <td>${date}</td>
-            <td>${appointment.time}</td>
+            <td>${app.time}</td>
             <td>${trainerName}</td>
-            <td class="${statusClass}">${appointment.status}</td>
-            <td>${appointment.notes || 'N/A'}</td>
+            <td class="${statusClass}">${app.status}</td>
+            <td>${app.notes || 'N/A'}</td>
             <td>
-                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-primary view-btn">View</button>
-                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
-                <button data-id="${appointment._id}" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
+                <button data-id="${app._id}" class="btn btn-sm btn-outline-primary view-btn">View</button>
+                <button data-id="${app._id}" class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
+                <button data-id="${app._id}" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
             </td>`;
         tbody.appendChild(row);
     });
 
-    // Button event listeners
     document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', e => viewAppointment(e.target.dataset.id)));
     document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => editAppointment(e.target.dataset.id)));
     document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteAppointment(e.target.dataset.id)));
@@ -109,6 +104,29 @@ async function viewAppointment(appointmentId) {
     }
 }
 
+// ====== Reusable: Load Trainers into any select ======
+async function loadTrainersInto(selectElement, selectedId = '') {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/users/trainers`, {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+        });
+        if (!resp.ok) throw new Error('Failed to fetch trainers');
+        const trainers = await resp.json();
+
+        selectElement.innerHTML = '<option value="">Choose...</option>';
+        trainers.forEach(trainer => {
+            const option = document.createElement('option');
+            option.value = trainer._id;
+            option.textContent = `${trainer.firstName} ${trainer.lastName}`;
+            selectElement.appendChild(option);
+        });
+
+        if (selectedId) selectElement.value = selectedId;
+    } catch (err) {
+        console.error('Error loading trainers:', err);
+    }
+}
+
 // ====== Edit Appointment ======
 const editModalElement = document.getElementById('editAppointmentModal');
 const editModal = new bootstrap.Modal(editModalElement);
@@ -126,12 +144,12 @@ function editAppointment(appointmentId) {
         if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
         return res.json();
     })
-    .then(appointment => {
+    .then(async appointment => {
         document.getElementById('editAppointmentDate').value = new Date(appointment.date).toISOString().slice(0, 10);
         document.getElementById('editAppointmentTime').value = appointment.time;
         document.getElementById('editAppointmentNotes').value = appointment.notes || '';
-        document.getElementById('editTrainerSelect').value = appointment.trainerId?._id || '';
 
+        await loadTrainersInto(document.getElementById('editTrainerSelect'), appointment.trainerId?._id);
         editModal.show();
     })
     .catch(err => {
@@ -141,40 +159,29 @@ function editAppointment(appointmentId) {
 }
 
 // ====== Save Edited Appointment ======
-document.getElementById('editAppointmentForm').addEventListener('submit', e => {
+document.getElementById('editAppointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-
     const date = document.getElementById('editAppointmentDate').value;
     const time = document.getElementById('editAppointmentTime').value;
     const notes = document.getElementById('editAppointmentNotes').value;
     const trainerId = document.getElementById('editTrainerSelect').value;
 
-    if (!date || !time) {
-        alert('Date and time are required.');
-        return;
-    }
+    if (!date || !time) { alert('Date and time are required.'); return; }
 
-    fetch(`${API_BASE_URL}/api/appointments/${currentEditAppointmentId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        },
-        body: JSON.stringify({ date, time, notes, trainerId })
-    })
-    .then(res => {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/appointments/${currentEditAppointmentId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+            body: JSON.stringify({ date, time, notes, trainerId })
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-        return res.json();
-    })
-    .then(() => {
         editModal.hide();
         loadAppointments();
         alert('Appointment updated successfully.');
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('Error updating appointment:', err);
         alert('Failed to update appointment. Please try again.');
-    });
+    }
 });
 
 // ====== Delete Appointment ======
@@ -184,9 +191,7 @@ async function deleteAppointment(appointmentId) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
         loadAppointments();
@@ -196,42 +201,42 @@ async function deleteAppointment(appointmentId) {
     }
 }
 
-// ====== Load Trainers Dynamically ======
-async function loadTrainers() {
+// ====== Create New Appointment ======
+document.getElementById('appointmentForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const date = document.getElementById('appointmentDate').value;
+    const time = document.getElementById('appointmentTime').value;
+    const notes = document.getElementById('appointmentNotes').value;
+    const trainerId = document.getElementById('trainerSelect').value;
+
+    if (!date || !time || !trainerId) { alert('Date, time, and trainer are required.'); return; }
+
     try {
-        const response = await fetch(`${API_BASE_URL}/api/trainers`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+        const res = await fetch(`${API_BASE_URL}/api/appointments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+            body: JSON.stringify({ date, time, notes, trainerId })
         });
-        if (!response.ok) throw new Error('Failed to fetch trainers');
+        if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+        await res.json();
 
-        const trainers = await response.json();
-
-        const selects = [
-            document.getElementById('trainerSelect'),
-            document.getElementById('editTrainerSelect')
-        ];
-
-        selects.forEach(select => {
-            select.innerHTML = '<option value="">Choose...</option>';
-            trainers.forEach(trainer => {
-                const option = document.createElement('option');
-                option.value = trainer._id;
-                option.textContent = `${trainer.firstName} ${trainer.lastName}`;
-                select.appendChild(option);
-            });
-        });
-    } catch (error) {
-        console.error('Error loading trainers:', error);
+        e.target.reset();
+        loadAppointments();
+        alert('Appointment booked successfully!');
+    } catch (err) {
+        console.error('Error creating appointment:', err);
+        alert('Failed to create appointment. Please try again.');
     }
-}
+});
 
 // ====== Init ======
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadAppointments();
-    loadTrainers();
+
+    // Load trainers into booking form
+    const newTrainerSelect = document.getElementById('trainerSelect');
+    if (newTrainerSelect) await loadTrainersInto(newTrainerSelect);
 
     document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
     document.getElementById('editAppointmentBtn')?.addEventListener('click', () => {
