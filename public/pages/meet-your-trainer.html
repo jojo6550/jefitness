@@ -235,8 +235,8 @@
       </div>
     </section>
 
-    <!-- ====== Booking Modal ====== -->
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <!-- ====== Booking Modal ====== -->
+    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 shadow">
           <div class="modal-header">
@@ -249,7 +249,6 @@
                 <label for="trainerSelect" class="form-label">Select Trainer</label>
                 <select id="trainerSelect" class="form-select" required>
                   <option value="">Choose...</option>
-                  <!-- Trainers will be populated dynamically by JavaScript -->
                 </select>
               </div>
 
@@ -277,18 +276,16 @@
       </div>
     </div>
 
-    <!-- Appointment Details Modal -->
-    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel" aria-hidden="true">
+        <!-- Appointment Details Modal -->
+    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="appointmentModalLabel">Appointment Details</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body">
-            <div id="appointmentDetails">
-              <!-- Details will be populated here -->
-            </div>
+          <div class="modal-body" id="appointmentDetails">
+            <!-- Details will be populated here -->
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -299,7 +296,7 @@
     </div>
 
     <!-- Edit Appointment Modal -->
-    <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
@@ -335,6 +332,7 @@
         </div>
       </div>
     </div>
+
 
     <div class="contact-section py-5">
         <div class="container">
