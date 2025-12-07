@@ -663,111 +663,14 @@
         </div>
     </div>
 
-    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script src="../js/admin-dashboard.js" defer></script>
     <script src="../js/admin-notifications.js" defer></script>
     <script src="../js/admin-logs.js" defer></script>
+    <script src="../js/admin-sidebar.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="../js/role-guard.js" defer></script>
-    
-    <!-- Sidebar functionality -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            
-            // Load saved sidebar state
-            const isSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-            const isMobile = window.innerWidth < 768;
-            
-            // Initialize sidebar state
-            if (isMobile) {
-                sidebar.classList.add('sidebar-mobile-hidden');
-                mainContent.classList.add('main-content-mobile-full');
-            } else if (isSidebarCollapsed) {
-                sidebar.classList.add('sidebar-collapsed');
-                mainContent.classList.add('ml-20');
-            } else {
-                sidebar.classList.add('sidebar-expanded');
-                mainContent.classList.add('ml-64');
-            }
-            
-            // Desktop sidebar toggle
-            sidebarToggle.addEventListener('click', function() {
-                const isCollapsed = sidebar.classList.contains('sidebar-collapsed');
-                
-                if (isCollapsed) {
-                    sidebar.classList.remove('sidebar-collapsed');
-                    sidebar.classList.add('sidebar-expanded');
-                    mainContent.classList.remove('ml-20');
-                    mainContent.classList.add('ml-64');
-                } else {
-                    sidebar.classList.remove('sidebar-expanded');
-                    sidebar.classList.add('sidebar-collapsed');
-                    mainContent.classList.remove('ml-64');
-                    mainContent.classList.add('ml-20');
-                }
-                
-                // Update toggle button icon
-                const icon = sidebarToggle.querySelector('i');
-                icon.className = isCollapsed ? 'bi bi-chevron-right text-sm' : 'bi bi-chevron-left text-sm';
-                
-                // Save state
-                localStorage.setItem('sidebarCollapsed', !isCollapsed);
-            });
-            
-            // Mobile menu toggle
-            mobileMenuToggle.addEventListener('click', function() {
-                const isHidden = sidebar.classList.contains('sidebar-mobile-hidden');
-                
-                if (isHidden) {
-                    sidebar.classList.remove('sidebar-mobile-hidden');
-                    sidebar.classList.add('sidebar-mobile-visible');
-                    sidebarOverlay.classList.remove('hidden');
-                } else {
-                    sidebar.classList.remove('sidebar-mobile-visible');
-                    sidebar.classList.add('sidebar-mobile-hidden');
-                    sidebarOverlay.classList.add('hidden');
-                }
-            });
-            
-            // Close sidebar when clicking overlay
-            sidebarOverlay.addEventListener('click', function() {
-                sidebar.classList.remove('sidebar-mobile-visible');
-                sidebar.classList.add('sidebar-mobile-hidden');
-                sidebarOverlay.classList.add('hidden');
-            });
-            
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                const isMobileNow = window.innerWidth < 768;
-                
-                if (isMobileNow && !isMobile) {
-                    // Switched to mobile
-                    sidebar.classList.remove('sidebar-collapsed', 'sidebar-expanded');
-                    sidebar.classList.add('sidebar-mobile-hidden');
-                    mainContent.classList.remove('ml-20', 'ml-64');
-                    mainContent.classList.add('main-content-mobile-full');
-                } else if (!isMobileNow && isMobile) {
-                    // Switched to desktop
-                    sidebar.classList.remove('sidebar-mobile-hidden', 'sidebar-mobile-visible');
-                    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-                    
-                    if (isCollapsed) {
-                        sidebar.classList.add('sidebar-collapsed');
-                        mainContent.classList.add('ml-20');
-                    } else {
-                        sidebar.classList.add('sidebar-expanded');
-                        mainContent.classList.add('ml-64');
-                    }
-                    
-                    sidebarOverlay.classList.add('hidden');
-                }
-            });
-        });
-    </script>
+
 </body>
 </html>
