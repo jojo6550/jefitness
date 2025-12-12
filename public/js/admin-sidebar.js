@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
         mainContent.classList.add('main-content-mobile-full');
     } else if (isSidebarCollapsed) {
         sidebar.classList.add('sidebar-collapsed');
-        mainContent.classList.add('ml-20');
+        mainContent.classList.add('ml-16');
     } else {
         sidebar.classList.add('sidebar-expanded');
         mainContent.classList.add('ml-64');
@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sidebar.classList.toggle('sidebar-collapsed', !collapsed);
         sidebar.classList.toggle('sidebar-expanded', collapsed);
-        mainContent.classList.toggle('ml-20', !collapsed);
-        mainContent.classList.toggle('ml-64', collapsed);
+        mainContent.classList.toggle('ml-16', collapsed);
+        mainContent.classList.toggle('ml-64', !collapsed);
 
         const icon = sidebarToggle.querySelector('i');
         if (icon) {
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             sidebar.classList.add(collapsed ? 'sidebar-collapsed' : 'sidebar-expanded');
-            mainContent.classList.add(collapsed ? 'ml-20' : 'ml-64');
+            mainContent.classList.add(collapsed ? 'ml-16' : 'ml-64');
         }
 
         sidebarOverlay?.classList.add('hidden');
