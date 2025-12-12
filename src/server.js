@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const cron = require('node-cron');
 const helmet = require('helmet');
+const path = require('path');
 const { logger, logError } = require('./services/logger');
 
 dotenv.config();
@@ -53,16 +54,18 @@ const PORT = process.env.PORT || 10000;
 // Define Routes
 const auth = require('./middleware/auth');
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/sleep', apiLimiter, require('./routes/sleep'));
-app.use('/api/clients', apiLimiter, require('./routes/clients'));
+app.use('/api/sleep', auth, apiLimiter, require('./routes/sleep'));
+app.use('/api/clients', auth, apiLimiter, require('./routes/clients'));
 app.use('/api/logs', auth, apiLimiter, require('./routes/logs'));
-app.use('/api/appointments', apiLimiter, require('./routes/appointments'));
-app.use('/api/users', apiLimiter, require('./routes/users'));
-app.use('/api/nutrition', apiLimiter, require('./routes/nutrition'));
-app.use('/api/notifications', apiLimiter, require('./routes/notifications'));
+app.use('/api/appointments', auth, apiLimiter, require('./routes/appointments'));
+app.use('/api/users', auth, apiLimiter, require('./routes/users'));
+app.use('/api/nutrition', auth, apiLimiter, require('./routes/nutrition'));
+app.use('/api/notifications', auth, apiLimiter, require('./routes/notifications'));
 
-// Basic test route
-app.get('/', (req, res) => res.send('API Running'));
+// Serve frontend
+app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -75,16 +78,17 @@ app.use((err, req, res, next) => {
 const User = require('./models/User');
 
 // Schedule cleanup job to run every 30 minutes
-cron.schedule('*/30 * * * *', async () => {
+cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
   try {
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000); // 30 minutes ago
+    const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
+    const thirtyMinutesAgo = new Date(Date.now() - cleanupTime * 60 * 1000);
     const result = await User.deleteMany({
       isEmailVerified: false,
       createdAt: { $lt: thirtyMinutesAgo }
     });
 
     if (result.deletedCount > 0) {
-      logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than 30 minutes`);
+      logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
     }
   } catch (err) {
     logError(err, { context: 'Unverified accounts cleanup job' });
