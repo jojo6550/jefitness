@@ -51,12 +51,21 @@
                                 <p class="card-text text-muted mb-4">
                                     A targeted program designed to strengthen and mobilize your entire back, improving posture and reducing discomfort.
                                 </p>
-                                <ul class="list-unstyled mb-4">
+                                <ul class="list-unstyled mb-3">
                                     <li><i class="bi bi-calendar-event me-2 text-primary"></i>1-2 Days/Week</li>
                                     <li><i class="bi bi-bar-chart me-2 text-primary"></i>Beginner</li>
                                     <li><i class="bi bi-clock me-2 text-primary"></i>30-45 min/session</li>
                                 </ul>
-                                <a href="./programs/upper-lower-back-program.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="h4 mb-0 text-primary fw-bold">$49.99</span>
+                                    <span class="text-muted small">One-time payment</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="./programs/upper-lower-back-program.html" class="btn btn-outline-primary">View Details</a>
+                                    <button class="btn btn-primary" onclick="addToCart('upper-lower-back-program')">
+                                        <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -76,12 +85,21 @@
                                 <p class="card-text text-muted mb-4">
                                     Improve posture, flexibility, and joint function from head to toe with these essential mobility drills.
                                 </p>
-                                <ul class="list-unstyled mb-4">
+                                <ul class="list-unstyled mb-3">
                                     <li><i class="bi bi-calendar-event me-2 text-primary"></i>3-5 Days/Week</li>
                                     <li><i class="bi bi-bar-chart me-2 text-primary"></i>Intermediate</li>
                                     <li><i class="bi bi-clock me-2 text-primary"></i>20-30 min/session</li>
                                 </ul>
-                                <a href="./programs/full-body-mobility.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="h4 mb-0 text-primary fw-bold">$79.99</span>
+                                    <span class="text-muted small">One-time payment</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="./programs/full-body-mobility.html" class="btn btn-outline-primary">View Details</a>
+                                    <button class="btn btn-primary" onclick="addToCart('full-body-mobility')">
+                                        <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -101,12 +119,21 @@
                                 <p class="card-text text-muted mb-4">
                                     By Jamin Johnson – A 12-week phased program to build real strength, lose fat slowly, and avoid CNS burnout with structured progression.
                                 </p>
-                                <ul class="list-unstyled mb-4">
+                                <ul class="list-unstyled mb-3">
                                     <li><i class="bi bi-calendar-event me-2 text-primary"></i>5 Days/Week</li>
                                     <li><i class="bi bi-bar-chart me-2 text-primary"></i>Advanced</li>
                                     <li><i class="bi bi-clock me-2 text-primary"></i>60-90 min/session</li>
                                 </ul>
-                                <a href="./programs/12-week-strength-program.html" class="btn btn-primary w-100">View Program <i class="bi bi-arrow-right"></i></a>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="h4 mb-0 text-primary fw-bold">$129.99</span>
+                                    <span class="text-muted small">One-time payment</span>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="./programs/12-week-strength-program.html" class="btn btn-outline-primary">View Details</a>
+                                    <button class="btn btn-primary" onclick="addToCart('12-week-strength-program')">
+                                        <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -115,8 +142,23 @@
         </div>
     </main>
 
+    <!-- Toast Notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="addToCartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-success text-white">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Program added to cart successfully!
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/navbar-loader.js"></script>
+    <script src="../js/workout-programs.js"></script>
     <script src="../js/logout.js" defer></script>
 </body>
 </html>

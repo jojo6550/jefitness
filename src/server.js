@@ -61,6 +61,9 @@ app.use('/api/appointments', auth, apiLimiter, require('./routes/appointments'))
 app.use('/api/users', auth, apiLimiter, require('./routes/users'));
 app.use('/api/nutrition', auth, apiLimiter, require('./routes/nutrition'));
 app.use('/api/notifications', auth, apiLimiter, require('./routes/notifications'));
+app.use('/api/programs', apiLimiter, require('./routes/programs'));
+app.use('/api/cart', auth, apiLimiter, require('./routes/cart'));
+app.use('/api/orders', auth, apiLimiter, require('./routes/orders'));
 
 // Serve frontend
 app.use((req, res) => {

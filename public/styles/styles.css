@@ -247,6 +247,53 @@ footer i:hover {
     vertical-align: middle;
 }
 
+/* --- CART AND CHECKOUT STYLES --- */
+
+.cart-badge {
+    font-size: 0.65rem;
+    padding: 0.25em 0.5em;
+    min-width: 1.5em;
+}
+
+.sticky-top {
+    position: sticky;
+}
+
+/* Card hover effects for cart items */
+.list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Checkout progress steps */
+.checkout-progress {
+    position: relative;
+}
+
+/* Toast notification positioning */
+.toast {
+    min-width: 250px;
+}
+
+/* Payment method cards */
+.form-check-input:checked ~ .form-check-label {
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+/* Card input styling */
+#card-details input {
+    font-family: 'Courier New', monospace;
+}
+
+/* Order summary card gradient */
+.bg-gradient {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+}
+
 /* --- NEW HOME PAGE STYLES --- */
 
 .hero {
