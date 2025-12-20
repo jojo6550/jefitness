@@ -195,3 +195,5 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68f7477c80c632193d1a378b | Details: {\"email\":\"josiah.johnson6550@gmail.com\",\"role\":\"admin\"}\u001b[39m","timestamp":"2025-12-20 09:45:56:4556"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-12-20 09:46:20:4620"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-12-20 09:46:21:4621"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_attempt | User ID: null | Details: {\"email\":\"kentoedits6550@gmail.com\"}\u001b[39m","timestamp":"2025-12-20 10:18:49:1849"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mSecurity event: login_success | User ID: 68c20a7a9047962105c9ed2a | Details: {\"email\":\"kentoedits6550@gmail.com\",\"role\":\"user\"}\u001b[39m","timestamp":"2025-12-20 10:18:50:1850"}

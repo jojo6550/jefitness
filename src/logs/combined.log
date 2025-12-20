@@ -746,3 +746,8 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 09:43:40:4340"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 09:44:00:440"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 09:44:02:442"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 10:18:37:1837"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 10:18:37:1837"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 10:20:07:207"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 10:20:09:209"}
+{"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: read ECONNRESET | Context: {\"context\":\"Unverified accounts cleanup job\"} | Stack: MongoNetworkError: read ECONNRESET\u001b[39m\n\u001b[31m    at Connection.onSocketError (C:\\Users\\josia\\jefitness\\node_modules\\mongodb\\lib\\cmap\\connection.js:109:22)\u001b[39m\n\u001b[31m    at TLSSocket.emit (node:events:530:35)\u001b[39m\n\u001b[31m    at emitErrorNT (node:internal/streams/destroy:170:8)\u001b[39m\n\u001b[31m    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\u001b[39m\n\u001b[31m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\u001b[39m","timestamp":"2025-12-20 11:00:00:00"}

@@ -62,6 +62,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let subtotal = 0;
 
         cart.items.forEach(item => {
+            // Skip items with missing program data or title
+            if (!item.program || !item.program.title) {
+                console.warn('Cart item has no associated program or title:', item);
+                return;
+            }
+
             const itemTotal = item.price * item.quantity;
             subtotal += itemTotal;
 
