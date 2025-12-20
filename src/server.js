@@ -63,7 +63,7 @@ app.use('/api/nutrition', auth, apiLimiter, require('./routes/nutrition'));
 app.use('/api/notifications', auth, apiLimiter, require('./routes/notifications'));
 
 // Serve frontend
-app.get('*', (req, res) => {
+app.use((req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
 });
 
