@@ -4,13 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JE Fitness</title>
+    
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data:;">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="./styles/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
 
-    <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="./favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./favicons/favicon-16x16.png">
@@ -19,8 +21,7 @@
 
 <body class="home-page">
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="index.html">JE Fitness</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -36,9 +37,8 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
     <header class="hero d-flex align-items-center justify-content-center text-center text-white">
-        <div class="hero-overlay"></div> <!-- Added overlay -->
+        <div class="hero-overlay"></div>
         <div class="hero-content position-relative z-1">
             <h1 class="display-3 fw-bold mb-3 animate__animated animate__fadeInDown">Level Up Your Fitness</h1>
             <p class="lead mb-4 animate__animated animate__fadeInUp">Personal training designed for real results and lasting transformation.</p>
@@ -46,7 +46,6 @@
         </div>
     </header>
 
-    <!-- Services Section -->
     <section id="services" class="container py-5">
         <div class="text-center mb-5">
             <h2 class="display-5 fw-bold mb-3">My Services</h2>
@@ -83,23 +82,18 @@
         </div>
     </section>
 
-    <!-- Testimonials Section -->
     <section id="testimonials" class="py-5 bg-white">
         <div class="container">
             <div class="text-center mb-5">
                 <h2 class="display-5 fw-bold mb-3">What Our Clients Say</h2>
-                <p class="lead text-muted">Real results from real people. Hear from those who've transformed their lives with JE Fitness.</p>
+                <p class="lead text-muted">Real results from real people.</p>
             </div>
             <div class="row g-4 justify-content-center">
                 <div class="col-md-6 col-lg-4">
                     <div class="testimonial-card card h-100 shadow-sm">
                         <div class="card-body p-4 text-center">
                             <div class="mb-3">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
+                                <i class="bi bi-star-fill text-warning"></i><i class="bi bi-star-fill text-warning"></i><i class="bi bi-star-fill text-warning"></i><i class="bi bi-star-fill text-warning"></i><i class="bi bi-star-fill text-warning"></i>
                             </div>
                             <p class="card-text text-muted mb-3">"Jamol pushed me beyond my limits and helped me lose 20 pounds in 3 months. Highly recommend!"</p>
                             <h6 class="card-title fw-bold mb-1">Sarah K.</h6>
@@ -107,109 +101,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card card h-100 shadow-sm">
-                        <div class="card-body p-4 text-center">
-                            <div class="mb-3">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                            </div>
-                            <p class="card-text text-muted mb-3">"Jermaine's massages are life-changing. I feel rejuvenated after every session."</p>
-                            <h6 class="card-title fw-bold mb-1">Mike T.</h6>
-                            <small class="text-muted">Massage Therapy Client</small>
-                        </div>
-                    </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card card h-100 shadow-sm">
-                        <div class="card-body p-4 text-center">
-                            <div class="mb-3">
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                                <i class="bi bi-star-fill text-warning"></i>
-                            </div>
-                            <p class="card-text text-muted mb-3">"Built serious muscle and confidence. The personalized plans are top-notch."</p>
-                            <h6 class="card-title fw-bold mb-1">Alex R.</h6>
-                            <small class="text-muted">Strength Training Client</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
-    <!-- About Me Section -->
-    <section id="about" class="py-5 bg-light">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-6 mb-4 mb-md-0 text-center">
-                    <img src="./images/hero.jpg" alt="Jamol Elliot" class="img-fluid rounded-4 shadow-lg about-img">
-                </div>
-                <div class="col-md-6">
-                    <h2 class="display-5 fw-bold mb-3">About Me</h2>
-                    <p class="lead text-muted mb-4">Hey, I'm Jamol — a certified personal trainer with a passion for strength training, discipline, and helping others become their best selves.</p>
-                    <p class="text-secondary mb-4">Whether you're new to fitness or chasing serious goals, I'm here to guide you every rep of the way. With customized training plans, accountability, and real results, we’ll transform your body and mindset together.</p>
-                    <a href="#contact" class="btn btn-primary btn-lg">Let’s Get Started <i class="bi bi-arrow-right"></i></a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Meet the Trainers Section -->
-    <section id="trainers" class="py-5">
-        <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Meet Our Trainers</h2>
-                <p class="lead text-muted">Get to know our expert trainers who are dedicated to your success.</p>
-            </div>
-            <div class="row g-4 justify-content-center">
-                <div class="col-md-6">
-                    <div class="trainer-card card h-100 shadow-sm text-center">
-                        <div class="card-body p-4">
-                            <img src="./images/logo.jpg" alt="Jamol Elliot" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
-                            <h5 class="card-title fw-bold mb-2">Jamol Elliot</h5>
-                            <p class="card-text text-muted mb-3">Specializes in strength training, weight loss, and functional fitness to help you achieve your goals.</p>
-                            <div class="mb-3">
-                                <span class="badge bg-primary me-1">Strength Training</span>
-                                <span class="badge bg-danger me-1">Weight Loss</span>
-                                <span class="badge bg-success">Functional Fitness</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="trainer-card card h-100 shadow-sm text-center">
-                        <div class="card-body p-4">
-                            <img src="./images/logo.jpg" alt="Jermaine Ritchie" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
-                            <h5 class="card-title fw-bold mb-2">Jermaine Ritchie</h5>
-                            <p class="card-text text-muted mb-3">Expert in massage therapy, weight loss, and muscle relaxation for recovery and well-being.</p>
-                            <div class="mb-3">
-                                <span class="badge bg-success me-1">Massage Therapy</span>
-                                <span class="badge bg-danger me-1">Weight Loss</span>
-                                <span class="badge bg-info">Muscle Relaxation</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Call to Action / Testimonial Section (New) -->
-    <section class="cta-section text-white text-center py-5">
-        <div class="container">
-            <h2 class="display-4 fw-bold mb-4">Ready to Transform Your Body?</h2>
-            <p class="lead mb-5">Join the JE Fitness community and start seeing real results. Your first step towards a stronger, healthier you begins now!</p>
-            <a href="./pages/signup.html" class="btn btn-light btn-lg animate__animated animate__pulse animate__infinite">Sign Up Today!</a>
-        </div>
-    </section>
-
-    <!-- Questionnaire Section -->
     <section id="questionnaire" class="py-5 bg-light">
         <div class="container">
             <div class="text-center mb-5">
@@ -248,7 +143,6 @@
         </div>
     </section>
 
-    <!-- Trainer Suggestion Modal -->
     <div class="modal fade" id="trainerModal" tabindex="-1" aria-labelledby="trainerModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -257,8 +151,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center" id="trainerSuggestion">
-                    <!-- Content will be populated by JS -->
-                </div>
+                    </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <a href="./pages/meet-your-trainer.html" class="btn btn-primary">Learn More About Trainers</a>
@@ -267,102 +160,21 @@
         </div>
     </div>
 
-    <!-- Contact Form -->
-    <section id="contact" class="py-5">
-        <div class="container">
-            <h2 class="text-center display-5 fw-bold mb-5">Get In Touch</h2>
-            <div class="contact-form-card p-5 rounded-4 shadow-lg mx-auto" style="max-width: 700px;">
-                <form>
-                    <div class="mb-4">
-                        <label for="contactName" class="form-label visually-hidden">Your Name</label>
-                        <input type="text" class="form-control form-control-lg" id="contactName" placeholder="Your Name" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="contactEmail" class="form-label visually-hidden">Your Email</label>
-                        <input type="email" class="form-control form-control-lg" id="contactEmail" placeholder="Your Email" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="contactMessage" class="form-label visually-hidden">Your Message</label>
-                        <textarea class="form-control form-control-lg" id="contactMessage" rows="5" placeholder="Your Message" required></textarea>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success btn-lg">Send Message <i class="bi bi-send-fill ms-2"></i></button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
     <footer class="bg-dark text-white text-center py-4">
         <div class="container">
             <p class="mb-2">&copy; 2025 JE Fitness. All rights reserved.</p>
-            <div class="d-flex justify-content-center gap-4 flex-wrap">
-                <a href="https://www.instagram.com/je_fitness.ja/" target="_blank" class="text-white fs-3 social-icon">
-                    <i class="bi bi-instagram"></i>
-                </a>
-                <a href="https://wa.me/18762064114" target="_blank" class="text-white fs-3 social-icon">
-                    <i class="bi bi-whatsapp"></i>
-                </a>
-                <a href="mailto:JEFITNESS876@gmail.com" target="_blank" class="text-white fs-3 social-icon">
-                    <i class="bi bi-envelope-fill"></i>
-                </a>
+            <div class="d-flex justify-content-center gap-4">
+                <a href="https://www.instagram.com/je_fitness.ja/" target="_blank" class="text-white fs-3"><i class="bi bi-instagram"></i></a>
+                <a href="https://wa.me/18762064114" target="_blank" class="text-white fs-3"><i class="bi bi-whatsapp"></i></a>
+                <a href="mailto:JEFITNESS876@gmail.com" class="text-white fs-3"><i class="bi bi-envelope-fill"></i></a>
             </div>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Main App JS for PWA functionality -->
     <script src="./js/app.js"></script>
 
-    <!-- Questionnaire JS -->
-    <script>
-        document.getElementById('trainerQuestionnaire').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const goal = document.getElementById('primaryGoal').value;
-            const level = document.getElementById('experienceLevel').value;
-
-            let suggestedTrainer = '';
-            let trainerImage = '';
-            let trainerBio = '';
-            let specialties = '';
-
-            if (goal === 'strength') {
-                suggestedTrainer = 'Jamol Elliot';
-                trainerImage = './images/logo.jpg';
-                trainerBio = 'Jamol specializes in strength training and will help you build muscle and increase your performance.';
-                specialties = 'Strength Training, Weight Loss, Functional Fitness';
-            } else if (goal === 'massage') {
-                suggestedTrainer = 'Jermaine Ritchie';
-                trainerImage = './images/logo.jpg';
-                trainerBio = 'Jermaine is an expert in massage therapy and will help you recover and relax.';
-                specialties = 'Massage Therapy, Weight Loss, Muscle Relaxation';
-            } else if (goal === 'weight-loss') {
-                // For weight loss, suggest Jamol as primary
-                suggestedTrainer = 'Jamol Elliot';
-                trainerImage = './images/logo.jpg';
-                trainerBio = 'Jamol has extensive experience in weight loss programs and will guide you to sustainable results.';
-                specialties = 'Strength Training, Weight Loss, Functional Fitness';
-            }
-
-            const suggestionHTML = `
-                <img src="${trainerImage}" alt="${suggestedTrainer}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
-                <h4 class="fw-bold">${suggestedTrainer}</h4>
-                <p class="text-muted mb-3">${trainerBio}</p>
-                <div class="mb-3">
-                    <strong>Specialties:</strong> ${specialties}
-                </div>
-                <p>Based on your goal of ${goal.replace('-', ' ')} and ${level} experience level, we recommend ${suggestedTrainer} as your trainer.</p>
-            `;
-
-            document.getElementById('trainerSuggestion').innerHTML = suggestionHTML;
-
-            const modal = new bootstrap.Modal(document.getElementById('trainerModal'));
-            modal.show();
-        });
-    </script>
+    <script src="./js/questionnaire.js"></script>
 </body>
 </html>

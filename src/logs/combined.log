@@ -751,3 +751,12 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 10:20:07:207"}
 {"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 10:20:09:209"}
 {"level":"\u001b[31merror\u001b[39m","message":"\u001b[31mError: read ECONNRESET | Context: {\"context\":\"Unverified accounts cleanup job\"} | Stack: MongoNetworkError: read ECONNRESET\u001b[39m\n\u001b[31m    at Connection.onSocketError (C:\\Users\\josia\\jefitness\\node_modules\\mongodb\\lib\\cmap\\connection.js:109:22)\u001b[39m\n\u001b[31m    at TLSSocket.emit (node:events:530:35)\u001b[39m\n\u001b[31m    at emitErrorNT (node:internal/streams/destroy:170:8)\u001b[39m\n\u001b[31m    at emitErrorCloseNT (node:internal/streams/destroy:129:3)\u001b[39m\n\u001b[31m    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\u001b[39m","timestamp":"2025-12-20 11:00:00:00"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 14:50:53:5053"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 14:51:00:510"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 14:59:07:597"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 14:59:08:598"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 15:05:36:536"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 15:05:37:537"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 15:07:42:742"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mServer started on port 10000\u001b[39m","timestamp":"2025-12-20 15:07:48:748"}
+{"level":"\u001b[32minfo\u001b[39m","message":"\u001b[32mMongoDB Connected successfully\u001b[39m","timestamp":"2025-12-20 15:07:49:749"}

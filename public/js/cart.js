@@ -55,72 +55,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Display cart items
-    function displayCart(cart) {
-        cartContent.style.display = 'flex';
-        cartItemsList.innerHTML = '';
+function displayCart(cart) {
+    cartContent.style.display = 'flex';
+    cartItemsList.innerHTML = '';
 
-        let subtotal = 0;
+    let subtotal = 0;
 
-        cart.items.forEach(item => {
-            // Skip items with missing program data or title
-            if (!item.program || !item.program.title) {
-                console.warn('Cart item has no associated program or title:', item);
-                return;
-            }
+    cart.items.forEach(item => {
+        // Use optional chaining (?.) to prevent crashes if item.program is missing
+        const title = item.program?.title ?? 'Program Unavailable';
+        const description = item.program?.description ?? 'This program may have been removed.';
+        const level = item.program?.level ?? 'N/A';
+        const frequency = item.program?.frequency ?? 'N/A';
+        const sessionLength = item.program?.sessionLength ?? 'N/A';
 
-            const itemTotal = item.price * item.quantity;
-            subtotal += itemTotal;
+        const itemTotal = (item.price || 0) * (item.quantity || 0);
+        subtotal += itemTotal;
 
-            const cartItemHtml = `
-                <div class="list-group-item p-4" data-item-id="${item._id}">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <h5 class="mb-2 fw-bold">${item.program.title}</h5>
-                            <p class="text-muted mb-2 small">${item.program.description}</p>
-                            <div class="d-flex gap-2 flex-wrap">
-                                <span class="badge bg-${getLevelColor(item.program.level)}">${item.program.level}</span>
-                                <span class="badge bg-secondary">${item.program.frequency}</span>
-                                <span class="badge bg-info">${item.program.sessionLength}</span>
-                            </div>
+        const cartItemHtml = `
+            <div class="list-group-item p-4" data-item-id="${item._id}">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-2 fw-bold">${title}</h5>
+                        <p class="text-muted mb-2 small">${description}</p>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <span class="badge bg-${getLevelColor(level)}">${level}</span>
+                            <span class="badge bg-secondary">${frequency}</span>
+                            <span class="badge bg-info">${sessionLength}</span>
                         </div>
-                        <div class="col-md-2 text-center mt-3 mt-md-0">
-                            <label class="form-label small text-muted">Quantity</label>
-                            <div class="input-group input-group-sm" style="max-width: 120px; margin: 0 auto;">
-                                <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity - 1})">
-                                    <i class="bi bi-dash"></i>
-                                </button>
-                                <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
-                                <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity + 1})">
-                                    <i class="bi bi-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-2 text-center mt-3 mt-md-0">
-                            <label class="form-label small text-muted">Price</label>
-                            <p class="mb-0 fw-bold">$${item.price.toFixed(2)}</p>
-                        </div>
-                        <div class="col-md-2 text-end mt-3 mt-md-0">
-                            <label class="form-label small text-muted">Total</label>
-                            <p class="mb-2 fw-bold text-primary">$${itemTotal.toFixed(2)}</p>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item._id}')">
-                                <i class="bi bi-trash"></i> Remove
+                    </div>
+                    <div class="col-md-2 text-center mt-3 mt-md-0">
+                        <label class="form-label small text-muted">Quantity</label>
+                        <div class="input-group input-group-sm" style="max-width: 120px; margin: 0 auto;">
+                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity - 1})">
+                                <i class="bi bi-dash"></i>
+                            </button>
+                            <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity + 1})">
+                                <i class="bi bi-plus"></i>
                             </button>
                         </div>
                     </div>
+                    <div class="col-md-2 text-center mt-3 mt-md-0">
+                        <label class="form-label small text-muted">Price</label>
+                        <p class="mb-0 fw-bold">$${(item.price || 0).toFixed(2)}</p>
+                    </div>
+                    <div class="col-md-2 text-end mt-3 mt-md-0">
+                        <label class="form-label small text-muted">Total</label>
+                        <p class="mb-2 fw-bold text-primary">$${itemTotal.toFixed(2)}</p>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item._id}')">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
                 </div>
-            `;
+            </div>
+        `;
 
-            cartItemsList.insertAdjacentHTML('beforeend', cartItemHtml);
-        });
+        cartItemsList.insertAdjacentHTML('beforeend', cartItemHtml);
+    });
 
-        const tax = subtotal * 0.08;
-        const total = subtotal + tax;
+    const tax = subtotal * 0.08;
+    const total = subtotal + tax;
 
-        cartCount.textContent = cart.items.length;
-        subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-        taxEl.textContent = `$${tax.toFixed(2)}`;
-        totalEl.textContent = `$${total.toFixed(2)}`;
-    }
+    cartCount.textContent = cart.items.length;
+    subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+    taxEl.textContent = `$${tax.toFixed(2)}`;
+    totalEl.textContent = `$${total.toFixed(2)}`;
+}
 
     // Update quantity
     window.updateQuantity = async function(itemId, newQuantity) {
