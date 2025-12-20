@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const auth = require('../middleware/auth');
+const User = require('../models/User');
 
 // Generate unique order number
 function generateOrderNumber() {
@@ -94,6 +95,65 @@ router.get('/:orderId', auth, async (req, res) => {
         }
 
         res.json(order);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server error' });
+    }
+});
+
+// GET /api/orders/admin/all - Admin route to get all orders with pagination and filtering
+router.get('/admin/all', auth, async (req, res) => {
+    try {
+        // Check if user is admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ msg: 'Access denied. Admin role required.' });
+        }
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const sortBy = req.query.sortBy || 'createdAt';
+        const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+
+        let query = {};
+
+        // Add search functionality
+        if (req.query.search) {
+            const searchRegex = new RegExp(req.query.search, 'i');
+            query.$or = [
+                { orderNumber: searchRegex },
+                { 'user.firstName': searchRegex },
+                { 'user.lastName': searchRegex },
+                { 'user.email': searchRegex }
+            ];
+        }
+
+        // Add status filter
+        if (req.query.status) {
+            query.status = req.query.status;
+        }
+
+        const orders = await Order.find(query)
+            .populate('user', 'firstName lastName email')
+            .populate('items.program', 'title')
+            .sort({ [sortBy]: sortOrder })
+            .skip(skip)
+            .limit(limit);
+
+        const totalOrders = await Order.countDocuments(query);
+        const totalPages = Math.ceil(totalOrders / limit);
+
+        res.json({
+            orders,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalOrders,
+                hasNext: page < totalPages,
+                hasPrev: page > 1
+            }
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server error' });

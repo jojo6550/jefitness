@@ -10,6 +10,10 @@ let currentSortOrder = 'asc';
 let currentStatus = '';
 let currentAppointmentsSortBy = 'date';
 let currentAppointmentsSortOrder = 'asc';
+let currentOrdersPage = 1;
+let currentOrdersSearch = '';
+let currentOrdersSortBy = 'createdAt';
+let currentOrdersSortOrder = 'desc';
 
 // Debounce function for search
 function debounce(func, wait) {
@@ -820,6 +824,253 @@ function exportAppointments() {
     });
 }
 
+// Load orders with search, sort, and pagination
+async function loadOrders(page = 1, search = '', sortBy = currentOrdersSortBy, sortOrder = currentOrdersSortOrder) {
+    try {
+        const params = new URLSearchParams({
+            page,
+            limit: 10,
+            search,
+            sortBy,
+            sortOrder
+        });
+
+        const response = await fetch(`${API_BASE_URL}/api/orders/admin/all?${params}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const { orders, pagination } = data;
+
+        displayOrders(orders);
+        updateOrdersPagination(pagination);
+    } catch (error) {
+        console.error('Error loading orders:', error);
+        showOrdersError('Failed to load orders. Please try again.');
+    }
+}
+
+// Display orders in table
+function displayOrders(orders) {
+    const tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = '';
+
+    if (orders.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                    ${currentOrdersSearch ? 'No orders found matching your search.' : 'No orders found'}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    orders.forEach(order => {
+        const row = document.createElement('tr');
+        const customerName = order.user ? `${order.user.firstName || 'N/A'} ${order.user.lastName || ''}` : 'N/A';
+        const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                           order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                           order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                           'bg-gray-100 text-gray-800';
+
+        row.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.orderNumber}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${customerName}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$${order.total.toFixed(2)}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                    ${order.status}
+                </span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(order.createdAt).toLocaleDateString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button data-id="${order._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-order-btn">View</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    // Add event listeners for view button
+    document.querySelectorAll('.view-order-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => viewOrder(e.target.dataset.id));
+    });
+}
+
+// Update orders pagination controls
+function updateOrdersPagination(pagination) {
+    const paginationInfo = document.getElementById('ordersPaginationInfo');
+    const paginationContainer = document.getElementById('ordersPagination');
+
+    const { currentPage, totalPages, totalOrders } = pagination;
+
+    // Update pagination info text
+    const startEntry = (currentPage - 1) * 10 + 1;
+    const endEntry = Math.min(currentPage * 10, totalOrders);
+    paginationInfo.textContent = `Showing ${startEntry} to ${endEntry} of ${totalOrders} entries`;
+
+    // Clear existing pagination
+    paginationContainer.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.innerHTML = `
+        <button class="px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+                ${currentPage === 1 ? 'disabled' : ''}>
+            Previous
+        </button>
+    `;
+    if (currentPage > 1) {
+        prevLi.querySelector('button').addEventListener('click', () => changeOrdersPage(currentPage - 1));
+    }
+    paginationContainer.appendChild(prevLi);
+
+    // Page numbers
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage < maxVisiblePages - 1) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.innerHTML = `
+            <button class="px-3 py-1 rounded-md ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}">
+                ${i}
+            </button>
+        `;
+        if (i !== currentPage) {
+            pageLi.querySelector('button').addEventListener('click', () => changeOrdersPage(i));
+        }
+        paginationContainer.appendChild(pageLi);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.innerHTML = `
+        <button class="px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'}"
+                ${currentPage === totalPages ? 'disabled' : ''}>
+            Next
+        </button>
+    `;
+    if (currentPage < totalPages) {
+        nextLi.querySelector('button').addEventListener('click', () => changeOrdersPage(currentPage + 1));
+    }
+    paginationContainer.appendChild(nextLi);
+}
+
+// Change orders page
+function changeOrdersPage(page) {
+    currentOrdersPage = page;
+    loadOrders(currentOrdersPage, currentOrdersSearch, currentOrdersSortBy, currentOrdersSortOrder);
+}
+
+// Show orders error message
+function showOrdersError(message) {
+    const tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-6 py-4 text-center text-red-600">
+                <i class="bi bi-exclamation-triangle mr-2"></i>${message}
+            </td>
+        </tr>
+    `;
+}
+
+// View order details
+async function viewOrder(orderId) {
+    // For now, just log the order ID. You can implement a modal to show order details
+    console.log('View order:', orderId);
+    // TODO: Implement order details modal
+}
+
+// Handle orders sort
+function handleOrdersSort(column) {
+    if (currentOrdersSortBy === column) {
+        currentOrdersSortOrder = currentOrdersSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentOrdersSortBy = column;
+        currentOrdersSortOrder = 'asc';
+    }
+    currentOrdersPage = 1;
+    loadOrders(currentOrdersPage, currentOrdersSearch, currentOrdersSortBy, currentOrdersSortOrder);
+    updateOrdersSortIndicators();
+}
+
+// Update orders sort indicators
+function updateOrdersSortIndicators() {
+    document.querySelectorAll('#orders-section [data-sort]').forEach(header => {
+        const column = header.dataset.sort;
+        const icon = header.querySelector('i');
+
+        if (column === currentOrdersSortBy) {
+            icon.className = currentOrdersSortOrder === 'asc'
+                ? 'bi bi-sort-up ml-1'
+                : 'bi bi-sort-down ml-1';
+        } else {
+            icon.className = 'bi bi-sort-down ml-1';
+        }
+    });
+}
+
+// Export orders to CSV
+function exportOrders() {
+    // Get all orders for export
+    fetch(`${API_BASE_URL}/api/orders/admin/all`, {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const orders = data.orders || [];
+
+        if (orders.length === 0) {
+            alert('No orders to export');
+            return;
+        }
+
+        // Create CSV content
+        const csvContent = [
+            ['Order Number', 'Customer Name', 'Customer Email', 'Total', 'Status', 'Date'],
+            ...orders.map(order => [
+                order.orderNumber,
+                order.user ? `${order.user.firstName} ${order.user.lastName}` : 'N/A',
+                order.user ? order.user.email : 'N/A',
+                order.total.toFixed(2),
+                order.status,
+                new Date(order.createdAt).toLocaleDateString()
+            ])
+        ].map(row => row.join(',')).join('\n');
+
+        // Create and download CSV file
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    })
+    .catch(error => {
+        console.error('Error exporting orders:', error);
+        alert('Failed to export orders. Please try again.');
+    });
+}
+
 // Attach logout listener
 function attachLogoutListener() {
     const logoutBtn = document.getElementById('logoutBtn');
@@ -835,6 +1086,7 @@ function attachLogoutListener() {
 document.addEventListener('DOMContentLoaded', () => {
     loadClients();
     loadAppointments();
+    loadOrders();
     attachLogoutListener();
 
     // Search input
@@ -889,5 +1141,36 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshClientsBtn.addEventListener('click', () => {
             loadClients(currentPage, currentSearch, currentSortBy, currentSortOrder, currentStatus);
         });
+    }
+
+    // Orders search input
+    const ordersSearchInput = document.getElementById('ordersSearch');
+    if (ordersSearchInput) {
+        ordersSearchInput.addEventListener('input', (e) => {
+            currentOrdersSearch = e.target.value;
+            currentOrdersPage = 1;
+            loadOrders(currentOrdersPage, currentOrdersSearch, currentOrdersSortBy, currentOrdersSortOrder);
+        });
+    }
+
+    // Orders sort headers
+    document.querySelectorAll('#orders-section [data-sort]').forEach(header => {
+        header.addEventListener('click', () => {
+            handleOrdersSort(header.dataset.sort);
+        });
+    });
+
+    // Orders refresh button
+    const refreshOrdersBtn = document.getElementById('refreshOrders');
+    if (refreshOrdersBtn) {
+        refreshOrdersBtn.addEventListener('click', () => {
+            loadOrders(1, '', currentOrdersSortBy, currentOrdersSortOrder);
+        });
+    }
+
+    // Orders export button
+    const exportOrdersBtn = document.getElementById('exportOrders');
+    if (exportOrdersBtn) {
+        exportOrdersBtn.addEventListener('click', exportOrders);
     }
 });

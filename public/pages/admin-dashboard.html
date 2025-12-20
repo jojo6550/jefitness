@@ -154,6 +154,10 @@
                     <i class="bi bi-people-fill text-xl mb-1"></i>
                     <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Client List</span>
                 </a>
+                <a href="#orders-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
+                    <i class="bi bi-receipt text-xl mb-1"></i>
+                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Orders</span>
+                </a>
                 <a href="#logs-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
                     <i class="bi bi-journal-text text-xl mb-1"></i>
                     <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Logs</span>
@@ -359,6 +363,62 @@
                         <p class="text-sm text-gray-600" id="paginationInfo">Showing 0 to 0 of 0 entries</p>
                         <nav>
                             <ul class="flex items-center space-x-1" id="clientPagination">
+                                <!-- Pagination buttons will be injected here by JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Orders Section -->
+            <section id="orders-section" class="mb-12">
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="p-6 border-b border-gray-200 flex flex-wrap justify-between items-center">
+                        <h2 class="text-2xl font-semibold text-gray-700">Orders</h2>
+                        <div class="flex space-x-2">
+                            <button id="refreshOrders" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="bi bi-arrow-clockwise mr-2"></i>Refresh
+                            </button>
+                            <button id="exportOrders" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="bi bi-download mr-2"></i>Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="orderNumber">
+                                        Order # <i class="bi bi-sort-down ml-1"></i>
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="user">
+                                        Customer <i class="bi bi-sort-down ml-1"></i>
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="total">
+                                        Total <i class="bi bi-sort-down ml-1"></i>
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="status">
+                                        Status <i class="bi bi-sort-down ml-1"></i>
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" data-sort="createdAt">
+                                        Date <i class="bi bi-sort-down ml-1"></i>
+                                    </th>
+                                    <th scope="col" class="relative px-6 py-3">
+                                        <span class="sr-only">Actions</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="ordersTableBody">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">Loading orders...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-6 border-t border-gray-200 flex justify-between items-center">
+                        <p class="text-sm text-gray-600" id="ordersPaginationInfo">Showing 0 to 0 of 0 entries</p>
+                        <nav>
+                            <ul class="flex items-center space-x-1" id="ordersPagination">
                                 <!-- Pagination buttons will be injected here by JavaScript -->
                             </ul>
                         </nav>
