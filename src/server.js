@@ -5,7 +5,7 @@ const cors = require('cors');
 const cron = require('node-cron');
 const helmet = require('helmet');
 const path = require('path');
-const { logger, logError } = require('./services/logger');
+const morgan = require('morgan');
 
 dotenv.config();
 
@@ -28,6 +28,7 @@ app.use(helmet({
 }));
 
 // Middleware
+app.use(morgan('combined'));
 app.use(express.json());
 app.use(cors());
 
@@ -72,7 +73,7 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  logError(err, { context: 'Unhandled Server Error' });
+  console.error(`Error: ${err.message} | Context: Unhandled Server Error | Stack: ${err.stack}`);
   if (res.headersSent) return next(err);
   res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
@@ -91,11 +92,11 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
     });
 
     if (result.deletedCount > 0) {
-      logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
+      console.log(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
     }
   } catch (err) {
-    logError(err, { context: 'Unverified accounts cleanup job' });
+    console.error(`Error: ${err.message} | Context: Unverified accounts cleanup job | Stack: ${err.stack}`);
   }
 });
 
-app.listen(PORT, () => logger.info(`Server started on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

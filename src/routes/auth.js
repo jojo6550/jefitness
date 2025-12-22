@@ -12,7 +12,7 @@ const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
-const { logUserAction, logSecurityEvent, logError } = require('../services/logger');
+
 
 // Password strength validation function
 const validatePasswordStrength = (password) => {
@@ -100,7 +100,7 @@ router.post('/signup', [
     }
 
     const { firstName, lastName, email, password } = req.body;
-    logUserAction('signup_attempt', null, { email, firstName, lastName });
+    console.log(`User action: signup_attempt | Email: ${email} | FirstName: ${firstName} | LastName: ${lastName}`);
 
     // Validate password strength
     const passwordError = validatePasswordStrength(password);
@@ -157,20 +157,20 @@ router.post('/signup', [
 
         try {
             await request;
-            logUserAction('otp_email_sent', newUser._id, { email });
+            console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
         } catch (emailErr) {
-            logError(emailErr, { context: 'OTP email sending during signup', userId: newUser._id });
+            console.error(`Error: ${JSON.stringify(emailErr)} | Context: OTP email sending during signup | UserId: ${newUser._id}`);
             // Do not stop signup because of email failure
         }
 
-        logUserAction('signup_pending_verification', newUser._id, { email });
+        console.log(`User action: signup_pending_verification | UserId: ${newUser._id} | Email: ${email}`);
         res.status(201).json({
             msg: 'Signup successful! Please check your email for the verification code.',
             email: newUser.email
         });
 
     } catch (err) {
-        logError(err, { context: 'User signup', email });
+        console.error(`Error: ${JSON.stringify(err)} | Context: User signup | Email: ${email}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
     }
 });
@@ -237,25 +237,25 @@ router.post('/login', [
     }
 
     const { email, password } = req.body;
-    logSecurityEvent('login_attempt', null, { email });
+    console.log(`Security event: login_attempt | Email: ${email}`);
 
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            logSecurityEvent('login_failed', null, { email, reason: 'User not found' });
+            console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
         // Check if account is locked
         if (user.lockoutUntil && user.lockoutUntil > new Date()) {
             const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60); // minutes
-            logSecurityEvent('login_failed', user._id, { email, reason: 'Account locked', lockoutMinutes: remainingTime });
+            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Account locked | LockoutMinutes: ${remainingTime}`);
             return res.status(423).json({ msg: `Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.` });
         }
 
         // Check if email is verified
         if (!user.isEmailVerified) {
-            logSecurityEvent('login_failed', user._id, { email, reason: 'Email not verified' });
+            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Email not verified`);
             return res.status(400).json({ msg: 'Please verify your email before logging in.' });
         }
 
@@ -267,11 +267,11 @@ router.post('/login', [
             // Lock account after 5 failed attempts for 2 hours
             if (user.failedLoginAttempts >= 5) {
                 user.lockoutUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
-                logSecurityEvent('account_locked', user._id, { email, reason: 'Too many failed attempts' });
+                console.log(`Security event: account_locked | UserId: ${user._id} | Email: ${email} | Reason: Too many failed attempts`);
             }
 
             await user.save();
-            logSecurityEvent('login_failed', user._id, { email, reason: 'Invalid password', attempts: user.failedLoginAttempts });
+            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Invalid password | Attempts: ${user.failedLoginAttempts}`);
             return res.status(400).json({ msg: 'Invalid credentials' });
         }
 
@@ -283,14 +283,14 @@ router.post('/login', [
 
         // Include role in JWT payload
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        logSecurityEvent('login_success', user._id, { email, role: user.role });
+        console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
 
         res.json({
             token,
             user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
         });
     } catch (err) {
-        logError(err, { context: 'User login', email });
+        console.error(`Error: ${JSON.stringify(err)} | Context: User login | Email: ${email}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -350,11 +350,11 @@ router.get('/me', auth, async (req, res) => {
         // req.user is populated by the auth middleware (from middleware/auth.js)
         const user = await User.findById(req.user.id).select('-password'); // Exclude password
         if (!user) {
-            logUserAction('profile_access_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: profile_access_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        logUserAction('profile_accessed', req.user.id, { email: user.email });
+        console.log(`User action: profile_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json({
             id: user._id,
             firstName: user.firstName,
@@ -372,7 +372,7 @@ router.get('/me', auth, async (req, res) => {
             createdAt: user.createdAt
         });
     } catch (err) {
-        logError(err, { context: 'Get user profile', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get user profile | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -486,7 +486,7 @@ router.put('/profile', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
-            logUserAction('profile_update_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: profile_update_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
@@ -504,7 +504,7 @@ router.put('/profile', auth, async (req, res) => {
 
         await user.save();
 
-        logUserAction('profile_updated', req.user.id, { email: user.email });
+        console.log(`User action: profile_updated | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json({
             msg: 'Profile updated successfully',
             user: {
@@ -525,7 +525,7 @@ router.put('/profile', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        logError(err, { context: 'Profile update', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Profile update | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -573,14 +573,14 @@ router.get('/nutrition', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('nutritionLogs');
         if (!user) {
-            logUserAction('nutrition_access_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: nutrition_access_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        logUserAction('nutrition_accessed', req.user.id, { email: user.email });
+        console.log(`User action: nutrition_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json(user.nutritionLogs);
     } catch (err) {
-        logError(err, { context: 'Get nutrition logs', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get nutrition logs | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -680,17 +680,17 @@ router.post('/nutrition', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
-            logUserAction('nutrition_add_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: nutrition_add_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.nutritionLogs.push({ id, date, mealType, foodItem, calories, protein, carbs, fats });
         await user.save();
 
-        logUserAction('nutrition_added', req.user.id, { email: user.email, mealType, foodItem });
+        console.log(`User action: nutrition_added | UserId: ${req.user.id} | Email: ${user.email} | MealType: ${mealType} | FoodItem: ${foodItem}`);
         res.status(201).json({ msg: 'Meal log added', nutritionLogs: user.nutritionLogs });
     } catch (err) {
-        logError(err, { context: 'Add nutrition log', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Add nutrition log | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -757,17 +757,17 @@ router.delete('/nutrition/:id', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
-            logUserAction('nutrition_delete_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: nutrition_delete_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.nutritionLogs = user.nutritionLogs.filter(meal => meal.id !== mealId);
         await user.save();
 
-        logUserAction('nutrition_deleted', req.user.id, { email: user.email, mealId });
+        console.log(`User action: nutrition_deleted | UserId: ${req.user.id} | Email: ${user.email} | MealId: ${mealId}`);
         res.json({ msg: 'Meal log deleted', nutritionLogs: user.nutritionLogs });
     } catch (err) {
-        logError(err, { context: 'Delete nutrition log', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Delete nutrition log | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -784,14 +784,14 @@ router.get('/schedule', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('schedule');
         if (!user) {
-            logUserAction('schedule_access_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: schedule_access_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        logUserAction('schedule_accessed', req.user.id, { email: user.email });
+        console.log(`User action: schedule_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json(user.schedule);
     } catch (err) {
-        logError(err, { context: 'Get user schedule', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get user schedule | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -815,17 +815,17 @@ router.put('/schedule', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
-            logUserAction('schedule_update_failed', req.user.id, { reason: 'User not found' });
+            console.log(`User action: schedule_update_failed | UserId: ${req.user.id} | Reason: User not found`);
             return res.status(404).json({ msg: 'User not found' });
         }
 
         user.schedule = schedule;
         await user.save();
 
-        logUserAction('schedule_updated', req.user.id, { email: user.email });
+        console.log(`User action: schedule_updated | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json({ msg: 'Schedule updated successfully', schedule: user.schedule });
     } catch (err) {
-        logError(err, { context: 'Update user schedule', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Update user schedule | UserId: ${req.user.id}`);
         res.status(500).send('Server Error');
     }
 });
@@ -842,15 +842,15 @@ router.get('/clients', auth, async (req, res) => {
     try {
         // Only allow admins
         if (req.user.role !== 'admin') {
-            logUserAction('clients_access_denied', req.user.id, { reason: 'Insufficient permissions', requestedRole: req.user.role });
+            console.log(`User action: clients_access_denied | UserId: ${req.user.id} | Reason: Insufficient permissions | RequestedRole: ${req.user.role}`);
             return res.status(403).json({ msg: 'Access denied: Admins only' });
         }
 
         const users = await User.find().select('-password'); // Exclude password
-        logUserAction('clients_accessed', req.user.id, { email: req.user.email, clientCount: users.length });
+        console.log(`User action: clients_accessed | UserId: ${req.user.id} | Email: ${req.user.email} | ClientCount: ${users.length}`);
         res.json(users);
     } catch (err) {
-        logError(err, { context: 'Get all clients', userId: req.user.id });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get all clients | UserId: ${req.user.id}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -865,13 +865,13 @@ router.post('/forgot-password', passwordResetLimiter, [
     }
 
     const { email } = req.body;
-    logSecurityEvent('forgot_password_attempt', null, { email });
+    console.log(`Security event: forgot_password_attempt | Email: ${email}`);
 
     try {
         const user = await User.findOne({ email });
         if (!user) {
             // Do not reveal if user exists or not for security
-            logSecurityEvent('forgot_password_failed', null, { email, reason: 'User not found' });
+            console.log(`Security event: forgot_password_failed | Email: ${email} | Reason: User not found`);
             return res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
         }
 
@@ -912,16 +912,16 @@ router.post('/forgot-password', passwordResetLimiter, [
 
         try {
             await request;
-            logSecurityEvent('reset_email_sent', user._id, { email });
+            console.log(`Security event: reset_email_sent | UserId: ${user._id} | Email: ${email}`);
         } catch (emailErr) {
-            logError(emailErr, { context: 'Reset email sending', userId: user._id });
+            console.error(`Error: ${JSON.stringify(emailErr)} | Context: Reset email sending | UserId: ${user._id}`);
             return res.status(500).json({ msg: 'Error sending email. Please try again.' });
         }
 
         res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
 
     } catch (err) {
-        logError(err, { context: 'Forgot password', email });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Forgot password | Email: ${email}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
     }
 });
@@ -929,7 +929,7 @@ router.post('/forgot-password', passwordResetLimiter, [
 // RESET PASSWORD ROUTE
 router.post('/reset-password', async (req, res) => {
     const { token, password } = req.body;
-    logSecurityEvent('reset_password_attempt', null, { token: token ? 'provided' : 'missing' });
+    console.log(`Security event: reset_password_attempt | Token: ${token ? 'provided' : 'missing'}`);
 
     if (!token || !password) {
         return res.status(400).json({ msg: 'Token and new password are required.' });
@@ -942,7 +942,7 @@ router.post('/reset-password', async (req, res) => {
         });
 
         if (!user) {
-            logSecurityEvent('reset_password_failed', null, { reason: 'Invalid or expired token' });
+            console.log(`Security event: reset_password_failed | Reason: Invalid or expired token`);
             return res.status(400).json({ msg: 'Invalid or expired reset token.' });
         }
 
@@ -956,11 +956,11 @@ router.post('/reset-password', async (req, res) => {
         user.resetExpires = undefined;
         await user.save();
 
-        logSecurityEvent('password_reset_success', user._id, { email: user.email });
+        console.log(`Security event: password_reset_success | UserId: ${user._id} | Email: ${user.email}`);
         res.status(200).json({ msg: 'Password reset successfully. You can now log in with your new password.' });
 
     } catch (err) {
-        logError(err, { context: 'Reset password', token });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Reset password | Token: ${token}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
     }
 });
@@ -984,12 +984,12 @@ router.post('/verify-email', async (req, res) => {
         }
 
         if (!user.emailVerificationToken || user.emailVerificationToken !== otp) {
-            logSecurityEvent('otp_verification_failed', user._id, { email, reason: 'Invalid OTP' });
+            console.log(`Security event: otp_verification_failed | UserId: ${user._id} | Email: ${email} | Reason: Invalid OTP`);
             return res.status(400).json({ msg: 'Invalid OTP.' });
         }
 
         if (new Date() > user.emailVerificationExpires) {
-            logSecurityEvent('otp_verification_failed', user._id, { email, reason: 'OTP expired' });
+            console.log(`Security event: otp_verification_failed | UserId: ${user._id} | Email: ${email} | Reason: OTP expired`);
             return res.status(400).json({ msg: 'OTP has expired. Please request a new one.' });
         }
 
@@ -1027,13 +1027,13 @@ router.post('/verify-email', async (req, res) => {
 
         try {
             await request;
-            logUserAction('confirmation_email_sent', user._id, { email });
+            console.log(`User action: confirmation_email_sent | UserId: ${user._id} | Email: ${email}`);
         } catch (emailErr) {
-            logError(emailErr, { context: 'Confirmation email sending after verification', userId: user._id });
+            console.error(`Error: ${JSON.stringify(emailErr)} | Context: Confirmation email sending after verification | UserId: ${user._id}`);
             // Do not stop verification because of email failure
         }
 
-        logUserAction('email_verified', user._id, { email, role: user.role });
+        console.log(`User action: email_verified | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
         res.status(200).json({
             msg: 'Email verified successfully! Welcome to JE Fitness.',
             token,
@@ -1046,7 +1046,7 @@ router.post('/verify-email', async (req, res) => {
         });
 
     } catch (err) {
-        logError(err, { context: 'Email verification', email });
+        console.error(`Error: ${JSON.stringify(err)} | Context: Email verification | Email: ${email}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
     }
 });
