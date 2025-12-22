@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ${statusBadge}
                             </div>
                             <div class="col-md-3 text-md-end mt-3 mt-md-0">
-                                <button class="btn btn-outline-primary btn-sm" onclick="viewOrderDetails('${order._id}')">
+                                <button class="btn btn-outline-primary btn-sm view-order-details" data-order-id="${order._id}">
                                     <i class="bi bi-eye me-1"></i>View Details
                                 </button>
                             </div>
@@ -239,6 +239,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             messageDiv.style.display = 'none';
         }, 5000);
     }
+
+    // Event delegation for view order details buttons
+    ordersList.addEventListener('click', (e) => {
+        const button = e.target.closest('.view-order-details');
+        if (button) {
+            const orderId = button.dataset.orderId;
+            viewOrderDetails(orderId);
+        }
+    });
 
     // Initialize
     loadOrders();

@@ -144,4 +144,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error loading cart count:', err);
         }
     }
+
+    // Add event listeners to all "Add to Cart" buttons
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const programSlug = e.currentTarget.dataset.program;
+            addToCart(programSlug);
+        });
+    });
 });

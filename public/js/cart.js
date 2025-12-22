@@ -87,11 +87,11 @@ function displayCart(cart) {
                     <div class="col-md-2 text-center mt-3 mt-md-0">
                         <label class="form-label small text-muted">Quantity</label>
                         <div class="input-group input-group-sm" style="max-width: 120px; margin: 0 auto;">
-                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity - 1})">
+                            <button class="btn btn-outline-secondary decrease-qty" type="button" data-item-id="${item._id}" data-quantity="${item.quantity - 1}">
                                 <i class="bi bi-dash"></i>
                             </button>
                             <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
-                            <button class="btn btn-outline-secondary" type="button" onclick="updateQuantity('${item._id}', ${item.quantity + 1})">
+                            <button class="btn btn-outline-secondary increase-qty" type="button" data-item-id="${item._id}" data-quantity="${item.quantity + 1}">
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
@@ -103,7 +103,7 @@ function displayCart(cart) {
                     <div class="col-md-2 text-end mt-3 mt-md-0">
                         <label class="form-label small text-muted">Total</label>
                         <p class="mb-2 fw-bold text-primary">$${itemTotal.toFixed(2)}</p>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item._id}')">
+                        <button class="btn btn-sm btn-outline-danger remove-item" data-item-id="${item._id}">
                             <i class="bi bi-trash"></i> Remove
                         </button>
                     </div>
@@ -219,6 +219,21 @@ function displayCart(cart) {
             badge.style.display = count > 0 ? 'inline-block' : 'none';
         }
     }
+
+    // Event delegation for cart actions
+    cartItemsList.addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        if (target.classList.contains('decrease-qty') || target.classList.contains('increase-qty')) {
+            const itemId = target.dataset.itemId;
+            const quantity = parseInt(target.dataset.quantity);
+            updateQuantity(itemId, quantity);
+        } else if (target.classList.contains('remove-item')) {
+            const itemId = target.dataset.itemId;
+            removeItem(itemId);
+        }
+    });
 
     // Initialize
     loadCart();
