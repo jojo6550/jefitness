@@ -8,15 +8,17 @@ const auth = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
     try {
         let cart = await Cart.findOne({ user: req.user.id }).populate('items.program');
-        
+
         if (!cart) {
             cart = new Cart({ user: req.user.id, items: [] });
             await cart.save();
+            console.log(`User action: cart_created | UserId: ${req.user.id}`);
         }
 
+        console.log(`User action: cart_accessed | UserId: ${req.user.id} | ItemCount: ${cart.items.length}`);
         res.json(cart);
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get user cart | UserId: ${req.user.id}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -29,6 +31,7 @@ router.post('/add', auth, async (req, res) => {
         // Validate program exists
         const program = await Program.findById(programId);
         if (!program) {
+            console.log(`User action: cart_add_failed | UserId: ${req.user.id} | ProgramId: ${programId} | Reason: Program not found`);
             return res.status(404).json({ msg: 'Program not found' });
         }
 
@@ -45,7 +48,9 @@ router.post('/add', auth, async (req, res) => {
 
         if (existingItemIndex > -1) {
             // Update quantity
+            const oldQuantity = cart.items[existingItemIndex].quantity;
             cart.items[existingItemIndex].quantity += quantity;
+            console.log(`User action: cart_item_updated | UserId: ${req.user.id} | ProgramId: ${programId} | OldQuantity: ${oldQuantity} | NewQuantity: ${cart.items[existingItemIndex].quantity}`);
         } else {
             // Add new item
             cart.items.push({
@@ -53,6 +58,7 @@ router.post('/add', auth, async (req, res) => {
                 quantity,
                 price: program.price
             });
+            console.log(`User action: cart_item_added | UserId: ${req.user.id} | ProgramId: ${programId} | Quantity: ${quantity} | Price: ${program.price}`);
         }
 
         await cart.save();
@@ -60,7 +66,7 @@ router.post('/add', auth, async (req, res) => {
 
         res.json(cart);
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Add item to cart | UserId: ${req.user.id} | ProgramId: ${req.body.programId}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -71,27 +77,32 @@ router.put('/update/:itemId', auth, async (req, res) => {
         const { quantity } = req.body;
 
         if (quantity < 1) {
+            console.log(`User action: cart_update_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Invalid quantity | Quantity: ${quantity}`);
             return res.status(400).json({ msg: 'Quantity must be at least 1' });
         }
 
         const cart = await Cart.findOne({ user: req.user.id });
 
         if (!cart) {
+            console.log(`User action: cart_update_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Cart not found`);
             return res.status(404).json({ msg: 'Cart not found' });
         }
 
         const item = cart.items.id(req.params.itemId);
         if (!item) {
+            console.log(`User action: cart_update_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Item not found in cart`);
             return res.status(404).json({ msg: 'Item not found in cart' });
         }
 
+        const oldQuantity = item.quantity;
         item.quantity = quantity;
         await cart.save();
         await cart.populate('items.program');
 
+        console.log(`User action: cart_item_quantity_updated | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | ProgramId: ${item.program} | OldQuantity: ${oldQuantity} | NewQuantity: ${quantity}`);
         res.json(cart);
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Update cart item quantity | UserId: ${req.user.id} | ItemId: ${req.params.itemId}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -102,17 +113,25 @@ router.delete('/remove/:itemId', auth, async (req, res) => {
         const cart = await Cart.findOne({ user: req.user.id });
 
         if (!cart) {
+            console.log(`User action: cart_remove_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Cart not found`);
             return res.status(404).json({ msg: 'Cart not found' });
         }
 
+        const itemToRemove = cart.items.find(item => item._id.toString() === req.params.itemId);
+        if (!itemToRemove) {
+            console.log(`User action: cart_remove_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Item not found in cart`);
+            return res.status(404).json({ msg: 'Item not found in cart' });
+        }
+
         cart.items = cart.items.filter(item => item._id.toString() !== req.params.itemId);
-        
+
         await cart.save();
         await cart.populate('items.program');
 
+        console.log(`User action: cart_item_removed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | ProgramId: ${itemToRemove.program} | Quantity: ${itemToRemove.quantity}`);
         res.json(cart);
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Remove item from cart | UserId: ${req.user.id} | ItemId: ${req.params.itemId}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });

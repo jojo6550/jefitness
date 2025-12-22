@@ -73,9 +73,10 @@ router.get('/', auth, async (req, res) => {
             .populate('items.program')
             .sort({ createdAt: -1 });
 
+        console.log(`User action: orders_accessed | UserId: ${req.user.id} | OrderCount: ${orders.length}`);
         res.json(orders);
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get user orders | UserId: ${req.user.id}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
@@ -106,6 +107,7 @@ router.get('/admin/all', auth, async (req, res) => {
     try {
         // Check if user is admin
         if (req.user.role !== 'admin') {
+            console.log(`User action: admin_orders_access_denied | UserId: ${req.user.id} | Reason: Insufficient permissions | RequestedRole: ${req.user.role}`);
             return res.status(403).json({ msg: 'Access denied. Admin role required.' });
         }
 
@@ -144,6 +146,7 @@ router.get('/admin/all', auth, async (req, res) => {
         const totalOrders = await Order.countDocuments(query);
         const totalPages = Math.ceil(totalOrders / limit);
 
+        console.log(`Admin action: orders_list_accessed | AdminId: ${req.user.id} | Page: ${page} | Limit: ${limit} | TotalOrders: ${totalOrders} | Search: ${req.query.search || 'none'} | Status: ${req.query.status || 'all'}`);
         res.json({
             orders,
             pagination: {
@@ -155,7 +158,7 @@ router.get('/admin/all', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err.message);
+        console.error(`Error: ${JSON.stringify(err)} | Context: Admin get all orders | AdminId: ${req.user.id}`);
         res.status(500).json({ msg: 'Server error' });
     }
 });
