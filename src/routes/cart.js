@@ -7,10 +7,15 @@ const auth = require('../middleware/auth');
 // GET /api/cart - Get user's cart
 router.get('/', auth, async (req, res) => {
     try {
-        let cart = await Cart.findOne({ user: req.user.id }).populate('items.program');
+        if (!req.user || !req.user.id) {
+            console.error('Auth middleware failed: req.user.id is missing');
+            return res.status(401).json({ msg: 'Unauthorized' });
+        }
+
+        let cart = await Cart.findOne({ userId: req.user.id }).populate('items.program');
 
         if (!cart) {
-            cart = new Cart({ user: req.user.id, items: [] });
+            cart = new Cart({ userId: req.user.id, items: [] });
             await cart.save();
             console.log(`User action: cart_created | UserId: ${req.user.id}`);
         }
@@ -26,6 +31,11 @@ router.get('/', auth, async (req, res) => {
 // POST /api/cart/add - Add item to cart
 router.post('/add', auth, async (req, res) => {
     try {
+        if (!req.user || !req.user.id) {
+            console.error('Auth middleware failed: req.user.id is missing');
+            return res.status(401).json({ msg: 'Unauthorized' });
+        }
+
         const { programId, quantity = 1 } = req.body;
 
         // Validate program exists
@@ -35,10 +45,10 @@ router.post('/add', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Program not found' });
         }
 
-        let cart = await Cart.findOne({ user: req.user.id });
+        let cart = await Cart.findOne({ userId: req.user.id });
 
         if (!cart) {
-            cart = new Cart({ user: req.user.id, items: [] });
+            cart = new Cart({ userId: req.user.id, items: [] });
         }
 
         // Check if item already exists in cart
@@ -110,7 +120,12 @@ router.put('/update/:itemId', auth, async (req, res) => {
 // DELETE /api/cart/remove/:itemId - Remove item from cart
 router.delete('/remove/:itemId', auth, async (req, res) => {
     try {
-        const cart = await Cart.findOne({ user: req.user.id });
+        if (!req.user || !req.user.id) {
+            console.error('Auth middleware failed: req.user.id is missing');
+            return res.status(401).json({ msg: 'Unauthorized' });
+        }
+
+        const cart = await Cart.findOne({ userId: req.user.id });
 
         if (!cart) {
             console.log(`User action: cart_remove_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Cart not found`);
@@ -139,7 +154,12 @@ router.delete('/remove/:itemId', auth, async (req, res) => {
 // DELETE /api/cart/clear - Clear entire cart
 router.delete('/clear', auth, async (req, res) => {
     try {
-        const cart = await Cart.findOne({ user: req.user.id });
+        if (!req.user || !req.user.id) {
+            console.error('Auth middleware failed: req.user.id is missing');
+            return res.status(401).json({ msg: 'Unauthorized' });
+        }
+
+        const cart = await Cart.findOne({ userId: req.user.id });
 
         if (!cart) {
             return res.status(404).json({ msg: 'Cart not found' });
