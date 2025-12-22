@@ -1,261 +1,169 @@
 const express = require('express');
 const router = express.Router();
-const Log = require('../models/Log');
-const { adminLogger } = require('../services/logger');
+const auth = require('../middleware/auth');
 
-// Middleware to ensure admin access
-const requireAdmin = (req, res, next) => {
-    if (!req.user || req.user.role !== 'admin') {
-        return res.status(403).json({ msg: 'Admin access required' });
-    }
-    next();
+// In-memory storage for real-time logs
+let realtimeLogs = [];
+const MAX_LOGS = 1000; // Keep only the last 1000 logs
+
+// Override console methods to capture logs
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+console.log = function(...args) {
+  const message = args.join(' ');
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level: 'info',
+    category: 'app',
+    message: message,
+    user: null,
+    ip: null,
+    userAgent: null
+  };
+  realtimeLogs.unshift(logEntry);
+  if (realtimeLogs.length > MAX_LOGS) {
+    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+  }
+  originalConsoleLog.apply(console, args);
 };
 
-// Middleware to ensure authentication (for all routes)
-const requireAuth = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ msg: 'Authentication required' });
-    }
-    next();
+console.error = function(...args) {
+  const message = args.join(' ');
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level: 'error',
+    category: 'error',
+    message: message,
+    user: null,
+    ip: null,
+    userAgent: null
+  };
+  realtimeLogs.unshift(logEntry);
+  if (realtimeLogs.length > MAX_LOGS) {
+    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+  }
+  originalConsoleError.apply(console, args);
 };
 
-// Get logs with filtering and pagination
-router.get('/', requireAdmin, async (req, res) => {
-    try {
-        const {
-            page = 1,
-            limit = 50,
-            level,
-            category,
-            startDate,
-            endDate,
-            search,
-            sortBy = 'timestamp',
-            sortOrder = 'desc'
-        } = req.query;
+console.warn = function(...args) {
+  const message = args.join(' ');
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level: 'warn',
+    category: 'warn',
+    message: message,
+    user: null,
+    ip: null,
+    userAgent: null
+  };
+  realtimeLogs.unshift(logEntry);
+  if (realtimeLogs.length > MAX_LOGS) {
+    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+  }
+  originalConsoleWarn.apply(console, args);
+};
 
-        // Build filter object
-        const filter = {};
+// GET /api/logs - Get logs with pagination and filtering
+router.get('/', auth, (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const level = req.query.level;
+    const category = req.query.category;
+    const search = req.query.search;
 
-        if (level) {
-            filter.level = level;
-        }
+    let filteredLogs = [...realtimeLogs];
 
-        if (category) {
-            filter.category = category;
-        }
-
-        if (startDate || endDate) {
-            filter.timestamp = {};
-            if (startDate) {
-                filter.timestamp.$gte = new Date(startDate);
-            }
-            if (endDate) {
-                filter.timestamp.$lte = new Date(endDate);
-            }
-        }
-
-        if (search) {
-            filter.$or = [
-                { message: { $regex: search, $options: 'i' } },
-                { 'metadata.context': { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        // Calculate pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const limitNum = parseInt(limit);
-
-        // Build sort object
-        const sort = {};
-        sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
-        // Execute query
-        const logs = await Log.find(filter)
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .populate('userId', 'firstName lastName email')
-            .lean();
-
-        // Get total count for pagination
-        const total = await Log.countDocuments(filter);
-
-        // Get log statistics
-        const stats = await Log.getLogStats(
-            startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            endDate ? new Date(endDate) : new Date()
-        );
-
-        res.json({
-            logs,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limitNum),
-                totalLogs: total,
-                hasNext: skip + logs.length < total,
-                hasPrev: parseInt(page) > 1
-            },
-            stats: stats || []
-        });
-
-        adminLogger.info(`Admin ${req.user.id} retrieved logs`, {
-            meta: {
-                filters: { level, category, startDate, endDate, search },
-                pagination: { page, limit },
-                total
-            }
-        });
-
-    } catch (err) {
-        adminLogger.error('Error retrieving logs', {
-            meta: { error: err.message, stack: err.stack }
-        });
-        res.status(500).json({ msg: 'Server error while retrieving logs' });
+    // Apply filters
+    if (level) {
+      filteredLogs = filteredLogs.filter(log => log.level === level);
     }
+    if (category) {
+      filteredLogs = filteredLogs.filter(log => log.category === category);
+    }
+    if (search) {
+      filteredLogs = filteredLogs.filter(log =>
+        log.message.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Pagination
+    const totalLogs = filteredLogs.length;
+    const totalPages = Math.ceil(totalLogs / limit);
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+
+    res.json({
+      logs: paginatedLogs,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalLogs: totalLogs,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
-// Get log statistics
-router.get('/stats', requireAdmin, async (req, res) => {
-    try {
-        const { startDate, endDate, groupBy = 'level' } = req.query;
+// GET /api/logs/stats - Get log statistics
+router.get('/stats', auth, (req, res) => {
+  try {
+    const stats = {
+      total: realtimeLogs.length,
+      byLevel: {},
+      byCategory: {},
+      recentErrors: realtimeLogs.filter(log => log.level === 'error').slice(0, 10)
+    };
 
-        const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const end = endDate ? new Date(endDate) : new Date();
+    realtimeLogs.forEach(log => {
+      stats.byLevel[log.level] = (stats.byLevel[log.level] || 0) + 1;
+      stats.byCategory[log.category] = (stats.byCategory[log.category] || 0) + 1;
+    });
 
-        let stats;
-        if (groupBy === 'category') {
-            stats = await Log.aggregate([
-                { $match: { timestamp: { $gte: start, $lte: end } } },
-                { $group: { _id: '$category', count: { $sum: 1 } } },
-                { $sort: { count: -1 } }
-            ]);
-        } else {
-            stats = await Log.aggregate([
-                { $match: { timestamp: { $gte: start, $lte: end } } },
-                { $group: { _id: '$level', count: { $sum: 1 } } },
-                { $sort: { count: -1 } }
-            ]);
-        }
-
-        res.json(stats);
-
-    } catch (err) {
-        adminLogger.error('Error retrieving log statistics', {
-            meta: { error: err.message, stack: err.stack }
-        });
-        res.status(500).json({ msg: 'Server error while retrieving log statistics' });
-    }
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching log stats:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
-// Get logs for a specific user
-router.get('/user/:userId', requireAdmin, async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { page = 1, limit = 20 } = req.query;
+// GET /api/logs/export - Export logs as CSV
+router.get('/export', auth, (req, res) => {
+  try {
+    const level = req.query.level;
+    const category = req.query.category;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const limitNum = parseInt(limit);
+    let exportLogs = [...realtimeLogs];
 
-        const logs = await Log.find({ userId })
-            .sort({ timestamp: -1 })
-            .skip(skip)
-            .limit(limitNum)
-            .lean();
-
-        const total = await Log.countDocuments({ userId });
-
-        res.json({
-            logs,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPages: Math.ceil(total / limitNum),
-                totalLogs: total
-            }
-        });
-
-    } catch (err) {
-        adminLogger.error('Error retrieving user logs', {
-            meta: { error: err.message, stack: err.stack, userId: req.params.userId }
-        });
-        res.status(500).json({ msg: 'Server error while retrieving user logs' });
+    if (level) {
+      exportLogs = exportLogs.filter(log => log.level === level);
     }
-});
-
-// Clean old logs (admin only)
-router.delete('/cleanup', requireAdmin, async (req, res) => {
-    try {
-        const { daysToKeep = 30 } = req.body;
-
-        const result = await Log.cleanOldLogs(daysToKeep);
-
-        adminLogger.info(`Admin ${req.user.id} cleaned up old logs`, {
-            meta: { daysToKeep, deletedCount: result.deletedCount }
-        });
-
-        res.json({
-            msg: 'Old logs cleaned up successfully',
-            deletedCount: result.deletedCount
-        });
-
-    } catch (err) {
-        adminLogger.error('Error cleaning up logs', {
-            meta: { error: err.message, stack: err.stack }
-        });
-        res.status(500).json({ msg: 'Server error while cleaning up logs' });
+    if (category) {
+      exportLogs = exportLogs.filter(log => log.category === category);
     }
-});
 
-// Export logs to CSV
-router.get('/export', requireAdmin, async (req, res) => {
-    try {
-        const { startDate, endDate, level, category } = req.query;
+    // Create CSV content
+    const csvHeaders = 'Timestamp,Level,Category,Message,User,IP,User Agent\n';
+    const csvContent = exportLogs.map(log =>
+      `"${log.timestamp}","${log.level}","${log.category}","${log.message.replace(/"/g, '""')}","${log.user || ''}","${log.ip || ''}","${log.userAgent || ''}"`
+    ).join('\n');
 
-        const filter = {};
-        if (level) filter.level = level;
-        if (category) filter.category = category;
-        if (startDate || endDate) {
-            filter.timestamp = {};
-            if (startDate) filter.timestamp.$gte = new Date(startDate);
-            if (endDate) filter.timestamp.$lte = new Date(endDate);
-        }
+    const csv = csvHeaders + csvContent;
 
-        const logs = await Log.find(filter)
-            .sort({ timestamp: -1 })
-            .populate('userId', 'firstName lastName email')
-            .lean();
-
-        // Convert to CSV
-        const csvHeaders = ['Timestamp', 'Level', 'Category', 'Message', 'User', 'IP', 'User Agent'];
-        const csvRows = logs.map(log => [
-            log.timestamp,
-            log.level,
-            log.category,
-            `"${log.message.replace(/"/g, '""')}"`,
-            log.userId ? `${log.userId.firstName} ${log.userId.lastName}` : '',
-            log.ip || '',
-            log.userAgent || ''
-        ]);
-
-        const csvContent = [
-            csvHeaders.join(','),
-            ...csvRows.map(row => row.join(','))
-        ].join('\n');
-
-        res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', `attachment; filename="logs_${new Date().toISOString().split('T')[0]}.csv"`);
-        res.send(csvContent);
-
-        adminLogger.info(`Admin ${req.user.id} exported logs to CSV`, {
-            meta: { logCount: logs.length, filters: { level, category, startDate, endDate } }
-        });
-
-    } catch (err) {
-        adminLogger.error('Error exporting logs', {
-            meta: { error: err.message, stack: err.stack }
-        });
-        res.status(500).json({ msg: 'Server error while exporting logs' });
-    }
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="logs.csv"');
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting logs:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
 });
 
 module.exports = router;
