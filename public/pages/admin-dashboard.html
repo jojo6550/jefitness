@@ -40,34 +40,7 @@
             background-color: #94a3b8;
         }
         
-        /* Sidebar specific styles */
-        .sidebar-collapsed {
-            width: 64px !important;
-        }
-        
-        .sidebar-collapsed .nav-text {
-            opacity: 0;
-            visibility: hidden;
-        }
-        
-        .sidebar-expanded {
-            width: 256px !important;
-        }
-        
-        /* Mobile sidebar styles */
-        @media (max-width: 768px) {
-            .sidebar-mobile-hidden {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar-mobile-visible {
-                transform: translateX(0);
-            }
-            
-            .main-content-mobile-full {
-                margin-left: 0 !important;
-            }
-        }
+
 
         /* User Details Modal Cards */
         #userDetailsContent > div {
@@ -123,59 +96,9 @@
 </head>
 
 <body>
-    <!-- Mobile Menu Toggle Button -->
-    <button id="mobileMenuToggle" class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 text-white p-2 rounded-md shadow-lg">
-        <i class="bi bi-list text-xl"></i>
-    </button>
-
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="w-16 bg-gray-800 text-white p-4 shadow-xl fixed inset-y-0 left-0 overflow-y-auto transition-all duration-300 ease-in-out z-40">
-            <!-- Toggle Button -->
-            <button id="sidebarToggle" class="absolute -right-3 top-6 bg-gray-800 text-white p-1 rounded-full shadow-md hover:bg-gray-700 transition-colors">
-                <i class="bi bi-chevron-left text-sm"></i>
-            </button>
-            
-            <div class="text-xl font-bold mb-8 text-center truncate">JE</div>
-            <nav class="space-y-6">
-                <a href="#dashboard-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-speedometer2 text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Dashboard</span>
-                </a>
-                <a href="#top-clients-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-star-fill text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Top Clients</span>
-                </a>
-                <a href="#appointments-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-calendar-check text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Appointments</span>
-                </a>
-                <a href="#client-list-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-people-fill text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Client List</span>
-                </a>
-                <a href="#orders-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-receipt text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Orders</span>
-                </a>
-                <a href="#logs-section" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-journal-text text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Logs</span>
-                </a>
-            </nav>
-            <div class="mt-auto pt-6 border-t border-gray-700">
-                <a href="#" id="logoutButton" class="flex flex-col items-center text-sm font-medium text-gray-300 hover:text-white transition duration-200 group">
-                    <i class="bi bi-box-arrow-right text-xl mb-1"></i>
-                    <span class="nav-text text-xs opacity-0 group-hover:opacity-100 transition-opacity">Logout</span>
-                </a>
-            </div>
-        </aside>
-
-        <!-- Sidebar Overlay for Mobile -->
-        <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
-
+    <div class="min-h-screen">
         <!-- Main content area -->
-        <main id="mainContent" class="ml-20 flex-1 p-8 transition-all duration-300 ease-in-out">
+        <main id="mainContent" class="p-8">
             <h1 class="text-4xl font-bold text-gray-800 mb-8">Client Dashboard</h1>
             
             <!-- Dashboard Section -->
@@ -732,7 +655,6 @@
     <script src="../js/admin-dashboard.js" defer></script>
     <script src="../js/admin-notifications.js" defer></script>
     <script src="../js/admin-logs.js" defer></script>
-    <script src="../js/admin-sidebar.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="../js/role-guard.js" defer></script>
 
