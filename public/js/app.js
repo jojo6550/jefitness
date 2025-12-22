@@ -26,7 +26,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 function showInstallPromotion() {
   // Show a button or banner to install the app
   const installButton = document.createElement('button');
-  installButton.innerText = 'Install FitLife Pro';
+  installButton.innerText = 'Install JEFitness Mobile';
   installButton.className = 'btn btn-primary position-fixed bottom-0 end-0 m-3 z-index-1050';
   installButton.style.zIndex = '1050';
   installButton.onclick = () => {
