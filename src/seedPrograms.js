@@ -42,6 +42,25 @@ const programs = [
         isActive: true
     },
     {
+        title: '8-Week EDS-Safe Strength & Fat Loss Program',
+        description: 'An 8-week program designed for females with EDS (Ehlers-Danlos Syndrome) and limited equipment, focusing on joint stability, fat loss, and muscle preservation through controlled, low-impact exercises.',
+        price: 60.00,
+        duration: '8 weeks',
+        level: 'Intermediate',
+        frequency: '5 Days/Week',
+        sessionLength: '45-60 min/session',
+        slug: '8-week-eds-safe-strength-fat-loss-program',
+        features: [
+            'EDS-safe exercises prioritizing joint stability',
+            'Phased progression: Stability activation and metabolic muscle tone',
+            'Low-impact fat burning with controlled tempo',
+            'Unilateral and isometric work for muscle retention',
+            'Optional conditioning for additional calorie burn',
+            'Nutrition guidance for EDS-specific needs'
+        ],
+        isActive: true
+    },
+    {
         title: '9-Week Phased Strength Program',
         description: 'A 9-week phased program that respects fatigue, motor learning, and strength carryover to SBD (Squat, Bench, Deadlift). Includes hypertrophy, strength, and power phases for optimal progression.',
         price: 50.00,
