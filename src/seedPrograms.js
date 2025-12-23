@@ -42,21 +42,21 @@ const programs = [
         isActive: true
     },
     {
-        title: '12 Week Strength Programme',
-        description: 'By Jamin Johnson – A 12-week phased program to build real strength, lose fat slowly, and avoid CNS burnout with structured progression.',
-        price: 129.99,
-        duration: '12 weeks',
+        title: '9-Week Phased Strength Program',
+        description: 'A 9-week phased program that respects fatigue, motor learning, and strength carryover to SBD (Squat, Bench, Deadlift). Includes hypertrophy, strength, and power phases for optimal progression.',
+        price: 50.00,
+        duration: '9 weeks',
         level: 'Advanced',
-        frequency: '5 Days/Week',
+        frequency: '4 Days/Week',
         sessionLength: '60-90 min/session',
-        slug: '12-week-strength-program',
+        slug: '9-week-phased-strength-program',
         features: [
-            'Structured 12-week progression plan',
-            'Advanced strength training techniques',
-            'Fat loss optimization strategies',
-            'CNS recovery protocols',
-            'Personalized workout tracking',
-            'Nutrition guidance included'
+            'Phased progression: Hypertrophy, Strength, Power',
+            'Focus on SBD lifts with accessory work',
+            'Technique reinforcement and neural efficiency',
+            'Autoregulation guidelines for fatigue management',
+            'Weekly structure with rest days',
+            'Progression model for strength gains'
         ],
         isActive: true
     }
