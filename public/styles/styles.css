@@ -296,6 +296,98 @@ footer i:hover {
 
 /* --- NEW HOME PAGE STYLES --- */
 
+:root {
+    --primary-accent: #00d2ff; /* Electric Blue */
+    --dark-bg: #0f172a;
+    --card-bg: #1e293b;
+    --text-muted: #94a3b8;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--dark-bg);
+    color: #ffffff;
+    overflow-x: hidden;
+}
+
+/* Navbar Enhancement */
+.navbar {
+    backdrop-filter: blur(10px);
+    background-color: rgba(15, 23, 42, 0.8) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Hero Section */
+.hero {
+    background: linear-gradient(rgba(15, 23, 42, 0.7), rgba(15, 23, 42, 0.7)),
+                url('./images/logo.jpg') center/cover;
+    min-height: 90vh;
+    clip-path: polygon(0 0, 100% 0, 100% 95%, 0% 100%);
+}
+
+.btn-primary {
+    background: var(--primary-accent);
+    border: none;
+    color: #000;
+    font-weight: 700;
+    border-radius: 50px;
+    padding: 12px 30px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 210, 255, 0.3);
+    background: #fff;
+}
+
+/* Card Styling */
+.service-card, .product-card, .testimonial-card, .questionnaire-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 15px;
+    transition: transform 0.3s ease, border-color 0.3s ease;
+    color: white;
+}
+
+.service-card:hover, .product-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--primary-accent);
+}
+
+.card-title { color: #fff; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* Section Headings */
+h2.display-5 {
+    letter-spacing: -1px;
+    text-transform: uppercase;
+}
+
+/* Questionnaire Section */
+#questionnaire {
+    background: #111827 !important;
+}
+
+.form-select {
+    background-color: #334155;
+    border: none;
+    color: white;
+}
+
+/* Footer */
+footer {
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.fs-3 i {
+    transition: color 0.3s ease;
+}
+
+.fs-3 i:hover {
+    color: var(--primary-accent);
+}
+
 .hero {
     position: relative;
     height: 100vh; /* Full viewport height */
