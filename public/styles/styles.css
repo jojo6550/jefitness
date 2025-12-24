@@ -1643,3 +1643,69 @@ video {
 .navbar-toggler:hover .navbar-toggler-icon {
     filter: invert(0.8) brightness(1.5);
 }
+
+/* --- INLINE STYLE CONVERSIONS --- */
+
+/* Toast positioning */
+.toast-high-z {
+    z-index: 11;
+}
+
+/* Input max-width */
+.input-max-width-80 {
+    max-width: 80px;
+}
+
+/* Hidden elements */
+.hidden {
+    display: none;
+}
+
+/* Gradient backgrounds */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* Light gradient backgrounds */
+.bg-gradient-light {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+/* Icon color */
+.text-purple {
+    color: #764ba2;
+}
+
+/* Button gradient */
+.btn-gradient {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+}
+
+/* Circle dimensions */
+.circle-50 {
+    width: 50px;
+    height: 50px;
+}
+
+/* Progress bar */
+.progress-bar-thin {
+    height: 2px;
+    background: #667eea;
+}
+
+/* Sticky positioning */
+.sticky-top-20 {
+    top: 20px;
+}
+
+/* Large icons */
+.icon-large {
+    font-size: 2.5rem;
+}
+
+/* Very large icons */
+.icon-xl {
+    font-size: 4rem;
+}

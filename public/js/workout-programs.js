@@ -20,16 +20,27 @@ const programData = {
         sessionLength: '20-30 min/session',
         slug: 'full-body-mobility'
     },
-    '12-week-strength-program': {
-        title: '12 Week Strength Programme',
-        description: 'By Jamin Johnson – A 12-week phased program to build real strength, lose fat slowly, and avoid CNS burnout with structured progression.',
-        price: 129.99,
-        duration: '12 weeks',
-        level: 'Advanced',
+    '8-week-eds-safe-strength-fat-loss-program': {
+        title: '8-Week EDS-Safe Strength & Fat Loss Program',
+        description: 'An 8-week program designed for females with EDS (Ehlers-Danlos Syndrome) and limited equipment, focusing on joint stability, fat loss, and muscle preservation through controlled, low-impact exercises.',
+        price: 60.00,
+        duration: '8 weeks',
+        level: 'Intermediate',
         frequency: '5 Days/Week',
+        sessionLength: '45-60 min/session',
+        slug: '8-week-eds-safe-strength-fat-loss-program'
+    },
+    '9-week-phased-strength-program': {
+        title: '9-Week Phased Strength Program',
+        description: 'A 9-week phased program that respects fatigue, motor learning, and strength carryover to SBD (Squat, Bench, Deadlift). Includes hypertrophy, strength, and power phases for optimal progression.',
+        price: 50.00,
+        duration: '9 weeks',
+        level: 'Advanced',
+        frequency: '4 Days/Week',
         sessionLength: '60-90 min/session',
-        slug: '12-week-strength-program'
+        slug: '9-week-phased-strength-program'
     }
+
 };
 
 const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
