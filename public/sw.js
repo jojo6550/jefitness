@@ -1,6 +1,8 @@
-const CACHE_NAME = 'jefitness-v2';
-const STATIC_CACHE = 'jefitness-static-v2';
-const DYNAMIC_CACHE = 'jefitness-dynamic-v2';
+// Cache versioning - increment these versions to bust cache
+const CACHE_VERSION = '3';
+const CACHE_NAME = `jefitness-v${CACHE_VERSION}`;
+const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -73,7 +75,8 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
+          // Delete caches that don't match current version
+          if (!cacheName.includes(`v${CACHE_VERSION}`)) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }

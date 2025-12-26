@@ -87,6 +87,22 @@ jojo6550.github.io/
 └── .gitignore
 ```
 
+## Cache Busting
+
+Your website now includes automatic cache busting! This means you no longer need to hard refresh (Ctrl+Shift+R) to see CSS/JS changes.
+
+**How it works:**
+- CSS/JS files automatically get version parameters (`?v=hash`)
+- Service worker manages versioned caches
+- Increment `CACHE_VERSION` in `public/sw.js` for major releases
+
+See [CACHE_BUSTING_GUIDE.md](./CACHE_BUSTING_GUIDE.md) for detailed instructions.
+
+### Quick Cache Bust
+```bash
+npm run cache:bust
+```
+
 ## Getting Started
 
 ### Prerequisites

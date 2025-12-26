@@ -32,6 +32,10 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(cors());
 
+// Import and use cache control middleware
+const cacheControl = require('./middleware/cacheControl');
+app.use(cacheControl);
+
 // Serve static files from the 'public' directory
 app.use(express.static("public"));
 
@@ -50,7 +54,7 @@ connectDB();
 // Import rate limiters
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-const PORT = process.env.PORT || 10000;
+const PORT = 10000;
 
 // Define Routes
 const auth = require('./middleware/auth');
