@@ -42,7 +42,12 @@ app.use(express.static("public"));
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      family: 4 // Use IPv4, skip trying IPv6
+    });
     console.log('MongoDB Connected successfully');
   } catch (err) {
     console.error(`Error: ${JSON.stringify(err)} | Context: MongoDB Connection`);
@@ -87,19 +92,31 @@ const User = require('./models/User');
 
 // Schedule cleanup job to run every 30 minutes
 cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
-  try {
-    const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
-    const thirtyMinutesAgo = new Date(Date.now() - cleanupTime * 60 * 1000);
-    const result = await User.deleteMany({
-      isEmailVerified: false,
-      createdAt: { $lt: thirtyMinutesAgo }
-    });
+  const maxRetries = 3;
+  let attempt = 0;
 
-    if (result.deletedCount > 0) {
-      console.log(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
+  while (attempt < maxRetries) {
+    try {
+      const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
+      const thirtyMinutesAgo = new Date(Date.now() - cleanupTime * 60 * 1000);
+      const result = await User.deleteMany({
+        isEmailVerified: false,
+        createdAt: { $lt: thirtyMinutesAgo }
+      });
+
+      if (result.deletedCount > 0) {
+        console.log(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
+      }
+      break; // Success, exit retry loop
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxRetries) {
+        console.error(`Error: ${err.message} | Context: Unverified accounts cleanup job | Stack: ${err.stack} | Attempts: ${attempt}`);
+      } else {
+        console.warn(`Cleanup job failed (attempt ${attempt}/${maxRetries}), retrying in ${attempt * 2} seconds... Error: ${err.message}`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000)); // Exponential backoff
+      }
     }
-  } catch (err) {
-    console.error(`Error: ${err.message} | Context: Unverified accounts cleanup job | Stack: ${err.stack}`);
   }
 });
 
