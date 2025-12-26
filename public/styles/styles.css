@@ -24,36 +24,42 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Other existing styles... */
+/* Enhanced Mobile-First Responsive Containers */
 .login-container {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px 20px;
+    padding: 20px 15px;
+    min-height: calc(100vh - 76px); /* Account for navbar */
 }
 .signup-container {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px 20px;
+    padding: 20px 15px;
+    min-height: calc(100vh - 76px); /* Account for navbar */
 }
+
+/* Enhanced Form Styles with Better Mobile Layout */
 .login-form {
     background: white;
-    padding: 40px 30px;
+    padding: 30px 25px;
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     width: 100%;
     max-width: 400px;
+    margin: 0 auto;
 }
 .signup-form {
     background: white;
-    padding: 40px 30px;
+    padding: 30px 25px;
     border-radius: 15px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     width: 100%;
     max-width: 400px;
+    margin: 0 auto;
 }
 .login-form h2 {
     margin-bottom: 30px;
@@ -891,6 +897,115 @@ footer {
     .navbar-toggler {
         min-height: 44px;
         min-width: 44px;
+    }
+}
+
+/* Enhanced Touch-Friendly Button Sizes */
+.btn-login, .btn-signup, .btn-primary, .btn-secondary, .btn-success, .btn-danger, .btn-warning, .btn-info, .btn-light, .btn-dark {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+/* Enhanced Typography Scaling for Mobile */
+@media (max-width: 768px) {
+    body {
+        font-size: 16px;
+        line-height: 1.6;
+    }
+
+    h1 {
+        font-size: 2rem;
+        line-height: 1.3;
+    }
+
+    h2 {
+        font-size: 1.75rem;
+        line-height: 1.4;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+        line-height: 1.4;
+    }
+
+    h4 {
+        font-size: 1.25rem;
+        line-height: 1.4;
+    }
+
+    h5 {
+        font-size: 1.1rem;
+        line-height: 1.4;
+    }
+
+    h6 {
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    p, .lead {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .btn {
+        font-size: 1rem;
+    }
+
+    .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* Card Layout Optimizations for Mobile */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+        border-radius: 12px;
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .card-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+}
+
+/* Form Layout Enhancements for Mobile */
+@media (max-width: 768px) {
+    .form-group, .mb-3 {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        padding: 0.75rem;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        font-size: 16px;
+    }
+
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
 }
 
