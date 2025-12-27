@@ -49,6 +49,23 @@ const connectDB = async () => {
       family: 4 // Use IPv4, skip trying IPv6
     });
     console.log('MongoDB Connected successfully');
+
+    // Enable slow query logging
+    mongoose.set('debug', (collectionName, method, query, doc) => {
+      const start = Date.now();
+      setImmediate(() => {
+        const duration = Date.now() - start;
+        if (duration > 100) { // Log queries slower than 100ms
+          console.log(`Slow Query: ${collectionName}.${method} took ${duration}ms - Query: ${JSON.stringify(query)}`);
+        }
+      });
+    });
+
+    // Basic monitoring hooks
+    mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
+    mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
+    mongoose.connection.on('error', (err) => console.error('MongoDB connection error:', err));
+
   } catch (err) {
     console.error(`Error: ${JSON.stringify(err)} | Context: MongoDB Connection`);
     process.exit(1);
@@ -118,6 +135,38 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
       }
     }
   }
+});
+
+// Schedule daily backup at 2 AM
+cron.schedule('0 2 * * *', async () => {
+  console.log('Starting daily database backup...');
+  const { exec } = require('child_process');
+  exec('node scripts/backup.js', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Backup failed: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Backup stderr: ${stderr}`);
+    }
+    console.log(`Backup completed: ${stdout}`);
+  });
+});
+
+// Schedule monthly archiving on the 1st at 3 AM
+cron.schedule('0 3 1 * *', async () => {
+  console.log('Starting monthly data archiving...');
+  const { exec } = require('child_process');
+  exec('node scripts/archive.js', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Archiving failed: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Archiving stderr: ${stderr}`);
+    }
+    console.log(`Archiving completed: ${stdout}`);
+  });
 });
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

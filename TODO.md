@@ -1,60 +1,30 @@
-# JE Fitness UX/UI Improvements TODO
+# Database Issues Resolution TODO
 
-## Phase 1: Loading States and Error Handling
-- [x] Add loading spinners to all async operations in auth.js (login, signup, OTP, forgot password, reset password)
-- [x] Replace alert() calls with user-friendly error messages in UI divs
-- [x] Add loading states to buttons (disable + spinner)
+## 1. Enhance Mongoose Validation
+- [x] Update User.js: Add password strength, phone regex, date validations, etc.
+- [x] Update Program.js: Ensure price > 0, add duration enum or regex.
+- [ ] Update Order.js: Ensure prices > 0, add billing validations.
+- [ ] Update Appointment.js: Add date/time validations.
+- [ ] Update other models (Cart.js, Log.js, Notification.js): Add missing validations.
 
-## Phase 2: Form Validation
-- [x] Implement client-side validation for login form (email format, required fields)
-- [x] Enhance signup form validation (name length, email format, password confirmation)
-- [x] Add real-time validation feedback with visual indicators
-- [x] Prevent form submission on validation errors
+## 2. Implement Connection Retry Logic
+- [ ] Update config/db.js: Add exponential backoff for MongoDB connections.
 
-## Phase 3: Responsive Design Enhancements
-- [ ] Improve mobile layouts for forms and cards
-- [ ] Add touch-friendly button sizes (min 44px)
-- [ ] Optimize typography scaling across devices
-- [ ] Test and fix layout issues on various screen sizes
+## 3. Create Backup Strategy
+- [ ] Create scripts/backup.js: Automated backups using mongodump.
 
-## Phase 4: Dark Mode Implementation
-- [ ] Add dark mode toggle button to navbar
-- [ ] Create CSS variables for light/dark themes
-- [ ] Implement theme persistence in localStorage
-- [ ] Update all components to support dark mode
+## 4. Expand Data Migration Scripts
+- [ ] Create scripts/migrate.js: General migration framework.
 
-## Phase 5: Internationalization (i18n)
-- [ ] Create basic translation system
-- [ ] Add language toggle (English/Spanish as example)
-- [ ] Translate key UI elements
-- [ ] Store user language preference
+## 5. Add Database Seeding
+- [ ] Enhance src/seedPrograms.js to seed all models.
+- [ ] Create scripts/seed.js for comprehensive seeding.
 
-## Phase 6: Progressive Enhancement
-- [ ] Ensure forms work without JavaScript
-- [ ] Add noscript fallbacks
-- [ ] Make core functionality accessible without JS
-- [ ] Test with JS disabled
+## 6. Implement Monitoring
+- [ ] Update src/server.js: Add slow query logging and monitoring hooks.
 
-## Phase 7: Offline-First Enhancements
-- [ ] Enhance service worker for better caching strategies
-- [ ] Add offline indicators and banners
-- [ ] Implement background sync for forms
-- [ ] Create offline fallback pages
+## 7. Data Archiving Strategy
+- [ ] Create scripts/archive.js: Archive old records (logs, orders).
 
-## Phase 8: User Feedback Mechanisms
-- [ ] Add feedback form/modal on dashboard
-- [ ] Implement rating system for services
-- [ ] Add contact/support form
-- [ ] Create feedback submission handling
-
-## Phase 9: Onboarding Flow
-- [ ] Create onboarding modal for new users
-- [ ] Add step-by-step introduction to features
-- [ ] Implement skip/dismiss options
-- [ ] Track onboarding completion
-
-## Phase 10: Testing and Polish
-- [ ] Mobile-first testing across devices
-- [ ] Accessibility audit (WCAG compliance)
-- [ ] Performance optimization
-- [ ] Cross-browser testing
+## 8. Referential Integrity
+- [ ] Add pre-save hooks and transactions in models to enforce relationships.

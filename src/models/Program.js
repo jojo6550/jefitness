@@ -13,9 +13,10 @@ const ProgramSchema = new mongoose.Schema({
         type: Number, 
         required: true 
     },
-    duration: { 
-        type: String, 
-        required: true 
+    duration: {
+        type: String,
+        required: true,
+        match: [/^\d+\s+(week|weeks|month|months|day|days)$/i, 'Duration must be in format like "4 weeks" or "1 month"']
     },
     level: { 
         type: String, 

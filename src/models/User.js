@@ -27,7 +27,12 @@ const UserSchema = new mongoose.Schema({
             'Please fill a valid email address' // Custom error message for validation failure
         ]
     },
-    password: { type: String, required: true },
+    password: {
+        type: String,
+        required: true,
+        minlength: [8, 'Password must be at least 8 characters long'],
+        match: [/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character']
+    },
     createdAt: { type: Date, default: Date.now },
     lastLoggedIn: { type: Date },
     role: {
@@ -36,9 +41,20 @@ const UserSchema = new mongoose.Schema({
         default: 'user'
     },
     // Optional profile fields
-    dob: { type: Date },
+    dob: {
+        type: Date,
+        validate: {
+            validator: function(value) {
+                return value <= new Date() && value >= new Date('1900-01-01');
+            },
+            message: 'Date of birth must be in the past and after 1900'
+        }
+    },
     gender: { type: String, enum: ['male', 'female'] }, // Removed 'other' and 'Prefer not to say'
-    phone: { type: String },
+    phone: {
+        type: String,
+        match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
+    },
     activityStatus: { type: String, enum: ['active', 'inactive', 'on-break'], default: 'active' },
     startWeight: { type: Number },
     currentWeight: { type: Number },

@@ -17,7 +17,8 @@ const OrderItemSchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        required: true
+        required: true,
+        min: [0, 'Price must be positive']
     }
 });
 
@@ -61,13 +62,26 @@ const OrderSchema = new mongoose.Schema({
         address: { type: String },
         city: { type: String },
         state: { type: String },
-        zipCode: { type: String },
+        zipCode: {
+            type: String,
+            match: [/^\d{5}(-\d{4})?$/, 'Please enter a valid zip code (e.g., 12345 or 12345-6789)']
+        },
         country: { type: String }
     },
     createdAt: {
         type: Date,
         default: Date.now
     }
+});
+
+// Pre-save hook to enforce referential integrity
+OrderSchema.pre('save', async function(next) {
+  const User = mongoose.model('User');
+  const userExists = await User.findById(this.user);
+  if (!userExists) {
+    return next(new Error('Referenced user does not exist'));
+  }
+  next();
 });
 
 module.exports = mongoose.model('Order', OrderSchema);
