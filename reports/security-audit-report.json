@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-12-27T04:21:01.728Z",
+  "target": "http://localhost:3000",
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "warnings": 7,
+    "critical": 1,
+    "total": 10
+  },
+  "details": {
+    "passed": [
+      "File exposure checks completed"
+    ],
+    "failed": [
+      "Rate limiting may not be properly configured"
+    ],
+    "warnings": [
+      "Authentication testing failed: ",
+      "Application is not using HTTPS",
+      "CSP check failed: ",
+      "XSS testing failed: ",
+      "API rate limiting may not be configured for /api/users/trainers",
+      "API rate limiting may not be configured for /api/programs",
+      "API rate limiting may not be configured for /api/auth/login"
+    ],
+    "critical": [
+      "Failed to check security headers: "
+    ]
+  }
+}

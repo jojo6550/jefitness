@@ -14,17 +14,31 @@ const app = express();
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
-// Configure CSP with Helmet (added to fix external resource loading issues)
+// Enhanced Security Headers with Helmet
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],  // Restrict to same origin by default
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],  // Allows Bootstrap CSS, inline styles, and Google Fonts
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "'sha256-782Awk1qhdoOGWnR+DkncgQKVcjsQlHt0ojtKE4PwMw='"],  // Allows Bootstrap JS and inline scripts
-      connectSrc: ["'self'", "https://cdn.jsdelivr.net"],  // Allows connections for source maps and other resources
-      imgSrc: ["'self'", "data:", "https://via.placeholder.com"],  // Allows images from self, data URIs, and placeholder service
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      connectSrc: ["'self'", "https://api.mailjet.com"], // Allow Mailjet API
+      imgSrc: ["'self'", "data:", "https://via.placeholder.com", "https://cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"], // Block plugins like Flash
+      upgradeInsecureRequests: [], // Force HTTPS
+      blockAllMixedContent: [], // Block HTTP resources on HTTPS pages
     },
   },
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true, // X-Content-Type-Options: nosniff
+  xssFilter: true, // X-XSS-Protection
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  frameguard: { action: "deny" }, // X-Frame-Options: DENY
+  permittedCrossDomainPolicies: { permittedPolicies: "none" }
 }));
 
 // Middleware
