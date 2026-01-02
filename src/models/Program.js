@@ -9,6 +9,10 @@ const ProgramSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    preview: {
+        type: String,
+        required: true
+    },
     price: { 
         type: Number, 
         required: true 
@@ -39,9 +43,26 @@ const ProgramSchema = new mongoose.Schema({
     features: [{ 
         type: String 
     }],
+    days: [
+        {
+            dayName: { type: String, required: true },
+            exercises: [
+                {
+                    name: { type: String, required: true },
+                    sets: { type: Number, required: true },
+                    reps: { type: String, required: true },
+                    notes: { type: String }
+                }
+            ]
+        }
+    ],
     isActive: { 
         type: Boolean, 
         default: true 
+    },
+    isPublished: {
+        type: Boolean,
+        default: false
     },
     createdAt: { 
         type: Date, 

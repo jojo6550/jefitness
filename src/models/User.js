@@ -100,6 +100,14 @@ const UserSchema = new mongoose.Schema({
     failedLoginAttempts: { type: Number, default: 0 },
     lockoutUntil: { type: Date },
 
+    // Assigned Programs for visibility control
+    assignedPrograms: [
+        {
+            programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
+            assignedAt: { type: Date, default: Date.now }
+        }
+    ],
+ 
     // Push notification subscription
     pushSubscription: { type: Object }
 });

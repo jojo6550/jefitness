@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('../pages/partials/navbar.html')
             .then(response => response.text())
             .then(html => {
-                navbarPlaceholder.innerHTML = html;
+                navbarPlaceholderPrograme.innerHTML = html;
                 // After loading, set the active link
                 setActiveNavLink();
                 // Attach the logout listener after navbar is loaded
