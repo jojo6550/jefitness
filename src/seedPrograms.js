@@ -8,6 +8,7 @@ const programs = [
     {
         title: 'Upper & Lower Back Program',
         description: 'A targeted program designed to strengthen and mobilize your entire back, improving posture and reducing discomfort.',
+        preview: 'Strengthen and mobilize your back with targeted exercises for better posture.',
         price: 49.99,
         duration: '4 weeks',
         level: 'Beginner',
@@ -21,11 +22,13 @@ const programs = [
             'Video demonstrations for each exercise',
             'Progress tracking worksheets'
         ],
-        isActive: true
+        isActive: true,
+        isPublished: true
     },
     {
         title: 'Full Body Mobility Drills',
         description: 'Improve posture, flexibility, and joint function from head to toe with these essential mobility drills.',
+        preview: 'Enhance your mobility with comprehensive routines for joint health and flexibility.',
         price: 79.99,
         duration: '6 weeks',
         level: 'Intermediate',
@@ -39,11 +42,13 @@ const programs = [
             'Daily mobility challenges',
             'Lifetime access to program materials'
         ],
-        isActive: true
+        isActive: true,
+        isPublished: true
     },
     {
         title: '8-Week EDS-Safe Strength & Fat Loss Program',
         description: 'An 8-week program designed for females with EDS (Ehlers-Danlos Syndrome) and limited equipment, focusing on joint stability, fat loss, and muscle preservation through controlled, low-impact exercises.',
+        preview: 'Safe strength training for EDS with fat loss focus and joint stability.',
         price: 60.00,
         duration: '8 weeks',
         level: 'Intermediate',
@@ -58,11 +63,13 @@ const programs = [
             'Optional conditioning for additional calorie burn',
             'Nutrition guidance for EDS-specific needs'
         ],
-        isActive: true
+        isActive: true,
+        isPublished: true
     },
     {
         title: '9-Week Phased Strength Program',
         description: 'A 9-week phased program that respects fatigue, motor learning, and strength carryover to SBD (Squat, Bench, Deadlift). Includes hypertrophy, strength, and power phases for optimal progression.',
+        preview: 'Phased strength program for hypertrophy, strength, and power gains.',
         price: 50.00,
         duration: '9 weeks',
         level: 'Advanced',
@@ -77,14 +84,22 @@ const programs = [
             'Weekly structure with rest days',
             'Progression model for strength gains'
         ],
-        isActive: true
+        isActive: true,
+        isPublished: true
     }
 ];
 
 async function seedPrograms() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('MongoDB Connected');
+        await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+            maxPoolSize: 10, // Maintain up to 10 socket connections
+            family: 4 // Use IPv4, skip trying IPv6
+            });
+        console.log('MongoDB Connected successfully');
 
         // Clear existing programs
         await Program.deleteMany({});
@@ -101,5 +116,7 @@ async function seedPrograms() {
         process.exit(1);
     }
 }
+
+
 
 seedPrograms();
