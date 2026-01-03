@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const suggestionHTML = `
-                <img src="${trainerImage}" alt="${suggestedTrainer}" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                <img src="${trainerImage}" alt="${suggestedTrainer}" class="rounded-circle mb-3 trainer-image-circle">
                 <h4 class="fw-bold">${suggestedTrainer}</h4>
                 <p class="text-muted mb-3">${trainerBio}</p>
                 <div class="mb-3">

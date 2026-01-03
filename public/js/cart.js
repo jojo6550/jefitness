@@ -86,7 +86,7 @@ function displayCart(cart) {
                     </div>
                     <div class="col-md-2 text-center mt-3 mt-md-0">
                         <label class="form-label small text-muted">Quantity</label>
-                        <div class="input-group input-group-sm" style="max-width: 120px; margin: 0 auto;">
+                        <div class="input-group input-group-sm max-w-120 mx-auto">
                             <button class="btn btn-outline-secondary decrease-qty" type="button" data-item-id="${item._id}" data-quantity="${item.quantity - 1}">
                                 <i class="bi bi-dash"></i>
                             </button>
