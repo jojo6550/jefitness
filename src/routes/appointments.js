@@ -188,9 +188,19 @@ router.post('/', auth, async (req, res) => {
         // Set clientId from authenticated user
         const clientId = req.user.id;
 
-        // Check the 10-client limit per fixed hour block (e.g., 14:00-15:00)
+        // Validate appointment time
         const appointmentDate = new Date(date);
         const [hours, minutes] = time.split(':').map(Number);
+
+        if (minutes !== 0) {
+            return res.status(400).json({ msg: 'Appointments can only be booked on the hour (e.g., 5:00, 6:00)' });
+        }
+
+        if (hours < 5 || hours > 13) {
+            return res.status(400).json({ msg: 'Appointments are only available from 5:00 AM to 1:00 PM' });
+        }
+
+        // Check the 1-client limit per fixed hour block
         const hourBlock = `${hours.toString().padStart(2, '0')}:00`;
 
         const existingAppointments = await Appointment.find({
@@ -203,8 +213,9 @@ router.post('/', auth, async (req, res) => {
             status: { $ne: 'cancelled' }
         });
 
-        if (existingAppointments.length >= 10) {
-            return res.status(400).json({ msg: `Time slot ${hourBlock}-${(hours + 1).toString().padStart(2, '0')}:00 is fully booked (maximum 10 clients per hour)` });
+        if (existingAppointments.length >= 1) {
+            const formattedSlot = hours <= 12 ? `${hours}am-${hours + 1}am` : `${hours - 12}pm-${hours + 1 - 12}pm`;
+            return res.status(400).json({ msg: `Time slot ${formattedSlot} is unavailable` });
         }
 
         // Create appointment
