@@ -192,13 +192,14 @@ router.post('/', auth, async (req, res) => {
         const appointmentDate = new Date(date);
         const [hours, minutes] = time.split(':').map(Number);
 
-        // Check if appointment is in the past
+        // Check if appointment is at least 1 hour in the future
         const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // Add 1 hour
         const appointmentDateTime = new Date(appointmentDate);
         appointmentDateTime.setHours(hours, minutes, 0, 0);
 
-        if (appointmentDateTime <= now) {
-            return res.status(400).json({ msg: 'Cannot book appointments in the past' });
+        if (appointmentDateTime < oneHourFromNow) {
+            return res.status(400).json({ msg: 'Appointments must be booked at least 1 hour in advance' });
         }
 
         if (minutes !== 0) {
