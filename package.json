@@ -8,7 +8,12 @@
     "start": "node src/server.js",
     "build:css": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --watch",
     "seed:programs": "node src/seedPrograms.js",
-    "cache:bust": "node scripts/bust-cache.js"
+    "cache:bust": "node scripts/bust-cache.js",
+    "test:unit": "jest tests/models tests/middleware tests/routes --coverage",
+    "test:integration": "jest tests/integration --coverage",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageDirectory=coverage",
+    "test:verbose": "jest --verbose"
   },
   "repository": {
     "type": "git",
