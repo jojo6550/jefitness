@@ -238,6 +238,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newTrainerSelect = document.getElementById('trainerSelect');
     if (newTrainerSelect) await loadTrainersInto(newTrainerSelect);
 
+    // Set minimum date to today for date inputs
+    const today = new Date().toISOString().split('T')[0];
+    const appointmentDateInput = document.getElementById('appointmentDate');
+    const editAppointmentDateInput = document.getElementById('editAppointmentDate');
+    if (appointmentDateInput) appointmentDateInput.min = today;
+    if (editAppointmentDateInput) editAppointmentDateInput.min = today;
+
     document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
     document.getElementById('editAppointmentBtn')?.addEventListener('click', () => {
         if (currentViewAppointmentId) editAppointment(currentViewAppointmentId);

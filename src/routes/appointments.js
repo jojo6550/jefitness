@@ -192,6 +192,15 @@ router.post('/', auth, async (req, res) => {
         const appointmentDate = new Date(date);
         const [hours, minutes] = time.split(':').map(Number);
 
+        // Check if appointment is in the past
+        const now = new Date();
+        const appointmentDateTime = new Date(appointmentDate);
+        appointmentDateTime.setHours(hours, minutes, 0, 0);
+
+        if (appointmentDateTime <= now) {
+            return res.status(400).json({ msg: 'Cannot book appointments in the past' });
+        }
+
         if (minutes !== 0) {
             return res.status(400).json({ msg: 'Appointments can only be booked on the hour (e.g., 5:00, 6:00)' });
         }
