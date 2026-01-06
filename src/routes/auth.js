@@ -164,7 +164,7 @@ router.post('/signup', [
                         HTMLPart: htmlPart
                     }
                 ]
-            });;
+            });
             try {
                 await request;
                 console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
@@ -932,6 +932,7 @@ router.post('/forgot-password', passwordResetLimiter, [
             console.error(`Error: ${JSON.stringify(emailErr)} | Context: Reset email sending | UserId: ${user._id}`);
             return res.status(500).json({ msg: 'Error sending email. Please try again.' });
         }
+        }
 
         res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
 
@@ -1040,7 +1041,7 @@ router.post('/verify-email', async (req, res) => {
                                <p>Best regards,<br>JE Fitness Team</p>`
                 }
             ]
-        });;
+        });
 
         try {
             await request;
@@ -1048,6 +1049,7 @@ router.post('/verify-email', async (req, res) => {
         } catch (emailErr) {
             console.error(`Error: ${JSON.stringify(emailErr)} | Context: Confirmation email sending after verification | UserId: ${user._id}`);
             // Do not stop verification because of email failure
+        }
         }
 
         console.log(`User action: email_verified | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
