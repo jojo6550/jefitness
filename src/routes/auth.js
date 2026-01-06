@@ -2,16 +2,24 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Client } = require('node-mailjet');
-const mailjet = new Client({
-  apiKey: process.env.MAILJET_API_KEY,
-  apiSecret: process.env.MAILJET_SECRET_KEY
-});
 const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
+
+// Lazy initialization of Mailjet client
+let mailjet = null;
+const getMailjetClient = () => {
+  if (!mailjet && process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY) {
+    mailjet = new Client({
+      apiKey: process.env.MAILJET_API_KEY,
+      apiSecret: process.env.MAILJET_SECRET_KEY
+    });
+  }
+  return mailjet;
+};
 
 
 // Password strength validation function
@@ -132,38 +140,43 @@ router.post('/signup', [
         await newUser.save();
 
         // Send OTP email via Mailjet
-        const request = mailjet.post('send', { version: 'v3.1' }).request({
-            Messages: [
-                {
-                    From: {
-                        Email: 'josiah.johnson6550@gmail.com',
-                        Name: 'JE Fitness'
-                    },
-                    To: [
-                        {
-                            Email: email,
-                            Name: `${firstName} ${lastName}`
-                        }
-                    ],
-                    Subject: 'Verify Your Email - JE Fitness',
-                    TextPart: `Hi ${firstName},\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nBest,\nJE Fitness Team`,
-                    HTMLPart: `<p>Hi <strong>${firstName}</strong>,</p>
-                               <p>Your verification code is: <strong>${otp}</strong></p>
-                               <p>This code will expire in 10 minutes.</p>
-                               <p>Best regards,<br>JE Fitness Team</p>`
-                }
-            ]
-        });
+        const mailjetClient = getMailjetClient();
+        if (mailjetClient) {
+            const htmlPart = `<p>Hi <strong>${firstName}</strong>,</p>
+                                   <p>Your verification code is: <strong>${otp}</strong></p>
+                                   <p>This code will expire in 10 minutes.</p>
+                                   <p>Best regards,<br>JE Fitness Team</p>`;
+            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+                Messages: [
+                    {
+                        From: {
+                            Email: 'josiah.johnson6550@gmail.com',
+                            Name: 'JE Fitness'
+                        },
+                        To: [
+                            {
+                                Email: email,
+                                Name: `${firstName} ${lastName}`
+                            }
+                        ],
+                        Subject: 'Verify Your Email - JE Fitness',
+                        TextPart: `Hi ${firstName},\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nBest,\nJE Fitness Team`,
+                        HTMLPart: htmlPart
+                    }
+                ]
+            });
 
-        try {
-            await request;
-            console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
-        } catch (emailErr) {
-            console.error(`Error: ${JSON.stringify(emailErr)} | Context: OTP email sending during signup | UserId: ${newUser._id}`);
-            // Do not stop signup because of email failure
+            try {
+                await request;
+                console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
+            } catch (emailErr) {
+                console.error(`Error: ${JSON.stringify(emailErr)} | Context: OTP email sending during signup | UserId: ${newUser._id}`);
+                // Do not stop signup because of email failure
+            }
         }
 
         console.log(`User action: signup_pending_verification | UserId: ${newUser._id} | Email: ${email}`);
+        // @ts-ignore
         res.status(201).json({
             msg: 'Signup successful! Please check your email for the verification code.',
             email: newUser.email
@@ -885,7 +898,15 @@ router.post('/forgot-password', passwordResetLimiter, [
 
         // Send reset email via Mailjet
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
-        const request = mailjet.post('send', { version: 'v3.1' }).request({
+        const mailjetClient = getMailjetClient();
+        if (mailjetClient) {
+            const htmlPart = `<p>Hi <strong>${user.firstName}</strong>,</p>
+                               <p>You requested a password reset. Click the link below to reset your password:</p>
+                               <p><a href="${resetUrl}">Reset Password</a></p>
+                               <p>This link will expire in 10 minutes.</p>
+                               <p>If you didn't request this, please ignore this email.</p>
+                               <p>Best regards,<br>JE Fitness Team</p>`;
+            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
             Messages: [
                 {
                     From: {
@@ -900,12 +921,7 @@ router.post('/forgot-password', passwordResetLimiter, [
                     ],
                     Subject: 'Password Reset - JE Fitness',
                     TextPart: `Hi ${user.firstName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nJE Fitness Team`,
-                    HTMLPart: `<p>Hi <strong>${user.firstName}</strong>,</p>
-                               <p>You requested a password reset. Click the link below to reset your password:</p>
-                               <p><a href="${resetUrl}">Reset Password</a></p>
-                               <p>This link will expire in 10 minutes.</p>
-                               <p>If you didn't request this, please ignore this email.</p>
-                               <p>Best regards,<br>JE Fitness Team</p>`
+                    HTMLPart: htmlPart
                 }
             ]
         });
@@ -1003,7 +1019,9 @@ router.post('/verify-email', async (req, res) => {
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         // Send confirmation email via Mailjet
-        const request = mailjet.post('send', { version: 'v3.1' }).request({
+        const mailjetClient = getMailjetClient();
+        if (mailjetClient) {
+            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
             Messages: [
                 {
                     From: {

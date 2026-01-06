@@ -4,6 +4,7 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const auth = require('../middleware/auth');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 // Generate unique order number
 function generateOrderNumber() {
@@ -69,7 +70,7 @@ router.post('/', auth, async (req, res) => {
 // GET /api/orders - Get user's orders
 router.get('/', auth, async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id })
+        const orders = await Order.find({ user: new mongoose.Types.ObjectId(req.user.id) })
             .populate('items.program')
             .sort({ createdAt: -1 });
 

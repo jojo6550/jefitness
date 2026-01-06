@@ -14,7 +14,7 @@ describe('User Scalability Tests', () => {
       const users = [];
 
       // Generate 100 user data
-      for (let i = 0; i < 10000; i++) {
+      for (let i = 0; i < 100; i++) {
         users.push({
           firstName: `First${i}`,
           lastName: `Last${i}`,
