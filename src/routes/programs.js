@@ -59,20 +59,20 @@ router.get('/my', auth, async (req, res) => {
 // GET /api/programs/:id
 router.get('/:id', auth, async (req, res) => {
     try {
+        const program = await Program.findById(req.params.id);
+        if (!program) return res.status(404).json({ msg: 'Program not found' });
+
         // Admin bypass for debugging/management
         const isAdmin = req.user.role === 'admin';
-        
+
         if (!isAdmin) {
             const user = await User.findById(req.user.id);
             const isAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === req.params.id);
-            
+
             if (!isAssigned) {
                 return res.status(403).json({ msg: 'Access denied: You are not assigned to this program' });
             }
         }
-
-        const program = await Program.findById(req.params.id);
-        if (!program) return res.status(404).json({ msg: 'Program not found' });
 
         res.json(program);
     } catch (err) {

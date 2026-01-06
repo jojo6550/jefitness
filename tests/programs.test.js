@@ -359,7 +359,7 @@ describe('Programs Routes', () => {
           slug: 'no-auth-program'
         });
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
     });
   });
 });

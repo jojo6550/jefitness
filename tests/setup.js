@@ -14,8 +14,7 @@ beforeAll(async () => {
 
   // Set test environment variables
   process.env.JWT_SECRET = 'test-jwt-secret-key';
-  process.env.MAILJET_API_KEY = 'test-api-key';
-  process.env.MAILJET_SECRET_KEY = 'test-secret-key';
+  // Do not set MAILJET keys to prevent email sending in tests
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.CLEANUP_TIME = '30';
   process.env.CRON_SCHEDULE = '*/30 * * * *';

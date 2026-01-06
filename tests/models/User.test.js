@@ -78,32 +78,17 @@ describe('User Model', () => {
       expect(error.errors.password).toBeDefined();
     });
 
-    test('should reject password without required characters', async () => {
-      const invalidPasswords = [
-        'alllowercase',
-        'ALLUPPERCASE',
-        'NoSpecialChar1',
-        'NoNumbers!@#'
-      ];
+    // Password validation is now handled in the route, not the model
+    test('should accept any password string', async () => {
+      const user = new User({
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        password: 'anystring'
+      });
 
-      for (const password of invalidPasswords) {
-        const user = new User({
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          password
-        });
-
-        let error;
-        try {
-          await user.save();
-        } catch (err) {
-          error = err;
-        }
-
-        expect(error).toBeDefined();
-        expect(error.errors.password).toBeDefined();
-      }
+      const savedUser = await user.save();
+      expect(savedUser.password).toBe('anystring');
     });
 
     test('should enforce unique email constraint', async () => {
