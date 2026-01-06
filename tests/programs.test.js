@@ -13,7 +13,7 @@ describe('Programs Routes', () => {
       firstName: 'Admin',
       lastName: 'User',
       email: 'admin@test.com',
-      password: 'hashedpassword',
+      password: 'AdminPass123!',
       role: 'admin',
       isEmailVerified: true
     });
@@ -22,7 +22,7 @@ describe('Programs Routes', () => {
       firstName: 'Regular',
       lastName: 'User',
       email: 'user@test.com',
-      password: 'hashedpassword',
+      password: 'UserPass123!',
       role: 'user',
       isEmailVerified: true
     });
@@ -213,7 +213,7 @@ describe('Programs Routes', () => {
         firstName: 'No',
         lastName: 'Programs',
         email: 'noprog@test.com',
-        password: 'hashedpassword',
+        password: 'NoProgPass123!',
         role: 'user',
         isEmailVerified: true
       });
