@@ -67,19 +67,16 @@ describe('Auth Middleware', () => {
       const token = jwt.sign(
         { id: 'user123', role: 'user' },
         process.env.JWT_SECRET,
-        { expiresIn: '0s' }
+        { expiresIn: '-1s' } // Already expired
       );
 
       req.header.mockReturnValue(`Bearer ${token}`);
 
-      // Wait for token to expire
-      setTimeout(() => {
-        auth(req, res, next);
+      auth(req, res, next);
 
-        expect(res.status).toHaveBeenCalledWith(401);
-        expect(res.json).toHaveBeenCalledWith({ msg: 'Token is not valid' });
-        expect(next).not.toHaveBeenCalled();
-      }, 100);
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ msg: 'Token is not valid' });
+      expect(next).not.toHaveBeenCalled();
     });
 
     test('should reject token with wrong secret', () => {

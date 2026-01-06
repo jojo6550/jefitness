@@ -6,7 +6,7 @@ function auth(req, res, next) {
     let token;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.replace('Bearer ', '');
+        token = authHeader.replace('Bearer ', '').trim();
     } else {
         token = req.header('x-auth-token'); // Fallback
     }

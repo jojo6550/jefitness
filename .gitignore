@@ -4,8 +4,9 @@ node_modules
 logs
 src/logs/
 src/logs/combined.log
-TODO.md
+
 src/logs/user.log
 src/logs/security.log
 src/logs/combined.log
-TODO.md
+./TODO.md
+coverage/

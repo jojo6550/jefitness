@@ -18,7 +18,7 @@ router.post('/', auth, async (req, res) => {
         const { paymentMethod, billingInfo } = req.body;
 
         // Get user's cart
-        const cart = await Cart.findOne({ user: req.user.id }).populate('items.program');
+        const cart = await Cart.findOne({ userId: req.user.id }).populate('items.program');
 
         if (!cart || cart.items.length === 0) {
             return res.status(400).json({ msg: 'Cart is empty' });
@@ -69,7 +69,7 @@ router.post('/', auth, async (req, res) => {
 // GET /api/orders - Get user's orders
 router.get('/', auth, async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user.id })
+        const orders = await Order.find({ userId: req.user.id })
             .populate('items.program')
             .sort({ createdAt: -1 });
 

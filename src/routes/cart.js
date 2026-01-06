@@ -91,7 +91,7 @@ router.put('/update/:itemId', auth, async (req, res) => {
             return res.status(400).json({ msg: 'Quantity must be at least 1' });
         }
 
-        const cart = await Cart.findOne({ user: req.user.id });
+        const cart = await Cart.findOne({ userId: req.user.id });
 
         if (!cart) {
             console.log(`User action: cart_update_failed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | Reason: Cart not found`);

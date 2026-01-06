@@ -235,7 +235,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'hashedpassword',
+        password: 'Test123!@#',
         isEmailVerified: false,
         emailVerificationToken: '123456',
         emailVerificationExpires: new Date(Date.now() + 10 * 60 * 1000)
@@ -294,7 +294,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'hashedpassword',
+        password: 'Test123!@#',
         isEmailVerified: true
       });
     });
@@ -331,7 +331,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'hashedpassword',
+        password: 'Test123!@#',
         isEmailVerified: true
       });
 
@@ -363,7 +363,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'hashedpassword',
+        password: 'Test123!@#',
         isEmailVerified: true
       });
 
@@ -408,7 +408,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'hashedpassword',
+        password: 'Test123!@#',
         isEmailVerified: true
       });
 
