@@ -164,8 +164,7 @@ router.post('/signup', [
                         HTMLPart: htmlPart
                     }
                 ]
-            });
-
+            });;
             try {
                 await request;
                 console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
@@ -1041,7 +1040,7 @@ router.post('/verify-email', async (req, res) => {
                                <p>Best regards,<br>JE Fitness Team</p>`
                 }
             ]
-        });
+        });;
 
         try {
             await request;
