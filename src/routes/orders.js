@@ -69,7 +69,7 @@ router.post('/', auth, async (req, res) => {
 // GET /api/orders - Get user's orders
 router.get('/', auth, async (req, res) => {
     try {
-        const orders = await Order.find({ userId: req.user.id })
+        const orders = await Order.find({ user: req.user.id })
             .populate('items.program')
             .sort({ createdAt: -1 });
 
