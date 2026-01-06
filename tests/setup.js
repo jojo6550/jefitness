@@ -6,7 +6,7 @@ let mongoServer;
 // Setup before all tests
 beforeAll(async () => {
   // Create in-memory MongoDB server
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({ downloadDir: './tmp/mongodb-binaries' });
   const mongoUri = mongoServer.getUri();
 
   // Connect to the in-memory database
