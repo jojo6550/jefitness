@@ -112,7 +112,7 @@ const UserSchema = new mongoose.Schema({
 
     // Medical documents and health information
     hasMedical: { type: Boolean, default: false },
-    medicalConditions: { type: String },
+    medicalConditions: { type: String, default: null },
     medicalDocuments: [
         {
             filename: { type: String, required: true },

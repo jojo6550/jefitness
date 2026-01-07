@@ -29,6 +29,25 @@ jest.mock('multer', () => {
   return multer;
 });
 
+// Mock express response methods
+const mockSendFile = jest.fn();
+const mockDownload = jest.fn();
+
+jest.mock('express', () => {
+  const express = jest.requireActual('express');
+  const mockResponse = {
+    ...express.response,
+    sendFile: mockSendFile,
+    download: mockDownload,
+    setHeader: jest.fn(),
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn(),
+    send: jest.fn()
+  };
+  express.response = mockResponse;
+  return express;
+});
+
 // Mock fs
 jest.mock('fs', () => ({
   existsSync: jest.fn().mockReturnValue(true),
@@ -39,6 +58,13 @@ jest.mock('fs', () => ({
     pipe: jest.fn()
   })
 }));
+
+// Mock response methods for file operations
+app.use((req, res, next) => {
+  res.sendFile = jest.fn(() => res.status(200).send('file content'));
+  res.download = jest.fn(() => res.status(200).send('file content'));
+  next();
+});
 
 const app = express();
 app.use(express.json());
@@ -279,7 +305,7 @@ describe('Medical Documents Routes', () => {
     });
 
     test('should return 404 for non-existent file', async () => {
-      fs.existsSync.mockReturnValue(false);
+      fs.existsSync.mockReturnValueOnce(false);
 
       await request(app)
         .get('/api/medical-documents/view/nonexistent.pdf')
@@ -326,7 +352,7 @@ describe('Medical Documents Routes', () => {
     });
 
     test('should return 404 for non-existent file', async () => {
-      fs.existsSync.mockReturnValue(false);
+      fs.existsSync.mockReturnValueOnce(false);
 
       await request(app)
         .get('/api/medical-documents/download/nonexistent.pdf')

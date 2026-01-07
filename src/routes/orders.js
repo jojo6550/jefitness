@@ -37,6 +37,7 @@ router.post('/', auth, async (req, res) => {
         const orderItems = cart.items.map(item => ({
             program: item.program._id,
             title: item.program.title,
+            quantity: item.quantity,
             price: item.price
         }));
 
