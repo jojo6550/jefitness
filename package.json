@@ -5,7 +5,7 @@
   "main": "./src/server.js",
   "scripts": {
     "dev": "nodemon",
-    "test": "jest --setupFilesAfterEnv ./tests/setup.js",
+    "test": "jest --setupFilesAfterEnv ./tests/setup.js --runInBand",
     "start": "node src/server.js",
     "build:css": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --watch",
     "seed:programs": "node src/seedPrograms.js",
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.22",
-    "jest": "^29.7.0",
+    "jest": "^29.7.0 ",
     "mongodb-memory-server": "^9.1.1",
     "postcss": "^8.5.6",
     "supertest": "^7.1.3",

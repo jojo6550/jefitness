@@ -1,46 +1,50 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
+// 🔴 Fail fast instead of buffering forever
+mongoose.set('bufferCommands', false);
+
 let mongoServer;
 
-// Setup before all tests
+// ⬆️ Global timeout MUST be first and long
+jest.setTimeout(60000);
+
 beforeAll(async () => {
-  // Create in-memory MongoDB server
-  mongoServer = await MongoMemoryServer.create({ downloadDir: './tmp/mongodb-binaries' });
+  mongoServer = await MongoMemoryServer.create({
+    binary: {
+      downloadDir: './tmp/mongodb-binaries',
+      downloadTimeout: 60000,
+    },
+  });
+
   const mongoUri = mongoServer.getUri();
 
-  // Connect to the in-memory database
-  await mongoose.connect(mongoUri);
+  await mongoose.connect(mongoUri, {
+    dbName: 'jest',
+  });
 
-  // Set test environment variables
+  // Test env vars
   process.env.JWT_SECRET = 'test-jwt-secret-key';
-  // Do not set MAILJET keys to prevent email sending in tests
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.CLEANUP_TIME = '30';
   process.env.CRON_SCHEDULE = '*/30 * * * *';
-}, 30000);
+});
 
-// Cleanup after each test
 afterEach(async () => {
   const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany({});
+  for (const key of Object.keys(collections)) {
+    await collections[key].deleteMany({});
   }
-}, 30000);
+});
 
-// Teardown after all tests
 afterAll(async () => {
   await mongoose.disconnect();
   if (mongoServer) {
     await mongoServer.stop();
   }
-}, 30000);
+});
 
-// Global test timeout
-jest.setTimeout(10000);
-
-// Suppress console logs during tests (optional)
+// Optional: silence logs
 global.console = {
   ...console,
   log: jest.fn(),
