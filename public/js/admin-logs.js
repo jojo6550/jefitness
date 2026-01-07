@@ -278,12 +278,13 @@ class AdminLogsManager {
             debug: 0
         };
 
-        // Count logs by level
-        stats.forEach(stat => {
-            if (counters.hasOwnProperty(stat._id)) {
-                counters[stat._id] = stat.count;
-            }
-        });
+        // Use stats.byLevel to set counters
+        if (stats.byLevel) {
+            counters.error = stats.byLevel.error || 0;
+            counters.warn = stats.byLevel.warn || 0;
+            counters.info = stats.byLevel.info || 0;
+            counters.debug = stats.byLevel.debug || 0;
+        }
 
         // Update DOM
         document.getElementById('errorCount').textContent = counters.error;
