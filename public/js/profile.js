@@ -113,6 +113,9 @@ const API_BASE_URL = isLocalhost
             const data = await response.json();
             showMessage('Profile updated successfully.');
 
+            // Dispatch event so medical-documents.js can save medical info
+            window.dispatchEvent(new Event('profileFormSubmitted'));
+
         } catch (error) {
             showMessage(error.message, 'danger');
         }

@@ -67,6 +67,14 @@
       </div>
     </div>
 
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="agreeTerms" name="agreeTerms" required>
+      <label class="form-check-label" for="agreeTerms">
+        I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal" class="text-primary">Terms of Service, Privacy Policy, and Disclaimer</a>
+      </label>
+      <div id="agreeTermsError" class="d-none invalid-feedback">Please accept the terms to continue.</div>
+    </div>
+
     <button type="submit" class="btn btn-signup">Sign Up</button>
   </form>
 
@@ -85,6 +93,142 @@
   </div>
 </div>
 
+<!-- Terms of Service, Privacy Policy & Disclaimer Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="termsModalLabel">Terms of Service, Privacy Policy & Disclaimer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mb-3" id="termsTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="terms-tab" data-bs-toggle="tab" data-bs-target="#termsContent" type="button" role="tab" aria-controls="termsContent" aria-selected="true">
+              <i class="bi bi-file-earmark-text me-2"></i>Terms of Service
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="privacy-tab" data-bs-toggle="tab" data-bs-target="#privacyContent" type="button" role="tab" aria-controls="privacyContent" aria-selected="false">
+              <i class="bi bi-shield-lock me-2"></i>Privacy Policy
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="disclaimer-tab" data-bs-toggle="tab" data-bs-target="#disclaimerContent" type="button" role="tab" aria-controls="disclaimerContent" aria-selected="false">
+              <i class="bi bi-exclamation-triangle me-2"></i>Disclaimer
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="termsTabContent">
+          <!-- Terms of Service Tab -->
+          <div class="tab-pane fade show active" id="termsContent" role="tabpanel" aria-labelledby="terms-tab">
+            <div class="terms-section">
+              <h6 class="fw-bold mb-3">1. Acceptance of Terms</h6>
+              <p class="small mb-3">By accessing and using JE Fitness, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.</p>
+
+              <h6 class="fw-bold mb-3">2. Description of Service</h6>
+              <p class="small mb-3">JE Fitness provides a comprehensive fitness platform including workout programs, nutrition tracking, appointment scheduling, and personalized fitness coaching.</p>
+
+              <h6 class="fw-bold mb-3">3. User Accounts</h6>
+              <p class="small mb-2"><strong>Account Creation:</strong></p>
+              <ul class="small mb-3">
+                <li>You must provide accurate and complete information when creating an account</li>
+                <li>You are responsible for maintaining the confidentiality of your account credentials</li>
+                <li>You must be at least 13 years old to use our services</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">4. Acceptable Use Policy</h6>
+              <p class="small mb-2">You agree not to use the service to:</p>
+              <ul class="small mb-3">
+                <li>Violate any applicable laws or regulations</li>
+                <li>Infringe on the rights of others</li>
+                <li>Transmit harmful, offensive, or inappropriate content</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">5. Fitness and Health Disclaimer</h6>
+              <div class="alert alert-warning alert-sm p-2 mb-3">
+                <small><strong>Important:</strong> Our fitness programs are not a substitute for professional medical advice. Always consult with a qualified healthcare provider before starting any fitness program.</small>
+              </div>
+
+              <p class="small mb-0">You acknowledge that fitness activities carry inherent risks. You assume all risks and agree to release JE Fitness from liability.</p>
+            </div>
+          </div>
+
+          <!-- Privacy Policy Tab -->
+          <div class="tab-pane fade" id="privacyContent" role="tabpanel" aria-labelledby="privacy-tab">
+            <div class="terms-section">
+              <h6 class="fw-bold mb-3">1. Introduction</h6>
+              <p class="small mb-3">JE Fitness is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information.</p>
+
+              <h6 class="fw-bold mb-3">2. Information We Collect</h6>
+              <p class="small mb-2"><strong>Personal Information:</strong></p>
+              <ul class="small mb-3">
+                <li>Name, email address, and contact information</li>
+                <li>Account credentials and profile information</li>
+                <li>Payment information (processed securely)</li>
+                <li>Fitness goals, health metrics, and workout data</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">3. How We Use Your Information</h6>
+              <ul class="small mb-3">
+                <li>Provide and maintain our fitness services</li>
+                <li>Process payments and manage subscriptions</li>
+                <li>Personalize your experience and recommendations</li>
+                <li>Communicate with you about your account</li>
+                <li>Ensure security and prevent fraud</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">4. Information Sharing and Disclosure</h6>
+              <p class="small mb-2">We do not sell your personal information except:</p>
+              <ul class="small mb-3">
+                <li>Service Providers who assist in operating our platform</li>
+                <li>When required by law</li>
+                <li>With your explicit consent</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">5. Data Security</h6>
+              <p class="small mb-0">We implement appropriate measures to protect your information against unauthorized access and disclosure.</p>
+            </div>
+          </div>
+
+          <!-- Disclaimer Tab -->
+          <div class="tab-pane fade" id="disclaimerContent" role="tabpanel" aria-labelledby="disclaimer-tab">
+            <div class="terms-section">
+              <h6 class="fw-bold mb-3">Medical Disclaimer</h6>
+              <div class="alert alert-warning alert-sm p-2 mb-3">
+                <small><strong>Important Health Notice:</strong> JE Fitness provides fitness programs for informational purposes only and are not a substitute for professional medical advice.</small>
+              </div>
+
+              <h6 class="fw-bold mb-3">Consult Healthcare Provider Before:</h6>
+              <ul class="small mb-3">
+                <li>Starting any new fitness program</li>
+                <li>Changing your diet or nutrition habits</li>
+                <li>If you have pre-existing medical conditions</li>
+                <li>If you are pregnant, nursing, or taking medications</li>
+              </ul>
+
+              <h6 class="fw-bold mb-3">Assumption of Risk</h6>
+              <p class="small mb-3">Physical fitness activities carry inherent risks including muscle soreness, strains, sprains, and in rare cases, serious injury. You assume full responsibility for injuries from using our services.</p>
+
+              <h6 class="fw-bold mb-3">Release of Liability</h6>
+              <p class="small mb-3">You release JE Fitness from any claims or actions arising from your participation in fitness programs.</p>
+
+              <h6 class="fw-bold mb-3">Individual Results Vary</h6>
+              <p class="small mb-0">Results vary based on individual factors. JE Fitness cannot guarantee specific results.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Decline</button>
+        <button type="button" class="btn btn-primary" id="acceptTermsBtn">Accept & Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/auth.js"></script>

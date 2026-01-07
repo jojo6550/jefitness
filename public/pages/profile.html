@@ -136,6 +136,62 @@
                 </div>
             </div>
 
+            <div class="col-12">
+                <div class="profile-card">
+                    <h3 class="mb-4"><i class="bi bi-file-medical me-2"></i>Medical Documents & Health Information</h3>
+                    <div class="mb-3">
+                        <label class="form-label">Do you have any medical conditions?</label>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input" id="hasMedicalNo" name="hasMedical" value="no" checked>
+                            <label class="form-check-label" for="hasMedicalNo">No</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" class="form-check-input" id="hasMedicalYes" name="hasMedical" value="yes">
+                            <label class="form-check-label" for="hasMedicalYes">Yes</label>
+                        </div>
+                        <small class="form-text text-muted d-block mt-2">Please inform us if you have any medical conditions so we can provide appropriate guidance.</small>
+                    </div>
+
+                    <div id="medicalDocumentsSection" style="display: none;">
+                        <div class="mb-3">
+                            <label for="medicalConditions" class="form-label">Medical Conditions</label>
+                            <textarea class="form-control" id="medicalConditions" rows="3" placeholder="E.g. Asthma, heart condition, diabetes, joint issues, etc."></textarea> 
+                            <small class="form-text text-muted">Describe any medical conditions we should know about.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Upload Medical Documents</label>
+                            <p class="small text-muted mb-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Upload medical records, doctor's notes, or health reports (PDF, DOC, DOCX, JPG, PNG). Max 5MB per file.
+                            </p>
+                            
+                            <!-- Drag & Drop Zone -->
+                            <div id="uploadDropZone" class="medical-upload-zone">
+                                <div class="text-center py-4">
+                                    <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
+                                    <p class="mb-2"><strong>Drag & drop your files here</strong></p>
+                                    <p class="text-muted small mb-3">or</p>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="browseFilesBtn">Browse Files</button>
+                                    <input type="file" id="medicalFileInput" style="display: none;" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                </div>
+                            </div>
+
+                            <!-- Upload Progress Container -->
+                            <div id="uploadProgressContainer" style="display: none;" class="mt-3">
+                                <div class="progress mb-2">
+                                    <div id="uploadProgressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                </div>
+                                <small id="uploadStatus" class="text-muted">Preparing upload...</small>
+                            </div>
+
+                            <!-- Uploaded Files List -->
+                            <div id="uploadedFilesList" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12 text-center mt-4">
                 <button type="submit" class="btn btn-primary btn-lg px-5"><i class="bi bi-save me-2"></i>Save Changes</button>
             </div>
@@ -145,6 +201,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/navbar-loader.js"></script>
     <script src="../js/profile.js" defer></script>
+    <script src="../js/medical-documents.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="../js/bmi.js" defer></script>
 </body>

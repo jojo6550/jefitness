@@ -508,6 +508,206 @@ footer {
     font-weight: 500;
 }
 
+/* Terms Modal Styling */
+#termsModal .modal-content {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+#termsModal .modal-header {
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+#termsModal .modal-title {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+#termsModal .btn-close {
+    filter: invert(1);
+}
+
+#termsModal .nav-tabs {
+    border-bottom: 1px solid var(--border-color);
+}
+
+#termsModal .nav-tabs .nav-link {
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+}
+
+#termsModal .nav-tabs .nav-link.active {
+    color: var(--primary-accent);
+    border-bottom-color: var(--primary-accent);
+    background-color: transparent;
+}
+
+#termsModal .nav-tabs .nav-link:hover {
+    color: var(--text-primary);
+}
+
+#termsModal .terms-section {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+#termsModal .terms-section h6 {
+    color: var(--primary-accent);
+}
+
+#termsModal .terms-section p,
+#termsModal .terms-section li {
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+#termsModal .alert-sm {
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.875rem;
+}
+
+#termsModal .modal-footer {
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+}
+
+/* Agreement checkbox styling */
+.form-check {
+    padding-left: 1.5rem;
+}
+
+.form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+    margin-top: 0.25em;
+    accent-color: var(--primary-accent);
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+}
+
+.form-check-input:focus {
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.15);
+}
+
+.form-check-input.is-invalid {
+    border-color: #dc3545;
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.form-check-label a {
+    text-decoration: none;
+}
+
+.form-check-label a:hover {
+    text-decoration: underline;
+}
+
+/* Medical Documents Upload Styling */
+.medical-upload-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-lg);
+    background-color: rgba(0, 210, 255, 0.05);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.medical-upload-zone:hover,
+.medical-upload-zone.dragover {
+    border-color: var(--primary-accent);
+    background-color: rgba(0, 210, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 210, 255, 0.15);
+}
+
+.medical-file-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 0.75rem;
+    transition: var(--transition-base);
+}
+
+.medical-file-item:hover {
+    background-color: var(--bg-card);
+    border-color: var(--primary-accent);
+}
+
+.medical-file-icon {
+    font-size: 1.5rem;
+    margin-right: 1rem;
+    color: var(--primary-accent);
+    min-width: 40px;
+}
+
+.medical-file-info {
+    flex: 1;
+}
+
+.medical-file-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.medical-file-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.medical-file-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.medical-file-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+.medical-file-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+.medical-file-status.uploading {
+    color: var(--primary-accent);
+}
+
+.medical-file-status.success {
+    color: #28a745;
+}
+
+.medical-file-status.error {
+    color: #dc3545;
+}
+
+.medical-upload-spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(0, 210, 255, 0.3);
+    border-top: 2px solid var(--primary-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
 /* Responsive Design */
 @media (max-width: 576px) {
     .login-form, .signup-form, .otp-form {
@@ -517,5 +717,27 @@ footer {
 
     .login-form h2, .signup-form h2, .otp-form h2 {
         font-size: 1.5rem;
+    }
+
+    #termsModal .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    #termsModal .terms-section {
+        max-height: 300px;
+    }
+
+    .medical-file-item {
+        flex-wrap: wrap;
+    }
+
+    .medical-file-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 0.75rem;
+    }
+
+    .medical-upload-zone {
+        padding: 1.5rem;
     }
 }

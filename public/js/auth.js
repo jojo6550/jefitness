@@ -113,6 +113,24 @@ const baseUrl = isLocalhost
     });
   }
 
+  // SIGNUP - Terms Modal Handler
+  const termsModal = document.getElementById('termsModal');
+  const agreeTermsCheckbox = document.getElementById('agreeTerms');
+  const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+
+  if (acceptTermsBtn) {
+    acceptTermsBtn.addEventListener('click', () => {
+      // Check the checkbox and close the modal
+      agreeTermsCheckbox.checked = true;
+      const modal = bootstrap.Modal.getInstance(termsModal);
+      modal.hide();
+      
+      // Remove validation error if it exists
+      agreeTermsCheckbox.classList.remove('is-invalid');
+      document.getElementById('agreeTermsError').classList.add('d-none');
+    });
+  }
+
   // SIGNUP
   if (signupForm) {
     // Password requirements checker
@@ -279,7 +297,17 @@ const baseUrl = isLocalhost
       const isPasswordValid = validateSignupPassword();
       const isConfirmPasswordValid = validateConfirmPassword();
 
-      if (!isFirstNameValid || !isLastNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
+      // Validate terms acceptance
+      const isTermsAccepted = agreeTermsCheckbox.checked;
+      if (!isTermsAccepted) {
+        agreeTermsCheckbox.classList.add('is-invalid');
+        document.getElementById('agreeTermsError').classList.remove('d-none');
+      } else {
+        agreeTermsCheckbox.classList.remove('is-invalid');
+        document.getElementById('agreeTermsError').classList.add('d-none');
+      }
+
+      if (!isFirstNameValid || !isLastNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsAccepted) {
         return;
       }
 

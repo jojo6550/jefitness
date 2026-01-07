@@ -108,7 +108,20 @@ const UserSchema = new mongoose.Schema({
     ],
  
     // Push notification subscription
-    pushSubscription: { type: Object }
+    pushSubscription: { type: Object },
+
+    // Medical documents and health information
+    hasMedical: { type: Boolean, default: false },
+    medicalConditions: { type: String },
+    medicalDocuments: [
+        {
+            filename: { type: String, required: true },
+            originalName: { type: String },
+            size: { type: Number },
+            uploadedAt: { type: Date, default: Date.now },
+            mimeType: { type: String }
+        }
+    ]
 });
 
 module.exports = mongoose.model('User', UserSchema);
