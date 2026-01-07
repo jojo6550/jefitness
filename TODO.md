@@ -1,22 +1,18 @@
-# TODO: Remove Quantity from Program Purchase Logic
+# Cart Redesign Task
 
-## Backend Changes
-- [x] Update Cart model to remove quantity field
-- [x] Modify cart.js add route to always set quantity to 1 and prevent duplicates
-- [x] Remove update quantity route from cart.js
-- [x] Update orders.js to remove quantity from order items and simplify calculations
-- [x] Update Order model to remove quantity field
+## Completed Tasks
+- [x] Analyze cart.html and cart.js to understand current structure
+- [x] Review styles.css for color scheme variables
+- [x] Add custom CSS rules for cart items to match dark theme
 
-## Test Updates
-- [ ] Update cart.test.js to match new logic (remove quantity tests)
-- [ ] Update checkout-flow.test.js to remove quantity handling
-- [ ] Update other relevant test files
+## Pending Tasks
+- [ ] Test the changes by viewing the cart page
+- [ ] Ensure all elements remain visible and aesthetic
+- [ ] Verify responsiveness on different screen sizes
 
-## Frontend Updates
-- [x] Update public/js/cart.js to remove quantity UI and handlers
-- [ ] Update public/js/checkout.js to remove quantity handling
-- [ ] Update other frontend JS files as needed
-
-## Verification
-- [ ] Run tests to ensure changes work
-- [ ] Check frontend UI for quantity inputs to remove
+## Notes
+- Cart items now use --bg-card background instead of light Bootstrap default
+- Text colors adjusted to use --text-primary and --text-muted
+- Badges use --bg-secondary background
+- Hover effects added for better UX
+- Remove button styling preserved for visibility
