@@ -187,6 +187,112 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 2.5rem;
 }
 
+/* --- Trainer Specific --- */
+.trainer-card {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.trainer-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(0, 210, 255, 0.3);
+}
+
+.trainer-image {
+    width: 120px;
+    height: 180px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 4px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.trainer-details {
+    flex-grow: 1;
+}
+
+.trainer-details h3 {
+    color: var(--primary-accent);
+    font-weight: 600;
+}
+
+.trainer-details .bio {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.badges {
+    margin-bottom: 15px;
+}
+
+.badge {
+    display: inline-block;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
+
+.certifications {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Contact Section */
+.contact-section {
+    background-color: var(--bg-secondary);
+}
+
+.contact-form {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 30px;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.contact-form .btn-primary {
+    background-color: var(--primary-accent);
+    border-color: var(--primary-accent);
+    font-weight: bold;
+}
+
+.contact-form .btn-primary:hover {
+    background-color: #fff;
+    border-color: #fff;
+    color: var(--primary-accent);
+}
+
+/* Responsive Design for Trainers */
+@media (min-width: 992px) {
+    .trainer-card {
+        flex-direction: row;
+        text-align: left;
+    }
+
+    .trainer-image {
+        margin-right: 20px;
+        margin-bottom: 0;
+    }
+}
+
 /* --- Utility Classes --- */
 .bg-secondary-dark { background-color: var(--bg-secondary) !important; }
 .z-index-11 { z-index: 11; }
