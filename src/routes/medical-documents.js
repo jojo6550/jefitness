@@ -188,22 +188,32 @@ router.get('/download/:filename', auth, async (req, res) => {
     try {
         const { filename } = req.params;
 
-        // Verify user owns this document
-        const user = await User.findById(req.user.id);
-        if (!user) {
+        // Get current user
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser) {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        const docExists = user.medicalDocuments.some(doc => doc.filename === filename);
-        if (!docExists) {
-            return res.status(403).json({ msg: 'Access denied' });
+        // If user is admin, allow downloading any document
+        // Otherwise, verify user owns this document
+        if (currentUser.role !== 'admin') {
+            const docExists = currentUser.medicalDocuments.some(doc => doc.filename === filename);
+            if (!docExists) {
+                return res.status(403).json({ msg: 'Access denied - document not found in your account' });
+            }
+        } else {
+            // For admins, verify the document exists somewhere in the system
+            const docExists = await User.findOne({ 'medicalDocuments.filename': filename });
+            if (!docExists) {
+                return res.status(404).json({ msg: 'Document not found in system' });
+            }
         }
 
         const filePath = path.join(uploadsDir, filename);
 
-        // Verify file exists
+        // Verify file exists on disk
         if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ msg: 'File not found' });
+            return res.status(404).json({ msg: 'File not found on server' });
         }
 
         res.download(filePath);

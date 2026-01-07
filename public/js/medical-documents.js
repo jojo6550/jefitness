@@ -306,9 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hook into profile form submission to save medical data
     const userProfileForm = document.getElementById('userProfileForm');
-    const originalSubmitHandler = userProfileForm.onsubmit;
-
-    userProfileForm.addEventListener('submit', async (e) => {
+    
+    if (userProfileForm) {
+        userProfileForm.addEventListener('submit', async (e) => {
         // Get medical data before form submission
         const hasMedical = document.getElementById('hasMedicalYes').checked ? 'yes' : 'no';
         const medicalConditionsValue = medicalConditions.value.trim() || null;
@@ -330,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error saving medical info:', error);
         }
-    });
+        });
+    }
 
     // Load medical data on page load
     loadMedicalData();
