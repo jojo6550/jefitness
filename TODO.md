@@ -25,3 +25,33 @@ Enhance button interactions and loading states with animations to improve user e
 ### 4. Finalize
 - [ ] Update any dependent files if needed
 - [ ] Ensure no conflicts with existing styles
+
+---
+
+# TODO: Create Separate Trainer Dashboard
+
+## Plan Overview
+Create a dedicated dashboard for trainers with relevant features and metrics.
+
+## Steps to Complete
+
+### 1. Create Trainer Dashboard Page
+- [ ] Create public/pages/trainer-dashboard.html with trainer-specific layout
+- [ ] Design trainer-focused metrics and charts
+- [ ] Add trainer-specific navigation and menu items
+
+### 2. Implement Trainer Dashboard Functionality
+- [ ] Create public/js/trainer-dashboard.js for dashboard logic
+- [ ] Add trainer-specific API endpoints in src/routes/
+- [ ] Implement trainer client management features
+- [ ] Add workout planning and tracking tools
+
+### 3. Update Authentication and Routing
+- [ ] Modify role-based access to include trainer role
+- [ ] Update navigation to show trainer dashboard for trainer users
+- [ ] Ensure proper authorization for trainer-specific features
+
+### 4. Test and Refine
+- [ ] Test trainer dashboard functionality
+- [ ] Ensure responsive design works on mobile and desktop
+- [ ] Validate trainer-specific features and permissions
