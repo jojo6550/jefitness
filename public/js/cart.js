@@ -69,7 +69,7 @@ function displayCart(cart) {
         const frequency = item.program?.frequency ?? 'N/A';
         const sessionLength = item.program?.sessionLength ?? 'N/A';
 
-        const itemTotal = (item.price || 0) * (item.quantity || 0);
+        const itemTotal = item.price || 0;
         subtotal += itemTotal;
 
         const cartItemHtml = `
@@ -84,25 +84,11 @@ function displayCart(cart) {
                             <span class="badge bg-info">${sessionLength}</span>
                         </div>
                     </div>
-                    <div class="col-md-2 text-center mt-3 mt-md-0">
-                        <label class="form-label small text-muted">Quantity</label>
-                        <div class="input-group input-group-sm max-w-120 mx-auto">
-                            <button class="btn btn-outline-secondary decrease-qty" type="button" data-item-id="${item._id}" data-quantity="${item.quantity - 1}">
-                                <i class="bi bi-dash"></i>
-                            </button>
-                            <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
-                            <button class="btn btn-outline-secondary increase-qty" type="button" data-item-id="${item._id}" data-quantity="${item.quantity + 1}">
-                                <i class="bi bi-plus"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-center mt-3 mt-md-0">
+                    <div class="col-md-3 text-center mt-3 mt-md-0">
                         <label class="form-label small text-muted">Price</label>
                         <p class="mb-0 fw-bold">$${(item.price || 0).toFixed(2)}</p>
                     </div>
-                    <div class="col-md-2 text-end mt-3 mt-md-0">
-                        <label class="form-label small text-muted">Total</label>
-                        <p class="mb-2 fw-bold text-primary">$${itemTotal.toFixed(2)}</p>
+                    <div class="col-md-3 text-end mt-3 mt-md-0">
                         <button class="btn btn-sm btn-outline-danger remove-item" data-item-id="${item._id}">
                             <i class="bi bi-trash"></i> Remove
                         </button>
@@ -225,11 +211,7 @@ function displayCart(cart) {
         const target = e.target.closest('button');
         if (!target) return;
 
-        if (target.classList.contains('decrease-qty') || target.classList.contains('increase-qty')) {
-            const itemId = target.dataset.itemId;
-            const quantity = parseInt(target.dataset.quantity);
-            updateQuantity(itemId, quantity);
-        } else if (target.classList.contains('remove-item')) {
+        if (target.classList.contains('remove-item')) {
             const itemId = target.dataset.itemId;
             removeItem(itemId);
         }

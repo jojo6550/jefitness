@@ -57,18 +57,15 @@ router.post('/add', auth, async (req, res) => {
         );
 
         if (existingItemIndex > -1) {
-            // Update quantity
-            const oldQuantity = cart.items[existingItemIndex].quantity;
-            cart.items[existingItemIndex].quantity += quantity;
-            console.log(`User action: cart_item_updated | UserId: ${req.user.id} | ProgramId: ${programId} | OldQuantity: ${oldQuantity} | NewQuantity: ${cart.items[existingItemIndex].quantity}`);
+            console.log(`User action: cart_add_failed | UserId: ${req.user.id} | ProgramId: ${programId} | Reason: Program already in cart`);
+            return res.status(400).json({ msg: 'Program already in cart. Only one copy allowed per program.' });
         } else {
-            // Add new item
+            // Add new item with quantity 1
             cart.items.push({
                 program: programId,
-                quantity,
                 price: program.price
             });
-            console.log(`User action: cart_item_added | UserId: ${req.user.id} | ProgramId: ${programId} | Quantity: ${quantity} | Price: ${program.price}`);
+            console.log(`User action: cart_item_added | UserId: ${req.user.id} | ProgramId: ${programId} | Price: ${program.price}`);
         }
 
         await cart.save();
@@ -143,7 +140,7 @@ router.delete('/remove/:itemId', auth, async (req, res) => {
         await cart.save();
         await cart.populate('items.program');
 
-        console.log(`User action: cart_item_removed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | ProgramId: ${itemToRemove.program} | Quantity: ${itemToRemove.quantity}`);
+        console.log(`User action: cart_item_removed | UserId: ${req.user.id} | ItemId: ${req.params.itemId} | ProgramId: ${itemToRemove.program}`);
         res.json(cart);
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: Remove item from cart | UserId: ${req.user.id} | ItemId: ${req.params.itemId}`);
