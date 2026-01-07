@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JE Fitness | Level Up</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="./styles/styles.css">
+    <!-- App version for cache busting -->
+    <meta name="app-version" content="1.0.0">
+</head>
+
+<body class="home-page">
+
+    <!-- Cookie Consent Banner -->
+    <div id="cookie-consent-banner" class="cookie-consent-banner hidden-state">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <p class="mb-0">
+                        <i class="bi bi-cookie me-2"></i>
+                        We use cookies to enhance your experience. By continuing to use our site, you agree to our
+                        <a href="./pages/privacy-policy.html" class="text-primary">Privacy Policy</a> and
+                        <a href="./pages/terms-of-service.html" class="text-primary">Terms of Service</a>.
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button id="accept-cookies" class="btn btn-primary btn-sm me-2">Accept All</button>
+                    <button id="decline-cookies" class="btn btn-outline-secondary btn-sm">Decline</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-800" href="index.html">JE <span class="accent">FITNESS</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item me-3"><a class="nav-link active" href="index.html">Home</a></li>
+                    <li class="nav-item me-3"><a class="nav-link" href="./pages/login.html">Login</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-outline-info me-lg-3 px-4" href="./pages/signup.html">Sign Up</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero d-flex align-items-center justify-content-center text-center">
+        <div class="hero-content position-relative z-1 px-3">
+            <h1 class="display-2 fw-bold mb-3 animate__animated animate__fadeInDown">LEVEL UP YOUR <br><span class="accent">FITNESS</span></h1>
+            <p class="lead mb-5 animate__animated animate__fadeInUp mx-auto max-w-600">Personal training designed for real results and lasting transformation. Join the elite.</p>
+            <a href="#questionnaire" class="btn btn-primary btn-lg animate__animated animate__zoomIn">Get Started Today <i class="bi bi-arrow-right ms-2"></i></a>
+        </div>
+    </header>
+
+    <section id="services" class="container py-5 mt-5">
+        <div class="text-center mb-5">
+            <h2 class="display-5 fw-bold mb-3">Premium Services</h2>
+            <div class="services-divider"></div>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card card h-100 p-3">
+                    <div class="card-body text-center">
+                        <i class="bi bi-lightning-charge display-4 text-info mb-3"></i>
+                        <h5 class="card-title fw-bold">Strength Training</h5>
+                        <p class="text-muted">Build muscle, increase your performance, and sculpt your physique with expert-led routines.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card card h-100 p-3">
+                    <div class="card-body text-center">
+                        <i class="bi bi-fire display-4 text-danger mb-3"></i>
+                        <h5 class="card-title fw-bold">Weight Loss</h5>
+                        <p class="text-muted">Burn fat and boost energy through science-based workouts and nutrition guidance.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="service-card card h-100 p-3">
+                    <div class="card-body text-center">
+                        <i class="bi bi-heart-pulse display-4 text-success mb-3"></i>
+                        <h5 class="card-title fw-bold">Recovery Therapy</h5>
+                        <p class="text-muted">Release tension and improve recovery with professional massage and mobility work.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="products-showcase" class="py-5 bg-secondary-dark">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold mb-3">True Biotics</h2>
+                <p class="text-muted">Natural supplements to fuel your journey.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="product-card card h-100 border-0 shadow-lg">
+                        <div class="card-body p-4 text-center">
+                            <div class="rounded-circle bg-dark d-inline-block p-4 mb-3">
+                                <i class="bi bi-droplet-fill fs-1 product-icon"></i>
+                            </div>
+                            <h5 class="fw-bold">Seamoss Gel</h5>
+                            <p class="small text-muted mb-4">Rich in 92/102 essential minerals your body needs.</p>
+                            <a href="./pages/products.html" class="btn btn-outline-info w-100">Shop Now</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="product-card card h-100 border-0 shadow-lg">
+                        <div class="card-body p-4 text-center">
+                            <div class="rounded-circle bg-dark d-inline-block p-4 mb-3">
+                                <i class="bi bi-cup-straw fs-1 text-success"></i>
+                            </div>
+                            <h5 class="fw-bold">Coconut Water</h5>
+                            <p class="small text-muted mb-4">Hydrating and refreshing, naturally rich in electrolytes.</p>
+                            <a href="./pages/products.html" class="btn btn-outline-info w-100">Shop Now</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="product-card card h-100 border-0 shadow-lg">
+                        <div class="card-body p-4 text-center">
+                            <div class="rounded-circle bg-dark d-inline-block p-4 mb-3">
+                                <i class="bi bi-egg-fried fs-1 text-warning"></i>
+                            </div>
+                            <h5 class="fw-bold">Coconut Jelly</h5>
+                            <p class="small text-muted mb-4">Delicious and nutritious, a great snack for energy boost.</p>
+                            <a href="./pages/products.html" class="btn btn-outline-info w-100">Shop Now</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-5 mt-5">
+        <div class="container text-center">
+            <h3 class="fw-bold mb-4">JE <span class="accent">FITNESS</span></h3>
+            <div class="d-flex justify-content-center gap-4 mb-4">
+                <a href="#" class="text-white fs-3"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="text-white fs-3"><i class="bi bi-whatsapp"></i></a>
+                <a href="#" class="text-white fs-3"><i class="bi bi-envelope-at"></i></a>
+            </div>
+            <p class="text-muted small">&copy; 2025 JE Fitness. Engineered for Excellence.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Cache busting helper - runs before other scripts -->
+    <script src="./js/cache-version.js"></script>
+    <script src="./js/cookie-consent.js"></script>
+    <script src="./js/app.js"></script>
+    <script src="./js/questionnaire.js"></script>
+</body>
+</html>
