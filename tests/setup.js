@@ -18,7 +18,7 @@ beforeAll(async () => {
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.CLEANUP_TIME = '30';
   process.env.CRON_SCHEDULE = '*/30 * * * *';
-});
+}, 30000);
 
 // Cleanup after each test
 afterEach(async () => {
@@ -27,13 +27,15 @@ afterEach(async () => {
     const collection = collections[key];
     await collection.deleteMany({});
   }
-});
+}, 30000);
 
 // Teardown after all tests
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
-});
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
+}, 30000);
 
 // Global test timeout
 jest.setTimeout(10000);

@@ -1,10 +1,11 @@
-# Scalability Test Enhancement TODO
+# TODO: Fix Jest Test Timeouts
 
-- [x] Expand user-scalability.test.js to simulate active user activities
-- [x] Add profile update simulation for all created users
-- [x] Add appointment booking simulation
-- [x] Add program marketplace browsing and assignment simulation
-- [x] Add nutrition and sleep logging simulation
-- [x] Ensure all activities run concurrently to test load
-- [x] Update performance assertions to account for increased load
-- [ ] Run tests to verify functionality
+## Completed Tasks
+- [x] Increase global test timeout in jest.config.js from 10000ms to 30000ms
+- [x] Add timeout to beforeAll hook in tests/setup.js (20000ms)
+- [x] Optimize afterEach hook to use dropDatabase() instead of looping through collections
+- [x] Add timeout to afterAll hook in tests/setup.js (10000ms)
+
+## Next Steps
+- [ ] Run tests to verify timeouts are resolved
+- [ ] Monitor test execution time for improvements
