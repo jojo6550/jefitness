@@ -179,8 +179,8 @@ describe('Appointments Routes', () => {
         })
         .expect(201);
 
-      expect(response.body.clientId).toBe(clientUser._id.toString());
-      expect(response.body.trainerId).toBe(adminUser._id.toString());
+      expect(response.body.clientId._id.toString()).toBe(clientUser._id.toString());
+      expect(response.body.trainerId._id.toString()).toBe(adminUser._id.toString());
     });
 
     test('should reject booking without required fields', async () => {

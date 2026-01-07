@@ -143,9 +143,8 @@ router.get('/:id', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Appointment not found' });
         }
 
-        // Allow access if user is admin, client, or trainer
-        if (req.user.role !== 'admin' &&
-            appointment.clientId._id.toString() !== req.user.id &&
+        // Allow access if user is the client or trainer of the appointment
+        if (appointment.clientId._id.toString() !== req.user.id &&
             appointment.trainerId._id.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
@@ -192,13 +191,9 @@ router.post('/', auth, async (req, res) => {
         const appointmentDate = new Date(date);
         const [hours, minutes] = time.split(':').map(Number);
 
-        // Check if appointment is at least 1 hour in the future
-        const now = new Date();
-        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000); // Add 1 hour
-        const appointmentDateTime = new Date(appointmentDate);
-        appointmentDateTime.setHours(hours, minutes, 0, 0);
-
-        if (appointmentDateTime < oneHourFromNow) {
+        // Check if appointment is for today or past (reject same day bookings)
+        const todayUTCStr = new Date().toISOString().split('T')[0];
+        if (date <= todayUTCStr) {
             return res.status(400).json({ msg: 'Appointments must be booked at least 1 hour in advance' });
         }
 
@@ -210,29 +205,30 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ msg: 'Appointments are only available from 5:00 AM to 1:00 PM' });
         }
 
-        // Check the 6-client limit per fixed hour block
-        const hourBlock = `${hours.toString().padStart(2, '0')}:00`;
+        // Check the 6-client limit per exact time slot
         const MAX_CLIENTS_PER_SLOT = 6;
 
         const existingAppointments = await Appointment.find({
             trainerId,
             date: appointmentDate,
-            time: {
-                $gte: hourBlock,
-                $lt: `${(hours + 1).toString().padStart(2, '0')}:00`
-            },
+            time: time,
             status: { $ne: 'cancelled' }
         });
 
         // Check if time slot is full (max 6 clients per slot)
         if (existingAppointments.length >= MAX_CLIENTS_PER_SLOT) {
-            const formattedSlot = hours <= 12 ? `${hours}am-${hours + 1}am` : `${hours - 12}pm-${hours + 1 - 12}pm`;
-            return res.status(400).json({ msg: `Time slot ${formattedSlot} is fully booked. Only 6 clients per time slot.` });
+            return res.status(400).json({ msg: 'Time slot is fully booked' });
         }
 
-        // Check if this client already has an appointment in this time slot
-        const clientInSlot = existingAppointments.some(apt => apt.clientId.toString() === clientId);
-        if (clientInSlot) {
+        // Check if this client already has an appointment at this exact date and time (across all trainers)
+        const clientExisting = await Appointment.findOne({
+            clientId,
+            date: appointmentDate,
+            time: time,
+            status: { $ne: 'cancelled' }
+        });
+
+        if (clientExisting) {
             return res.status(400).json({ msg: 'You already have an appointment in this time slot' });
         }
 
@@ -282,9 +278,8 @@ router.put('/:id', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Appointment not found' });
         }
 
-        // Allow update if user is admin, trainer, or the client who owns the appointment
-        if (req.user.role !== 'admin' &&
-            appointment.trainerId.toString() !== req.user.id &&
+        // Allow update if user is the trainer or the client who owns the appointment
+        if (appointment.trainerId.toString() !== req.user.id &&
             appointment.clientId.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
@@ -342,9 +337,8 @@ router.delete('/:id', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Appointment not found' });
         }
 
-        // Allow delete if user is admin, trainer, or the client who owns the appointment
-        if (req.user.role !== 'admin' &&
-            appointment.trainerId.toString() !== req.user.id &&
+        // Allow delete if user is the trainer or the client who owns the appointment
+        if (appointment.trainerId.toString() !== req.user.id &&
             appointment.clientId.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Access denied' });
         }
