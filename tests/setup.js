@@ -1,6 +1,12 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
+// Import all models to register schemas
+require('../src/models/User');
+require('../src/models/Order');
+require('../src/models/Program');
+require('../src/models/Cart');
+
 // 🔴 Fail fast instead of buffering forever
 mongoose.set('bufferCommands', false);
 
@@ -22,6 +28,12 @@ beforeAll(async () => {
   await mongoose.connect(mongoUri, {
     dbName: 'jest',
   });
+
+  // Ensure indexes are created for unique constraints
+  await mongoose.model('User').createIndexes();
+  await mongoose.model('Order').createIndexes();
+  await mongoose.model('Program').createIndexes();
+  await mongoose.model('Cart').createIndexes();
 
   // Test env vars
   process.env.JWT_SECRET = 'test-jwt-secret-key';
