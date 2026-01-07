@@ -14,68 +14,96 @@ const app = express();
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
+// -----------------------------
 // Enhanced Security Headers with Helmet
+// -----------------------------
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      connectSrc: ["'self'", "https://api.mailjet.com"], // Allow Mailjet API
-      imgSrc: ["'self'", "data:", "https://via.placeholder.com", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"], // Block plugins like Flash
-      upgradeInsecureRequests: [], // Force HTTPS
-      blockAllMixedContent: [], // Block HTTP resources on HTTPS pages
-    },
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", 
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.mailjet.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https://via.placeholder.com",
+        "https://cdn.jsdelivr.net"
+      ],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+      blockAllMixedContent: []
+    }
   },
   hsts: {
-    maxAge: 31536000, // 1 year
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true
   },
-  noSniff: true, // X-Content-Type-Options: nosniff
-  xssFilter: true, // X-XSS-Protection
+  noSniff: true,
+  xssFilter: true,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  frameguard: { action: "deny" }, // X-Frame-Options: DENY
+  frameguard: { action: "deny" },
   permittedCrossDomainPolicies: { permittedPolicies: "none" }
 }));
 
+// -----------------------------
 // Middleware
+// -----------------------------
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(cors());
 
-// Import and use cache control middleware
+// Cache control middleware
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
 
-// Serve static files from the 'public' directory
+// Serve static files
 app.use(express.static("public"));
 
-// Connect to MongoDB
+// -----------------------------
+// MongoDB Connection
+// -----------------------------
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      family: 4 // Use IPv4, skip trying IPv6
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      family: 4
     });
     console.log('MongoDB Connected successfully');
 
-    // Enable slow query logging
     mongoose.set('debug', (collectionName, method, query, doc) => {
       const start = Date.now();
       setImmediate(() => {
         const duration = Date.now() - start;
-        if (duration > 100) { // Log queries slower than 100ms
+        if (duration > 100) {
           console.log(`Slow Query: ${collectionName}.${method} took ${duration}ms - Query: ${JSON.stringify(query)}`);
         }
       });
     });
 
-    // Basic monitoring hooks
     mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
     mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
     mongoose.connection.on('error', (err) => console.error('MongoDB connection error:', err));
@@ -87,12 +115,14 @@ const connectDB = async () => {
 };
 connectDB();
 
-// Import rate limiters
+// -----------------------------
+// Rate Limiters
+// -----------------------------
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-const PORT = 10000;
-
-// Define Routes
+// -----------------------------
+// Routes
+// -----------------------------
 const auth = require('./middleware/auth');
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/sleep', auth, apiLimiter, require('./routes/sleep'));
@@ -106,22 +136,24 @@ app.use('/api/programs', apiLimiter, require('./routes/programs'));
 app.use('/api/cart', auth, apiLimiter, require('./routes/cart'));
 app.use('/api/orders', auth, apiLimiter, require('./routes/orders'));
 
-// Serve frontend
+// Serve frontend for SPA routes
 app.use((req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
 });
 
-// Error handling middleware
+// -----------------------------
+// Error Handling Middleware
+// -----------------------------
 app.use((err, req, res, next) => {
-  console.error(`Error: ${err.message} | Context: Unhandled Server Error | Stack: ${err.stack}`);
+  console.error(`Error: ${err.message} | Stack: ${err.stack}`);
   if (res.headersSent) return next(err);
   res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
 });
 
-// Import User model for cleanup job
+// -----------------------------
+// Cleanup Job (Unverified Users)
+// -----------------------------
 const User = require('./models/User');
-
-// Schedule cleanup job to run every 30 minutes
 cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
   const maxRetries = 3;
   let attempt = 0;
@@ -138,49 +170,44 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
       if (result.deletedCount > 0) {
         console.log(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
       }
-      break; // Success, exit retry loop
+      break;
     } catch (err) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(`Error: ${err.message} | Context: Unverified accounts cleanup job | Stack: ${err.stack} | Attempts: ${attempt}`);
+        console.error(`Cleanup job failed after ${attempt} attempts: ${err.stack}`);
       } else {
-        console.warn(`Cleanup job failed (attempt ${attempt}/${maxRetries}), retrying in ${attempt * 2} seconds... Error: ${err.message}`);
-        await new Promise(resolve => setTimeout(resolve, attempt * 2000)); // Exponential backoff
+        console.warn(`Cleanup attempt ${attempt} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
       }
     }
   }
 });
 
-// Schedule daily backup at 2 AM
-cron.schedule('0 2 * * *', async () => {
+// -----------------------------
+// Backup and Archiving Jobs
+// -----------------------------
+cron.schedule('0 2 * * *', () => {
   console.log('Starting daily database backup...');
   const { exec } = require('child_process');
   exec('node scripts/backup.js', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Backup failed: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Backup stderr: ${stderr}`);
-    }
+    if (error) console.error(`Backup failed: ${error.message}`);
+    if (stderr) console.error(`Backup stderr: ${stderr}`);
     console.log(`Backup completed: ${stdout}`);
   });
 });
 
-// Schedule monthly archiving on the 1st at 3 AM
-cron.schedule('0 3 1 * *', async () => {
+cron.schedule('0 3 1 * *', () => {
   console.log('Starting monthly data archiving...');
   const { exec } = require('child_process');
   exec('node scripts/archive.js', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Archiving failed: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Archiving stderr: ${stderr}`);
-    }
+    if (error) console.error(`Archiving failed: ${error.message}`);
+    if (stderr) console.error(`Archiving stderr: ${stderr}`);
     console.log(`Archiving completed: ${stdout}`);
   });
 });
 
+// -----------------------------
+// Start Server
+// -----------------------------
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
