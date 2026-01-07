@@ -145,6 +145,13 @@ function displayCart(cart) {
             return;
         }
 
+        // Find the button and add loading state
+        const button = document.querySelector(`[data-item-id="${itemId}"] .remove-item`);
+        if (button) {
+            button.classList.add('btn-loading');
+            button.disabled = true;
+        }
+
         try {
             const res = await fetch(`${baseUrl}/api/cart/remove/${itemId}`, {
                 method: 'DELETE',
@@ -158,7 +165,7 @@ function displayCart(cart) {
             }
 
             const cart = await res.json();
-            
+
             if (cart.items.length === 0) {
                 emptyCart.style.display = 'block';
                 cartContent.style.display = 'none';
@@ -172,6 +179,12 @@ function displayCart(cart) {
         } catch (err) {
             console.error(err);
             showMessage('Error removing item', 'danger');
+        } finally {
+            // Remove loading state
+            if (button) {
+                button.classList.remove('btn-loading');
+                button.disabled = false;
+            }
         }
     };
 

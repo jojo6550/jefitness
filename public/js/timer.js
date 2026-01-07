@@ -5,6 +5,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetBtn = document.getElementById('resetBtn');
     const presetButtons = document.querySelectorAll('.timer-presets button');
 
+    // Add ripple effect to buttons
+    if (startPauseBtn) startPauseBtn.classList.add('btn-ripple');
+    if (resetBtn) resetBtn.classList.add('btn-ripple');
+    presetButtons.forEach(btn => btn.classList.add('btn-ripple'));
+
     // Custom Alert Modal elements
     const customAlertModal = new bootstrap.Modal(document.getElementById('customAlertModal'));
     const customAlertModalBody = document.getElementById('customAlertModalBody');
