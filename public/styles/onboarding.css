@@ -1,0 +1,397 @@
+/* Onboarding Page Styles */
+
+:root {
+    --onboarding-bg: var(--bg-main);
+    --onboarding-card: var(--bg-card);
+    --onboarding-accent: var(--primary-accent);
+}
+
+.onboarding-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--onboarding-bg) 0%, var(--bg-secondary) 100%);
+    padding: 2rem 1rem;
+}
+
+.onboarding-wrapper {
+    width: 100%;
+    max-width: 700px;
+    background: var(--onboarding-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.onboarding-progress {
+    padding: 2rem 2rem 1rem;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.progress-text {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.onboarding-step {
+    display: none;
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s ease;
+    min-height: 400px;
+}
+
+.onboarding-step.active {
+    display: block;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.step-content {
+    padding: 2.5rem;
+}
+
+.welcome-icon {
+    display: flex;
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 210, 255, 0.1);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.onboarding-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-primary);
+}
+
+.feature-item i {
+    font-size: 1.5rem;
+    color: var(--onboarding-accent);
+}
+
+.profile-form-mini,
+.medical-form-mini {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 1.5rem;
+}
+
+.profile-form-mini .form-label,
+.medical-form-mini .form-label {
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.profile-form-mini .form-control,
+.profile-form-mini .form-select,
+.medical-form-mini .form-control,
+.medical-form-mini .form-select {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.profile-form-mini .form-control:focus,
+.profile-form-mini .form-select:focus,
+.medical-form-mini .form-control:focus,
+.medical-form-mini .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--onboarding-accent);
+    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.15);
+    color: var(--text-primary);
+}
+
+.info-box {
+    background-color: rgba(0, 210, 255, 0.1);
+    border-left: 4px solid var(--onboarding-accent);
+    padding: 1rem;
+    border-radius: var(--border-radius-md);
+    color: var(--text-muted);
+}
+
+.info-box i {
+    color: var(--onboarding-accent);
+}
+
+.upload-zone-mini {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-base);
+}
+
+.upload-zone-mini:hover,
+.upload-zone-mini.dragover {
+    border-color: var(--onboarding-accent);
+    background-color: rgba(0, 210, 255, 0.05);
+}
+
+.upload-zone-mini i {
+    display: block;
+    font-size: 2rem;
+    color: var(--onboarding-accent);
+    margin-bottom: 0.5rem;
+}
+
+.upload-zone-mini p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.upload-zone-mini a {
+    color: var(--onboarding-accent);
+    text-decoration: none;
+}
+
+.upload-zone-mini a:hover {
+    text-decoration: underline;
+}
+
+.file-item {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+/* Feature Carousel */
+.feature-carousel {
+    position: relative;
+    min-height: 400px;
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+}
+
+.feature-card {
+    display: none;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 2rem;
+    text-align: center;
+    transition: opacity 0.3s ease;
+}
+
+.feature-card.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+}
+
+.feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.feature-card h4 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.feature-card p {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.feature-benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    display: inline-block;
+}
+
+.feature-benefits li {
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.feature-navigation {
+    margin-top: 2rem;
+}
+
+.feature-navigation button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.feature-counter {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Completion Screen */
+.complete-icon {
+    display: flex;
+    width: 140px;
+    height: 140px;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.onboarding-summary {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+}
+
+.summary-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.summary-item:last-child {
+    border-bottom: none;
+}
+
+.tips-box {
+    background-color: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    text-align: left;
+}
+
+.tip-item {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--onboarding-accent);
+}
+
+.tip-item:last-child {
+    margin-bottom: 0;
+}
+
+.tip-item strong {
+    color: var(--text-primary);
+    margin-right: 0.5rem;
+}
+
+/* Step Actions */
+.step-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: center;
+}
+
+.step-actions .btn {
+    min-width: 140px;
+    font-weight: 600;
+    border-radius: 50px;
+}
+
+.step-actions .btn-primary {
+    background: var(--gradient-primary);
+    border: none;
+    color: var(--text-on-accent);
+}
+
+.step-actions .btn-primary:hover {
+    background: linear-gradient(135deg, #fff, var(--primary-accent));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 210, 255, 0.4);
+}
+
+.step-actions .btn-outline-secondary {
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.step-actions .btn-outline-secondary:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .onboarding-wrapper {
+        border-radius: 0;
+        min-height: 100vh;
+        max-width: 100%;
+    }
+
+    .step-content {
+        padding: 1.5rem;
+    }
+
+    .onboarding-step {
+        min-height: auto;
+    }
+
+    .step-actions {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .step-actions .btn {
+        flex: 1;
+        min-width: auto;
+        font-size: 0.9rem;
+    }
+
+    .feature-carousel {
+        min-height: auto;
+        padding: 1.5rem;
+    }
+
+    .feature-card {
+        position: relative;
+        padding: 1.5rem;
+    }
+
+    .feature-navigation {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .feature-navigation button {
+        flex: 1;
+    }
+
+    .feature-counter {
+        flex: 0 0 80px;
+        text-align: center;
+    }
+}

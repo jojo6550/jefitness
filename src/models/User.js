@@ -121,7 +121,11 @@ const UserSchema = new mongoose.Schema({
             uploadedAt: { type: Date, default: Date.now },
             mimeType: { type: String }
         }
-    ]
+    ],
+
+    // Onboarding tracking
+    onboardingCompleted: { type: Boolean, default: false },
+    onboardingCompletedAt: { type: Date }
 });
 
 module.exports = mongoose.model('User', UserSchema);

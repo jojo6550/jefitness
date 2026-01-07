@@ -368,7 +368,12 @@ const baseUrl = isLocalhost
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
           alert('Email verified! Welcome to JE Fitness.');
-          window.location.href = '../pages/dashboard.html';
+          
+          // Redirect to onboarding if not completed, otherwise to dashboard
+          const redirectUrl = data.user.onboardingCompleted 
+            ? '../pages/dashboard.html' 
+            : '../pages/onboarding.html';
+          window.location.href = redirectUrl;
         } else {
           alert(data.msg || 'Verification failed.');
         }
