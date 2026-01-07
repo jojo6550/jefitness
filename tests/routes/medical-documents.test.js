@@ -9,16 +9,21 @@ const path = require('path');
 // Mock multer
 jest.mock('multer', () => {
   const multer = () => ({
-    single: () => (req, res, next) => {
-      req.file = {
-        filename: 'test-file.pdf',
-        originalname: 'test.pdf',
-        size: 1024,
-        mimetype: 'application/pdf',
-        path: '/tmp/test-file.pdf'
-      };
-      next();
-    }
+    single: jest.fn((fieldName) => (req, res, next) => {
+      // For the test that expects no file, don't set req.file
+      if (req.headers['x-no-file']) {
+        next();
+      } else {
+        req.file = {
+          filename: 'test-file.pdf',
+          originalname: 'test.pdf',
+          size: 1024,
+          mimetype: 'application/pdf',
+          path: '/tmp/test-file.pdf'
+        };
+        next();
+      }
+    })
   });
   multer.diskStorage = jest.fn();
   return multer;
@@ -107,6 +112,7 @@ describe('Medical Documents Routes', () => {
       const response = await request(app)
         .post('/api/medical-documents/upload')
         .set('Authorization', `Bearer ${userToken}`)
+        .set('x-no-file', 'true')
         .expect(400);
 
       expect(response.body.msg).toBe('No file uploaded');

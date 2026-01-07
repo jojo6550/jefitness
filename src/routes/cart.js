@@ -57,15 +57,17 @@ router.post('/add', auth, async (req, res) => {
         );
 
         if (existingItemIndex > -1) {
-            console.log(`User action: cart_add_failed | UserId: ${req.user.id} | ProgramId: ${programId} | Reason: Program already in cart`);
-            return res.status(400).json({ msg: 'Program already in cart. Only one copy allowed per program.' });
+            // Update quantity if item already exists
+            cart.items[existingItemIndex].quantity += quantity;
+            console.log(`User action: cart_quantity_updated | UserId: ${req.user.id} | ProgramId: ${programId} | NewQuantity: ${cart.items[existingItemIndex].quantity}`);
         } else {
-            // Add new item with quantity 1
+            // Add new item
             cart.items.push({
                 program: programId,
+                quantity: quantity,
                 price: program.price
             });
-            console.log(`User action: cart_item_added | UserId: ${req.user.id} | ProgramId: ${programId} | Price: ${program.price}`);
+            console.log(`User action: cart_item_added | UserId: ${req.user.id} | ProgramId: ${programId} | Quantity: ${quantity} | Price: ${program.price}`);
         }
 
         await cart.save();

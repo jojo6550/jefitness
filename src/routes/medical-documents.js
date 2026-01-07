@@ -145,8 +145,8 @@ router.get('/get', auth, async (req, res) => {
         }
 
         res.json({
-            hasMedical: user.hasMedical,
-            medicalConditions: user.medicalConditions,
+            hasMedical: user.hasMedical || false,
+            medicalConditions: user.medicalConditions || null,
             documents: user.medicalDocuments || []
         });
     } catch (err) {
@@ -214,6 +214,13 @@ router.get('/view/:filename', async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
+        const filePath = path.join(uploadsDir, filename);
+
+        // Verify file exists on disk first
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ msg: 'File not found on server' });
+        }
+
         // If user is admin, allow viewing any document
         // Otherwise, verify user owns this document
         if (currentUser.role !== 'admin') {
@@ -227,13 +234,6 @@ router.get('/view/:filename', async (req, res) => {
             if (!docExists) {
                 return res.status(404).json({ msg: 'Document not found in system' });
             }
-        }
-
-        const filePath = path.join(uploadsDir, filename);
-
-        // Verify file exists on disk
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ msg: 'File not found on server' });
         }
 
         // Determine content type based on file extension
@@ -280,6 +280,13 @@ router.get('/download/:filename', auth, async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
+        const filePath = path.join(uploadsDir, filename);
+
+        // Verify file exists on disk first
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ msg: 'File not found on server' });
+        }
+
         // If user is admin, allow downloading any document
         // Otherwise, verify user owns this document
         if (currentUser.role !== 'admin') {
@@ -293,13 +300,6 @@ router.get('/download/:filename', auth, async (req, res) => {
             if (!docExists) {
                 return res.status(404).json({ msg: 'Document not found in system' });
             }
-        }
-
-        const filePath = path.join(uploadsDir, filename);
-
-        // Verify file exists on disk
-        if (!fs.existsSync(filePath)) {
-            return res.status(404).json({ msg: 'File not found on server' });
         }
 
         // Force download
