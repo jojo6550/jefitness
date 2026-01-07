@@ -29,12 +29,10 @@ jest.mock('multer', () => {
   return multer;
 });
 
-// Mock express response methods
-const mockSendFile = jest.fn();
-const mockDownload = jest.fn();
-
 jest.mock('express', () => {
   const express = jest.requireActual('express');
+  const mockSendFile = jest.fn();
+  const mockDownload = jest.fn();
   const mockResponse = {
     ...express.response,
     sendFile: mockSendFile,
@@ -59,15 +57,15 @@ jest.mock('fs', () => ({
   })
 }));
 
+const app = express();
+app.use(express.json());
+
 // Mock response methods for file operations
 app.use((req, res, next) => {
   res.sendFile = jest.fn(() => res.status(200).send('file content'));
   res.download = jest.fn(() => res.status(200).send('file content'));
   next();
 });
-
-const app = express();
-app.use(express.json());
 
 // Mock auth middleware
 app.use((req, res, next) => {
