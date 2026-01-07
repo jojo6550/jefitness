@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
@@ -183,6 +184,91 @@ router.post('/save-info', auth, async (req, res) => {
     }
 });
 
+// GET /api/medical-documents/view/:filename - View a medical document in browser
+router.get('/view/:filename', async (req, res) => {
+    try {
+        const { filename } = req.params;
+        
+        // Get token from header or query parameter
+        let token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token && req.query.token) {
+            token = req.query.token;
+        }
+
+        if (!token) {
+            return res.status(401).json({ msg: 'No token, authorization denied' });
+        }
+
+        // Verify and decode token
+        let userId;
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            userId = decoded.id;
+        } catch (err) {
+            return res.status(401).json({ msg: 'Invalid or expired token' });
+        }
+
+        // Get current user
+        const currentUser = await User.findById(userId);
+        if (!currentUser) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // If user is admin, allow viewing any document
+        // Otherwise, verify user owns this document
+        if (currentUser.role !== 'admin') {
+            const docExists = currentUser.medicalDocuments.some(doc => doc.filename === filename);
+            if (!docExists) {
+                return res.status(403).json({ msg: 'Access denied - document not found in your account' });
+            }
+        } else {
+            // For admins, verify the document exists somewhere in the system
+            const docExists = await User.findOne({ 'medicalDocuments.filename': filename });
+            if (!docExists) {
+                return res.status(404).json({ msg: 'Document not found in system' });
+            }
+        }
+
+        const filePath = path.join(uploadsDir, filename);
+
+        // Verify file exists on disk
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ msg: 'File not found on server' });
+        }
+
+        // Determine content type based on file extension
+        const ext = path.extname(filename).toLowerCase();
+        let contentType = 'application/octet-stream';
+        
+        switch(ext) {
+            case '.pdf':
+                contentType = 'application/pdf';
+                break;
+            case '.jpg':
+            case '.jpeg':
+                contentType = 'image/jpeg';
+                break;
+            case '.png':
+                contentType = 'image/png';
+                break;
+            case '.doc':
+                contentType = 'application/msword';
+                break;
+            case '.docx':
+                contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                break;
+        }
+
+        // Set content type and send file
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
+        res.sendFile(filePath);
+    } catch (err) {
+        console.error('View error:', err.message);
+        res.status(500).json({ msg: 'Error viewing file' });
+    }
+});
+
 // GET /api/medical-documents/download/:filename - Download a medical document
 router.get('/download/:filename', auth, async (req, res) => {
     try {
@@ -216,6 +302,7 @@ router.get('/download/:filename', auth, async (req, res) => {
             return res.status(404).json({ msg: 'File not found on server' });
         }
 
+        // Force download
         res.download(filePath);
     } catch (err) {
         console.error('Download error:', err.message);

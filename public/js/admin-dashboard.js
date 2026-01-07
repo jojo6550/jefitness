@@ -132,11 +132,9 @@ async function showUserDetails(userId) {
     const content = document.getElementById('userDetailsContent');
     const loading = document.getElementById('userDetailsLoading');
 
-    // Show modal and loading
+    // Show modal and clear previous content
     modal.classList.remove('hidden');
-    loading.style.display = 'block';
-    content.innerHTML = '';
-    content.appendChild(loading);
+    content.innerHTML = '<div id="userDetailsLoading" class="text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600 font-medium">Loading client details...</p></div>';
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/clients/${userId}`, {
@@ -153,8 +151,7 @@ async function showUserDetails(userId) {
         const data = await response.json();
         const user = data.client;
 
-        // Hide loading
-        loading.style.display = 'none';
+        // Clear content completely before adding new data
         content.innerHTML = '';
 
         // Build comprehensive user profile HTML
@@ -250,9 +247,14 @@ async function showUserDetails(userId) {
                                                 <p class="text-xs text-gray-500">${new Date(doc.uploadedAt).toLocaleDateString()} • ${(doc.size / 1024).toFixed(2)} KB</p>
                                             </div>
                                         </div>
-                                        <button class="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 hover:bg-blue-50 rounded transition" onclick="downloadMedicalDoc('${doc.filename}')">
-                                            <i class="bi bi-download me-1"></i> View
-                                        </button>
+                                        <div class="flex gap-2">
+                                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 hover:bg-blue-50 rounded transition" onclick="viewMedicalDoc('${doc.filename}')">
+                                                <i class="bi bi-eye me-1"></i> View
+                                            </button>
+                                            <button class="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 hover:bg-green-50 rounded transition" onclick="downloadMedicalDoc('${doc.filename}')">
+                                                <i class="bi bi-download me-1"></i> Download
+                                            </button>
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -306,6 +308,38 @@ async function showUserDetails(userId) {
         content.innerHTML = `<p class="text-red-600 font-semibold">Failed to load user details. Please try again.</p>`;
     }
 }
+
+// View medical document in browser
+window.viewMedicalDoc = function(filename) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showErrorModal('No authentication token found. Please log in again.');
+        return;
+    }
+    const viewUrl = `${API_BASE_URL}/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
+    
+    // Open in new tab and handle errors
+    const newTab = window.open(viewUrl, '_blank');
+    
+    // Check if the tab was opened and handle potential errors
+    if (!newTab) {
+        showErrorModal('Could not open document. Pop-ups may be blocked.');
+    }
+};
+
+// Show error modal
+function showErrorModal(message) {
+    const errorModal = document.getElementById('errorModal');
+    const errorMessage = document.getElementById('errorMessage');
+    errorMessage.textContent = message;
+    errorModal.classList.remove('hidden');
+}
+
+// Close error modal
+window.closeErrorModal = function() {
+    const errorModal = document.getElementById('errorModal');
+    errorModal.classList.add('hidden');
+};
 
 // Download medical document
 window.downloadMedicalDoc = function(filename) {

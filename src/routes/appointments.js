@@ -167,7 +167,7 @@ router.get('/:id', auth, async (req, res) => {
  * @body    {string} time - Appointment time (HH:MM format)
  * @body    {string} [notes] - Optional appointment notes
  * @returns {Object} Created appointment object with populated client/trainer info
- * @throws  {400} Missing required fields or invalid trainer or time slot full
+ * @throws  {400} Missing required fields or invalid trainer or time slot full (max 6 clients per slot)
  * @throws  {500} Server error
  */
 router.post('/', auth, async (req, res) => {
@@ -210,8 +210,9 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ msg: 'Appointments are only available from 5:00 AM to 1:00 PM' });
         }
 
-        // Check the 1-client limit per fixed hour block
+        // Check the 6-client limit per fixed hour block
         const hourBlock = `${hours.toString().padStart(2, '0')}:00`;
+        const MAX_CLIENTS_PER_SLOT = 6;
 
         const existingAppointments = await Appointment.find({
             trainerId,
@@ -223,9 +224,16 @@ router.post('/', auth, async (req, res) => {
             status: { $ne: 'cancelled' }
         });
 
-        if (existingAppointments.length >= 1) {
+        // Check if time slot is full (max 6 clients per slot)
+        if (existingAppointments.length >= MAX_CLIENTS_PER_SLOT) {
             const formattedSlot = hours <= 12 ? `${hours}am-${hours + 1}am` : `${hours - 12}pm-${hours + 1 - 12}pm`;
-            return res.status(400).json({ msg: `Time slot ${formattedSlot} is unavailable` });
+            return res.status(400).json({ msg: `Time slot ${formattedSlot} is fully booked. Only 6 clients per time slot.` });
+        }
+
+        // Check if this client already has an appointment in this time slot
+        const clientInSlot = existingAppointments.some(apt => apt.clientId.toString() === clientId);
+        if (clientInSlot) {
+            return res.status(400).json({ msg: 'You already have an appointment in this time slot' });
         }
 
         // Create appointment
