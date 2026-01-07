@@ -1,16 +1,16 @@
+const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
+
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const programId = urlParams.get('id');
     const isPreview = urlParams.get('preview') === 'true';
     const token = localStorage.getItem('token');
-    
+
     if (!programId) {
         window.location.href = 'marketplace.html';
         return;
     }
-
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
 
     try {
         let endpoint = `${API_BASE_URL}/api/programs/${programId}`;
@@ -103,8 +103,8 @@ function renderProgramDetails(program, hasFullAccess) {
                 </ul>
                 ${!hasFullAccess ? `
                     <hr class="my-4">
-                    <button class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Request Full Access</button>
-                    <p class="text-center text-muted small mt-2 mb-0">Coming Soon: Direct Purchase</p>
+                    <button id="add-to-cart-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" data-program-id="${program._id}">Add to Cart</button>
+                    <p class="text-center text-muted small mt-2 mb-0">Purchase this program to unlock full access</p>
                 ` : ''}
             </div>
         </div>
@@ -184,5 +184,42 @@ function renderProgramDetails(program, hasFullAccess) {
                 </div>
             </div>
         `;
+    }
+
+    // Add event listener for Add to Cart button
+    if (!hasFullAccess) {
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        if (addToCartBtn) {
+            addToCartBtn.addEventListener('click', async () => {
+                const programId = addToCartBtn.dataset.programId;
+                const token = localStorage.getItem('token');
+
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/cart/add`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ programId })
+                    });
+
+                    if (res.ok) {
+                        // Redirect to marketplace after adding to cart
+                        window.location.href = 'marketplace.html';
+                    } else {
+                        alert('Failed to add program to cart. Please try again.');
+                    }
+                } catch (err) {
+                    console.error('Error adding to cart:', err);
+                    alert('Error adding program to cart. Please try again.');
+                }
+            });
+        }
     }
 }
