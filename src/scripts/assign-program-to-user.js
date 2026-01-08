@@ -48,7 +48,40 @@ async function assignProgramToUser(email, programId) {
 
         await user.save();
 
-        console.log(`Successfully assigned program "${program.title}" to ${email}`);
+        console.log(`\n✅ Successfully assigned program to ${email}`);
+        console.log('=' .repeat(50));
+        console.log(`📋 Program Details:`);
+        console.log(`   Title: ${program.title}`);
+        console.log(`   Description: ${program.description}`);
+        console.log(`   Duration: ${program.duration}`);
+        console.log(`   Level: ${program.level}`);
+        console.log(`   Frequency: ${program.frequency}`);
+        console.log(`   Session Length: ${program.sessionLength}`);
+        console.log(`   Price: $${program.price}`);
+
+        if (program.features && program.features.length > 0) {
+            console.log(`   Features: ${program.features.join(', ')}`);
+        }
+
+        if (program.days && program.days.length > 0) {
+            console.log(`\n🏋️  Workout Schedule:`);
+            program.days.forEach((day, index) => {
+                console.log(`   Day ${index + 1}: ${day.dayName}`);
+                if (day.exercises && day.exercises.length > 0) {
+                    day.exercises.forEach((exercise, exIndex) => {
+                        console.log(`     ${exIndex + 1}. ${exercise.name}`);
+                        console.log(`        Sets: ${exercise.sets}, Reps: ${exercise.reps}`);
+                        if (exercise.notes) {
+                            console.log(`        Notes: ${exercise.notes}`);
+                        }
+                    });
+                }
+                console.log('');
+            });
+        }
+
+        console.log(`📅 Assigned At: ${new Date().toLocaleString()}`);
+        console.log('=' .repeat(50));
 
     } catch (error) {
         console.error('Assignment failed:', error.message);

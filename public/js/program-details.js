@@ -116,42 +116,106 @@ function renderProgramDetails(program, hasFullAccess) {
             <div class="mb-5">
                 <h4 class="fw-bold mb-3">About the Program</h4>
                 <p class="text-muted">${program.description}</p>
+                ${program.features && program.features.length > 0 ? `
+                    <div class="mt-4">
+                        <h6 class="fw-bold text-primary mb-3">Program Features:</h6>
+                        <div class="row g-2">
+                            ${program.features.map(feature => `
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        <span class="small">${feature}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
             </div>
-            <h4 class="fw-bold mb-4">Your Weekly Routine</h4>
+            <div class="mb-4">
+                <h4 class="fw-bold mb-4">Your Weekly Workout Plan</h4>
+                <div class="alert alert-info border-0 rounded-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill text-info me-3 fs-4"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Program Overview</h6>
+                            <p class="mb-0 small">Duration: ${program.duration} | Frequency: ${program.frequency} | Session Length: ${program.sessionLength}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="accordion" id="workoutAccordion">
                 ${program.days.map((day, index) => `
                     <div class="accordion-item border-0 shadow-sm rounded-4 mb-3 overflow-hidden">
                         <h2 class="accordion-header">
-                            <button class="accordion-button ${index === 0 ? '' : 'collapsed'} fw-bold py-4" type="button" data-bs-toggle="collapse" data-bs-target="#day${index}">
-                                ${day.dayName}
+                            <button class="accordion-button ${index === 0 ? '' : 'collapsed'} fw-bold py-4 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#day${index}">
+                                <div class="d-flex align-items-center w-100">
+                                    <i class="bi bi-calendar-day text-primary me-3 fs-5"></i>
+                                    <span>${day.dayName}</span>
+                                    <span class="badge bg-primary ms-auto">${day.exercises ? day.exercises.length : 0} exercises</span>
+                                </div>
                             </button>
                         </h2>
                         <div id="day${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#workoutAccordion">
                             <div class="accordion-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0 align-middle">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="ps-4 py-3">Exercise</th>
-                                                <th class="py-3">Sets</th>
-                                                <th class="py-3">Reps</th>
-                                                <th class="py-3">Notes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${day.exercises.map(ex => `
+                                ${day.exercises && day.exercises.length > 0 ? `
+                                    <div class="table-responsive">
+                                        <table class="table table-hover mb-0 align-middle">
+                                            <thead class="table-light">
                                                 <tr>
-                                                    <td class="ps-4 py-3">
-                                                        <div class="fw-bold text-primary">${ex.name}</div>
-                                                    </td>
-                                                    <td class="py-3">${ex.sets}</td>
-                                                    <td class="py-3">${ex.reps}</td>
-                                                    <td class="py-3 text-muted small pe-4">${ex.notes || '-'}</td>
+                                                    <th class="ps-4 py-3">#</th>
+                                                    <th class="py-3">Exercise</th>
+                                                    <th class="py-3 text-center">Sets</th>
+                                                    <th class="py-3 text-center">Reps</th>
+                                                    <th class="py-3">Notes</th>
                                                 </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody>
+                                                ${day.exercises.map((ex, exIndex) => `
+                                                    <tr>
+                                                        <td class="ps-4 py-3">
+                                                            <span class="badge bg-secondary">${exIndex + 1}</span>
+                                                        </td>
+                                                        <td class="py-3">
+                                                            <div class="fw-bold text-primary">${ex.name}</div>
+                                                        </td>
+                                                        <td class="py-3 text-center">
+                                                            <span class="badge bg-info">${ex.sets}</span>
+                                                        </td>
+                                                        <td class="py-3 text-center">
+                                                            <span class="badge bg-warning text-dark">${ex.reps}</span>
+                                                        </td>
+                                                        <td class="py-3 text-muted small pe-4">
+                                                            ${ex.notes || '<em>No additional notes</em>'}
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="p-4 bg-light border-top">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <div class="fw-bold text-primary h5 mb-0">${day.exercises.length}</div>
+                                                <small class="text-muted">Exercises</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="fw-bold text-info h5 mb-0">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)}</div>
+                                                <small class="text-muted">Total Sets</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="fw-bold text-success h5 mb-0">~${Math.round(day.exercises.reduce((sum, ex) => sum + ex.sets, 0) * 2)} min</div>
+                                                <small class="text-muted">Est. Time</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="p-4 text-center text-muted">
+                                        <i class="bi bi-calendar-x display-4 mb-3"></i>
+                                        <p>No exercises scheduled for this day.</p>
+                                        <small>Rest day or flexible training day.</small>
+                                    </div>
+                                `}
                             </div>
                         </div>
                     </div>
