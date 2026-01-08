@@ -7,15 +7,18 @@ class Navigation {
   constructor() {
     this.menuItems = [
       { label: 'Home', route: '/', icon: 'house', roleRequired: null },
-      { label: 'Dashboard', route: '/dashboard', icon: 'speedometer2', roleRequired: null },
+      { label: 'Dashboard', route: '/dashboard', icon: 'speedometer2', roleRequired: 'user' },
+      { label: 'Trainer Dashboard', route: '/trainer', icon: 'speedometer2', roleRequired: 'trainer' },
       { label: 'My Profile', route: '/profile', icon: 'person-circle', roleRequired: null },
-      { label: 'Schedule', route: '/schedule', icon: 'calendar-event', roleRequired: null },
+      { label: 'Schedule', route: '/schedule', icon: 'calendar-event', roleRequired: 'user' },
       { label: 'Services', route: '/services', icon: 'briefcase', roleRequired: null },
-      { label: 'Marketplace', route: '/marketplace', icon: 'shop', roleRequired: null },
-      { label: 'My Orders', route: '/orders', icon: 'bag-check', roleRequired: null },
-      { label: 'Reports', route: '/reports', icon: 'bar-chart', roleRequired: null },
+      { label: 'Marketplace', route: '/marketplace', icon: 'shop', roleRequired: 'user' },
+      { label: 'My Orders', route: '/orders', icon: 'bag-check', roleRequired: 'user' },
+      { label: 'Reports', route: '/reports', icon: 'bar-chart', roleRequired: 'user' },
       { label: 'Questionnaire', route: '/questionnaire', icon: 'clipboard-check', roleRequired: null },
-      { label: 'Timer', route: '/timer', icon: 'stopwatch', roleRequired: null },
+      { label: 'Timer', route: '/timer', icon: 'stopwatch', roleRequired: 'user' },
+      { label: 'Clients', route: '/clients', icon: 'people', roleRequired: 'trainer' },
+      { label: 'Appointments', route: '/appointments', icon: 'calendar-check', roleRequired: 'trainer' },
       { label: 'Admin', route: '/admin', icon: 'gear', roleRequired: 'admin' }
     ];
     
@@ -39,7 +42,8 @@ class Navigation {
       if (item.roleRequired) {
         return this.currentUser?.role === item.roleRequired;
       }
-      return true;
+      // Show to logged in users only
+      return this.currentUser !== null;
     });
   }
 

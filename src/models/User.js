@@ -36,7 +36,7 @@ const UserSchema = new mongoose.Schema({
     lastLoggedIn: { type: Date },
     role: {
         type: String,
-        enum: ['user', 'admin'],
+        enum: ['user', 'admin', 'trainer'],
         default: 'user'
     },
     // Optional profile fields

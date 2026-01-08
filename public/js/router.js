@@ -8,6 +8,7 @@ class Router {
     this.routes = {
       '/': 'index.html',
       '/dashboard': 'pages/dashboard.html',
+      '/trainer': 'pages/trainer-dashboard.html',
       '/profile': 'pages/profile.html',
       '/admin': 'pages/admin-dashboard.html',
       '/schedule': 'pages/schedule.html',
@@ -18,6 +19,8 @@ class Router {
       '/questionnaire': 'pages/questionnaire.html',
       '/timer': 'pages/timer.html',
       '/checkout': 'pages/checkout.html',
+      '/clients': 'pages/trainer-clients.html',
+      '/appointments': 'pages/trainer-appointments.html',
       ...routes
     };
     
