@@ -178,57 +178,42 @@ router.get('/appointments', auth, async (req, res) => {
             limit = 10
         } = req.query;
 
-        // Calculate pagination
-        const skip = (page - 1) * limit;
-
-        let matchStage = { trainerId };
+        // Build filter object
+        let filter = { trainerId };
 
         // Add status filter
         if (status) {
-            matchStage.status = status;
+            filter.status = status;
         }
 
-        // Build aggregation pipeline
-        let pipeline = [
-            { $match: matchStage },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'clientId',
-                    foreignField: '_id',
-                    as: 'clientId'
-                }
-            },
-            { $unwind: '$clientId' }
-        ];
-
-        // Add search filter if provided
+        // Add search filter (search in client names)
         if (search) {
             const searchRegex = new RegExp(search, 'i');
-            pipeline.push({
-                $match: {
-                    $or: [
-                        { 'clientId.firstName': searchRegex },
-                        { 'clientId.lastName': searchRegex },
-                        { 'clientId.email': searchRegex }
-                    ]
-                }
-            });
+            // Find client IDs that match the search
+            const matchingClients = await User.find({
+                $or: [
+                    { firstName: searchRegex },
+                    { lastName: searchRegex },
+                    { email: searchRegex }
+                ]
+            }).select('_id');
+
+            const clientIds = matchingClients.map(client => client._id);
+            filter.clientId = { $in: clientIds };
         }
 
-        // Add sorting
-        pipeline.push({ $sort: { date: -1, time: -1 } });
+        // Calculate pagination
+        const skip = (page - 1) * limit;
 
         // Get total count for pagination
-        const countPipeline = [...pipeline, { $count: "total" }];
-        const countResult = await Appointment.aggregate(countPipeline);
-        const totalCount = countResult.length > 0 ? countResult[0].total : 0;
+        const totalCount = await Appointment.countDocuments(filter);
 
-        // Add pagination
-        pipeline.push({ $skip: skip }, { $limit: parseInt(limit) });
-
-        // Execute aggregation
-        const appointments = await Appointment.aggregate(pipeline);
+        // Get appointments with pagination
+        const appointments = await Appointment.find(filter)
+            .populate('clientId', 'firstName lastName email')
+            .sort({ date: -1, time: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
 
         res.json({
             appointments,
