@@ -47,6 +47,8 @@ router.get('/dashboard', auth, async (req, res) => {
         const totalAppointments = allAppointments.length;
         const scheduledAppointments = allAppointments.filter(apt => apt.status === 'scheduled').length;
         const cancelledAppointments = allAppointments.filter(apt => apt.status === 'cancelled').length;
+        const noShowAppointments = allAppointments.filter(apt => apt.status === 'no_show').length;
+        const lateAppointments = allAppointments.filter(apt => apt.status === 'late').length;
 
         // Calculate completion rate
         const completionRate = totalAppointments > 0 
