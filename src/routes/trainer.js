@@ -62,6 +62,8 @@ router.get('/dashboard', auth, async (req, res) => {
                 completedAppointments: completedAppointments.length,
                 scheduledAppointments,
                 cancelledAppointments,
+                noShowAppointments,
+                lateAppointments,
                 completionRate
             },
             upcomingAppointments,

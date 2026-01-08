@@ -297,7 +297,28 @@ router.put('/:id', auth, async (req, res) => {
         }
         if (date) appointment.date = date;
         if (time) appointment.time = time;
-        if (status) appointment.status = status;
+        if (status) {
+            // Allow admins to update any status
+            if (req.user.role === 'admin') {
+                appointment.status = status;
+            } else if (req.user.role === 'trainer' && appointment.trainerId.toString() === req.user.id) {
+                // Allow trainers to update status to completed, no_show, late
+                if (['completed', 'no_show', 'late'].includes(status)) {
+                    appointment.status = status;
+                } else {
+                    return res.status(400).json({ msg: 'Trainers can only update status to completed, no_show, or late' });
+                }
+            } else if (req.user.id === appointment.clientId.toString()) {
+                // Clients can only cancel
+                if (status === 'cancelled') {
+                    appointment.status = status;
+                } else {
+                    return res.status(400).json({ msg: 'Clients can only cancel appointments' });
+                }
+            } else {
+                return res.status(403).json({ msg: 'Access denied' });
+            }
+        }
         if (notes !== undefined) appointment.notes = notes;
 
         await appointment.save();
