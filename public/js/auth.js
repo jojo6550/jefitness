@@ -99,6 +99,8 @@ const baseUrl = isLocalhost
           // Role-based redirection
           if (data.user.role === 'admin') {
             window.location.href = '../pages/admin-dashboard.html';
+          } else if (data.user.role === 'trainer') {
+            window.location.href = '../pages/trainer-dashboard.html';
           } else {
             window.location.href = '../pages/dashboard.html';
           }
@@ -110,24 +112,6 @@ const baseUrl = isLocalhost
       } finally {
         setLoadingState(loginButton, false);
       }
-    });
-  }
-
-  // SIGNUP - Terms Modal Handler
-  const termsModal = document.getElementById('termsModal');
-  const agreeTermsCheckbox = document.getElementById('agreeTerms');
-  const acceptTermsBtn = document.getElementById('acceptTermsBtn');
-
-  if (acceptTermsBtn) {
-    acceptTermsBtn.addEventListener('click', () => {
-      // Check the checkbox and close the modal
-      agreeTermsCheckbox.checked = true;
-      const modal = bootstrap.Modal.getInstance(termsModal);
-      modal.hide();
-      
-      // Remove validation error if it exists
-      agreeTermsCheckbox.classList.remove('is-invalid');
-      document.getElementById('agreeTermsError').classList.add('d-none');
     });
   }
 
@@ -297,17 +281,7 @@ const baseUrl = isLocalhost
       const isPasswordValid = validateSignupPassword();
       const isConfirmPasswordValid = validateConfirmPassword();
 
-      // Validate terms acceptance
-      const isTermsAccepted = agreeTermsCheckbox.checked;
-      if (!isTermsAccepted) {
-        agreeTermsCheckbox.classList.add('is-invalid');
-        document.getElementById('agreeTermsError').classList.remove('d-none');
-      } else {
-        agreeTermsCheckbox.classList.remove('is-invalid');
-        document.getElementById('agreeTermsError').classList.add('d-none');
-      }
-
-      if (!isFirstNameValid || !isLastNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid || !isTermsAccepted) {
+      if (!isFirstNameValid || !isLastNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
         return;
       }
 
@@ -368,12 +342,7 @@ const baseUrl = isLocalhost
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
           alert('Email verified! Welcome to JE Fitness.');
-          
-          // Redirect to onboarding if not completed, otherwise to dashboard
-          const redirectUrl = data.user.onboardingCompleted 
-            ? '../pages/dashboard.html' 
-            : '../pages/onboarding.html';
-          window.location.href = redirectUrl;
+          window.location.href = '../pages/dashboard.html';
         } else {
           alert(data.msg || 'Verification failed.');
         }

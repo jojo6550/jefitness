@@ -99,6 +99,8 @@ const baseUrl = isLocalhost
           // Role-based redirection
           if (data.user.role === 'admin') {
             window.location.href = '../pages/admin-dashboard.html';
+          } else if (data.user.role === 'trainer') {
+            window.location.href = '../pages/trainer-dashboard.html';
           } else {
             window.location.href = '../pages/dashboard.html';
           }
