@@ -1,5 +1,5 @@
 // Cache versioning - increment these versions to bust cache
-const CACHE_VERSION = '4';
+const CACHE_VERSION = '5';
 const CACHE_NAME = `jefitness-v${CACHE_VERSION}`;
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
