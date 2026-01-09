@@ -26,9 +26,11 @@ A JavaScript utility that automatically adds version parameters to all local ass
 <script src="./js/app.js?v=def67890"></script>
 ```
 
-The version parameter changes based on:
-- **In development**: Updated every hour (ensures cache bust at least hourly)
-- **In production**: Should be set via the `app-version` meta tag to match your build hash
+The version parameter is now based on actual file content hashes:
+- **File-based hashing**: Each asset gets a unique hash based on its content
+- **Server-provided versions**: Fetches version data from `/api/cache-versions` endpoint
+- **Fallback**: Uses minute-based timestamps if server is unavailable
+- **Production**: Can still use `app-version` meta tag for build-specific versions
 
 ### 3. **Service Worker Cache Versioning** (`public/sw.js`)
 The service worker automatically manages cache versions:
@@ -45,24 +47,19 @@ When you increment `CACHE_VERSION`, the service worker will delete old caches an
 
 ### For Developers
 
-#### Option 1: Automatic (Recommended)
-Just make changes to your CSS/JS files. The client-side version injector will automatically add version parameters, ensuring fresh assets without hard reload.
+#### Automatic Cache Busting (Recommended)
+Just make changes to your CSS/JS files. The system now automatically:
 
-#### Option 2: Manual Cache Invalidation
-When you make significant changes and want to ensure immediate cache bust across all users:
+1. **Detects file changes**: Uses content-based hashing to detect when files change
+2. **Updates versions immediately**: New versions are applied as soon as files are modified
+3. **Updates service worker**: Cache versions update automatically without manual intervention
+4. **Clears old caches**: Previous versions are cleaned up automatically
 
-```javascript
-// In public/sw.js, increment the CACHE_VERSION
-const CACHE_VERSION = '4';  // Changed from '3'
-```
+#### Manual Cache Invalidation (Legacy)
+For emergency cache clearing, you can still use the `npm run cache:bust` script to manually increment the service worker version.
 
-This will:
-1. Force browsers to download a new service worker
-2. Delete old cached versions
-3. Re-cache all static assets
-
-#### Option 3: Server Restart
-Simply restart your server (e.g., `npm start`). The version parameter is based on timestamps, so a new session will get fresh assets.
+#### Server Restart
+Restarting the server clears the hash cache, ensuring fresh versions are generated on the next request.
 
 ### Setting App Version in Production
 If you have a build system that generates hashes, update the meta tag:

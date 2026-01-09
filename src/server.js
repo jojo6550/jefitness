@@ -78,6 +78,9 @@ app.use(cors());
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
 
+// Cache version utility
+const { getFileHash, invalidateCache } = require('./utils/cacheVersion');
+
 // Serve static files
 app.use(express.static("public"));
 
@@ -114,6 +117,9 @@ const connectDB = async () => {
   }
 };
 connectDB();
+
+// Invalidate cache versions on server start
+invalidateCache();
 
 // -----------------------------
 // Rate Limiters

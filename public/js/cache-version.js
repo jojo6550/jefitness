@@ -23,25 +23,27 @@
     /**
      * Update all stylesheet links with version parameter
      */
-    updateStylesheets() {
-      document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+    async updateStylesheets() {
+      const links = document.querySelectorAll('link[rel="stylesheet"]');
+      for (const link of links) {
         const href = link.getAttribute('href');
         if (href && !href.includes('cdn.') && !href.includes('fonts.googleapis') && !href.includes('cdnjs')) {
-          link.setAttribute('href', this.addVersionParam(href));
+          link.setAttribute('href', await this.addVersionParam(href));
         }
-      });
+      }
     },
 
     /**
      * Update all script sources with version parameter
      */
-    updateScripts() {
-      document.querySelectorAll('script[src]').forEach(script => {
+    async updateScripts() {
+      const scripts = document.querySelectorAll('script[src]');
+      for (const script of scripts) {
         const src = script.getAttribute('src');
         if (src && !src.includes('cdn.') && !src.includes('fonts.') && !src.includes('cache-version')) {
-          script.setAttribute('src', this.addVersionParam(src));
+          script.setAttribute('src', await this.addVersionParam(src));
         }
-      });
+      }
     },
 
     /**
@@ -71,36 +73,50 @@
       return `${url}${separator}v=${version}`;
     },
 
-    /**
-     * Get version string (timestamp-based for development)
-     * In production, this could be replaced with build hash
-     * @returns {string} Version hash
-     */
-    getVersion() {
-      // Check if server provides a version meta tag
-      const versionMeta = document.querySelector('meta[name="app-version"]');
-      if (versionMeta) {
-        return versionMeta.getAttribute('content');
-      }
+  /**
+   * Get version string for asset
+   * @param {string} assetPath - Path to the asset
+   * @returns {Promise<string>} Version hash
+   */
+  async getVersion(assetPath) {
+    // Check if server provides a version meta tag
+    const versionMeta = document.querySelector('meta[name="app-version"]');
+    if (versionMeta) {
+      return versionMeta.getAttribute('content');
+    }
 
-      // Fallback: Use current hour as version (changes every hour)
-      // This ensures cache bust at least hourly without hard refresh
-      return Math.floor(Date.now() / 3600000).toString(36);
-    },
+    // Try to get version from cache or fetch from server
+    if (!this.versionsCache) {
+      try {
+        const response = await fetch('/api/cache-versions');
+        if (response.ok) {
+          this.versionsCache = await response.json();
+        } else {
+          throw new Error('Failed to fetch versions');
+        }
+      } catch (err) {
+        console.warn('Failed to fetch cache versions, using timestamp fallback:', err);
+        // Fallback: Use current minute as version (changes every minute)
+        return Math.floor(Date.now() / 60000).toString(36);
+      }
+    }
+
+    return this.versionsCache[assetPath] || Math.floor(Date.now() / 60000).toString(36);
+  },
 
     /**
      * Watch for dynamically added assets and version them
      */
     setupMutationObserver() {
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
+      const observer = new MutationObserver(async (mutations) => {
+        for (const mutation of mutations) {
           if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach((node) => {
+            for (const node of mutation.addedNodes) {
               // Version new stylesheets
               if (node.tagName === 'LINK' && node.getAttribute('rel') === 'stylesheet') {
                 const href = node.getAttribute('href');
                 if (href && !href.includes('cdn.')) {
-                  node.setAttribute('href', this.addVersionParam(href));
+                  node.setAttribute('href', await this.addVersionParam(href));
                 }
               }
 
@@ -108,12 +124,12 @@
               if (node.tagName === 'SCRIPT' && node.getAttribute('src')) {
                 const src = node.getAttribute('src');
                 if (src && !src.includes('cdn.')) {
-                  node.setAttribute('src', this.addVersionParam(src));
+                  node.setAttribute('src', await this.addVersionParam(src));
                 }
               }
-            });
+            }
           }
-        });
+        }
       });
 
       observer.observe(document.documentElement, {
