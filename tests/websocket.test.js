@@ -159,17 +159,16 @@ describe('WebSocketManager', () => {
     });
 
     test('should handle connection close and attempt reconnection', () => {
-      jest.useFakeTimers();
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
       wsManager.connect();
 
       mockWebSocket.onclose({ code: 1006, reason: 'Connection lost', wasClean: false });
 
       expect(wsManager.isConnected).toBe(false);
-      expect(setTimeout).toHaveBeenCalledTimes(1);
-      expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 3000);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 3000);
 
-      jest.runOnlyPendingTimers();
-      jest.useRealTimers();
+      setTimeoutSpy.mockRestore();
     });
   });
 
