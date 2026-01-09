@@ -129,6 +129,13 @@ const UserSchema = new mongoose.Schema({
     onboardingCompletedAt: { type: Date }
 });
 
+// Database indexes for optimization
+UserSchema.index({ email: 1 }, { unique: true });
+UserSchema.index({ role: 1 });
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ isEmailVerified: 1 });
+UserSchema.index({ 'assignedPrograms.programId': 1 });
+
 // Encrypt sensitive fields
 const encKey = process.env.ENCRYPTION_KEY;
 if (encKey) {

@@ -12,6 +12,10 @@ dotenv.config();
 
 const app = express();
 
+// Initialize cache service
+const cacheService = require('./services/cache');
+cacheService.connect();
+
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
@@ -150,22 +154,39 @@ invalidateCache();
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 // -----------------------------
-// Routes
+// Routes with API Versioning
 // -----------------------------
 const auth = require('./middleware/auth');
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/sleep', auth, apiLimiter, require('./routes/sleep'));
-app.use('/api/clients', auth, apiLimiter, require('./routes/clients'));
-app.use('/api/logs', auth, apiLimiter, require('./routes/logs'));
-app.use('/api/appointments', auth, apiLimiter, require('./routes/appointments'));
-app.use('/api/users', auth, apiLimiter, require('./routes/users'));
-app.use('/api/nutrition', auth, apiLimiter, require('./routes/nutrition'));
-app.use('/api/notifications', auth, apiLimiter, require('./routes/notifications'));
-app.use('/api/programs', apiLimiter, require('./routes/programs'));
-app.use('/api/cart', auth, apiLimiter, require('./routes/cart'));
-app.use('/api/orders', auth, apiLimiter, require('./routes/orders'));
-app.use('/api/medical-documents', auth, apiLimiter, require('./routes/medical-documents'));
-app.use('/api/trainer', auth, apiLimiter, require('./routes/trainer'));
+const versioning = require('./middleware/versioning');
+
+app.use('/api/v1/auth', versioning, require('./routes/auth'));
+app.use('/api/v1/sleep', auth, apiLimiter, versioning, require('./routes/sleep'));
+app.use('/api/v1/clients', auth, apiLimiter, versioning, require('./routes/clients'));
+app.use('/api/v1/logs', auth, apiLimiter, versioning, require('./routes/logs'));
+app.use('/api/v1/appointments', auth, apiLimiter, versioning, require('./routes/appointments'));
+app.use('/api/v1/users', auth, apiLimiter, versioning, require('./routes/users'));
+app.use('/api/v1/nutrition', auth, apiLimiter, versioning, require('./routes/nutrition'));
+app.use('/api/v1/notifications', auth, apiLimiter, versioning, require('./routes/notifications'));
+app.use('/api/v1/programs', apiLimiter, versioning, require('./routes/programs'));
+app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
+app.use('/api/v1/orders', auth, apiLimiter, versioning, require('./routes/orders'));
+app.use('/api/v1/medical-documents', auth, apiLimiter, versioning, require('./routes/medical-documents'));
+app.use('/api/v1/trainer', auth, apiLimiter, versioning, require('./routes/trainer'));
+
+// Backward compatibility - redirect old routes to v1
+app.use('/api/auth', (req, res) => res.redirect(301, '/api/v1/auth' + req.path.replace('/api/auth', '')));
+app.use('/api/sleep', auth, (req, res) => res.redirect(301, '/api/v1/sleep' + req.path.replace('/api/sleep', '')));
+app.use('/api/clients', auth, (req, res) => res.redirect(301, '/api/v1/clients' + req.path.replace('/api/clients', '')));
+app.use('/api/logs', auth, (req, res) => res.redirect(301, '/api/v1/logs' + req.path.replace('/api/logs', '')));
+app.use('/api/appointments', auth, (req, res) => res.redirect(301, '/api/v1/appointments' + req.path.replace('/api/appointments', '')));
+app.use('/api/users', auth, (req, res) => res.redirect(301, '/api/v1/users' + req.path.replace('/api/users', '')));
+app.use('/api/nutrition', auth, (req, res) => res.redirect(301, '/api/v1/nutrition' + req.path.replace('/api/nutrition', '')));
+app.use('/api/notifications', auth, (req, res) => res.redirect(301, '/api/v1/notifications' + req.path.replace('/api/notifications', '')));
+app.use('/api/programs', (req, res) => res.redirect(301, '/api/v1/programs' + req.path.replace('/api/programs', '')));
+app.use('/api/cart', auth, (req, res) => res.redirect(301, '/api/v1/cart' + req.path.replace('/api/cart', '')));
+app.use('/api/orders', auth, (req, res) => res.redirect(301, '/api/v1/orders' + req.path.replace('/api/orders', '')));
+app.use('/api/medical-documents', auth, (req, res) => res.redirect(301, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
+app.use('/api/trainer', auth, (req, res) => res.redirect(301, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
 
 // Serve frontend for SPA routes
 app.use((req, res) => {

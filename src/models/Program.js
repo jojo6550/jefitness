@@ -35,10 +35,9 @@ const ProgramSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
-    slug: { 
-        type: String, 
-        required: true, 
-        unique: true 
+    slug: {
+        type: String,
+        required: true
     },
     features: [{ 
         type: String 
@@ -64,10 +63,17 @@ const ProgramSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    createdAt: { 
-        type: Date, 
-        default: Date.now 
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
 });
+
+// Database indexes for optimization
+ProgramSchema.index({ slug: 1 }, { unique: true });
+ProgramSchema.index({ level: 1 });
+ProgramSchema.index({ isPublished: 1 });
+ProgramSchema.index({ isActive: 1 });
+ProgramSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Program', ProgramSchema);

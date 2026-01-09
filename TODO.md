@@ -1,32 +1,24 @@
-- [x] Add 'ws' dependency to package.json
-- [x] Integrate WebSocket server in src/server.js
-- [x] Create public/js/websocket.js for client-side WebSocket handler
-- [x] Integrate WebSocket with notifications in public/js/dashboard-notifications.js
-- [ ] Create unit tests for WebSocket functionality in tests/websocket.test.js
+# Backend Architecture Improvements TODO
 
-## Accessibility
-- [x] Add ARIA labels and roles to public/index.html
-- [ ] Add keyboard navigation support to public/js/navigation.js
-- [ ] Create unit tests for accessibility features in tests/accessibility.test.js
+## API Versioning
+- [ ] Create versioning middleware (`src/middleware/versioning.js`)
+- [ ] Update all routes in `src/server.js` to use `/api/v1/` prefix
 
-## Mobile Optimization
-- [x] Update public/styles/styles.css for better touch targets and swipe gestures
-- [x] Ensure responsive design in public/styles/styles.css
-- [ ] Create unit tests for mobile features in tests/mobile.test.js
-=======
-## Real-time Notifications (WebSocket)
-- [x] Add 'ws' dependency to package.json
-- [x] Integrate WebSocket server in src/server.js
-- [x] Create public/js/websocket.js for client-side WebSocket handler
-- [x] Integrate WebSocket with notifications in public/js/dashboard-notifications.js
-- [x] Create unit tests for WebSocket functionality in tests/websocket.test.js
+## Database Optimization
+- [ ] Add indexes to User model (email, role, createdAt)
+- [ ] Add indexes to other models (Appointment, Program, etc.)
+- [ ] Enhance connection pooling in `src/server.js`
 
-## Accessibility
-- [x] Add ARIA labels and roles to public/index.html
-- [ ] Add keyboard navigation support to public/js/navigation.js
-- [x] Create unit tests for accessibility features in tests/accessibility.test.js
+## Caching Strategy
+- [ ] Add Redis dependency to `package.json`
+- [ ] Create cache service (`src/services/cache.js`)
+- [ ] Add caching middleware for sessions and data
 
-## Mobile Optimization
-- [x] Update public/styles/styles.css for better touch targets and swipe gestures
-- [x] Ensure responsive design in public/styles/styles.css
-- [x] Create unit tests for mobile features in tests/mobile.test.js
+## Microservices
+- [ ] Organize routes into modular services (auth, users, programs)
+- [ ] Update `src/server.js` to use service modules
+
+## Testing and Validation
+- [ ] Test API endpoints with versioning
+- [ ] Verify database performance improvements
+- [ ] Test caching functionality
