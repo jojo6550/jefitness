@@ -14,6 +14,13 @@ const app = express();
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
+// Import security middleware
+const securityHeaders = require('./middleware/securityHeaders');
+const { corsOptions } = require('./middleware/corsConfig');
+const { sanitizeInput } = require('./middleware/sanitizeInput');
+const { requestLogger } = require('./middleware/requestLogger');
+const { errorHandler } = require('./middleware/errorHandler');
+
 // -----------------------------
 // Enhanced Security Headers with Helmet
 // -----------------------------
@@ -70,9 +77,24 @@ app.use(helmet({
 // -----------------------------
 // Middleware
 // -----------------------------
+// Request logging
+app.use(requestLogger);
+
+// Security headers
+app.use(securityHeaders);
+
+// Logging
 app.use(morgan('combined'));
-app.use(express.json());
-app.use(cors());
+
+// Body parsing
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ limit: '10kb', extended: false }));
+
+// Input sanitization
+app.use(sanitizeInput);
+
+// CORS with enhanced security
+app.use(cors(corsOptions));
 
 // Cache control middleware
 const cacheControl = require('./middleware/cacheControl');
@@ -149,14 +171,23 @@ app.use((req, res) => {
   res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
 });
 
-// -----------------------------
-// Error Handling Middleware
-// -----------------------------
-app.use((err, req, res, next) => {
-  console.error(`Error: ${err.message} | Stack: ${err.stack}`);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ msg: 'Something went wrong on the server. Please try again later.' });
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      message: 'Endpoint not found',
+      path: req.path,
+      method: req.method
+    }
+  });
 });
+
+// -----------------------------
+// Global Error Handling Middleware
+// MUST be last middleware in the chain
+// -----------------------------
+app.use(errorHandler);
 
 // -----------------------------
 // Cleanup Job (Unverified Users)
