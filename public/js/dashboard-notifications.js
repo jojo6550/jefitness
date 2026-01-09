@@ -142,6 +142,151 @@ async function registerPushNotifications() {
     }
 }
 
+// Initialize WebSocket for real-time notifications
+function initializeWebSocket() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Connect to WebSocket
+    window.wsManager.connect(token);
+
+    // Handle connection
+    window.wsManager.onConnect = () => {
+        console.log('WebSocket connected for notifications');
+    };
+
+    // Handle incoming messages
+    window.wsManager.addMessageHandler('notification', (data) => {
+        handleRealTimeNotification(data.notification);
+    });
+
+    window.wsManager.addMessageHandler('appointment_update', (data) => {
+        handleAppointmentUpdate(data.appointment);
+    });
+
+    window.wsManager.addMessageHandler('message', (data) => {
+        handleNewMessage(data.message);
+    });
+}
+
+// Handle real-time notification
+function handleRealTimeNotification(notification) {
+    // Show toast notification
+    showToastNotification(notification);
+
+    // Add to notifications list if on dashboard
+    if (document.querySelector('.notifications-list')) {
+        addNotificationToList(notification);
+    }
+
+    // Play notification sound if supported
+    if ('Audio' in window) {
+        try {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.play().catch(() => {}); // Ignore errors if sound fails
+        } catch (e) {
+            // Sound not available
+        }
+    }
+}
+
+// Handle appointment updates
+function handleAppointmentUpdate(appointment) {
+    const notification = {
+        title: 'Appointment Update',
+        message: `Your appointment on ${new Date(appointment.date).toLocaleDateString()} has been ${appointment.status}`,
+        type: 'appointment',
+        priority: 'high',
+        sentAt: new Date()
+    };
+    handleRealTimeNotification(notification);
+}
+
+// Handle new messages
+function handleNewMessage(message) {
+    const notification = {
+        title: 'New Message',
+        message: `You have a new message from ${message.sender}`,
+        type: 'message',
+        priority: 'medium',
+        sentAt: new Date()
+    };
+    handleRealTimeNotification(notification);
+}
+
+// Show toast notification
+function showToastNotification(notification) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '1070';
+        document.body.appendChild(toastContainer);
+    }
+
+    // Create toast
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-primary border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <strong>${notification.title}</strong><br>
+                <small>${notification.message}</small>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Initialize and show toast
+    const bsToast = new bootstrap.Toast(toast, { delay: 5000 });
+    bsToast.show();
+
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', () => {
+        toast.remove();
+    });
+}
+
+// Add notification to existing list
+function addNotificationToList(notification) {
+    const notificationsList = document.querySelector('.notifications-list');
+    if (!notificationsList) return;
+
+    const notificationElement = document.createElement('div');
+    notificationElement.className = `notification-item p-3 mb-2 bg-white rounded shadow-sm border-start border-4 ${
+        notification.priority === 'urgent' ? 'border-danger' :
+        notification.priority === 'high' ? 'border-warning' :
+        notification.priority === 'medium' ? 'border-info' : 'border-secondary'
+    }`;
+    notificationElement.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <h6 class="mb-1 fw-bold">${notification.title}</h6>
+                <p class="mb-1 text-muted small">${notification.message}</p>
+                <small class="text-muted">
+                    Just now • ${notification.type.replace('-', ' ')}
+                </small>
+            </div>
+            <span class="badge ${
+                notification.priority === 'urgent' ? 'bg-danger' :
+                notification.priority === 'high' ? 'bg-warning' :
+                notification.priority === 'medium' ? 'bg-info' : 'bg-secondary'
+            }">${notification.priority}</span>
+        </div>
+    `;
+
+    // Insert at the beginning
+    notificationsList.insertBefore(notificationElement, notificationsList.firstChild);
+
+    // Animate the new notification
+    notificationElement.style.animation = 'slideInLeft 0.5s ease-out';
+}
+
 // Utility function to convert VAPID key
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
