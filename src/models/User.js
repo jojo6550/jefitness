@@ -1,5 +1,6 @@
 // models/User.js
 const mongoose = require('mongoose');
+const encrypt = require('mongoose-encryption');
 
 const NutritionLogSchema = new mongoose.Schema({
     id: { type: Number, required: true },
@@ -127,5 +128,40 @@ const UserSchema = new mongoose.Schema({
     onboardingCompleted: { type: Boolean, default: false },
     onboardingCompletedAt: { type: Date }
 });
+
+// Encrypt sensitive fields
+const encKey = process.env.ENCRYPTION_KEY;
+if (encKey) {
+    UserSchema.plugin(encrypt, {
+        encryptionKey: encKey,
+        signingKey: process.env.SIGNING_KEY || encKey,
+        encryptedFields: [
+            'medicalConditions',
+            'goals',
+            'reason',
+            'phone',
+            'dob',
+            'gender',
+            'startWeight',
+            'currentWeight',
+            'nutritionLogs',
+            'sleepLogs'
+        ],
+        excludeFromEncryption: [
+            'password', // Already hashed
+            'email',
+            'firstName',
+            'lastName',
+            'role',
+            'isEmailVerified',
+            'createdAt',
+            'lastLoggedIn',
+            'activityStatus',
+            'hasMedical',
+            'onboardingCompleted',
+            'onboardingCompletedAt'
+        ]
+    });
+}
 
 module.exports = mongoose.model('User', UserSchema);
