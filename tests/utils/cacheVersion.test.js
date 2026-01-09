@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { getFileHash, getVersionParam, versionedUrl, invalidateCache } = require('../../src/utils/cacheVersion');
 
 // Mock fs module

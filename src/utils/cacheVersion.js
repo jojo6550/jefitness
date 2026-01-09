@@ -62,17 +62,16 @@ function getVersionParam(filePath) {
  * @returns {string} URL with version parameter
  */
 function versionedUrl(url) {
-  // Extract path from URL
+  // Do not modify external URLs
+  if (url.match(/^https?:\/\//)) {
+    return url;
+  }
+
+  // For relative URLs, extract path and add versioning
   const urlObj = new URL(url, 'http://localhost');
   const pathname = urlObj.pathname;
-  
-  // Only version local assets
-  if (pathname.startsWith('/')) {
-    const cleanPath = pathname.substring(1); // Remove leading slash
-    return pathname + getVersionParam(cleanPath);
-  }
-  
-  return url;
+  const cleanPath = pathname.startsWith('/') ? pathname.substring(1) : pathname;
+  return url + getVersionParam(cleanPath);
 }
 
 /**
