@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const navbarPlaceholder = document.getElementById('navbar-placeholder');
     const navbarPlaceholderPrograme = document.getElementById('navbar-placeholder-programme');
     if (navbarPlaceholder) {
-        fetch('../pages/partials/navbar.html')
+        fetch('../partials/navbar.html')
             .then(response => response.text())
             .then(html => {
                 navbarPlaceholder.innerHTML = html;
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => console.error('Error loading navbar:', error));
     } else if (navbarPlaceholderPrograme) {
-        fetch('../pages/partials/navbar.html')
+        fetch('../partials/navbar.html')
             .then(response => response.text())
             .then(html => {
                 navbarPlaceholderPrograme.innerHTML = html;

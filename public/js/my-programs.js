@@ -44,6 +44,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.appendChild(card);
         });
 
+        // Add event listeners to the "Open Workout Plan" buttons
+        document.querySelectorAll('.view-program-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const programId = btn.dataset.programId;
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/programs/${programId}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        const program = await res.json();
+                        window.location.href = `programs/${program.slug}.html`;
+                    } else {
+                        alert('Failed to load program details. Please try again.');
+                    }
+                } catch (err) {
+                    console.error('Error loading program:', err);
+                    alert('Error loading program. Please try again.');
+                }
+            });
+        });
+
     } catch (err) {
         console.error('Error loading my programs:', err);
         container.innerHTML = '<div class="col-12 text-center text-danger"><p>Error loading your programs. Please try again later.</p></div>';
