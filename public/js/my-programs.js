@@ -76,6 +76,7 @@ function createProgramCard(program) {
 
 async function showProgramModal(programId) {
     try {
+        // First, fetch program details to get the slug
         const res = await fetch(`${API_BASE_URL}/api/programs/${programId}`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
@@ -83,6 +84,18 @@ async function showProgramModal(programId) {
         if (!res.ok) throw new Error('Failed to fetch program details');
 
         const program = await res.json();
+
+        // Now fetch the corresponding HTML file using the slug
+        const htmlRes = await fetch(`../../pages/programs/${program.slug}.html`);
+
+        if (!htmlRes.ok) throw new Error('Failed to fetch program HTML');
+
+        const htmlContent = await htmlRes.text();
+
+        // Extract the main content from the HTML (remove head, scripts, etc.)
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const mainContent = doc.querySelector('main') ? doc.querySelector('main').innerHTML : htmlContent;
 
         // Create modal HTML
         const modalHtml = `
@@ -96,112 +109,7 @@ async function showProgramModal(programId) {
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="card border-0 bg-light mb-3">
-                                        <div class="card-body">
-                                            <h6 class="fw-bold text-primary mb-3">Program Info</h6>
-                                            <ul class="list-unstyled small">
-                                                <li class="mb-2"><i class="bi bi-bar-chart text-${program.level === 'Beginner' ? 'success' : program.level === 'Intermediate' ? 'warning' : 'danger'} me-2"></i><strong>Level:</strong> ${program.level}</li>
-                                                <li class="mb-2"><i class="bi bi-calendar-check text-success me-2"></i><strong>Duration:</strong> ${program.duration}</li>
-                                                <li class="mb-2"><i class="bi bi-clock text-info me-2"></i><strong>Frequency:</strong> ${program.frequency}</li>
-                                                <li class="mb-2"><i class="bi bi-stopwatch text-warning me-2"></i><strong>Session:</strong> ${program.sessionLength}</li>
-                                            </ul>
-                                            ${program.features && program.features.length > 0 ? `
-                                                <h6 class="fw-bold text-primary mb-2 mt-3">Features</h6>
-                                                <div class="d-flex flex-wrap gap-1">
-                                                    ${program.features.map(feature => `<span class="badge bg-secondary">${feature}</span>`).join('')}
-                                                </div>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-8">
-                                    <div class="mb-4">
-                                        <h6 class="fw-bold text-primary mb-3">Description</h6>
-                                        <p class="text-muted">${program.description}</p>
-                                    </div>
-
-                                    <h6 class="fw-bold text-primary mb-3">Weekly Workout Plan</h6>
-                                    <div class="accordion" id="workoutAccordion">
-                                        ${program.days.map((day, index) => `
-                                            <div class="accordion-item border-0 shadow-sm rounded-4 mb-2 overflow-hidden">
-                                                <h2 class="accordion-header">
-                                                    <button class="accordion-button ${index === 0 ? '' : 'collapsed'} fw-bold py-3 px-4" type="button" data-bs-toggle="collapse" data-bs-target="#day${index}">
-                                                        <div class="d-flex align-items-center w-100">
-                                                            <i class="bi bi-calendar-day text-primary me-3 fs-5"></i>
-                                                            <span>${day.dayName}</span>
-                                                            <span class="badge bg-primary ms-auto">${day.exercises ? day.exercises.length : 0} exercises</span>
-                                                        </div>
-                                                    </button>
-                                                </h2>
-                                                <div id="day${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" data-bs-parent="#workoutAccordion">
-                                                    <div class="accordion-body p-0">
-                                                        ${day.exercises && day.exercises.length > 0 ? `
-                                                            <div class="table-responsive">
-                                                                <table class="table table-hover mb-0 align-middle">
-                                                                    <thead class="table-light">
-                                                                        <tr>
-                                                                            <th class="ps-4 py-2">#</th>
-                                                                            <th class="py-2">Exercise</th>
-                                                                            <th class="py-2 text-center">Sets</th>
-                                                                            <th class="py-2 text-center">Reps</th>
-                                                                            <th class="py-2">Notes</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        ${day.exercises.map((ex, exIndex) => `
-                                                                            <tr>
-                                                                                <td class="ps-4 py-2">
-                                                                                    <span class="badge bg-secondary">${exIndex + 1}</span>
-                                                                                </td>
-                                                                                <td class="py-2">
-                                                                                    <div class="fw-bold text-primary">${ex.name}</div>
-                                                                                </td>
-                                                                                <td class="py-2 text-center">
-                                                                                    <span class="badge bg-info">${ex.sets}</span>
-                                                                                </td>
-                                                                                <td class="py-2 text-center">
-                                                                                    <span class="badge bg-warning text-dark">${ex.reps}</span>
-                                                                                </td>
-                                                                                <td class="py-2 text-muted small pe-4">
-                                                                                    ${ex.notes || '<em>No additional notes</em>'}
-                                                                                </td>
-                                                                            </tr>
-                                                                        `).join('')}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                            <div class="p-3 bg-light border-top">
-                                                                <div class="row text-center">
-                                                                    <div class="col-4">
-                                                                        <div class="fw-bold text-primary h6 mb-0">${day.exercises.length}</div>
-                                                                        <small class="text-muted">Exercises</small>
-                                                                    </div>
-                                                                    <div class="col-4">
-                                                                        <div class="fw-bold text-info h6 mb-0">${day.exercises.reduce((sum, ex) => sum + ex.sets, 0)}</div>
-                                                                        <small class="text-muted">Total Sets</small>
-                                                                    </div>
-                                                                    <div class="col-4">
-                                                                        <div class="fw-bold text-success h6 mb-0">~${Math.round(day.exercises.reduce((sum, ex) => sum + ex.sets, 0) * 2)} min</div>
-                                                                        <small class="text-muted">Est. Time</small>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ` : `
-                                                            <div class="p-4 text-center text-muted">
-                                                                <i class="bi bi-calendar-x display-4 mb-3"></i>
-                                                                <p>No exercises scheduled for this day.</p>
-                                                                <small>Rest day or flexible training day.</small>
-                                                            </div>
-                                                        `}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
+                            ${mainContent}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
