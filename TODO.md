@@ -1,18 +1,27 @@
-# Memory Optimization Tasks
+# Production Bug Fix Tasks
 
-## High Memory Usage Alert Resolution (92.18% heap usage, 39 MB used)
+## 1. Fix CORS Configuration
+- [x] Rewrite corsConfig.js to not throw errors in origin callback
+- [x] Allow same-origin requests (https://jefitness.onrender.com)
+- [x] Allow requests with no Origin (server-side, Postman)
 
-### Tasks to Complete:
-- [ ] Add memory cleanup mechanisms and garbage collection triggers in monitoring.js
-- [ ] Optimize in-memory log storage limits and add periodic cleanup in logs.js
-- [ ] Implement proper in-memory cache fallback in cache.js when Redis fails
-- [ ] Add memory monitoring hooks in server.js
-- [ ] Enhance monitoring with memory trend analysis
+## 2. Fix Sanitize Input Middleware
+- [x] Rewrite sanitizeInput.js to safely handle req.body, req.query, nested objects
+- [x] Replace obj.hasOwnProperty with safer checks
+- [x] Prevent crashes from malformed or empty input
 
-### Files to Modify:
-- `src/services/monitoring.js`
-- `src/routes/logs.js`
-- `src/services/cache.js`
-- `src/server.js`
+## 3. Verify Middleware Order
+- [x] Check server.js for correct order: body parsing -> sanitization -> CORS -> routes
 
-### Status: In Progress
+## 4. Harden Login Route
+- [x] Add try/catch to /api/auth/login
+- [x] Validate inputs properly
+- [x] Return proper HTTP status codes (200, 400, 401, no 500 for expected cases)
+- [x] Log unexpected errors without crashing server
+
+## 5. Output Fixed Files
+- [x] Section 1: Fixed corsConfig.js
+- [x] Section 2: Fixed sanitizeInput.js
+- [x] Section 3: Correct middleware order snippet
+- [x] Section 4: Corrected login route example
+- [x] Section 5: Short checklist to verify fix in production

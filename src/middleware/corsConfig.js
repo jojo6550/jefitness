@@ -11,6 +11,7 @@ const cors = require('cors');
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
+      'https://jefitness.onrender.com', // Same-origin for production
       'http://localhost:3000',
       'http://localhost:5500',
       'http://localhost:5501',
@@ -18,11 +19,13 @@ const corsOptions = {
       process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim())
     ].filter(Boolean).flat();
 
-    // Allow requests with no origin (mobile apps, curl requests, etc)
+    // Allow requests with no origin (mobile apps, curl requests, server-side requests)
+    // Allow same-origin requests (origin matches the host)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Do not throw error - return false to deny
+      callback(null, false);
     }
   },
   credentials: true,
