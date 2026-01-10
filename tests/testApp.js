@@ -4,8 +4,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { body } = require('express-validator');
 
+// Import middleware
+const auth = require('../src/middleware/auth');
+
 // Import routes
-const auth = require('../src/routes/auth');
+const authRoutes = require('../src/routes/auth');
 const programs = require('../src/routes/programs');
 const users = require('../src/routes/users');
 
@@ -20,7 +23,7 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
-app.use('/api/auth', auth);
+app.use('/api/auth', authRoutes);
 app.use('/api/programs', programs);
 app.use('/api/users', users);
 

@@ -1,6 +1,9 @@
 const User = require('../../src/models/User');
 const Appointment = require('../../src/models/Appointment');
 const Program = require('../../src/models/Program');
+const request = require('supertest');
+const jwt = require('jsonwebtoken');
+const app = require('../testApp');
 
 // Mock bcryptjs to avoid dependency issues in tests
 jest.mock('bcryptjs', () => ({
@@ -103,27 +106,20 @@ describe('User Scalability Tests', () => {
     let trainer;
 
     beforeEach(async () => {
-      // Create test users for activities
-      testUsers = [];
-      for (let i = 0; i < 50; i++) { // Use 50 users for manageable load
-        const user = await new User({
-          firstName: `ActiveFirst${i}`,
-          lastName: `ActiveLast${i}`,
-          email: `activeuser${i}@example.com`,
-          password: 'Password123!',
-          role: 'user',
-        }).save();
-        testUsers.push(user);
-      }
+      // Use the test users created in beforeAll
+      // testUsers is already available from the outer scope
 
-      // Create a trainer (admin user)
-      trainer = await new User({
-        firstName: 'Trainer',
-        lastName: 'Admin',
-        email: 'trainer@example.com',
-        password: 'Password123!',
-        role: 'admin',
-      }).save();
+      // Find or create trainer
+      trainer = await User.findOne({ email: 'trainer@example.com' });
+      if (!trainer) {
+        trainer = await new User({
+          firstName: 'Trainer',
+          lastName: 'Admin',
+          email: 'trainer@example.com',
+          password: 'Password123!',
+          role: 'admin',
+        }).save();
+      }
     });
 
     it('should simulate profile updates for all users concurrently', async () => {
@@ -336,6 +332,60 @@ describe('User Scalability Tests', () => {
 
       console.log(`Mixed concurrent activities for 50 users completed in ${duration}ms`);
       expect(duration).toBeLessThan(15000); // Allow more time for mixed operations
+    });
+
+    it('should handle 50 separate users making concurrent API calls to test responsiveness and reliability', async () => {
+      const startTime = Date.now();
+
+      // Create 50 test users with tokens for API calls
+      const apiTestUsers = [];
+      const tokens = [];
+
+      for (let i = 0; i < 50; i++) {
+        const user = await new User({
+          firstName: `APITestFirst${i}`,
+          lastName: `APITestLast${i}`,
+          email: `scalability-apitestuser${i}@example.com`,
+          password: 'Password123!',
+          role: 'user',
+          isEmailVerified: true,
+        }).save();
+        apiTestUsers.push(user);
+
+        // Generate JWT token for the user (matching the structure used in login)
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'testsecret');
+        tokens.push(token);
+      }
+
+      // Simulate 50 concurrent API calls (GET /api/v1/auth/me for profile retrieval)
+      const apiCallPromises = apiTestUsers.map((user, index) => {
+        return request(app)
+          .get('/api/auth/me')
+          .set('Authorization', `Bearer ${tokens[index]}`)
+          .expect(200);
+      });
+
+      const results = await Promise.all(apiCallPromises);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      // Assertions
+      expect(results).toHaveLength(50);
+      results.forEach((response, index) => {
+        expect(response.status).toBe(200);
+        expect(response.body.firstName).toBe(`APITestFirst${index}`);
+        expect(response.body.lastName).toBe(`APITestLast${index}`);
+        expect(response.body.email).toBe(`scalability-apitestuser${index}@example.com`);
+        expect(response.body.role).toBe('user');
+      });
+
+      console.log(`50 concurrent API calls completed in ${duration}ms`);
+      // Performance check: Should complete within 10 seconds for responsiveness
+      expect(duration).toBeLessThan(10000);
+
+      // Reliability check: All calls should succeed
+      const successCount = results.filter(res => res.status === 200).length;
+      expect(successCount).toBe(50);
     });
   });
 });
