@@ -357,8 +357,12 @@ class ChatWidget {
     if (!this.currentConversation) return;
 
     const type = this.currentConversation.type;
+    const partnerData = this.currentConversation.partnerData;
+
     if (type === 'trainer') {
-      window.location.href = 'meet-your-trainer.html';
+      // Link to specific trainer account page
+      const trainerSlug = partnerData.name.toLowerCase().replace(' ', '-');
+      window.location.href = `trainer-${trainerSlug}.html`;
     } else if (type === 'admin') {
       window.location.href = 'admin-dashboard.html';
     }
