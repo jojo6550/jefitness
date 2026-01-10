@@ -16,10 +16,17 @@ describe('WebSocketManager', () => {
 
     // Mock window.location for jsdom environment
     global.window = global.window || {};
-    global.window.location = {
-      protocol: 'http:',
-      host: 'localhost'
-    };
+    if (global.window.location) {
+      global.window.location.protocol = 'http:';
+      global.window.location.host = 'localhost';
+      global.window.location.href = 'http://localhost';
+    } else {
+      global.window.location = {
+        protocol: 'http:',
+        host: 'localhost',
+        href: 'http://localhost'
+      };
+    }
 
     // Mock WebSocket instance
     mockWebSocket = {
