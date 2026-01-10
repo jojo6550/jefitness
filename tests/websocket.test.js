@@ -1,4 +1,9 @@
 // Mock WebSocket for Node.js environment
+
+/**
+ * @jest-environment jsdom
+ */
+
 global.WebSocket = jest.fn();
 
 describe('WebSocketManager', () => {

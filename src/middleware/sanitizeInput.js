@@ -21,10 +21,10 @@ const sanitizeInput = (req, res, next) => {
       req.query = sanitizeObject(req.query);
     }
 
-    // Sanitize URL parameters
-    if (req.params && typeof req.params === 'object') {
-      req.params = sanitizeObject(req.params);
-    }
+    // Skip sanitizing URL parameters as they are typically safe and may contain IDs
+    // if (req.params && typeof req.params === 'object') {
+    //   req.params = sanitizeObject(req.params);
+    // }
 
     next();
   } catch (error) {

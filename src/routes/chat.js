@@ -21,8 +21,8 @@ router.get('/history/:userId', auth, async (req, res) => {
     .sort({ timestamp: -1 })
     .limit(limit)
     .skip((page - 1) * limit)
-    .populate('senderId', 'name email role')
-    .populate('receiverId', 'name email role');
+    .populate('senderId', 'firstName lastName email role')
+    .populate('receiverId', 'firstName lastName email role');
 
     // Mark messages as read if they were sent to current user
     await ChatMessage.updateMany(
@@ -106,7 +106,9 @@ router.get('/conversations', auth, async (req, res) => {
       {
         $project: {
           partnerId: '$_id',
-          partnerName: '$partner.name',
+          partnerName: {
+            $concat: ['$partner.firstName', ' ', '$partner.lastName']
+          },
           partnerEmail: '$partner.email',
           partnerRole: '$partner.role',
           lastMessage: 1,

@@ -7,7 +7,7 @@
     "dev": "nodemon",
     "dev:frontend": "browser-sync start --server public --files '**/*.html' --port 5501",
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
-    "test": "jest --setupFilesAfterEnv ./tests/setup.js --runInBand",
+    "test": "jest --runInBand",
     "start": "node src/server.js",
     "build:css": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --watch",
     "seed:programs": "node src/seedPrograms.js",
