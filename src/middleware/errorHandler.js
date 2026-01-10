@@ -106,19 +106,17 @@ const errorHandler = (err, req, res, next) => {
     }
   };
 
-  // Safely log security events
-  const safeLogSecurityEvent = async () => {
-    try {
-      if (logSecurityEvent) {
-        await logSecurityEvent(
-          err instanceof AuthenticationError ? 'AUTH_ERROR' : 'AUTHORIZATION_ERROR',
-          req.user?.id || 'unknown',
-          { message, ...context },
-          req
-        );
-      }
-    } catch (securityLogError) {
-      console.error('Security event logging failed:', securityLogError.message);
+  // Safely log security events - fire and forget with proper error handling
+  const safeLogSecurityEvent = () => {
+    if (logSecurityEvent) {
+      logSecurityEvent(
+        err instanceof AuthenticationError ? 'AUTH_ERROR' : 'AUTHORIZATION_ERROR',
+        req.user?.id || 'unknown',
+        { message, ...context },
+        req
+      ).catch(securityLogError => {
+        console.error('Security event logging failed:', securityLogError.message);
+      });
     }
   };
 
@@ -126,7 +124,7 @@ const errorHandler = (err, req, res, next) => {
   if (statusCode >= 500) {
     safeLogError();
   } else if (err instanceof AuthenticationError || err instanceof AuthorizationError) {
-    safeLogSecurityEvent().catch(e => console.error('Security event async log failed:', e.message));
+    safeLogSecurityEvent();
   } else {
     safeLogError();
   }

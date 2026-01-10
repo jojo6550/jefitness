@@ -1,18 +1,18 @@
 module.exports = {
+  testTimeout: 60000,
+  coverageReporters: ['text', 'lcov', 'html'],
   projects: [
     {
       displayName: 'node',
       testEnvironment: 'node',
       setupFilesAfterEnv: ['./tests/setup.js'],
       testPathIgnorePatterns: ['tests/websocket.test.js'],
-      testTimeout: 60000,
       collectCoverageFrom: [
         'src/**/*.js',
         '!src/server.js',
         '!src/seedPrograms.js'
       ],
       coverageDirectory: 'coverage',
-      coverageReporters: ['text', 'lcov', 'html'],
       transformIgnorePatterns: [
         "node_modules/(?!(jsdom|@exodus/bytes|mongoose|mongodb|bson)/)"
       ],
@@ -26,7 +26,6 @@ module.exports = {
       testEnvironment: 'jsdom',
       setupFilesAfterEnv: ['./tests/setup-jsdom.js'],
       testMatch: ['**/tests/websocket.test.js'],
-      testTimeout: 60000,
       transformIgnorePatterns: [
         "node_modules/(?!(jsdom|@exodus/bytes|mongoose|mongodb|bson)/)"
       ],
