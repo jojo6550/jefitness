@@ -295,23 +295,23 @@ class API {
 
   // ===== Cart Endpoints =====
   static cart = {
-    get: () => API.request('/api/cart'),
+    get: () => API.request('/api/v1/cart'),
 
-    addItem: (itemId, quantity) => API.request('/api/cart', {
+    addItem: (itemId, quantity) => API.request('/api/v1/cart/add', {
       method: 'POST',
-      body: JSON.stringify({ itemId, quantity })
+      body: JSON.stringify({ programId: itemId, quantity })
     }),
 
-    updateItem: (itemId, quantity) => API.request(`/api/cart/${itemId}`, {
+    updateItem: (itemId, quantity) => API.request(`/api/v1/cart/update/${itemId}`, {
       method: 'PUT',
       body: JSON.stringify({ quantity })
     }),
 
-    removeItem: (itemId) => API.request(`/api/cart/${itemId}`, {
+    removeItem: (itemId) => API.request(`/api/v1/cart/remove/${itemId}`, {
       method: 'DELETE'
     }),
 
-    clear: () => API.request('/api/cart', {
+    clear: () => API.request('/api/v1/cart/clear', {
       method: 'DELETE'
     })
   };

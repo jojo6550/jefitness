@@ -105,8 +105,11 @@ async function getOrCreateProgram(programData) {
 
     try {
         // Try to get program by slug
-        let res = await fetch(`${baseUrl}/api/programs/${programData.slug}`);
-        
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        let res = await fetch(`${baseUrl}/api/v1/programs/${programData.slug}`, {
+            headers: headers
+        });
+
         if (res.ok) {
             const program = await res.json();
             return program._id;
@@ -116,7 +119,7 @@ async function getOrCreateProgram(programData) {
         // For now, we'll store a temporary ID
         // In production, programs should be pre-seeded in the database
         console.warn('Program not found in database. Please seed programs.');
-        
+
         // Return a mock ID for development
         return 'temp-' + programData.slug;
 
@@ -141,7 +144,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (token) {
         try {
-            const res = await fetch(`${baseUrl}/api/cart`, {
+            const res = await fetch(`${baseUrl}/api/v1/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
