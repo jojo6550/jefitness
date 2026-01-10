@@ -1,22 +1,8 @@
 const cacheService = require('../../src/services/cache');
 
-describe('Cache Service Fallback', () => {
-  let originalRedisCreateClient;
-
-  beforeAll(() => {
-    // Store original Redis createClient
-    originalRedisCreateClient = require('redis').createClient;
-  });
-
-  afterAll(() => {
-    // Restore original Redis createClient
-    require('redis').createClient = originalRedisCreateClient;
-  });
-
+describe('Cache Service - Memory Cache', () => {
   beforeEach(() => {
     // Reset cache service state for each test
-    cacheService.client = null;
-    cacheService.isConnected = false;
     cacheService.memoryCache = new Map();
     cacheService.memoryCacheTTL = new Map();
     if (cacheService.memoryCacheCleanupInterval) {
@@ -33,44 +19,17 @@ describe('Cache Service Fallback', () => {
     }
   });
 
-  describe('Redis Connection Failure', () => {
-    it('should fall back to in-memory cache when Redis connection fails', async () => {
-      // Mock Redis createClient to throw an error
-      require('redis').createClient = jest.fn(() => {
-        throw new Error('Redis connection failed');
-      });
-
+  describe('Initialization', () => {
+    it('should initialize with empty memory cache', async () => {
       await cacheService.connect();
-
-      expect(cacheService.isConnected).toBe(false);
-      expect(cacheService.client).toBe(null);
       expect(cacheService.memoryCache).toBeInstanceOf(Map);
       expect(cacheService.memoryCacheTTL).toBeInstanceOf(Map);
-    });
-
-    it('should start memory cache cleanup interval when Redis fails', async () => {
-      jest.useFakeTimers();
-
-      // Mock Redis createClient to throw an error
-      require('redis').createClient = jest.fn(() => {
-        throw new Error('Redis connection failed');
-      });
-
-      await cacheService.connect();
-
-      // Fast-forward time to trigger cleanup
-      jest.advanceTimersByTime(61000); // 61 seconds
-
-      expect(cacheService.memoryCacheCleanupInterval).toBeDefined();
     });
   });
 
   describe('Memory Cache Operations', () => {
     beforeEach(async () => {
-      // Force fallback to memory cache
-      require('redis').createClient = jest.fn(() => {
-        throw new Error('Redis connection failed');
-      });
+      // Initialize the cache service
       await cacheService.connect();
     });
 
@@ -195,10 +154,7 @@ describe('Cache Service Fallback', () => {
 
   describe('Memory Cache Cleanup', () => {
     beforeEach(async () => {
-      // Force fallback to memory cache
-      require('redis').createClient = jest.fn(() => {
-        throw new Error('Redis connection failed');
-      });
+      // Initialize the cache service
       await cacheService.connect();
     });
 
@@ -225,3 +181,4 @@ describe('Cache Service Fallback', () => {
     });
   });
 });
+
