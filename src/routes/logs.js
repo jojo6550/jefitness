@@ -4,7 +4,17 @@ const auth = require('../middleware/auth');
 
 // In-memory storage for real-time logs
 let realtimeLogs = [];
-const MAX_LOGS = 1000; // Keep only the last 1000 logs
+const MAX_LOGS = 500; // Reduced from 1000 to 500 for memory efficiency
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// Periodic cleanup to prevent memory leaks
+setInterval(() => {
+  if (realtimeLogs.length > MAX_LOGS) {
+    const removedCount = realtimeLogs.length - MAX_LOGS;
+    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+    console.log(`Log cleanup: Removed ${removedCount} old log entries`);
+  }
+}, CLEANUP_INTERVAL);
 
 // Override console methods to capture logs
 const originalConsoleLog = console.log;

@@ -398,13 +398,16 @@ class MonitoringService {
       });
     }
 
-    // Alert on high memory usage
+    // Alert on high memory usage and trigger cleanup
     const memoryUsagePercent = (this.metrics.memoryUsage.heapUsed / this.metrics.memoryUsage.heapTotal) * 100;
     if (memoryUsagePercent > 90) {
       this.sendAlert('HIGH_MEMORY_USAGE', {
         memoryUsagePercent: memoryUsagePercent.toFixed(2) + '%',
         heapUsed: Math.round(this.metrics.memoryUsage.heapUsed / 1024 / 1024) + ' MB'
       });
+
+      // Trigger memory cleanup when usage is critical
+      this.performMemoryCleanup();
     }
 
     // Alert on high system load
@@ -413,6 +416,42 @@ class MonitoringService {
         loadAverage: this.metrics.systemLoad[0].toFixed(2),
         cpuCount: os.cpus().length
       });
+    }
+  }
+
+  /**
+   * Perform memory cleanup operations
+   */
+  performMemoryCleanup() {
+    this.logger.warn('Initiating memory cleanup due to high usage');
+
+    try {
+      // Force garbage collection if available
+      if (global.gc) {
+        global.gc();
+        this.logger.info('Garbage collection triggered');
+      }
+
+      // Clear old response times (keep only last 500)
+      if (this.metrics.responseTimes.length > 500) {
+        this.metrics.responseTimes = this.metrics.responseTimes.slice(-500);
+        this.logger.info('Response times array trimmed to 500 entries');
+      }
+
+      // Reset metrics counters periodically to prevent unbounded growth
+      if (this.metrics.requests > 100000) {
+        this.metrics.requests = Math.floor(this.metrics.requests / 2);
+        this.metrics.errors = Math.floor(this.metrics.errors / 2);
+        this.logger.info('Metrics counters halved to prevent memory growth');
+      }
+
+      // Update memory usage after cleanup
+      this.updateSystemMetrics();
+      const newMemoryUsagePercent = (this.metrics.memoryUsage.heapUsed / this.metrics.memoryUsage.heapTotal) * 100;
+      this.logger.info(`Memory cleanup completed. New usage: ${newMemoryUsagePercent.toFixed(2)}%`);
+
+    } catch (error) {
+      this.logger.error('Error during memory cleanup', { error: error.message });
     }
   }
 

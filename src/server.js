@@ -16,7 +16,7 @@ const app = express();
 
 // Initialize cache service
 const cacheService = require('./services/cache');
-//cacheService.connect();
+cacheService.connect();
 
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
@@ -285,6 +285,25 @@ cron.schedule('0 1 1 */6 *', async () => {
     console.error('Data retention cleanup failed:', error.message);
   }
 });
+
+// -----------------------------
+// Memory Monitoring and Cleanup
+// -----------------------------
+const monitoringService = require('./services/monitoring');
+
+// Periodic memory monitoring and cleanup (every 10 minutes)
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+
+  console.log(`Memory usage: ${memUsagePercent.toFixed(2)}% (${Math.round(memUsage.heapUsed / 1024 / 1024)} MB used)`);
+
+  // Trigger cleanup if memory usage is high
+  if (memUsagePercent > 85) {
+    console.log('High memory usage detected, triggering cleanup...');
+    monitoringService.performMemoryCleanup();
+  }
+}, 10 * 60 * 1000); // 10 minutes
 
 // -----------------------------
 // WebSocket Server Setup for Chat
