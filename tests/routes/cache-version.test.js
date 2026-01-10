@@ -48,9 +48,9 @@ describe('Cache Version API', () => {
 
       expect(response.body).toBeDefined();
       expect(typeof response.body).toBe('object');
-      expect(response.body).toHaveProperty('index.html');
-      expect(response.body).toHaveProperty('js/app.js');
-      expect(response.body).toHaveProperty('styles/styles.css');
+      expect(Object.keys(response.body)).toContain('index.html');
+      expect(Object.keys(response.body)).toContain('js/app.js');
+      expect(Object.keys(response.body)).toContain('styles/styles.css');
 
       // Check that values are strings (hashes)
       Object.values(response.body).forEach(hash => {
