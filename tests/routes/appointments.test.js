@@ -91,7 +91,7 @@ describe('Appointments Routes', () => {
     // Create a sample appointment
     appointment = await Appointment.create({
       clientId: clientUser._id,
-      trainerId: adminUser._id,
+      trainerId: trainerForPost._id,
       date: '2024-12-01',
       time: '10:00',
       status: 'scheduled',
@@ -192,7 +192,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '11:00',
           notes: 'New appointment'
@@ -200,14 +200,14 @@ describe('Appointments Routes', () => {
         .expect(201);
 
       expect(response.body.clientId._id.toString()).toBe(clientUser._id.toString());
-      expect(response.body.trainerId._id.toString()).toBe(adminUser._id.toString());
+      expect(response.body.trainerId._id.toString()).toBe(trainerUser._id.toString());
     });
 
     test('should reject booking without required fields', async () => {
       const response = await request(app)
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
-        .send({ trainerId: adminUser._id.toString() })
+        .send({ trainerId: trainerUser._id.toString() })
         .expect(400);
 
       expect(response.body.msg).toContain('Please provide all required fields');
@@ -240,7 +240,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '10:00'
         })
@@ -258,7 +258,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '04:00' // Before 5 AM
         })
@@ -276,7 +276,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '10:30' // Not on the hour
         })
@@ -303,7 +303,7 @@ describe('Appointments Routes', () => {
 
         await Appointment.create({
           clientId: tempUser._id,
-          trainerId: adminUser._id,
+          trainerId: trainerUser._id,
           date: dateStr,
           time: '10:00',
           status: 'scheduled'
@@ -314,7 +314,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '10:00'
         })
@@ -341,7 +341,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '10:00'
         })
@@ -368,7 +368,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '11:00' // Different time, same day
         })
@@ -400,7 +400,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr2,
           time: '11:00'
         })
@@ -427,7 +427,7 @@ describe('Appointments Routes', () => {
 
         await Appointment.create({
           clientId: tempUser._id,
-          trainerId: adminUser._id,
+          trainerId: trainerUser._id,
           date: dateStr,
           time: '10:00',
           status: 'scheduled'
@@ -438,7 +438,7 @@ describe('Appointments Routes', () => {
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
-          trainerId: adminUser._id.toString(),
+          trainerId: trainerUser._id.toString(),
           date: dateStr,
           time: '10:00'
         })
