@@ -1,24 +1,24 @@
-# Backend Architecture Improvements TODO
+# Chat Feature Implementation TODO
 
-## API Versioning
-- [ ] Create versioning middleware (`src/middleware/versioning.js`)
-- [ ] Update all routes in `src/server.js` to use `/api/v1/` prefix
+## Backend Setup
+- [x] Add WebSocket server in src/server.js
+- [x] Create src/routes/chat.js for chat API endpoints
+- [x] Implement message limiting logic (3 messages max until reply)
+- [x] Add chat action logging
 
-## Database Optimization
-- [ ] Add indexes to User model (email, role, createdAt)
-- [ ] Add indexes to other models (Appointment, Program, etc.)
-- [ ] Enhance connection pooling in `src/server.js`
+## Frontend Implementation
+- [x] Create chat widget HTML (public/pages/partials/chat-widget.html)
+- [x] Create public/js/chat.js for widget functionality
+- [x] Create public/styles/chat.css for styling
+- [x] Extend public/js/websocket.js for chat messages
 
-## Caching Strategy
-- [ ] Add Redis dependency to `package.json`
-- [ ] Create cache service (`src/services/cache.js`)
-- [ ] Add caching middleware for sessions and data
+## Testing
+- [x] Create unit tests for chat routes
+- [x] Create unit tests for message limiting logic
+- [x] Update websocket tests for chat functionality
 
-## Microservices
-- [ ] Organize routes into modular services (auth, users, programs)
-- [ ] Update `src/server.js` to use service modules
-
-## Testing and Validation
-- [ ] Test API endpoints with versioning
-- [ ] Verify database performance improvements
-- [ ] Test caching functionality
+## Integration & Testing
+- [ ] Test WebSocket connection and message sending
+- [ ] Verify message limiting works
+- [ ] Check logging of actions
+- [ ] Ensure UI is responsive and positioned correctly

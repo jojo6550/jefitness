@@ -268,7 +268,174 @@ cron.schedule('0 3 1 * *', () => {
 });
 
 // -----------------------------
-// Start Server
+// WebSocket Server Setup for Chat
 // -----------------------------
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+const ChatMessage = require('./models/Chat');
+
+// Only start server if this file is run directly (not required in tests)
+if (require.main === module) {
+  const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  const wss = new WebSocket.Server({ server });
+
+// Store connected clients with their user info
+const clients = new Map();
+
+// Message limiting: track consecutive user messages per conversation
+const messageLimits = new Map(); // key: 'userId-receiverId', value: { count: number, lastReplyFromReceiver: boolean }
+
+wss.on('connection', (ws, req) => {
+  console.log('New WebSocket connection');
+
+  // Extract token from query params
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const token = url.searchParams.get('token');
+
+  if (!token) {
+    ws.close(1008, 'Authentication required');
+    return;
+  }
+
+  // Verify token and get user info (simplified - in real app use proper JWT verification)
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.user.id;
+    const userRole = decoded.user.role;
+
+    // Store client connection
+    clients.set(userId, { ws, userId, userRole });
+
+    ws.on('message', async (data) => {
+      try {
+        const message = JSON.parse(data);
+        await handleChatMessage(ws, userId, userRole, message);
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error);
+        ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
+      }
+    });
+
+    ws.on('close', () => {
+      console.log(`WebSocket connection closed for user ${userId}`);
+      clients.delete(userId);
+    });
+
+    ws.on('error', (error) => {
+      console.error(`WebSocket error for user ${userId}:`, error);
+      clients.delete(userId);
+    });
+
+  } catch (error) {
+    console.error('WebSocket authentication failed:', error);
+    ws.close(1008, 'Invalid token');
+  }
+});
+
+async function handleChatMessage(ws, senderId, senderRole, message) {
+  const { type, receiverId, receiverRole, content } = message;
+
+  if (type !== 'chat_message') return;
+
+  // Validate receiver
+  if (!receiverId || !receiverRole) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Receiver information required' }));
+    return;
+  }
+
+  // Determine message type
+  let messageType;
+  if (senderRole === 'user' && receiverRole === 'admin') {
+    messageType = 'user_to_admin';
+  } else if (senderRole === 'user' && receiverRole === 'trainer') {
+    messageType = 'user_to_trainer';
+  } else if (senderRole === 'admin' && receiverRole === 'user') {
+    messageType = 'admin_to_user';
+  } else if (senderRole === 'trainer' && receiverRole === 'user') {
+    messageType = 'trainer_to_user';
+  } else {
+    ws.send(JSON.stringify({ type: 'error', message: 'Invalid conversation type' }));
+    return;
+  }
+
+  // Check message limit for user-to-admin/trainer conversations
+  if (senderRole === 'user') {
+    const limitKey = `${senderId}-${receiverId}`;
+    let limitData = messageLimits.get(limitKey) || { count: 0, lastReplyFromReceiver: true };
+
+    if (!limitData.lastReplyFromReceiver && limitData.count >= 3) {
+      ws.send(JSON.stringify({ type: 'error', message: 'Message limit reached. Please wait for a reply.' }));
+      console.log(`Chat action logged: Message blocked for user ${senderId} - limit reached`);
+      return;
+    }
+
+    // Reset count if receiver replied
+    if (limitData.lastReplyFromReceiver) {
+      limitData.count = 0;
+      limitData.lastReplyFromReceiver = false;
+    }
+
+    limitData.count++;
+    messageLimits.set(limitKey, limitData);
+  }
+
+  // Save message to database
+  try {
+    const chatMessage = new ChatMessage({
+      senderId,
+      receiverId,
+      message: content,
+      messageType
+    });
+    await chatMessage.save();
+
+    // Send to receiver if online
+    const receiverClient = clients.get(receiverId);
+    if (receiverClient) {
+      receiverClient.ws.send(JSON.stringify({
+        type: 'chat_message',
+        message: {
+          id: chatMessage._id,
+          senderId,
+          receiverId,
+          message: content,
+          timestamp: chatMessage.timestamp,
+          messageType,
+          isRead: false
+        }
+      }));
+
+      // Mark as read if receiver is online
+      chatMessage.isRead = true;
+      await chatMessage.save();
+    }
+
+    // Confirm to sender
+    ws.send(JSON.stringify({
+      type: 'message_sent',
+      message: {
+        id: chatMessage._id,
+        senderId,
+        receiverId,
+        message: content,
+        timestamp: chatMessage.timestamp,
+        messageType
+      }
+    }));
+
+    // Reset limit if this is a reply from admin/trainer
+    if (senderRole === 'admin' || senderRole === 'trainer') {
+      const limitKey = `${receiverId}-${senderId}`;
+      const limitData = messageLimits.get(limitKey);
+      if (limitData) {
+        limitData.lastReplyFromReceiver = true;
+        messageLimits.set(limitKey, limitData);
+      }
+    }
+
+    console.log(`Chat action logged: Message sent from ${senderId} to ${receiverId} (${messageType})`);
+
+  } catch (error) {
+    console.error('Error saving chat message:', error);
+    ws.send(JSON.stringify({ type: 'error', message: 'Failed to send message' }));
+  }
+}

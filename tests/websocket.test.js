@@ -41,7 +41,7 @@ describe('WebSocketManager', () => {
       connect(token = null) {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        const url = token ? `${protocol}//${host}?token=${token}` : `${protocol}//${host}`;
+        const url = token ? `${protocol}//${host}/?token=${token}` : `${protocol}//${host}/`;
 
         try {
           this.ws = new WebSocket(url);
