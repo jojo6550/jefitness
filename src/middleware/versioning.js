@@ -7,7 +7,9 @@ const versioning = (req, res, next) => {
   res.set('X-API-Version', 'v1');
 
   // Optional: Validate minimum version requirements
-  const clientVersion = req.headers['x-api-version'];
+  // Find the API version header case-insensitively
+  const headerKey = Object.keys(req.headers).find(key => key.toLowerCase() === 'x-api-version');
+  const clientVersion = headerKey ? req.headers[headerKey] : null;
   if (clientVersion && clientVersion !== 'v1') {
     console.warn(`Client using API version: ${clientVersion}, server supports: v1`);
   }
