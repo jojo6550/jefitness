@@ -177,19 +177,19 @@ app.use('/api/v1/chat', auth, sanitizeInput, apiLimiter, versioning, require('./
 app.use('/api/v1/trainer', auth, apiLimiter, versioning, require('./routes/trainer'));
 
 // Backward compatibility - redirect old routes to v1
-app.use('/api/auth', (req, res) => res.redirect(301, '/api/v1/auth' + req.path.replace('/api/auth', '')));
-app.use('/api/sleep', auth, (req, res) => res.redirect(301, '/api/v1/sleep' + req.path.replace('/api/sleep', '')));
-app.use('/api/clients', auth, (req, res) => res.redirect(301, '/api/v1/clients' + req.path.replace('/api/clients', '')));
-app.use('/api/logs', auth, (req, res) => res.redirect(301, '/api/v1/logs' + req.path.replace('/api/logs', '')));
-app.use('/api/appointments', auth, (req, res) => res.redirect(301, '/api/v1/appointments' + req.path.replace('/api/appointments', '')));
-app.use('/api/users', auth, (req, res) => res.redirect(301, '/api/v1/users' + req.path.replace('/api/users', '')));
-app.use('/api/nutrition', auth, (req, res) => res.redirect(301, '/api/v1/nutrition' + req.path.replace('/api/nutrition', '')));
-app.use('/api/notifications', auth, (req, res) => res.redirect(301, '/api/v1/notifications' + req.path.replace('/api/notifications', '')));
-app.use('/api/programs', (req, res) => res.redirect(301, '/api/v1/programs' + req.path.replace('/api/programs', '')));
-app.use('/api/cart', auth, (req, res) => res.redirect(301, '/api/v1/cart' + req.path.replace('/api/cart', '')));
-app.use('/api/orders', auth, (req, res) => res.redirect(301, '/api/v1/orders' + req.path.replace('/api/orders', '')));
-app.use('/api/medical-documents', auth, (req, res) => res.redirect(301, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
-app.use('/api/trainer', auth, (req, res) => res.redirect(301, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
+app.use('/api/auth', (req, res) => res.redirect(307, '/api/v1/auth' + req.path.replace('/api/auth', '')));
+app.use('/api/sleep', auth, (req, res) => res.redirect(307, '/api/v1/sleep' + req.path.replace('/api/sleep', '')));
+app.use('/api/clients', auth, (req, res) => res.redirect(307, '/api/v1/clients' + req.path.replace('/api/clients', '')));
+app.use('/api/logs', auth, (req, res) => res.redirect(307, '/api/v1/logs' + req.path.replace('/api/logs', '')));
+app.use('/api/appointments', auth, (req, res) => res.redirect(307, '/api/v1/appointments' + req.path.replace('/api/appointments', '')));
+app.use('/api/users', auth, (req, res) => res.redirect(307, '/api/v1/users' + req.path.replace('/api/users', '')));
+app.use('/api/nutrition', auth, (req, res) => res.redirect(307, '/api/v1/nutrition' + req.path.replace('/api/nutrition', '')));
+app.use('/api/notifications', auth, (req, res) => res.redirect(307, '/api/v1/notifications' + req.path.replace('/api/notifications', '')));
+app.use('/api/programs', (req, res) => res.redirect(307, '/api/v1/programs' + req.path.replace('/api/programs', '')));
+app.use('/api/cart', auth, (req, res) => res.redirect(307, '/api/v1/cart' + req.path.replace('/api/cart', '')));
+app.use('/api/orders', auth, (req, res) => res.redirect(307, '/api/v1/orders' + req.path.replace('/api/orders', '')));
+app.use('/api/medical-documents', auth, (req, res) => res.redirect(307, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
+app.use('/api/trainer', auth, (req, res) => res.redirect(307, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
 
 // Serve frontend for SPA routes
 app.use((req, res) => {
