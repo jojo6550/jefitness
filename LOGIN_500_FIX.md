@@ -35,6 +35,17 @@ HTTP 500 error on POST `/api/auth/login` endpoint on live server (Render)
 3. `src/middleware/dbConnection.js` - New file with DB connection check middleware
 4. `src/routes/auth.js` - Added DB connection check to login/signup routes
 
+## Unit Tests Created
+1. `tests/middleware/dbConnection.test.js` - Tests for DB connection middleware
+2. `tests/middleware/errorHandler.test.js` - Tests for error handler
+3. `tests/services/logger.test.js` - Tests for logger service
+4. `tests/routes/auth-db-connection.test.js` - Integration tests for auth routes with DB edge cases
+
+## Running Tests
+```bash
+npm test
+```
+
 ## Testing
 Deploy to Render and test login endpoint at:
 ```

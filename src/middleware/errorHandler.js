@@ -73,6 +73,11 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal server error';
   let context = err.context || {};
 
+  // Mask error message for 5xx errors (security best practice - don't expose internal details)
+  if (statusCode >= 500 && !err.statusCode) {
+    message = 'Internal server error';
+  }
+
   // Log the error
   const logContext = {
     path: req.path,
@@ -152,6 +157,8 @@ const errorHandler = (err, req, res, next) => {
     if (context.originalError) {
       errorResponse.error.originalError = context.originalError;
     }
+  } else {
+    errorResponse.error.stack = undefined;
   }
 
   // Send error response
