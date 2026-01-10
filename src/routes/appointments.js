@@ -187,13 +187,27 @@ router.post('/', auth, async (req, res) => {
         // Set clientId from authenticated user
         const clientId = req.user.id;
 
-        // Validate appointment time
+        // Check if this client already has an appointment on this date (across all trainers)
         const appointmentDate = new Date(date);
+        const clientExistingOnDate = await Appointment.findOne({
+            clientId,
+            date: appointmentDate,
+            status: { $ne: 'cancelled' }
+        });
+
+        if (clientExistingOnDate) {
+            return res.status(400).json({ msg: 'You can only book one appointment per day' });
+        }
+
+        // Validate appointment time
         const [hours, minutes] = time.split(':').map(Number);
 
-        // Check if appointment is for today or past (reject same day bookings)
-        const todayUTCStr = new Date().toISOString().split('T')[0];
-        if (date <= todayUTCStr) {
+        // Check if appointment is at least 1 hour in advance
+        const now = new Date();
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        const appointmentDateTime = new Date(`${date}T${time}:00`);
+
+        if (appointmentDateTime <= oneHourFromNow) {
             return res.status(400).json({ msg: 'Appointments must be booked at least 1 hour in advance' });
         }
 
