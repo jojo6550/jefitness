@@ -42,6 +42,14 @@ function logUserAction(action, userId, details = {}) {
 
 // Enhanced security logging functions
 async function logSecurityEvent(eventType, userId, details = {}, req = null) {
+  // Skip database logging if connection issues detected
+  const mongoose = require('mongoose');
+  if (mongoose.connection.readyState !== 1) {
+    // Database not connected, just log to console
+    logger.warn(`[SECURITY] ${eventType}: DB not connected, skipping DB log`, { userId, details });
+    return;
+  }
+
   try {
     const logEntry = {
       level: getSecurityEventLevel(eventType),
@@ -63,19 +71,34 @@ async function logSecurityEvent(eventType, userId, details = {}, req = null) {
       logEntry.metadata.method = req.method;
     }
 
-    // Save to database
-    await Log.create(logEntry);
+    // Save to database - wrapped in try-catch to prevent crashes
+    try {
+      await Log.create(logEntry);
+    } catch (dbError) {
+      // Don't let DB errors propagate - just log to console
+      logger.error(`[DB ERROR] Failed to save security log: ${dbError.message}`, {
+        eventType,
+        userId,
+        metadata: logEntry.metadata
+      });
+    }
 
     // Log to console
     logger.info(`Security Event: ${eventType}`, logEntry.metadata);
 
-    // Send alerts for critical events
+    // Send alerts for critical events - don't let this crash
     if (isCriticalSecurityEvent(eventType)) {
-      await sendSecurityAlert(logEntry);
+      try {
+        await sendSecurityAlert(logEntry);
+      } catch (alertError) {
+        logger.error(`Failed to send security alert: ${alertError.message}`);
+      }
     }
 
   } catch (error) {
+    // Catch-all for any other errors in this function
     logger.error('Failed to log security event:', { error: error.message, eventType, userId });
+    // Don't re-throw - we don't want logging failures to crash the app
   }
 }
 

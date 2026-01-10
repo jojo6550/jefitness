@@ -8,6 +8,7 @@ const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
+const { requireDbConnection } = require('../middleware/dbConnection');
 
 // Lazy initialization of Mailjet client
 let mailjet = null;
@@ -96,7 +97,7 @@ const validatePasswordStrength = (password) => {
  *       500:
  *         description: Server error
  */
-router.post('/signup', [
+router.post('/signup', requireDbConnection, [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
@@ -239,7 +240,7 @@ router.post('/signup', [
  *       500:
  *         description: Server error
  */
-router.post('/login', [
+router.post('/login', requireDbConnection, [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {

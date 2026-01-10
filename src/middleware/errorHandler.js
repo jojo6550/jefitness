@@ -88,19 +88,42 @@ const errorHandler = (err, req, res, next) => {
     logContext.userId = req.user.id;
   }
 
-  // Log based on error type
+  // Safely log errors - prevent logging failures from causing additional errors
+  const safeLogError = () => {
+    try {
+      if (statusCode >= 500) {
+        console.error(`[ERROR] ${err.message}`, { ...logContext, stack: err.stack });
+      } else {
+        console.warn(`[WARN] ${err.message}`, logContext);
+      }
+    } catch (loggingError) {
+      console.error('Error logging failed:', loggingError.message);
+    }
+  };
+
+  // Safely log security events
+  const safeLogSecurityEvent = async () => {
+    try {
+      if (logSecurityEvent) {
+        await logSecurityEvent(
+          err instanceof AuthenticationError ? 'AUTH_ERROR' : 'AUTHORIZATION_ERROR',
+          req.user?.id || 'unknown',
+          { message, ...context },
+          req
+        );
+      }
+    } catch (securityLogError) {
+      console.error('Security event logging failed:', securityLogError.message);
+    }
+  };
+
+  // Execute logging - fire and forget but handle errors
   if (statusCode >= 500) {
-    logError(err, logContext);
+    safeLogError();
   } else if (err instanceof AuthenticationError || err instanceof AuthorizationError) {
-    // Log security-related errors
-    logSecurityEvent(
-      err instanceof AuthenticationError ? 'AUTH_ERROR' : 'AUTHORIZATION_ERROR',
-      req.user?.id || 'unknown',
-      { message, ...context },
-      req
-    ).catch(e => console.error('Failed to log security event:', e.message));
+    safeLogSecurityEvent().catch(e => console.error('Security event async log failed:', e.message));
   } else {
-    logError(err, logContext);
+    safeLogError();
   }
 
   // Prevent duplicate headers being sent
