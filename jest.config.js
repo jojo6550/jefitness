@@ -1,5 +1,5 @@
 module.exports = {
-  testEnvironment: 'node',
+  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['./tests/setup.js'],
   testTimeout: 60000,
   collectCoverageFrom: [
@@ -8,5 +8,12 @@ module.exports = {
     '!src/seedPrograms.js'
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html']
+  coverageReporters: ['text', 'lcov', 'html'],
+  transformIgnorePatterns: [
+    "node_modules/(?!(jsdom|@exodus/bytes|mongoose|mongodb|bson)/)"
+  ],
+  transform: {
+    '^.+\\.mjs$': 'babel-jest',
+    '^.+\\.js$': 'babel-jest'
+  }
 };
