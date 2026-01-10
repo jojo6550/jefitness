@@ -54,16 +54,14 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
   console.log('[SW] Installing service worker');
   event.waitUntil(
-    updateCacheVersion().then(() => {
-      return caches.open(STATIC_CACHE).then(cache => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS).catch(error => {
-          console.error('[SW] Failed to cache some assets:', error);
-          // Fallback: cache assets individually
-          return Promise.allSettled(
-            STATIC_ASSETS.map(url => cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err)))
-          );
-        });
+    caches.open(STATIC_CACHE).then(cache => {
+      console.log('[SW] Caching static assets');
+      return cache.addAll(STATIC_ASSETS).catch(error => {
+        console.error('[SW] Failed to cache some assets:', error);
+        // Fallback: cache assets individually
+        return Promise.allSettled(
+          STATIC_ASSETS.map(url => cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err)))
+        );
       });
     })
   );
