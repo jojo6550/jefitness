@@ -19,18 +19,64 @@
     <!-- Cookie Consent Banner -->
     <div id="cookie-consent-banner" class="cookie-consent-banner hidden-state" role="dialog" aria-labelledby="cookie-title" aria-describedby="cookie-description">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <p id="cookie-description" class="mb-0">
+            <div class="row">
+                <div class="col-12">
+                    <h5 id="cookie-title" class="fw-bold mb-3">Cookie Preferences</h5>
+                    <p id="cookie-description" class="mb-3">
                         <i class="bi bi-cookie me-2" aria-hidden="true"></i>
-                        We use cookies to enhance your experience. By continuing to use our site, you agree to our
-                        <a href="./pages/privacy-policy.html" class="text-primary" aria-label="Read our Privacy Policy">Privacy Policy</a> and
-                        <a href="./pages/terms-of-service.html" class="text-primary" aria-label="Read our Terms of Service">Terms of Service</a>.
+                        We use cookies and similar technologies to enhance your experience, analyze usage, and provide personalized content. You can manage your preferences below.
                     </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <button id="accept-cookies" class="btn btn-primary btn-sm me-2" aria-label="Accept all cookies">Accept All</button>
-                    <button id="decline-cookies" class="btn btn-outline-secondary btn-sm" aria-label="Decline non-essential cookies">Decline</button>
+
+                    <!-- Consent Categories -->
+                    <div class="consent-categories mb-3">
+                        <!-- Essential Cookies -->
+                        <div class="consent-category mb-2">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" id="essential-cookies" checked disabled class="me-2">
+                                <label for="essential-cookies" class="fw-bold mb-0">Essential Cookies</label>
+                            </div>
+                            <small class="text-muted">Required for the website to function properly. Cannot be disabled.</small>
+                        </div>
+
+                        <!-- Data Processing Consent -->
+                        <div class="consent-category mb-2">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" id="data-processing-consent" class="me-2">
+                                <label for="data-processing-consent" class="fw-bold mb-0">Data Processing</label>
+                            </div>
+                            <small class="text-muted">Allows us to process your personal data for account management and basic services.</small>
+                        </div>
+
+                        <!-- Marketing Consent -->
+                        <div class="consent-category mb-2">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" id="marketing-consent" class="me-2">
+                                <label for="marketing-consent" class="fw-bold mb-0">Marketing Communications</label>
+                            </div>
+                            <small class="text-muted">Receive promotional emails and personalized recommendations.</small>
+                        </div>
+
+                        <!-- Health Data Consent (for logged-in users) -->
+                        <div id="health-consent-category" class="consent-category mb-2" style="display: none;">
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" id="health-data-consent" class="me-2">
+                                <label for="health-data-consent" class="fw-bold mb-0">Health Data Processing</label>
+                            </div>
+                            <small class="text-muted">Allow processing of health and fitness data for personalized recommendations.</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="./pages/privacy-policy.html" class="text-primary me-3" aria-label="Read our Privacy Policy">Privacy Policy</a>
+                            <a href="./pages/terms-of-service.html" class="text-primary" aria-label="Read our Terms of Service">Terms of Service</a>
+                        </div>
+                        <div>
+                            <button id="accept-selected" class="btn btn-outline-primary btn-sm me-2" aria-label="Accept selected preferences">Accept Selected</button>
+                            <button id="accept-cookies" class="btn btn-primary btn-sm me-2" aria-label="Accept all cookies">Accept All</button>
+                            <button id="decline-cookies" class="btn btn-outline-secondary btn-sm" aria-label="Decline non-essential cookies">Decline All</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

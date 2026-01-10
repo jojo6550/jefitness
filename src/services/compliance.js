@@ -119,6 +119,84 @@ class ComplianceService {
   }
 
   /**
+   * Grant marketing consent
+   */
+  async grantMarketingConsent(userId, ipAddress, userAgent) {
+    try {
+      const updateData = {
+        'marketingConsent.given': true,
+        'marketingConsent.givenAt': new Date(),
+        'marketingConsent.withdrawnAt': null, // Clear any previous withdrawal
+        'marketingConsent.ipAddress': ipAddress,
+        'marketingConsent.userAgent': userAgent,
+        $push: {
+          auditLog: {
+            action: 'marketing_consent_granted',
+            timestamp: new Date(),
+            ipAddress,
+            userAgent,
+            details: { consentType: 'marketing' }
+          }
+        }
+      };
+
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      this.logger.info('Marketing consent granted', { userId, ipAddress });
+
+      return {
+        success: true,
+        message: 'Marketing consent granted successfully',
+        data: user.marketingConsent
+      };
+    } catch (error) {
+      this.logger.error('Failed to grant marketing consent', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Withdraw marketing consent
+   */
+  async withdrawMarketingConsent(userId, ipAddress, userAgent) {
+    try {
+      const updateData = {
+        'marketingConsent.given': false,
+        'marketingConsent.withdrawnAt': new Date(),
+        $push: {
+          auditLog: {
+            action: 'marketing_consent_withdrawn',
+            timestamp: new Date(),
+            ipAddress,
+            userAgent,
+            details: { consentType: 'marketing' }
+          }
+        }
+      };
+
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      this.logger.info('Marketing consent withdrawn', { userId, ipAddress });
+
+      return {
+        success: true,
+        message: 'Marketing consent withdrawn successfully'
+      };
+    } catch (error) {
+      this.logger.error('Failed to withdraw marketing consent', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
    * Withdraw consent
    */
   async withdrawConsent(userId, consentType, ipAddress, userAgent) {

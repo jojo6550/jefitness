@@ -101,6 +101,37 @@ router.post('/consent/health-data', auth, async (req, res) => {
 });
 
 /**
+ * Grant marketing consent
+ * POST /api/v1/gdpr/consent/marketing
+ */
+router.post('/consent/marketing', auth, async (req, res) => {
+    try {
+        const userId = req.user.id || req.user.user.id;
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        const userAgent = req.get('User-Agent');
+
+        const result = await complianceService.grantMarketingConsent(
+            userId,
+            ipAddress,
+            userAgent
+        );
+
+        res.json(result);
+    } catch (error) {
+        monitoringService.recordError(error, {
+            context: 'grant_marketing_consent',
+            userId: req.user.id,
+            endpoint: req.path
+        });
+
+        res.status(500).json({
+            success: false,
+            error: 'Failed to grant marketing consent'
+        });
+    }
+});
+
+/**
  * Withdraw consent
  * DELETE /api/v1/gdpr/consent/:consentType
  */
