@@ -1,8 +1,4 @@
-// Mock WebSocket for Node.js environment
-
-/**
- * @jest-environment jsdom
- */
+// Mock WebSocket for jsdom environment
 
 global.WebSocket = jest.fn();
 
