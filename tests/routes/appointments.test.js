@@ -34,13 +34,23 @@ describe('Appointments Routes', () => {
   let appointment;
 
   beforeEach(async () => {
-    // Create admin user (trainer)
+    // Create admin user (for GET tests)
     adminUser = await User.create({
       firstName: 'Admin',
-      lastName: 'Trainer',
+      lastName: 'User',
       email: 'admin@example.com',
       password: 'Test123!@#',
       role: 'admin',
+      isEmailVerified: true
+    });
+
+    // Create trainer user (for POST tests)
+    const trainerForPost = await User.create({
+      firstName: 'Trainer',
+      lastName: 'User',
+      email: 'trainer@example.com',
+      password: 'Test123!@#',
+      role: 'trainer',
       isEmailVerified: true
     });
 
@@ -58,15 +68,25 @@ describe('Appointments Routes', () => {
     trainerUser = await User.create({
       firstName: 'Jane',
       lastName: 'Trainer',
-      email: 'trainer@example.com',
+      email: 'jane@example.com',
       password: 'Test123!@#',
-      role: 'admin',
+      role: 'trainer',
       isEmailVerified: true
     });
 
     adminToken = jwt.sign({ id: adminUser._id, role: adminUser.role }, process.env.JWT_SECRET);
     clientToken = jwt.sign({ id: clientUser._id, role: clientUser.role }, process.env.JWT_SECRET);
     trainerToken = jwt.sign({ id: trainerUser._id, role: trainerUser.role }, process.env.JWT_SECRET);
+
+    // Use trainerForPost for the sample appointment
+    appointment = await Appointment.create({
+      clientId: clientUser._id,
+      trainerId: trainerForPost._id,
+      date: '2024-12-01',
+      time: '10:00',
+      status: 'scheduled',
+      notes: 'Test appointment'
+    });
 
     // Create a sample appointment
     appointment = await Appointment.create({
@@ -211,18 +231,22 @@ describe('Appointments Routes', () => {
       expect(response.body.msg).toBe('Invalid trainer');
     });
 
-    test('should reject booking less than 1 hour in advance', async () => {
+    test('should reject booking in the past', async () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+      const dateStr = pastDate.toISOString().split('T')[0];
+
       const response = await request(app)
         .post('/api/appointments')
         .set('Authorization', `Bearer ${clientToken}`)
         .send({
           trainerId: adminUser._id.toString(),
-          date: new Date().toISOString().split('T')[0],
-          time: '23:00'
+          date: dateStr,
+          time: '10:00'
         })
         .expect(400);
 
-      expect(response.body.msg).toContain('must be booked at least 1 hour in advance');
+      expect(response.body.msg).toContain('Appointments cannot be booked in the past');
     });
 
     test('should reject booking outside allowed hours', async () => {
@@ -323,7 +347,143 @@ describe('Appointments Routes', () => {
         })
         .expect(400);
 
-      expect(response.body.msg).toContain('You already have an appointment in this time slot');
+      expect(response.body.msg).toContain('You can only book one appointment per day');
+    });
+
+    test('should reject booking multiple appointments per day for same client', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const dateStr = futureDate.toISOString().split('T')[0];
+
+      // Client already has appointment at 10:00
+      await Appointment.create({
+        clientId: clientUser._id,
+        trainerId: trainerUser._id,
+        date: dateStr,
+        time: '10:00',
+        status: 'scheduled'
+      });
+
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          trainerId: adminUser._id.toString(),
+          date: dateStr,
+          time: '11:00' // Different time, same day
+        })
+        .expect(400);
+
+      expect(response.body.msg).toContain('You can only book one appointment per day');
+    });
+
+    test('should allow booking multiple appointments on different days', async () => {
+      const futureDate1 = new Date();
+      futureDate1.setDate(futureDate1.getDate() + 1);
+      const dateStr1 = futureDate1.toISOString().split('T')[0];
+
+      const futureDate2 = new Date();
+      futureDate2.setDate(futureDate2.getDate() + 2);
+      const dateStr2 = futureDate2.toISOString().split('T')[0];
+
+      // Client has appointment on day 1
+      await Appointment.create({
+        clientId: clientUser._id,
+        trainerId: trainerUser._id,
+        date: dateStr1,
+        time: '10:00',
+        status: 'scheduled'
+      });
+
+      // Should allow booking on day 2
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          trainerId: adminUser._id.toString(),
+          date: dateStr2,
+          time: '11:00'
+        })
+        .expect(201);
+
+      expect(response.body.clientId._id.toString()).toBe(clientUser._id.toString());
+    });
+
+    test('should enforce 6-client limit per time slot per trainer', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const dateStr = futureDate.toISOString().split('T')[0];
+
+      // Create 6 appointments for the same trainer, date, and time
+      for (let i = 0; i < 6; i++) {
+        const tempUser = await User.create({
+          firstName: `Temp${i}`,
+          lastName: 'User',
+          email: `temp${i}@example.com`,
+          password: 'Test123!@#',
+          role: 'user',
+          isEmailVerified: true
+        });
+
+        await Appointment.create({
+          clientId: tempUser._id,
+          trainerId: adminUser._id,
+          date: dateStr,
+          time: '10:00',
+          status: 'scheduled'
+        });
+      }
+
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          trainerId: adminUser._id.toString(),
+          date: dateStr,
+          time: '10:00'
+        })
+        .expect(400);
+
+      expect(response.body.msg).toContain('Time slot is fully booked');
+    });
+
+    test('should allow booking in same time slot with different trainer', async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 1);
+      const dateStr = futureDate.toISOString().split('T')[0];
+
+      // Fill up trainer A's slot
+      for (let i = 0; i < 6; i++) {
+        const tempUser = await User.create({
+          firstName: `TempA${i}`,
+          lastName: 'User',
+          email: `tempA${i}@example.com`,
+          password: 'Test123!@#',
+          role: 'user',
+          isEmailVerified: true
+        });
+
+        await Appointment.create({
+          clientId: tempUser._id,
+          trainerId: adminUser._id,
+          date: dateStr,
+          time: '10:00',
+          status: 'scheduled'
+        });
+      }
+
+      // Should allow booking with trainer B at same time
+      const response = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({
+          trainerId: trainerUser._id.toString(),
+          date: dateStr,
+          time: '10:00'
+        })
+        .expect(201);
+
+      expect(response.body.trainerId._id.toString()).toBe(trainerUser._id.toString());
     });
   });
 
