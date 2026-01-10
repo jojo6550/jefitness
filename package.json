@@ -50,10 +50,10 @@
     "node-cron": "^4.2.1",
     "node-mailjet": "^6.0.9",
     "nodemon": "^3.1.10",
-
     "sanitize-html": "^2.17.0",
     "web-push": "^3.6.7",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
