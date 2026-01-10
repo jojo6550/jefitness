@@ -20,7 +20,10 @@ class CacheService {
    * Start periodic cleanup of expired memory cache entries
    */
   startMemoryCacheCleanup() {
-    setInterval(() => {
+    if (this.memoryCacheCleanupInterval) {
+      clearInterval(this.memoryCacheCleanupInterval);
+    }
+    this.memoryCacheCleanupInterval = setInterval(() => {
       const now = Date.now();
       let cleaned = 0;
 

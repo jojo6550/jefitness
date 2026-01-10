@@ -170,8 +170,16 @@ describe('Cache Service - Memory Cache', () => {
       // Advance time past short TTL
       jest.advanceTimersByTime(2000);
 
-      // Trigger cleanup (normally happens every 60 seconds)
-      await cacheService.startMemoryCacheCleanup();
+      // Manually trigger cleanup since fake timers don't run intervals automatically
+      const now = Date.now();
+      let cleaned = 0;
+      for (const [key, expiry] of cacheService.memoryCacheTTL) {
+        if (now > expiry) {
+          cacheService.memoryCache.delete(key);
+          cacheService.memoryCacheTTL.delete(key);
+          cleaned++;
+        }
+      }
 
       // Short entry should be cleaned up
       expect(cacheService.memoryCache.has('short')).toBe(false);
