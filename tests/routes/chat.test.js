@@ -8,7 +8,7 @@ let adminToken;
 let userId;
 let adminId;
 
-beforeAll(async () => {
+beforeEach(async () => {
   // Create test users
   const user = new User({
     firstName: 'Test',
