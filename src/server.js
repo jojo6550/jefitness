@@ -16,7 +16,7 @@ const app = express();
 
 // Initialize cache service
 const cacheService = require('./services/cache');
-cacheService.connect();
+//cacheService.connect();
 
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);

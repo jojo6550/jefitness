@@ -112,6 +112,60 @@
   flex-direction: column;
 }
 
+.chat-conversation-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.chat-back-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 12px;
+  color: #667eea;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.chat-back-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.chat-partner-profile {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+}
+
+.chat-partner-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 8px;
+  object-fit: cover;
+}
+
+.chat-partner-info {
+  flex: 1;
+}
+
+.chat-partner-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.chat-partner-role {
+  font-size: 12px;
+  color: #666;
+}
+
 .chat-messages {
   flex: 1;
   padding: 16px;
@@ -276,4 +330,53 @@
 
 .chat-widget {
   animation: slideIn 0.3s ease-out;
+}
+
+/* Profile Card Styles */
+.chat-profile-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.chat-profile-card:hover {
+  background: #e9ecef;
+  border-color: #667eea;
+  transform: translateY(-1px);
+}
+
+.chat-profile-image {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.chat-profile-info {
+  flex: 1;
+}
+
+.chat-profile-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.chat-profile-role {
+  font-size: 14px;
+  color: #667eea;
+  margin-bottom: 2px;
+}
+
+.chat-profile-specialty {
+  font-size: 12px;
+  color: #666;
 }

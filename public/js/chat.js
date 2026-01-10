@@ -18,6 +18,11 @@ class ChatWidget {
     this.sendBtn = document.getElementById('chat-send-btn');
     this.unreadBadge = document.getElementById('unread-badge');
     this.limitWarning = document.getElementById('chat-limit-warning');
+    this.backBtn = document.getElementById('chat-back-btn');
+    this.partnerProfile = document.getElementById('chat-partner-profile');
+    this.partnerImage = document.getElementById('chat-partner-image');
+    this.partnerName = document.getElementById('chat-partner-name');
+    this.partnerRole = document.getElementById('chat-partner-role');
 
     this.init();
   }
@@ -27,6 +32,7 @@ class ChatWidget {
     this.loadConversations();
     this.connectWebSocket();
     this.updateUnreadBadge();
+    this.buildProfileCards();
   }
 
   bindEvents() {
@@ -35,6 +41,16 @@ class ChatWidget {
 
     // Minimize chat widget
     this.minimizeBtn.addEventListener('click', () => this.minimizeWidget());
+
+    // Back button
+    if (this.backBtn) {
+      this.backBtn.addEventListener('click', () => this.goBackToSelection());
+    }
+
+    // Partner profile click
+    if (this.partnerProfile) {
+      this.partnerProfile.addEventListener('click', () => this.navigateToPartnerPage());
+    }
 
     // Chat option selection
     document.querySelectorAll('.chat-option-btn').forEach(btn => {
@@ -70,10 +86,11 @@ class ChatWidget {
     this.isMinimized = true;
   }
 
-  selectConversation(type) {
-    this.currentConversation = { type };
+  selectConversation(type, partnerData = null) {
+    this.currentConversation = { type, partnerData };
     this.selection.style.display = 'none';
     this.conversation.style.display = 'flex';
+    this.updateConversationHeader();
     this.loadChatHistory();
     this.input.focus();
   }
@@ -297,6 +314,135 @@ class ChatWidget {
 
   getUserRole() {
     return localStorage.getItem('userRole') || sessionStorage.getItem('userRole') || 'user';
+  }
+
+  goBackToSelection() {
+    this.conversation.style.display = 'none';
+    this.selection.style.display = 'flex';
+    this.currentConversation = null;
+  }
+
+  updateConversationHeader() {
+    if (!this.currentConversation) return;
+
+    const partnerData = this.currentConversation.partnerData || this.getDefaultPartnerData();
+    if (this.partnerImage) this.partnerImage.src = partnerData.image;
+    if (this.partnerName) this.partnerName.textContent = partnerData.name;
+    if (this.partnerRole) this.partnerRole.textContent = partnerData.role;
+  }
+
+  getDefaultPartnerData() {
+    const type = this.currentConversation.type;
+    if (type === 'trainer') {
+      return {
+        name: 'Jamol Elliot',
+        role: 'Trainer',
+        image: '../images/logo.jpg'
+      };
+    } else if (type === 'admin') {
+      return {
+        name: 'Technical Support',
+        role: 'Admin',
+        image: '../favicons/favicon-32x32.png'
+      };
+    }
+    return {
+      name: 'Support',
+      role: 'Assistant',
+      image: '../favicons/favicon-32x32.png'
+    };
+  }
+
+  navigateToPartnerPage() {
+    if (!this.currentConversation) return;
+
+    const type = this.currentConversation.type;
+    if (type === 'trainer') {
+      window.location.href = 'meet-your-trainer.html';
+    } else if (type === 'admin') {
+      window.location.href = 'admin-dashboard.html';
+    }
+  }
+
+  buildProfileCards() {
+    const chatOptions = document.querySelector('.chat-options');
+    if (!chatOptions) return;
+
+    chatOptions.innerHTML = '';
+
+    // Trainer profiles
+    const trainers = [
+      {
+        name: 'Jamol Elliot',
+        role: 'Trainer',
+        specialty: 'Strength Training',
+        image: '../images/logo.jpg'
+      },
+      {
+        name: 'Jermaine Ritchie',
+        role: 'Trainer',
+        specialty: 'Cardio & Endurance',
+        image: '../images/logo.jpg'
+      }
+    ];
+
+    // Admin profile
+    const admins = [
+      {
+        name: 'Technical Support',
+        role: 'Admin',
+        specialty: 'Help & Support',
+        image: '../favicons/favicon-32x32.png'
+      }
+    ];
+
+    // Create trainer cards
+    trainers.forEach(trainer => {
+      const card = this.createProfileCard(trainer, 'trainer');
+      chatOptions.appendChild(card);
+    });
+
+    // Create admin cards
+    admins.forEach(admin => {
+      const card = this.createProfileCard(admin, 'admin');
+      chatOptions.appendChild(card);
+    });
+  }
+
+  createProfileCard(data, type) {
+    const card = document.createElement('div');
+    card.className = 'chat-profile-card';
+    card.dataset.type = type;
+    card.addEventListener('click', () => this.selectConversation(type, data));
+
+    const img = document.createElement('img');
+    img.src = data.image;
+    img.alt = data.name;
+    img.className = 'chat-profile-image';
+
+    const info = document.createElement('div');
+    info.className = 'chat-profile-info';
+
+    const name = document.createElement('div');
+    name.className = 'chat-profile-name';
+    name.textContent = data.name;
+
+    const role = document.createElement('div');
+    role.className = 'chat-profile-role';
+    role.textContent = data.role;
+
+    const specialty = document.createElement('div');
+    specialty.className = 'chat-profile-specialty';
+    specialty.textContent = data.specialty;
+
+    info.appendChild(name);
+    info.appendChild(role);
+    info.appendChild(specialty);
+
+    card.appendChild(img);
+    card.appendChild(info);
+
+    return card;
   }
 }
 
