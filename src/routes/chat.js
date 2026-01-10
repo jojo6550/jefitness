@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const ChatMessage = require('../models/Chat');
 
@@ -50,7 +51,7 @@ router.get('/history/:userId', auth, async (req, res) => {
 // GET /api/chat/conversations - Get list of conversations for current user
 router.get('/conversations', auth, async (req, res) => {
   try {
-    const currentUserId = req.user.id;
+    const currentUserId = new mongoose.Types.ObjectId(req.user.id);
     const currentUserRole = req.user.role;
 
     // Find all unique conversation partners

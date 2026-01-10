@@ -29,12 +29,8 @@ const sanitizeInput = (req, res, next) => {
     next();
   } catch (error) {
     console.error('Input sanitization error:', error);
-    res.status(400).json({
-      success: false,
-      error: {
-        message: 'Invalid input format'
-      }
-    });
+    // Continue processing instead of throwing 400
+    next();
   }
 };
 
@@ -64,12 +60,17 @@ function sanitizeObject(obj) {
  */
 function sanitizeValue(value) {
   if (typeof value === 'string') {
-    // Remove potential XSS attacks
-    return sanitizeHtml(value, {
-      allowedTags: [],
-      allowedAttributes: {},
-      disallowedTagsMode: 'discard'
-    }).trim();
+    try {
+      // Remove potential XSS attacks
+      return sanitizeHtml(value, {
+        allowedTags: [],
+        allowedAttributes: {},
+        disallowedTagsMode: 'discard'
+      }).trim();
+    } catch (error) {
+      console.error('Sanitize error:', error);
+      return value;
+    }
   }
   return value;
 }

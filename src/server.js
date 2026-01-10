@@ -173,7 +173,7 @@ app.use('/api/v1/programs', apiLimiter, versioning, require('./routes/programs')
 app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
 app.use('/api/v1/orders', auth, apiLimiter, versioning, require('./routes/orders'));
 app.use('/api/v1/medical-documents', auth, apiLimiter, versioning, require('./routes/medical-documents'));
-app.use('/api/v1/chat', auth, apiLimiter, versioning, require('./routes/chat'));
+app.use('/api/v1/chat', auth, sanitizeInput, apiLimiter, versioning, require('./routes/chat'));
 app.use('/api/v1/trainer', auth, apiLimiter, versioning, require('./routes/trainer'));
 
 // Backward compatibility - redirect old routes to v1

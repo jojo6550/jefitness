@@ -14,6 +14,13 @@ describe('WebSocketManager', () => {
     global.WebSocket.OPEN = 1;
     global.WebSocket.CLOSED = 3;
 
+    // Mock window.location for jsdom environment
+    global.window = global.window || {};
+    global.window.location = {
+      protocol: 'http:',
+      host: 'localhost'
+    };
+
     // Mock WebSocket instance
     mockWebSocket = {
       readyState: WebSocket.OPEN,
@@ -136,6 +143,7 @@ describe('WebSocketManager', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
   });
 
   describe('connect', () => {
