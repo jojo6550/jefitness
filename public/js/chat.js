@@ -87,7 +87,7 @@ class ChatWidget {
   }
 
   selectConversation(type, partnerData = null) {
-    this.currentConversation = { type, partnerData };
+    this.currentConversation = { type, partnerData, partnerId: partnerData?.id };
     this.selection.style.display = 'none';
     this.conversation.style.display = 'flex';
     this.updateConversationHeader();
@@ -218,9 +218,8 @@ class ChatWidget {
   }
 
   getReceiverId() {
-    // For demo, return first conversation partner
-    // In real app, determine based on user role and conversation type
-    return this.conversations.length > 0 ? this.conversations[0].partnerId : null;
+    // Return the partner ID from the current conversation
+    return this.currentConversation?.partnerId || null;
   }
 
   getMessageType() {
@@ -284,17 +283,21 @@ class ChatWidget {
   }
 
   markCurrentConversationAsRead() {
-    if (this.currentConversation && this.conversations.length > 0) {
-      const partnerId = this.conversations[0].partnerId;
+    if (this.currentConversation && this.currentConversation.partnerId) {
+      const partnerId = this.currentConversation.partnerId;
       fetch(`/api/chat/mark-read/${partnerId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.getAuthToken()}`
         }
       }).then(() => {
-        this.unreadCount = Math.max(0, this.unreadCount - (this.conversations[0].unreadCount || 0));
-        this.conversations[0].unreadCount = 0;
-        this.updateUnreadBadge();
+        // Find and update the conversation in the list
+        const conversation = this.conversations.find(conv => conv.partnerId === partnerId);
+        if (conversation) {
+          this.unreadCount = Math.max(0, this.unreadCount - (conversation.unreadCount || 0));
+          conversation.unreadCount = 0;
+          this.updateUnreadBadge();
+        }
       });
     }
   }
@@ -368,49 +371,73 @@ class ChatWidget {
     }
   }
 
-  buildProfileCards() {
+  async buildProfileCards() {
     const chatOptions = document.querySelector('.chat-options');
     if (!chatOptions) return;
 
-    chatOptions.innerHTML = '';
+    chatOptions.innerHTML = '<div class="loading">Loading chat partners...</div>';
 
-    // Trainer profiles
-    const trainers = [
-      {
-        name: 'Jamol Elliot',
-        role: 'Trainer',
-        specialty: 'Strength Training',
-        image: '../images/logo.jpg'
-      },
-      {
-        name: 'Jermaine Ritchie',
-        role: 'Trainer',
-        specialty: 'Cardio & Endurance',
-        image: '../images/logo.jpg'
+    try {
+      // Fetch trainers and admins from API
+      const [trainersResponse, adminsResponse] = await Promise.all([
+        fetch('/api/users/trainers', {
+          headers: {
+            'Authorization': `Bearer ${this.getAuthToken()}`
+          }
+        }),
+        fetch('/api/users/admins', {
+          headers: {
+            'Authorization': `Bearer ${this.getAuthToken()}`
+          }
+        })
+      ]);
+
+      if (!trainersResponse.ok || !adminsResponse.ok) {
+        throw new Error('Failed to fetch users');
       }
-    ];
 
-    // Admin profile
-    const admins = [
-      {
-        name: 'Technical Support',
-        role: 'Admin',
-        specialty: 'Help & Support',
-        image: '../favicons/favicon-32x32.png'
+      const trainers = await trainersResponse.json();
+      const admins = await adminsResponse.json();
+
+      chatOptions.innerHTML = '';
+
+      // Create trainer cards
+      trainers.forEach(trainer => {
+        const trainerData = {
+          name: `${trainer.firstName} ${trainer.lastName}`,
+          role: 'Trainer',
+          specialty: 'Fitness Training',
+          image: '../images/logo.jpg',
+          id: trainer._id,
+          email: trainer.email
+        };
+        const card = this.createProfileCard(trainerData, 'trainer');
+        chatOptions.appendChild(card);
+      });
+
+      // Create admin cards
+      admins.forEach(admin => {
+        const adminData = {
+          name: `${admin.firstName} ${admin.lastName}`,
+          role: 'Admin',
+          specialty: 'Support & Administration',
+          image: '../favicons/favicon-32x32.png',
+          id: admin._id,
+          email: admin.email
+        };
+        const card = this.createProfileCard(adminData, 'admin');
+        chatOptions.appendChild(card);
+      });
+
+      // If no users found, show fallback options
+      if (trainers.length === 0 && admins.length === 0) {
+        chatOptions.innerHTML = '<div class="no-users">No chat partners available at the moment.</div>';
       }
-    ];
 
-    // Create trainer cards
-    trainers.forEach(trainer => {
-      const card = this.createProfileCard(trainer, 'trainer');
-      chatOptions.appendChild(card);
-    });
-
-    // Create admin cards
-    admins.forEach(admin => {
-      const card = this.createProfileCard(admin, 'admin');
-      chatOptions.appendChild(card);
-    });
+    } catch (error) {
+      console.error('Error loading chat partners:', error);
+      chatOptions.innerHTML = '<div class="error">Failed to load chat partners. Please try again.</div>';
+    }
   }
 
   createProfileCard(data, type) {

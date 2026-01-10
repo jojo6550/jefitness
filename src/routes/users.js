@@ -8,9 +8,22 @@ const auth = require('../middleware/auth');
 router.get('/trainers', auth, async (req, res) => {
     try {
         const trainers = await User.find({
-            role: 'admin'
+            role: 'trainer'
         }).select('firstName lastName email _id');
         res.json(trainers);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Server error' });
+    }
+});
+
+// GET /api/users/admins - Get all admins
+router.get('/admins', auth, async (req, res) => {
+    try {
+        const admins = await User.find({
+            role: 'admin'
+        }).select('firstName lastName email _id');
+        res.json(admins);
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
