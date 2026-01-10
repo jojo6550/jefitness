@@ -10,3 +10,4 @@ src/logs/security.log
 src/logs/combined.log
 ./TODO.md
 coverage/
+/docs/

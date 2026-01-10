@@ -189,6 +189,18 @@ router.post('/signup', requireDbConnection, [
 });
 
 /**
+ * @route POST /api/v1/auth/login
+ * @desc Authenticate user and return JWT token with account lockout protection
+ * @access Public
+ * @param {Object} req.body - User login credentials
+ * @param {string} req.body.email - User's email address (required, must be valid email)
+ * @param {string} req.body.password - User's password (required)
+ * @returns {Object} JWT token and user information
+ * @throws {400} Validation failed or invalid credentials
+ * @throws {401} Invalid credentials
+ * @throws {423} Account locked due to too many failed attempts
+ * @throws {500} Server error during authentication
+ * @sideEffects Updates failed login attempts, locks account after 5 failures, logs login events
  * @swagger
  * /api/auth/login:
  *   post:

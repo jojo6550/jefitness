@@ -8,6 +8,11 @@ const path = require('path');
 const morgan = require('morgan');
 const WebSocket = require('ws');
 
+// API Documentation imports
+const swaggerUi = require('swagger-ui-express');
+const redoc = require('redoc-express');
+const swaggerSpec = require('./docs/swagger');
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
@@ -177,6 +182,40 @@ app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, require
 app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, checkDataRestriction, apiLimiter, versioning, require('./routes/chat'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
+
+// API Documentation routes (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  // Swagger UI
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    swaggerOptions: {
+      docExpansion: 'none',
+      filter: true,
+      showRequestDuration: true
+    }
+  }));
+
+  // Redoc
+  app.get('/redoc', redoc({
+    title: 'JE Fitness API Documentation',
+    specUrl: '/api-docs.json',
+    redocOptions: {
+      theme: {
+        colors: {
+          primary: {
+            main: '#007bff'
+          }
+        }
+      }
+    }
+  }));
+
+  // Raw OpenAPI JSON spec
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+}
 
 // Backward compatibility - redirect old routes to v1
 app.use('/api/auth', (req, res) => res.redirect(307, '/api/v1/auth' + req.path.replace('/api/auth', '')));
