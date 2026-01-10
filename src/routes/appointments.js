@@ -175,12 +175,13 @@ router.post('/', auth, async (req, res) => {
 
         // Validate required fields
         if (!trainerId || !date || !time) {
+            console.log('Validation failed: missing required fields', { trainerId, date, time });
             return res.status(400).json({ msg: 'Please provide all required fields' });
         }
 
-        // Check if trainer exists and is admin
+        // Check if trainer exists and is trainer
         const trainer = await User.findById(trainerId);
-        if (!trainer || trainer.role !== 'admin') {
+        if (!trainer || trainer.role !== 'trainer') {
             return res.status(400).json({ msg: 'Invalid trainer' });
         }
 
@@ -202,13 +203,18 @@ router.post('/', auth, async (req, res) => {
         // Validate appointment time
         const [hours, minutes] = time.split(':').map(Number);
 
-        // Check if appointment is at least 1 hour in advance
-        const now = new Date();
-        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-        const appointmentDateTime = new Date(`${date}T${time}:00`);
+        // Check if appointment is in the future
+        const todayUTCStr = new Date().toISOString().split('T')[0];
+        if (date < todayUTCStr) {
+            return res.status(400).json({ msg: 'Appointments cannot be booked in the past' });
+        }
 
-        if (appointmentDateTime <= oneHourFromNow) {
-            return res.status(400).json({ msg: 'Appointments must be booked at least 1 hour in advance' });
+        if (date === todayUTCStr) {
+            const now = new Date();
+            const appointmentDateTime = new Date(`${date}T${time}:00`);
+            if (appointmentDateTime <= now) {
+                return res.status(400).json({ msg: 'Appointments cannot be booked in the past' });
+            }
         }
 
         if (minutes !== 0) {

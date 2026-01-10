@@ -212,8 +212,9 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
 
     if (!date || !time || !trainerId) { alert('Date, time, and trainer are required.'); return; }
 
+    let res;
     try {
-        const res = await fetch(`${API_BASE_URL}/api/appointments`, {
+        res = await fetch(`${API_BASE_URL}/api/appointments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: JSON.stringify({ date, time, notes, trainerId })
@@ -226,7 +227,19 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
         alert('Appointment booked successfully!');
     } catch (err) {
         console.error('Error creating appointment:', err);
-        alert('Failed to create appointment. Please try again.');
+        // Try to get the error message from the response
+        if (res && res.status === 400) {
+            try {
+                const errorData = await res.json();
+                console.error('Server error message:', errorData.msg);
+                alert(`Failed to create appointment: ${errorData.msg}`);
+            } catch (parseErr) {
+                console.error('Could not parse error response:', parseErr);
+                alert('Failed to create appointment. Please try again.');
+            }
+        } else {
+            alert('Failed to create appointment. Please try again.');
+        }
     }
 });
 
