@@ -126,7 +126,69 @@ const UserSchema = new mongoose.Schema({
 
     // Onboarding tracking
     onboardingCompleted: { type: Boolean, default: false },
-    onboardingCompletedAt: { type: Date }
+    onboardingCompletedAt: { type: Date },
+
+    // GDPR/HIPAA Compliance Fields
+    dataProcessingConsent: {
+        given: { type: Boolean, default: false },
+        givenAt: { type: Date },
+        version: { type: String, default: '1.0' },
+        ipAddress: { type: String },
+        userAgent: { type: String }
+    },
+
+    healthDataConsent: {
+        given: { type: Boolean, default: false },
+        givenAt: { type: Date },
+        version: { type: String, default: '1.0' },
+        ipAddress: { type: String },
+        userAgent: { type: String },
+        purpose: { type: String, enum: ['fitness_tracking', 'medical_monitoring', 'research'], default: 'fitness_tracking' }
+    },
+
+    marketingConsent: {
+        given: { type: Boolean, default: false },
+        givenAt: { type: Date },
+        withdrawnAt: { type: Date },
+        version: { type: String, default: '1.0' },
+        ipAddress: { type: String },
+        userAgent: { type: String }
+    },
+
+    dataRetentionOverride: {
+        requested: { type: Boolean, default: false },
+        requestedAt: { type: Date },
+        reason: { type: String },
+        approved: { type: Boolean, default: false },
+        approvedAt: { type: Date },
+        approvedBy: { type: String }
+    },
+
+    dataSubjectRights: {
+        accessRequested: { type: Boolean, default: false },
+        accessRequestedAt: { type: Date },
+        accessProvidedAt: { type: Date },
+        rectificationRequested: { type: Boolean, default: false },
+        rectificationRequestedAt: { type: Date },
+        erasureRequested: { type: Boolean, default: false },
+        erasureRequestedAt: { type: Date },
+        erasureCompletedAt: { type: Date },
+        portabilityRequested: { type: Boolean, default: false },
+        portabilityRequestedAt: { type: Date },
+        portabilityCompletedAt: { type: Date },
+        objectionRequested: { type: Boolean, default: false },
+        objectionRequestedAt: { type: Date },
+        restrictionRequested: { type: Boolean, default: false },
+        restrictionRequestedAt: { type: Date }
+    },
+
+    auditLog: [{
+        action: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+        ipAddress: { type: String },
+        userAgent: { type: String },
+        details: { type: mongoose.Schema.Types.Mixed }
+    }]
 });
 
 // Database indexes for optimization

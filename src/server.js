@@ -27,6 +27,7 @@ const { corsOptions } = require('./middleware/corsConfig');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
 const { requestLogger } = require('./middleware/requestLogger');
 const { errorHandler } = require('./middleware/errorHandler');
+const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
 
 // -----------------------------
 // Enhanced Security Headers with Helmet
@@ -162,19 +163,20 @@ const auth = require('./middleware/auth');
 const versioning = require('./middleware/versioning');
 
 app.use('/api/v1/auth', versioning, require('./routes/auth'));
-app.use('/api/v1/sleep', auth, apiLimiter, versioning, require('./routes/sleep'));
-app.use('/api/v1/clients', auth, apiLimiter, versioning, require('./routes/clients'));
-app.use('/api/v1/logs', auth, apiLimiter, versioning, require('./routes/logs'));
-app.use('/api/v1/appointments', auth, apiLimiter, versioning, require('./routes/appointments'));
-app.use('/api/v1/users', auth, apiLimiter, versioning, require('./routes/users'));
-app.use('/api/v1/nutrition', auth, apiLimiter, versioning, require('./routes/nutrition'));
-app.use('/api/v1/notifications', auth, apiLimiter, versioning, require('./routes/notifications'));
+app.use('/api/v1/sleep', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/sleep'));
+app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/clients'));
+app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
+app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
+app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/users'));
+app.use('/api/v1/nutrition', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/nutrition'));
+app.use('/api/v1/notifications', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/notifications'));
 app.use('/api/v1/programs', apiLimiter, versioning, require('./routes/programs'));
-app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
-app.use('/api/v1/orders', auth, apiLimiter, versioning, require('./routes/orders'));
-app.use('/api/v1/medical-documents', auth, apiLimiter, versioning, require('./routes/medical-documents'));
-app.use('/api/v1/chat', auth, sanitizeInput, apiLimiter, versioning, require('./routes/chat'));
-app.use('/api/v1/trainer', auth, apiLimiter, versioning, require('./routes/trainer'));
+app.use('/api/v1/cart', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/cart'));
+app.use('/api/v1/orders', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/orders'));
+app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
+app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, checkDataRestriction, apiLimiter, versioning, require('./routes/chat'));
+app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
+app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
 
 // Backward compatibility - redirect old routes to v1
 app.use('/api/auth', (req, res) => res.redirect(307, '/api/v1/auth' + req.path.replace('/api/auth', '')));
@@ -268,6 +270,20 @@ cron.schedule('0 3 1 * *', () => {
     if (stderr) console.error(`Archiving stderr: ${stderr}`);
     console.log(`Archiving completed: ${stdout}`);
   });
+});
+
+// -----------------------------
+// GDPR/HIPAA Compliance Jobs
+// -----------------------------
+cron.schedule('0 1 1 */6 *', async () => {
+  console.log('Starting bi-annual data retention cleanup...');
+  try {
+    const complianceService = require('./services/compliance');
+    const result = await complianceService.performDataRetentionCleanup();
+    console.log('Data retention cleanup completed:', result);
+  } catch (error) {
+    console.error('Data retention cleanup failed:', error.message);
+  }
 });
 
 // -----------------------------
