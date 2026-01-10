@@ -13,6 +13,15 @@ class CacheService {
   }
 
   async connect() {
+    // Check if Redis is disabled
+    if (process.env.DISABLE_REDIS === 'true') {
+      console.log('Redis disabled, using in-memory cache only');
+      this.client = null;
+      this.isConnected = false;
+      this.startMemoryCacheCleanup();
+      return;
+    }
+
     try {
       this.client = redis.createClient({
         url: process.env.REDIS_URL || 'redis://localhost:6379'
