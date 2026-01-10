@@ -1,25 +1,18 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../../src/server');
 const User = require('../../src/models/User');
 const ChatMessage = require('../../src/models/Chat');
 
-let mongoServer;
 let userToken;
 let adminToken;
 let userId;
 let adminId;
 
 beforeAll(async () => {
-  // Start in-memory MongoDB
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-
   // Create test users
   const user = new User({
-    name: 'Test User',
+    firstName: 'Test',
+    lastName: 'User',
     email: 'user@test.com',
     password: 'password123',
     role: 'user',
@@ -29,7 +22,8 @@ beforeAll(async () => {
   userId = user._id;
 
   const admin = new User({
-    name: 'Test Admin',
+    firstName: 'Test',
+    lastName: 'Admin',
     email: 'admin@test.com',
     password: 'password123',
     role: 'admin',
@@ -40,13 +34,8 @@ beforeAll(async () => {
 
   // Generate tokens (simplified for testing)
   const jwt = require('jsonwebtoken');
-  userToken = jwt.sign({ user: { id: userId, role: 'user' } }, process.env.JWT_SECRET || 'testsecret');
-  adminToken = jwt.sign({ user: { id: adminId, role: 'admin' } }, process.env.JWT_SECRET || 'testsecret');
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
+  userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET);
+  adminToken = jwt.sign({ id: adminId, role: 'admin' }, process.env.JWT_SECRET);
 });
 
 describe('Chat Routes', () => {

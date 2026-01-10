@@ -10,6 +10,8 @@ const WebSocket = require('ws');
 
 dotenv.config();
 
+const PORT = process.env.PORT || 5000;
+
 const app = express();
 
 // Initialize cache service
@@ -143,10 +145,10 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-connectDB();
-
-// Invalidate cache versions on server start
-invalidateCache();
+if (process.env.NODE_ENV !== 'test') {
+  connectDB();
+  invalidateCache();
+}
 
 // -----------------------------
 // Rate Limiters
@@ -439,3 +441,7 @@ async function handleChatMessage(ws, senderId, senderRole, message) {
     ws.send(JSON.stringify({ type: 'error', message: 'Failed to send message' }));
   }
 }
+
+}
+
+module.exports = app;

@@ -1,5 +1,5 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
   setupFilesAfterEnv: ['./tests/setup.js'],
   testTimeout: 60000,
   collectCoverageFrom: [

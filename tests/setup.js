@@ -10,6 +10,7 @@ require('../src/models/User');
 require('../src/models/Order');
 require('../src/models/Program');
 require('../src/models/Cart');
+require('../src/models/Chat');
 
 // 🔴 Fail fast instead of buffering forever
 mongoose.set('bufferCommands', false);
