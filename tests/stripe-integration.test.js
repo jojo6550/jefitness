@@ -7,6 +7,40 @@ const app = require('../src/server');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 // -----------------------------
+// Mock Stripe services
+// -----------------------------
+jest.mock('../src/services/stripe', () => ({
+  PRICE_IDS: {
+    '1-month': 'price_1month',
+    '3-month': 'price_3month',
+    '6-month': 'price_6month',
+    '12-month': 'price_12month'
+  },
+  PLAN_PRICING: {
+    '1-month': { amount: 999, currency: 'usd', duration: '1 month' },
+    '3-month': { amount: 2997, currency: 'usd', duration: '3 months' },
+    '6-month': { amount: 5994, currency: 'usd', duration: '6 months' },
+    '12-month': { amount: 11988, currency: 'usd', duration: '12 months' }
+  },
+  createOrRetrieveCustomer: jest.fn().mockResolvedValue({
+    id: 'cus_test123',
+    email: 'test@example.com'
+  }),
+  createCheckoutSession: jest.fn().mockResolvedValue({
+    id: 'cs_test123',
+    url: 'https://checkout.stripe.com/test123'
+  }),
+  createSubscription: jest.fn(),
+  getCustomerSubscriptions: jest.fn(),
+  getSubscription: jest.fn(),
+  updateSubscription: jest.fn(),
+  cancelSubscription: jest.fn(),
+  resumeSubscription: jest.fn(),
+  getSubscriptionInvoices: jest.fn(),
+  getPaymentMethods: jest.fn()
+}));
+
+// -----------------------------
 // Mock Stripe (inside jest.mock factory to avoid TDZ)
 // -----------------------------
 jest.mock('stripe', () => {
@@ -44,10 +78,26 @@ jest.mock('stripe', () => {
         status: 'active',
         items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
       }),
-      update: jest.fn().mockResolvedValue({
-        id: 'sub_test123',
-        status: 'active',
-        items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+      update: jest.fn().mockImplementation((subscriptionId, updateData) => {
+        // Handle different update scenarios
+        if (updateData.cancel_at_period_end !== undefined) {
+          return Promise.resolve({
+            id: subscriptionId,
+            status: updateData.cancel_at_period_end ? 'active' : 'active',
+            cancel_at_period_end: updateData.cancel_at_period_end,
+            current_period_start: Math.floor(Date.now() / 1000),
+            current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+            items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+          });
+        }
+        // Default update response for plan changes
+        return Promise.resolve({
+          id: subscriptionId,
+          status: 'active',
+          current_period_start: Math.floor(Date.now() / 1000),
+          current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+          items: { data: [{ id: 'si_test123', price: { id: 'price_updated123' } }] }
+        });
       }),
       del: jest.fn().mockResolvedValue({
         id: 'sub_test123',
@@ -138,9 +188,9 @@ describe('Stripe Subscription Integration Tests', () => {
       expect(checkoutRes.body.data.sessionId).toBe('cs_test123');
       expect(checkoutRes.body.data.url).toBeDefined();
 
-      const stripe = require('stripe')();
-      expect(stripe.customers.create).toHaveBeenCalled();
-      expect(stripe.checkout.sessions.create).toHaveBeenCalled();
+      const { createOrRetrieveCustomer, createCheckoutSession } = require('../src/services/stripe');
+      expect(createOrRetrieveCustomer).toHaveBeenCalled();
+      expect(createCheckoutSession).toHaveBeenCalled();
 
       const updatedUser = await User.findById(userId);
       expect(updatedUser.stripeCustomerId).toBe('cus_test123');
