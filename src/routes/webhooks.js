@@ -90,6 +90,10 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
         await handlePaymentIntentFailed(event.data.object);
         break;
 
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+
       default:
         console.log(`Unhandled event type ${event.type}`);
     }

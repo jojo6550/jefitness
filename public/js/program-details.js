@@ -103,7 +103,7 @@ function renderProgramDetails(program, hasFullAccess) {
                 </ul>
                 ${!hasFullAccess ? `
                     <hr class="my-4">
-                    <button id="add-to-cart-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" data-program-id="${program._id}">Add to Cart</button>
+                    <button id="buy-now-btn" class="btn btn-primary w-100 rounded-pill py-2 fw-bold" data-program-id="${program._id}">Buy Now</button>
                     <p class="text-center text-muted small mt-2 mb-0">Purchase this program to unlock full access</p>
                 ` : ''}
             </div>

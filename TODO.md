@@ -1,13 +1,13 @@
-# Fix Failing Stripe Tests
-
-## Issues Identified
-1. **GET /api/v1/subscriptions/user/current**: Missing `hasSubscription: true` in response for active subscriptions
-2. **PUT /api/v1/auth/account**: Stripe customer update not called due to missing STRIPE_SECRET_KEY in test environment
-3. **DELETE /api/v1/subscriptions/:subscriptionId/cancel (immediate)**: Response status undefined after immediate cancellation
-4. **DELETE /api/v1/subscriptions/:subscriptionId/cancel (authorization)**: Invalid password hash in test user creation
+# Remove Shopping Cart and Implement Direct Stripe Purchases
 
 ## Tasks
-- [x] Fix subscriptions route to include hasSubscription field
-- [x] Update auth route to handle Stripe updates in test environment
-- [x] Fix cancel subscription response structure
-- [x] Fix test user password hashing
+- [ ] Remove cart-related routes from server.js
+- [ ] Remove cart model and routes files
+- [ ] Update orders.js to handle direct purchases instead of cart-based orders
+- [ ] Add Stripe checkout session creation for programs
+- [ ] Update webhooks.js to handle checkout.session.completed events
+- [ ] Update program-details.js to show "Buy Now" instead of "Add to Cart"
+- [ ] Update marketplace.js to remove cart functionality
+- [ ] Remove cart-related pages (cart.html, checkout.html)
+- [ ] Update navbar to remove cart links
+- [ ] Test the complete purchase flow

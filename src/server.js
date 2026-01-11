@@ -184,8 +184,7 @@ app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestrictio
 app.use('/api/v1/nutrition', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/nutrition'));
 app.use('/api/v1/notifications', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/notifications'));
 app.use('/api/v1/programs', apiLimiter, versioning, require('./routes/programs'));
-app.use('/api/v1/cart', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/cart'));
-app.use('/api/v1/orders', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/orders'));
+
 app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
 app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, checkDataRestriction, apiLimiter, versioning, require('./routes/chat'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
@@ -237,8 +236,7 @@ app.use('/api/users', auth, (req, res) => res.redirect(307, '/api/v1/users' + re
 app.use('/api/nutrition', auth, (req, res) => res.redirect(307, '/api/v1/nutrition' + req.path.replace('/api/nutrition', '')));
 app.use('/api/notifications', auth, (req, res) => res.redirect(307, '/api/v1/notifications' + req.path.replace('/api/notifications', '')));
 app.use('/api/programs', (req, res) => res.redirect(307, '/api/v1/programs' + req.path.replace('/api/programs', '')));
-app.use('/api/cart', auth, (req, res) => res.redirect(307, '/api/v1/cart' + req.path.replace('/api/cart', '')));
-app.use('/api/orders', auth, (req, res) => res.redirect(307, '/api/v1/orders' + req.path.replace('/api/orders', '')));
+
 app.use('/api/medical-documents', auth, (req, res) => res.redirect(307, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
 app.use('/api/trainer', auth, (req, res) => res.redirect(307, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
 
