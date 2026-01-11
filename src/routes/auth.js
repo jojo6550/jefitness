@@ -9,6 +9,7 @@ const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { requireDbConnection } = require('../middleware/dbConnection');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Lazy initialization of Mailjet client
 let mailjet = null;
@@ -32,7 +33,6 @@ const createStripeCustomerForUser = async (user) => {
       return; // Skip if no Stripe key or customer already exists
     }
 
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
     const customer = await stripe.customers.create({
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
@@ -496,11 +496,6 @@ router.put('/account', auth, [
             // Sync email with Stripe customer (non-blocking)
             if (user.stripeCustomerId) {
                 try {
-                    // In test environment, use the mocked stripe
-                    const stripe = process.env.NODE_ENV === 'test'
-                        ? require('stripe')()
-                        : require('stripe')(process.env.STRIPE_SECRET_KEY);
-
                     await stripe.customers.update(user.stripeCustomerId, {
                         email: email,
                         name: `${user.firstName} ${user.lastName}`,

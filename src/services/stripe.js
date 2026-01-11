@@ -1,4 +1,12 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Lazy initialization of Stripe to avoid issues in test environment
+let stripeInstance = null;
+const getStripe = () => {
+  if (!stripeInstance) {
+    const stripe = require('stripe');
+    stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeInstance;
+};
 
 /**
  * STRIPE PRODUCT IDS CONFIGURATION
@@ -62,7 +70,7 @@ async function getPlanPricing() {
       console.log(`💰 Price ID for ${planKey}: ${priceId}`);
 
       if (priceId) {
-        const price = await stripe.prices.retrieve(priceId);
+        const price = await getStripe().prices.retrieve(priceId);
         const amount = price.unit_amount;
         const displayPrice = `$${(amount / 100).toFixed(2)}`;
 
@@ -167,7 +175,7 @@ async function createSubscription(customerId, plan) {
       throw new Error(`No active recurring price found for plan: ${plan}`);
     }
 
-    const subscription = await stripe.subscriptions.create({
+    const subscription = await getStripe().subscriptions.create({
       customer: customerId,
       items: [{
         price: priceId
@@ -301,7 +309,7 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
 
     // If not at period end, actually delete the subscription
     if (!atPeriodEnd) {
-      return await stripe.subscriptions.del(subscriptionId);
+      return await getStripe().subscriptions.del(subscriptionId);
     }
 
     return canceledSubscription;
@@ -472,7 +480,7 @@ async function getPaymentMethods(customerId) {
  */
 async function deletePaymentMethod(paymentMethodId) {
   try {
-    const deletedPaymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
+    const deletedPaymentMethod = await getStripe().paymentMethods.detach(paymentMethodId);
     return deletedPaymentMethod;
   } catch (error) {
     throw new Error(`Failed to delete payment method: ${error.message}`);
@@ -507,7 +515,7 @@ async function createPaymentIntent(customerId, amount, currency = 'usd') {
  */
 async function getAllActivePrices() {
   try {
-    const prices = await stripe.prices.list({
+    const prices = await getStripe().prices.list({
       active: true,
       type: 'recurring',
       limit: 100
@@ -518,7 +526,7 @@ async function getAllActivePrices() {
 
     // Fetch product details for all products
     const products = await Promise.all(
-      productIds.map(productId => stripe.products.retrieve(productId))
+      productIds.map(productId => getStripe().products.retrieve(productId))
     );
 
     // Create a map of product ID to product data

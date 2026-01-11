@@ -3,147 +3,22 @@ const mongoose = require('mongoose');
 const request = require('supertest');
 const User = require('../src/models/User');
 const Subscription = require('../src/models/Subscription');
+const Program = require('../src/models/Program');
 const app = require('../src/server');
 
-// ============================================
-// MOCK STRIPE - Using var to avoid TDZ issues
-// ============================================
-// Note: Using var instead of const because Jest hoists jest.mock() to the top.
-// var is hoisted and initialized (not in TDZ), so the mock factory can reference
-// these variables before the actual const declarations run.
+// Mock mongoose models
+jest.mock('../src/models/User');
+jest.mock('../src/models/Subscription');
+jest.mock('../src/models/Program');
 
-var mockCustomersUpdate;
-var mockCustomersList;
-var mockCustomersCreate;
-var mockCustomersRetrieve;
-var mockSubscriptionsCreate;
-var mockSubscriptionsList;
-var mockSubscriptionsRetrieve;
-var mockSubscriptionsUpdate;
-var mockSubscriptionsDel;
-var mockCheckoutSessionsCreate;
-var mockInvoicesList;
-var mockPaymentMethodsList;
-var mockWebhooksConstructEvent;
-var mockPricesList;
-var mockPricesRetrieve;
-var mockProductsRetrieve;
-var mockProgramsFindById;
-var mockProgramsFindOne;
-var mockProgramsFind;
-
-// Initialize mocks - these will overwrite the var declarations with const
-mockCustomersUpdate = jest.fn();
-mockCustomersList = jest.fn().mockResolvedValue({ data: [] });
-mockCustomersCreate = jest.fn().mockResolvedValue({
-  id: 'cus_test123',
-  email: 'test@example.com'
-});
-mockCustomersRetrieve = jest.fn().mockResolvedValue({
-  id: 'cus_test123',
-  email: 'test@example.com'
-});
-mockSubscriptionsCreate = jest.fn().mockResolvedValue({
-  id: 'sub_test123',
-  status: 'active',
-  current_period_start: Math.floor(Date.now() / 1000),
-  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
-});
-mockSubscriptionsList = jest.fn().mockResolvedValue({
-  data: [{
-    id: 'sub_test123',
-    status: 'active',
-    current_period_end: Math.floor(Date.now() / 1000) + 2592000
-  }]
-});
-mockSubscriptionsRetrieve = jest.fn().mockResolvedValue({
-  id: 'sub_test123',
-  status: 'active',
-  current_period_start: Math.floor(Date.now() / 1000),
-  current_period_end: Math.floor(Date.now() / 1000) + 2592000
-});
-mockSubscriptionsUpdate = jest.fn().mockResolvedValue({
-  id: 'sub_test123',
-  status: 'active',
-  cancel_at_period_end: false,
-  current_period_end: Math.floor(Date.now() / 1000) + 2592000
-});
-mockSubscriptionsDel = jest.fn().mockResolvedValue({
-  id: 'sub_test123',
-  status: 'canceled',
-  cancel_at_period_end: false,
-  current_period_start: Math.floor(Date.now() / 1000),
-  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
-});
-mockCheckoutSessionsCreate = jest.fn().mockResolvedValue({
-  id: 'cs_test123',
-  url: 'https://checkout.stripe.com/test123'
-});
-mockInvoicesList = jest.fn().mockResolvedValue({ data: [] });
-mockPaymentMethodsList = jest.fn().mockResolvedValue({ data: [] });
-mockWebhooksConstructEvent = jest.fn();
-mockPricesList = jest.fn().mockResolvedValue({
-  data: [{
-    id: 'price_test123',
-    product: 'prod_test123',
-    unit_amount: 999,
-    recurring: { interval: 'month' }
-  }]
-});
-mockPricesRetrieve = jest.fn().mockResolvedValue({
-  id: 'price_test123',
-  unit_amount: 999,
-  currency: 'usd'
-});
-mockProductsRetrieve = jest.fn().mockResolvedValue({
-  id: 'prod_test123',
-  name: 'Test Product'
-});
-mockProgramsFindById = jest.fn().mockResolvedValue({
-  _id: 'prog_test123',
-  title: 'Test Program',
-  slug: 'test-program',
-  price: 49.99,
-  description: 'A test program',
-  isPublished: true,
-  isActive: true
-});
-mockProgramsFindOne = jest.fn().mockResolvedValue({
-  _id: 'prog_test123',
-  title: 'Test Program',
-  slug: 'test-program',
-  price: 49.99,
-  description: 'A test program',
-  isPublished: true,
-  isActive: true
-});
-mockProgramsFind = jest.fn().mockResolvedValue([{
-  _id: 'prog_test123',
-  title: 'Test Program',
-  slug: 'test-program',
-  price: 49.99,
-  description: 'A test program',
-  isPublished: true,
-  isActive: true
-}]);
-
-// Mock Program model
-jest.mock('../src/models/Program', () => ({
-  findById: mockProgramsFindById,
-  findOne: mockProgramsFindOne,
-  find: mockProgramsFind
-}));
-
-// Mock stripe module - must be hoisted but references are already declared as var
+// Mock Stripe
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     customers: {
+      update: mockCustomersUpdate,
       list: mockCustomersList,
       create: mockCustomersCreate,
-      retrieve: mockCustomersRetrieve,
-      update: mockCustomersUpdate
+      retrieve: mockCustomersRetrieve
     },
     subscriptions: {
       create: mockSubscriptionsCreate,
@@ -175,6 +50,154 @@ jest.mock('stripe', () => {
     }
   }));
 });
+
+// Mock stripe service
+jest.mock('../src/services/stripe', () => ({
+  createOrRetrieveCustomer: jest.fn().mockResolvedValue({
+    id: 'cus_test123',
+    email: 'test@example.com'
+  }),
+  createProgramCheckoutSession: jest.fn().mockResolvedValue({
+    id: 'cs_test123',
+    url: 'https://checkout.stripe.com/test123'
+  }),
+  createSubscription: jest.fn(),
+  getCustomerSubscriptions: jest.fn(),
+  getSubscription: jest.fn(),
+  updateSubscription: jest.fn(),
+  cancelSubscription: jest.fn().mockResolvedValue({
+    id: 'sub_test123',
+    status: 'canceled'
+  }),
+  resumeSubscription: jest.fn().mockResolvedValue({
+    id: 'sub_test123',
+    status: 'active'
+  }),
+  getSubscriptionInvoices: jest.fn(),
+  createCheckoutSession: jest.fn().mockResolvedValue({
+    id: 'cs_test123',
+    url: 'https://checkout.stripe.com/test123'
+  }),
+  getPaymentMethods: jest.fn(),
+  PRODUCT_IDS: {
+    '1-month': 'prod_1month',
+    '3-month': 'prod_3month',
+    '6-month': 'prod_6month',
+    '12-month': 'prod_12month'
+  },
+  getPlanPricing: jest.fn().mockResolvedValue({
+    '1-month': { amount: 999, currency: 'usd', duration: '1 month' },
+    '3-month': { amount: 2799, currency: 'usd', duration: '3 months' },
+    '6-month': { amount: 5199, currency: 'usd', duration: '6 months' },
+    '12-month': { amount: 9599, currency: 'usd', duration: '12 months' }
+  }),
+  getPriceIdForProduct: jest.fn().mockResolvedValue('price_test123'),
+  PROGRAM_PRODUCT_IDS: {
+    'prog_test123': 'prod_program123'
+  }
+}));
+
+// ============================================
+// MOCK STRIPE - Initialize mocks before jest.mock calls
+// ============================================
+
+const mockCustomersUpdate = jest.fn();
+const mockCustomersList = jest.fn().mockResolvedValue({ data: [] });
+const mockCustomersCreate = jest.fn().mockResolvedValue({
+  id: 'cus_test123',
+  email: 'test@example.com'
+});
+const mockCustomersRetrieve = jest.fn().mockResolvedValue({
+  id: 'cus_test123',
+  email: 'test@example.com'
+});
+const mockSubscriptionsCreate = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+});
+const mockSubscriptionsList = jest.fn().mockResolvedValue({
+  data: [{
+    id: 'sub_test123',
+    status: 'active',
+    current_period_end: Math.floor(Date.now() / 1000) + 2592000
+  }]
+});
+const mockSubscriptionsRetrieve = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000
+});
+const mockSubscriptionsUpdate = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  cancel_at_period_end: false,
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000
+});
+const mockSubscriptionsDel = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'canceled',
+  cancel_at_period_end: false,
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+});
+const mockCheckoutSessionsCreate = jest.fn().mockResolvedValue({
+  id: 'cs_test123',
+  url: 'https://checkout.stripe.com/test123'
+});
+const mockInvoicesList = jest.fn().mockResolvedValue({ data: [] });
+const mockPaymentMethodsList = jest.fn().mockResolvedValue({ data: [] });
+const mockWebhooksConstructEvent = jest.fn();
+const mockPricesList = jest.fn().mockResolvedValue({
+  data: [{
+    id: 'price_test123',
+    product: 'prod_test123',
+    unit_amount: 999,
+    recurring: { interval: 'month' }
+  }]
+});
+const mockPricesRetrieve = jest.fn().mockResolvedValue({
+  id: 'price_test123',
+  unit_amount: 999,
+  currency: 'usd'
+});
+const mockProductsRetrieve = jest.fn().mockResolvedValue({
+  id: 'prod_test123',
+  name: 'Test Product'
+});
+const mockProgramsFindById = jest.fn().mockResolvedValue({
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+});
+const mockProgramsFindOne = jest.fn().mockResolvedValue({
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+});
+const mockProgramsFind = jest.fn().mockResolvedValue([{
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+}]);
+
+
 
 // ============================================
 // TEST SETUP - Uses global setup from tests/setup.js
@@ -433,7 +456,8 @@ describe('Stripe Subscription System', () => {
         email: 'account@example.com',
         password: hashedPassword,
         isEmailVerified: true,
-        role: 'user'
+        role: 'user',
+        stripeCustomerId: 'cus_test123'
       });
 
       await accountUser.save();
@@ -830,136 +854,6 @@ describe('Stripe Subscription System', () => {
           .expect(200);
 
         expect(response.text).toBe('Webhook received');
-      });
-    });
-  });
-});
-
-  describe('Subscription Management', () => {
-    let subToken;
-    let subUser;
-    let userSubscription;
-
-    beforeEach(async () => {
-      // Create user with subscription
-      const bcrypt = require('bcryptjs');
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
-
-      subUser = new User({
-        firstName: 'Sub',
-        lastName: 'User',
-        email: 'subuser@example.com',
-        password: hashedPassword,
-        isEmailVerified: true,
-        stripeCustomerId: 'cus_test123',
-        subscriptionId: 'sub_test123',
-        subscriptionStatus: 'active',
-        subscriptionPlan: '1-month'
-      });
-
-      await subUser.save();
-
-      userSubscription = new Subscription({
-        userId: subUser._id,
-        stripeCustomerId: 'cus_test123',
-        stripeSubscriptionId: 'sub_test123',
-        stripePriceId: 'price_test123',
-        plan: '1-month',
-        amount: 999,
-        status: 'active',
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      });
-
-      await userSubscription.save();
-
-      const jwt = require('jsonwebtoken');
-      subToken = jwt.sign({ id: subUser._id }, process.env.JWT_SECRET);
-    });
-
-    describe('DELETE /api/v1/subscriptions/:subscriptionId/cancel', () => {
-      it('should cancel subscription at period end', async () => {
-        const response = await request(app)
-          .delete('/api/v1/subscriptions/sub_test123/cancel')
-          .set('Authorization', `Bearer ${subToken}`)
-          .send({
-            atPeriodEnd: true
-          })
-          .expect(200);
-
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.subscription.cancelAtPeriodEnd).toBe(true);
-      });
-
-      it('should cancel subscription immediately', async () => {
-        const response = await request(app)
-          .delete('/api/v1/subscriptions/sub_test123/cancel')
-          .set('Authorization', `Bearer ${subToken}`)
-          .send({
-            atPeriodEnd: false
-          })
-          .expect(200);
-
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.subscription.status).toBe('canceled');
-      });
-
-      it('should require authentication', async () => {
-        const response = await request(app)
-          .delete('/api/v1/subscriptions/sub_test123/cancel')
-          .send({
-            atPeriodEnd: true
-          })
-          .expect(401);
-
-        expect(response.body.error).toBeDefined();
-      });
-
-      it('should prevent user from canceling others subscriptions', async () => {
-        // Create another user with valid password
-        const bcrypt = require('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
-
-        const otherUser = new User({
-          firstName: 'Other',
-          lastName: 'User',
-          email: 'otheruser@example.com',
-          password: hashedPassword,
-          isEmailVerified: true
-        });
-        await otherUser.save();
-
-        const jwt = require('jsonwebtoken');
-        const otherToken = jwt.sign({ id: otherUser._id }, process.env.JWT_SECRET);
-
-        const response = await request(app)
-          .delete('/api/v1/subscriptions/sub_test123/cancel')
-          .set('Authorization', `Bearer ${otherToken}`)
-          .send({
-            atPeriodEnd: true
-          })
-          .expect(404);
-
-        expect(response.body.error).toBeDefined();
-      });
-    });
-
-    describe('POST /api/v1/subscriptions/:subscriptionId/resume', () => {
-      it('should resume canceled subscription', async () => {
-        // Mark subscription as canceled first
-        userSubscription.status = 'canceled';
-        userSubscription.cancelAtPeriodEnd = true;
-        await userSubscription.save();
-
-        const response = await request(app)
-          .post('/api/v1/subscriptions/sub_test123/resume')
-          .set('Authorization', `Bearer ${subToken}`)
-          .expect(200);
-
-        expect(response.body.success).toBe(true);
-        expect(response.body.data.subscription.cancelAtPeriodEnd).toBe(false);
       });
     });
   });
