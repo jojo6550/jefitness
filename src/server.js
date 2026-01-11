@@ -256,6 +256,12 @@ app.use('/api/medical-documents', (req, res, next) => {
 app.use('/api/trainer', (req, res, next) => {
   res.redirect(307, '/api/v1/trainer' + req.path);
 });
+app.use('/api/chat', (req, res, next) => {
+  res.redirect(307, '/api/v1/chat' + req.path);
+});
+app.use('/api/users', (req, res, next) => {
+  res.redirect(307, '/api/v1/users' + req.path);
+});
 
 // 404 handler for API routes (after all routes and redirects)
 app.use('/api', (req, res) => {

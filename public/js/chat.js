@@ -97,17 +97,9 @@ class ChatWidget {
 
   async loadConversations() {
     try {
-      const response = await fetch('/api/chat/conversations', {
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.conversations = data.conversations;
-        this.updateUnreadCount();
-      }
+      const data = await window.API.chat.getConversations();
+      this.conversations = data.conversations;
+      this.updateUnreadCount();
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
@@ -122,16 +114,8 @@ class ChatWidget {
       const partnerId = this.conversations.length > 0 ? this.conversations[0].partnerId : null;
       if (!partnerId) return;
 
-      const response = await fetch(`/api/chat/history/${partnerId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        this.displayMessages(data.messages);
-      }
+      const data = await window.API.chat.getHistory(partnerId);
+      this.displayMessages(data.messages);
     } catch (error) {
       console.error('Error loading chat history:', error);
     }
@@ -196,22 +180,11 @@ class ChatWidget {
   async sendViaHTTP(content) {
     try {
       const receiverId = this.getReceiverId();
-      const response = await fetch('/api/chat/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        },
-        body: JSON.stringify({
-          receiverId,
-          message: content,
-          messageType: this.getMessageType()
-        })
+      await window.API.chat.sendMessage({
+        receiverId,
+        message: content,
+        messageType: this.getMessageType()
       });
-
-      if (!response.ok) {
-        console.error('Failed to send message via HTTP');
-      }
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -282,15 +255,11 @@ class ChatWidget {
     }
   }
 
-  markCurrentConversationAsRead() {
+  async markCurrentConversationAsRead() {
     if (this.currentConversation && this.currentConversation.partnerId) {
       const partnerId = this.currentConversation.partnerId;
-      fetch(`/api/chat/mark-read/${partnerId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`
-        }
-      }).then(() => {
+      try {
+        await window.API.chat.markAsRead(partnerId);
         // Find and update the conversation in the list
         const conversation = this.conversations.find(conv => conv.partnerId === partnerId);
         if (conversation) {
@@ -298,7 +267,9 @@ class ChatWidget {
           conversation.unreadCount = 0;
           this.updateUnreadBadge();
         }
-      });
+      } catch (error) {
+        console.error('Error marking conversation as read:', error);
+      }
     }
   }
 
@@ -379,25 +350,10 @@ class ChatWidget {
 
     try {
       // Fetch trainers and admins from API
-      const [trainersResponse, adminsResponse] = await Promise.all([
-        fetch('/api/users/trainers', {
-          headers: {
-            'Authorization': `Bearer ${this.getAuthToken()}`
-          }
-        }),
-        fetch('/api/users/admins', {
-          headers: {
-            'Authorization': `Bearer ${this.getAuthToken()}`
-          }
-        })
+      const [trainers, admins] = await Promise.all([
+        window.API.users.getTrainers(),
+        window.API.users.getAdmins()
       ]);
-
-      if (!trainersResponse.ok || !adminsResponse.ok) {
-        throw new Error('Failed to fetch users');
-      }
-
-      const trainers = await trainersResponse.json();
-      const admins = await adminsResponse.json();
 
       chatOptions.innerHTML = '';
 

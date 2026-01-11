@@ -88,12 +88,7 @@
     // Try to get version from cache or fetch from server
     if (!this.versionsCache) {
       try {
-        const response = await fetch('/api/cache-versions');
-        if (response.ok) {
-          this.versionsCache = await response.json();
-        } else {
-          throw new Error('Failed to fetch versions');
-        }
+        this.versionsCache = await window.API.cache.getVersions();
       } catch (err) {
         console.warn('Failed to fetch cache versions, using timestamp fallback:', err);
         // Fallback: Use current minute as version (changes every minute)

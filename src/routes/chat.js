@@ -170,4 +170,71 @@ router.get('/unread-count', auth, async (req, res) => {
   }
 });
 
+// POST /api/chat/send - Send a chat message (HTTP fallback)
+router.post('/send', auth, async (req, res) => {
+  try {
+    const { receiverId, message, messageType } = req.body;
+    const senderId = req.user.id;
+    const senderRole = req.user.role;
+
+    if (!receiverId || !message) {
+      return res.status(400).json({ msg: 'Receiver ID and message are required' });
+    }
+
+    // Determine receiver role if not provided
+    let receiverRole = req.body.receiverRole;
+    if (!receiverRole) {
+      const User = require('../models/User');
+      const receiver = await User.findById(receiverId).select('role');
+      if (!receiver) {
+        return res.status(404).json({ msg: 'Receiver not found' });
+      }
+      receiverRole = receiver.role;
+    }
+
+    // Determine message type if not provided
+    let finalMessageType = messageType;
+    if (!finalMessageType) {
+      if (senderRole === 'user' && receiverRole === 'trainer') {
+        finalMessageType = 'user_to_trainer';
+      } else if (senderRole === 'user' && receiverRole === 'admin') {
+        finalMessageType = 'user_to_admin';
+      } else if (senderRole === 'trainer' && receiverRole === 'user') {
+        finalMessageType = 'trainer_to_user';
+      } else if (senderRole === 'admin' && receiverRole === 'user') {
+        finalMessageType = 'admin_to_user';
+      } else {
+        return res.status(400).json({ msg: 'Invalid conversation type' });
+      }
+    }
+
+    // Save message to database
+    const chatMessage = new ChatMessage({
+      senderId,
+      receiverId,
+      message,
+      messageType: finalMessageType
+    });
+    await chatMessage.save();
+
+    res.json({
+      success: true,
+      message: {
+        id: chatMessage._id,
+        senderId,
+        receiverId,
+        message,
+        timestamp: chatMessage.timestamp,
+        messageType: finalMessageType
+      }
+    });
+
+    console.log(`Chat action logged: Message sent via HTTP from ${senderId} to ${receiverId} (${finalMessageType})`);
+
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
 module.exports = router;

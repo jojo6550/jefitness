@@ -52,17 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save the schedule to backend
     async function saveSchedule() {
         try {
-            const res = await fetch('/api/auth/schedule', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ schedule })
-            });
-            if (!res.ok) {
-                console.error('Failed to save schedule');
-            }
+            await window.API.auth.updateSchedule(schedule);
         } catch (err) {
             console.error('Error saving schedule:', err);
         }
@@ -186,18 +176,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fetch user's appointments
     async function fetchAppointments() {
         try {
-            const res = await fetch('/api/appointments/user', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
-            });
-            if (res.ok) {
-                const appointments = await res.json();
-                renderAppointments(appointments);
-            } else {
-                console.error('Failed to fetch appointments');
-            }
+            const appointments = await window.API.appointments.getUserAppointments();
+            renderAppointments(appointments);
         } catch (err) {
             console.error('Error fetching appointments:', err);
         }
@@ -241,17 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function deleteAppointment(id) {
         if (!confirm('Are you sure you want to delete this appointment?')) return;
         try {
-            const res = await fetch(`/api/appointments/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
-            });
-            if (res.ok) {
-                fetchAppointments(); // Refresh the list
-            } else {
-                alert('Failed to delete appointment');
-            }
+            await window.API.appointments.delete(id);
+            fetchAppointments(); // Refresh the list
         } catch (err) {
             console.error('Error deleting appointment:', err);
             alert('Error deleting appointment');
@@ -261,21 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load trainers for booking
     async function loadTrainers() {
         try {
-            const res = await fetch('/api/users/trainers', {
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
+            const trainers = await window.API.users.getTrainers();
+            const trainerSelect = document.getElementById('trainerSelect');
+            trainerSelect.innerHTML = '<option value="">Choose...</option>';
+            trainers.forEach(trainer => {
+                trainerSelect.innerHTML += `<option value="${trainer._id}">${trainer.firstName} ${trainer.lastName}</option>`;
             });
-            if (res.ok) {
-                const trainers = await res.json();
-                const trainerSelect = document.getElementById('trainerSelect');
-                trainerSelect.innerHTML = '<option value="">Choose...</option>';
-                trainers.forEach(trainer => {
-                    trainerSelect.innerHTML += `<option value="${trainer._id}">${trainer.firstName} ${trainer.lastName}</option>`;
-                });
-            } else {
-                console.error('Failed to fetch trainers');
-            }
         } catch (err) {
             console.error('Error fetching trainers:', err);
         }
@@ -296,22 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const res = await fetch('/api/appointments', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                },
-                body: JSON.stringify({ trainerId, date, time, notes })
-            });
-            if (res.ok) {
-                alert('Appointment booked successfully!');
-                bookingForm.reset();
-                fetchAppointments(); // Refresh the appointments list
-            } else {
-                const error = await res.json();
-                alert('Failed to book appointment: ' + error.msg);
-            }
+            await window.API.appointments.create({ trainerId, date, time, notes });
+            alert('Appointment booked successfully!');
+            bookingForm.reset();
+            fetchAppointments(); // Refresh the appointments list
         } catch (err) {
             console.error('Error booking appointment:', err);
             alert('Error booking appointment');

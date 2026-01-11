@@ -13,7 +13,7 @@ class ApiConfig {
         return 'http://10.0.2.2:10000';
       case 'IOS_SIMULATOR':
       case 'BROWSER':
-        return 'http://localhost:10000';
+        return 'http://localhost:5001';
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
@@ -162,24 +162,31 @@ class API {
       method: 'POST',
       body: JSON.stringify({ email, password })
     }),
-    
+
     register: (userData) => API.request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData)
     }),
-    
+
     logout: () => API.request('/api/auth/logout', {
       method: 'POST'
     }),
-    
+
     verifyEmail: (token) => API.request('/api/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token })
     }),
-    
+
     resendVerification: (email) => API.request('/api/auth/resend-verification', {
       method: 'POST',
       body: JSON.stringify({ email })
+    }),
+
+    getSchedule: () => API.request('/api/auth/schedule'),
+
+    updateSchedule: (schedule) => API.request('/api/auth/schedule', {
+      method: 'PUT',
+      body: JSON.stringify({ schedule })
     })
   };
 
@@ -353,6 +360,8 @@ class API {
       return API.request(`/api/appointments?${params}`);
     },
 
+    getUserAppointments: () => API.request('/api/appointments/user'),
+
     getOne: (id) => API.request(`/api/appointments/${id}`),
 
     create: (data) => API.request('/api/appointments', {
@@ -366,6 +375,56 @@ class API {
     }),
 
     delete: (id) => API.request(`/api/appointments/${id}`, {
+      method: 'DELETE'
+    })
+  };
+
+  // ===== Chat Endpoints =====
+  static chat = {
+    getConversations: () => API.request('/api/chat/conversations'),
+
+    getHistory: (userId) => API.request(`/api/chat/history/${userId}`),
+
+    sendMessage: (data) => API.request('/api/chat/send', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+    markAsRead: (userId) => API.request(`/api/chat/mark-read/${userId}`, {
+      method: 'POST'
+    }),
+
+    getUnreadCount: () => API.request('/api/chat/unread-count')
+  };
+
+  // ===== Cache Endpoints =====
+  static cache = {
+    getVersions: () => API.request('/api/cache-versions')
+  };
+
+  // ===== Users Endpoints =====
+  static users = {
+    getTrainers: () => API.request('/api/users/trainers'),
+
+    getAdmins: () => API.request('/api/users/admins'),
+
+    getProfile: () => API.request('/api/users/profile'),
+
+    updateProfile: (data) => API.request('/api/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+    changePassword: (oldPassword, newPassword) => API.request('/api/users/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ oldPassword, newPassword })
+    }),
+
+    getAll: () => API.request('/api/users'),
+
+    getOne: (id) => API.request(`/api/users/${id}`),
+
+    delete: (id) => API.request(`/api/users/${id}`, {
       method: 'DELETE'
     })
   };
