@@ -60,7 +60,7 @@ const ensureAuthenticated = (req, res, next) => {
  * GET /api/v1/subscriptions/plans
  * Get all available subscription plans with pricing
  */
-router.get('/plans', auth, async (req, res) => {
+router.get('/plans', async (req, res) => {
   try {
     const plans = await getAllActivePrices();
     res.json({

@@ -435,14 +435,27 @@ async function getAllActivePrices() {
     const prices = await stripe.prices.list({
       active: true,
       type: 'recurring',
-      expand: ['data.product'],
       limit: 100
+    });
+
+    // Get unique product IDs
+    const productIds = [...new Set(prices.data.map(price => price.product))];
+
+    // Fetch product details for all products
+    const products = await Promise.all(
+      productIds.map(productId => stripe.products.retrieve(productId))
+    );
+
+    // Create a map of product ID to product data
+    const productMap = {};
+    products.forEach(product => {
+      productMap[product.id] = product;
     });
 
     const formattedPrices = prices.data.map(price => ({
       priceId: price.id,
-      productId: price.product.id,
-      productName: price.product.name,
+      productId: price.product,
+      productName: productMap[price.product]?.name || 'Unknown Product',
       interval: price.recurring.interval,
       amount: price.unit_amount / 100, // Convert cents to dollars
       currency: price.currency
