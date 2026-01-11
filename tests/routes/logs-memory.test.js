@@ -46,10 +46,8 @@ describe('Log Storage Memory Management', () => {
   let app;
 
   beforeEach(() => {
-    // Clear captured logs and reset realtimeLogs
+    // Clear captured logs but don't reset realtimeLogs (it's global)
     capturedLogs = [];
-    // Reset the realtimeLogs array in the router
-    logsRouter.realtimeLogs = [];
     // Create Express app for testing
     app = express();
     app.use(express.json());

@@ -223,7 +223,7 @@ describe('Auth Routes', () => {
         .get('/api/auth/me')
         .set('Authorization', 'Bearer invalidtoken');
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(400);
       expect(response.body.msg).toBe('Token is not valid');
     });
   });

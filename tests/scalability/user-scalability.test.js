@@ -16,7 +16,7 @@ describe('User Scalability Tests', () => {
   let testUsers = [];
   let trainer;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     // Create test users for activities
     testUsers = [];
     for (let i = 0; i < 50; i++) { // Use 50 users for manageable load
@@ -26,6 +26,8 @@ describe('User Scalability Tests', () => {
         email: `activeuser${i}@example.com`,
         password: 'Password123!',
         role: 'user',
+        dataProcessingConsent: { given: true },
+        healthDataConsent: { given: true },
       }).save();
       testUsers.push(user);
     }
@@ -37,6 +39,8 @@ describe('User Scalability Tests', () => {
       email: 'trainer@example.com',
       password: 'Password123!',
       role: 'admin',
+      dataProcessingConsent: { given: true },
+      healthDataConsent: { given: true },
     }).save();
   });
 

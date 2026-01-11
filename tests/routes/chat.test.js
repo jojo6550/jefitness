@@ -16,7 +16,9 @@ beforeEach(async () => {
     email: 'user@test.com',
     password: 'password123',
     role: 'user',
-    isEmailVerified: true
+    isEmailVerified: true,
+    dataProcessingConsent: { given: true },
+    healthDataConsent: { given: true },
   });
   await user.save();
   userId = user._id;
@@ -27,7 +29,9 @@ beforeEach(async () => {
     email: 'admin@test.com',
     password: 'password123',
     role: 'admin',
-    isEmailVerified: true
+    isEmailVerified: true,
+    dataProcessingConsent: { given: true },
+    healthDataConsent: { given: true },
   });
   await admin.save();
   adminId = admin._id;
