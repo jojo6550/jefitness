@@ -133,6 +133,6 @@ async function loadSubscriptionStatus() {
 
 // Event listener for upgrade subscription button
 document.getElementById('upgrade-subscription-btn').addEventListener('click', () => {
-    window.location.href = 'subscriptions.html';
+    window.location.href = '../subscriptions.html';
 });
 

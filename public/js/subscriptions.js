@@ -10,7 +10,10 @@
  */
 
 // Configuration
-const API_BASE_URL = '/api/v1';
+const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocalhost
+    ? 'http://localhost:10000/api/v1'
+    : 'https://jefitness.onrender.com/api/v1';
 const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
 // Initialize Stripe
@@ -312,8 +315,8 @@ async function loadUserSubscriptions() {
     try {
         if (!userToken) return;
 
-        // Get current user ID (from token or API)
-        const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        // Get current user info from auth endpoint
+        const response = await fetch(`${API_BASE_URL.replace('/api/v1', '')}/api/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${userToken}`,
@@ -327,15 +330,15 @@ async function loadUserSubscriptions() {
         }
 
         const userData = await response.json();
-        const userId = userData.data?.user?._id || userData.data?.id;
+        const userId = userData._id || userData.id;
 
         if (!userId) {
             console.warn('User ID not found');
             return;
         }
 
-        // Fetch subscriptions
-        const subsResponse = await fetch(`${API_BASE_URL}/subscriptions/user/${userId}`, {
+        // Fetch subscriptions using the current endpoint
+        const subsResponse = await fetch(`${API_BASE_URL}/subscriptions/user/current`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${userToken}`,
@@ -349,8 +352,13 @@ async function loadUserSubscriptions() {
 
         const subsData = await subsResponse.json();
 
-        if (subsData.success && subsData.data.subscriptions.length > 0) {
-            displayUserSubscriptions(subsData.data.subscriptions);
+        if (subsData.success && subsData.data && !subsData.data.hasSubscription) {
+            // User has no subscription, show free tier message
+            displayUserSubscriptions([]);
+            userSubscriptionsSection.style.display = 'block';
+        } else if (subsData.success && subsData.data) {
+            // User has subscription, display it
+            displayUserSubscriptions([subsData.data]);
             userSubscriptionsSection.style.display = 'block';
         }
 
