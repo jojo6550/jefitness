@@ -7,9 +7,12 @@ const mongoose = require('mongoose');
 
 // Import all models to register schemas
 require('../src/models/User');
-require('../src/models/Program');
 require('../src/models/Chat');
 require('../src/models/Subscription');
+require('../src/models/Notification');
+require('../src/models/Log');
+require('../src/models/Appointment');
+require('../src/models/APIKey');
 
 // 🔴 Fail fast instead of buffering forever
 mongoose.set('bufferCommands', false);
@@ -35,7 +38,6 @@ beforeAll(async () => {
 
   // Ensure indexes are created for unique constraints
   await mongoose.model('User').createIndexes();
-  await mongoose.model('Program').createIndexes();
 
   // Test env vars
   process.env.JWT_SECRET = 'test-jwt-secret-key';

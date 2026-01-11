@@ -5,13 +5,13 @@ Comprehensive production-grade unit and integration tests covering all critical 
 
 ## Test Statistics
 
-### Total Test Files: 9
-- 4 Model tests
-- 1 Middleware test
-- 3 Route tests
-- 1 Integration test
+### Total Test Files: 11
+- 1 Model test (User)
+- 4 Middleware tests
+- 6 Route tests
+- 2 Service tests
 
-### Estimated Total Test Cases: 150+
+### Estimated Total Test Cases: 80+
 
 ## Detailed Breakdown
 
@@ -22,7 +22,7 @@ Comprehensive production-grade unit and integration tests covering all critical 
 - Schema validation (11 tests)
   - Required fields validation
   - Email format and uniqueness
-  - Password strength requirements (length, uppercase, lowercase, numbers, special chars)
+  - Password strength requirements
   - Phone number format
   - Date of birth validation
   - Gender enum validation
@@ -31,7 +31,6 @@ Comprehensive production-grade unit and integration tests covering all critical 
   - Nutrition logs management
   - Sleep logs with range validation
   - Schedule management
-  - Program assignments
   
 - Security fields (4 tests)
   - Failed login attempts tracking
@@ -44,71 +43,6 @@ Comprehensive production-grade unit and integration tests covering all critical 
   - Maximum values
   - Special characters in names
   - Whitespace trimming
-
-#### Program.test.js (~35 tests)
-**Coverage Areas:**
-- Schema validation (15 tests)
-  - Required fields
-  - Duration format validation (valid/invalid formats)
-  - Level enum validation
-  - Slug uniqueness
-  
-- Program features (3 tests)
-  - Features array management
-  - Workout days with exercises
-  - Exercise schema validation
-  
-- Status flags (3 tests)
-  - isActive default and override
-  - isPublished default and override
-  
-- Edge cases (6 tests)
-  - Zero and large prices
-  - Empty features/days arrays
-  - Long text fields
-
-#### Order.test.js (~30 tests)
-**Coverage Areas:**
-- Schema validation (8 tests)
-  - Required fields
-  - Order number uniqueness
-  - Item price positivity
-  - Item quantity minimum
-  - Zip code format (valid/invalid)
-  
-- Order status (3 tests)
-  - Default pending status
-  - Valid status transitions
-  - Invalid status rejection
-  
-- Pre-save hooks (1 test)
-  - User existence validation
-  
-- Edge cases (5 tests)
-  - Multiple items handling
-  - Zero tax scenarios
-  - Optional billing fields
-
-#### Cart.test.js (~20 tests)
-**Coverage Areas:**
-- Schema validation (4 tests)
-  - Valid cart creation
-  - User ID uniqueness
-  - Quantity validation
-  - Default quantity
-  
-- Pre-save hooks (1 test)
-  - Updated timestamp management
-  
-- Cart operations (4 tests)
-  - Empty cart handling
-  - Multiple items
-  - Item removal
-  - Quantity updates
-  
-- Edge cases (2 tests)
-  - Large quantities
-  - Decimal prices
 
 ### Middleware Tests (tests/middleware/)
 
@@ -138,23 +72,19 @@ Comprehensive production-grade unit and integration tests covering all critical 
 
 ### Route Tests (tests/routes/)
 
-#### auth.test.js (~40 tests)
+#### auth.test.js (~30 tests)
 **Coverage Areas:**
-- POST /signup (6 tests)
+- POST /signup (5 tests)
   - Successful signup
   - Missing fields rejection
   - Weak password rejection
-  - Password requirements
   - Duplicate email rejection
-  - Email normalization
   
-- POST /login (6 tests)
+- POST /login (5 tests)
   - Valid credentials
   - Wrong password
   - Non-existent user
-  - Unverified email
   - Account lockout
-  - Failed attempts reset
   
 - POST /verify-email (3 tests)
   - Valid OTP
@@ -163,98 +93,34 @@ Comprehensive production-grade unit and integration tests covering all critical 
   
 - POST /forgot-password (2 tests)
   - Existing user
-  - Security (no user enumeration)
-  
-- GET /me (2 tests)
-  - Valid token
-  - Missing token
-  
-- PUT /profile (2 tests)
-  - Update profile
-  - Partial updates
-  
-- Nutrition logs (3 tests)
-  - Add log
-  - Get logs
-  - Delete log
+  - Security checks
 
-#### cart.test.js (~25 tests)
+#### appointments.test.js (~15 tests)
 **Coverage Areas:**
-- GET /cart (3 tests)
-  - Empty cart
-  - Cart with items
-  - No authentication
-  
-- POST /cart/add (5 tests)
-  - Add new item
-  - Update existing item
-  - Non-existent program
-  - Default quantity
-  - No authentication
-  
-- PUT /cart/update/:itemId (3 tests)
-  - Update quantity
-  - Invalid quantity
-  - Non-existent item
-  
-- DELETE /cart/remove/:itemId (2 tests)
-  - Remove item
-  - Non-existent item
-  
-- DELETE /cart/clear (1 test)
-  - Clear all items
-  
-- Edge cases (2 tests)
-  - Multiple items
-  - Large quantities
+- Appointment CRUD operations
+- Scheduling validation
+- Authorization checks
 
-#### programs.test.js (~30 tests)
+#### chat.test.js (~10 tests)
 **Coverage Areas:**
-- GET /marketplace (3 tests)
-  - Published programs
-  - Unpublished exclusion
-  - Inactive exclusion
-  
-- GET /marketplace/:id (3 tests)
-  - Program details
-  - Non-existent program
-  - Unpublished program
-  
-- GET /my (3 tests)
-  - No assigned programs
-  - Assigned programs
-  - Authentication required
-  
-- GET /:id (4 tests)
-  - Assigned user access
-  - Unassigned user denial
-  - Admin access
-  - Authentication required
-  
-- POST / (3 tests)
-  - Admin creation
-  - Non-admin denial
-  - Authentication required
-  
-- Edge cases (3 tests)
-  - Programs with no days
-  - Multiple assignments
+- Message operations
+- Real-time communication
 
-### Integration Tests (tests/integration/)
-
-#### checkout-flow.test.js (~10 tests)
+#### subscriptions.test.js (~20 tests)
 **Coverage Areas:**
-- Complete user journey (1 comprehensive test)
-  - 12-step end-to-end flow from signup to order completion
-  
-- Security tests (1 test)
-  - Cross-user order access prevention
-  
-- Error handling (1 test)
-  - Empty cart checkout
-  
-- Persistence (1 test)
-  - Cart persistence across sessions
+- Subscription management
+- Payment integration
+- Status transitions
+
+#### medical-documents.test.js (~10 tests)
+**Coverage Areas:**
+- Document management
+- Privacy and authorization
+
+#### trainer.test.js (~15 tests)
+**Coverage Areas:**
+- Trainer-specific operations
+- Role-based access control
 
 ## Key Testing Features
 

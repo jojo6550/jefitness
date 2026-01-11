@@ -10,18 +10,23 @@ This directory contains comprehensive unit, integration, and end-to-end tests fo
 tests/
 ├── setup.js                      # Global test configuration
 ├── models/                       # Model validation tests
-│   ├── User.test.js
-│   ├── Program.test.js
-│   ├── Order.test.js
-│   └── Cart.test.js
+│   └── User.test.js
 ├── middleware/                   # Middleware tests
-│   └── auth.test.js
-├── routes/                       # API route tests
 │   ├── auth.test.js
-│   ├── cart.test.js
-│   └── programs.test.js
-└── integration/                  # Integration tests
-    └── checkout-flow.test.js
+│   ├── dbConnection.test.js
+│   ├── errorHandler.test.js
+│   └── versioning.test.js
+├── routes/                       # API route tests
+│   ├── appointments.test.js
+│   ├── auth.test.js
+│   ├── chat.test.js
+│   ├── medical-documents.test.js
+│   ├── subscriptions.test.js
+│   └── trainer.test.js
+├── services/                     # Service tests
+│   └── logger.test.js
+└── utils/                        # Utility tests
+    └── cacheVersion.test.js
 ```
 
 ## Running Tests
@@ -64,35 +69,8 @@ npm test -- tests/integration
 - ✅ Nutrition logs functionality
 - ✅ Sleep logs functionality
 - ✅ Schedule management
-- ✅ Program assignments
 - ✅ Security fields (lockout, verification tokens)
 - ✅ Edge cases (special characters, whitespace, maximum values)
-
-#### Program Model (`Program.test.js`)
-- ✅ Schema validation (required fields, duration format)
-- ✅ Level enum validation
-- ✅ Slug uniqueness constraint
-- ✅ Features array handling
-- ✅ Workout days with exercises
-- ✅ Publication and activation flags
-- ✅ Edge cases (zero price, empty arrays, long text)
-
-#### Order Model (`Order.test.js`)
-- ✅ Schema validation (required fields)
-- ✅ Order number uniqueness
-- ✅ Item price and quantity validation
-- ✅ Zip code format validation
-- ✅ Status enum validation
-- ✅ Pre-save hooks (user existence check)
-- ✅ Edge cases (multiple items, zero tax, optional fields)
-
-#### Cart Model (`Cart.test.js`)
-- ✅ Schema validation
-- ✅ User ID uniqueness constraint
-- ✅ Quantity validation (minimum 1)
-- ✅ Default quantity value
-- ✅ Updated timestamp pre-save hook
-- ✅ Edge cases (large quantities, decimal prices)
 
 ### 2. Middleware Tests (`tests/middleware/`)
 
@@ -115,41 +93,34 @@ npm test -- tests/integration
 - ✅ User login (credentials, lockout, failed attempts)
 - ✅ Password reset flow
 - ✅ Profile retrieval and updates
-- ✅ Nutrition logs (add, get, delete)
-- ✅ Schedule management
 
-#### Cart Routes (`cart.test.js`)
-- ✅ Get cart (empty and populated)
-- ✅ Add items to cart
-- ✅ Update item quantities
-- ✅ Remove items from cart
-- ✅ Clear entire cart
-- ✅ Authentication requirements
-- ✅ Edge cases (multiple items, large quantities)
+#### Appointments Routes (`appointments.test.js`)
+- ✅ Appointment creation and management
+- ✅ Scheduling validation
+- ✅ Authorization checks
 
-#### Programs Routes (`programs.test.js`)
-- ✅ Marketplace listing (published only)
-- ✅ Program details (with/without exercises)
-- ✅ My programs (assigned programs)
-- ✅ Full program access (authorization check)
-- ✅ Admin program creation
-- ✅ Edge cases (no days, multiple assignments)
+#### Chat Routes (`chat.test.js`)
+- ✅ Message sending and retrieval
+- ✅ Real-time communication tests
 
-### 4. Integration Tests (`tests/integration/`)
+#### Subscriptions Routes (`subscriptions.test.js`)
+- ✅ Subscription management
+- ✅ Payment integration tests
 
-#### Complete Checkout Flow (`checkout-flow.test.js`)
-- ✅ End-to-end user journey:
-  1. User signup
-  2. Email verification
-  3. Browse marketplace
-  4. View program details
-  5. Add items to cart
-  6. Update cart quantities
-  7. Complete checkout
-  8. View order history
-- ✅ Cross-user security (order access control)
-- ✅ Error handling (empty cart checkout)
-- ✅ Cart persistence across sessions
+#### Medical Documents Routes (`medical-documents.test.js`)
+- ✅ Document upload and retrieval
+- ✅ Authorization and privacy checks
+
+#### Trainer Routes (`trainer.test.js`)
+- ✅ Trainer-specific functionality
+- ✅ Role-based access control
+
+### 4. Service Tests (`tests/services/`)
+
+#### Logger Service (`logger.test.js`)
+- ✅ Logging functionality
+- ✅ Log levels and formatting
+- ✅ Error tracking
 
 ## Test Configuration
 
