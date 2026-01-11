@@ -240,13 +240,8 @@ app.use('/api/programs', (req, res) => res.redirect(307, '/api/v1/programs' + re
 app.use('/api/medical-documents', auth, (req, res) => res.redirect(307, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
 app.use('/api/trainer', auth, (req, res) => res.redirect(307, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
 
-// Serve frontend for SPA routes
-app.use((req, res) => {
-  res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
-});
-
-// 404 handler
-app.use((req, res) => {
+// 404 handler for API routes
+app.use('/api', (req, res) => {
   res.status(404).json({
     success: false,
     error: {
@@ -255,6 +250,11 @@ app.use((req, res) => {
       method: req.method
     }
   });
+});
+
+// Serve frontend for SPA routes (non-API routes only)
+app.use((req, res) => {
+  res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
 });
 
 // -----------------------------

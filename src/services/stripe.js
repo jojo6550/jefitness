@@ -38,6 +38,10 @@ const PROGRAM_PRODUCT_IDS = {
  */
 async function getPriceIdForProduct(productId) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const prices = await stripe.prices.list({
       product: productId,
       active: true,
@@ -124,6 +128,10 @@ function getFallbackPricing(planKey) {
  */
 async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata = {}) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     // Check if customer already exists with this email
     const existingCustomers = await stripe.customers.list({
       email: email,
@@ -200,6 +208,10 @@ async function createSubscription(customerId, plan) {
  */
 async function getCustomerSubscriptions(customerId, status = 'all') {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: status === 'all' ? undefined : status,
@@ -220,6 +232,10 @@ async function getCustomerSubscriptions(customerId, status = 'all') {
  */
 async function getSubscription(subscriptionId) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
       expand: ['latest_invoice.payment_intent', 'default_payment_method']
     });
@@ -238,6 +254,10 @@ async function getSubscription(subscriptionId) {
  */
 async function updateSubscription(subscriptionId, updates = {}) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     
     // Prepare update object
@@ -298,6 +318,10 @@ async function updateSubscription(subscriptionId, updates = {}) {
  */
 async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const cancelData = atPeriodEnd 
       ? { cancel_at_period_end: true } // Graceful cancellation
       : {}; // Immediate cancellation
@@ -325,6 +349,10 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
  */
 async function resumeSubscription(subscriptionId) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const resumedSubscription = await stripe.subscriptions.update(
       subscriptionId,
       { cancel_at_period_end: false }
@@ -343,6 +371,10 @@ async function resumeSubscription(subscriptionId) {
  */
 async function getSubscriptionInvoices(subscriptionId) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const invoices = await stripe.invoices.list({
       subscription: subscriptionId,
       limit: 100,
@@ -365,6 +397,10 @@ async function getSubscriptionInvoices(subscriptionId) {
  */
 async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const productId = PRODUCT_IDS[plan];
     if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);
@@ -411,6 +447,10 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
  */
 async function createProgramCheckoutSession(customerId, programId, successUrl, cancelUrl) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     // Get program details to find the product ID
     const Program = require('../models/Program');
     const program = await Program.findById(programId);
@@ -461,6 +501,10 @@ async function createProgramCheckoutSession(customerId, programId, successUrl, c
  */
 async function getPaymentMethods(customerId) {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',
@@ -496,6 +540,10 @@ async function deletePaymentMethod(paymentMethodId) {
  */
 async function createPaymentIntent(customerId, amount, currency = 'usd') {
   try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency,
@@ -515,7 +563,11 @@ async function createPaymentIntent(customerId, amount, currency = 'usd') {
  */
 async function getAllActivePrices() {
   try {
-    const prices = await getStripe().prices.list({
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+    const prices = await stripe.prices.list({
       active: true,
       type: 'recurring',
       limit: 100

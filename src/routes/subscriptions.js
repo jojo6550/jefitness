@@ -3,7 +3,17 @@ const { body, param, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Lazy initialization of Stripe to avoid issues in test environment
+let stripeInstance = null;
+const getStripe = () => {
+  if (!stripeInstance && process.env.STRIPE_SECRET_KEY) {
+    const stripe = require('stripe');
+    stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeInstance;
+};
+
 const {
   createOrRetrieveCustomer,
   createSubscription,
@@ -177,38 +187,41 @@ router.get('/:customerId', [
  * POST /api/v1/subscriptions/checkout-session
  * Create a Stripe Checkout session (with authentication)
  */
-router.post('/checkout-session', auth, [
-  body('plan').isIn(['1-month', '3-month', '6-month', '12-month']),
-  body('successUrl').custom((value) => {
-    const trimmedValue = typeof value === 'string' ? value.trim() : '';
-    if (!trimmedValue) throw new Error('Success URL must be a non-empty string');
-    if (!trimmedValue.startsWith('http://') && !trimmedValue.startsWith('https://')) {
-      throw new Error('Success URL must start with http:// or https://');
-    }
-    return true;
-  }),
-  body('cancelUrl').custom((value) => {
-    const trimmedValue = typeof value === 'string' ? value.trim() : '';
-    if (!trimmedValue) throw new Error('Cancel URL must be a non-empty string');
-    if (!trimmedValue.startsWith('http://') && !trimmedValue.startsWith('https://')) {
-      throw new Error('Cancel URL must start with http:// or https://');
-    }
-    return true;
-  })
-], async (req, res) => {
+router.post('/checkout-session', auth, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
+    let { plan, successUrl, cancelUrl } = req.body;
+    
+    // Validate plan
+    if (!plan || !['1-month', '3-month', '6-month', '12-month'].includes(plan)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid plan',
+          details: [{ msg: 'Plan must be one of: 1-month, 3-month, 6-month, 12-month' }]
+        }
+      });
+    }
+    
+    // Validate URLs
+    if (!successUrl || typeof successUrl !== 'string' || !successUrl.trim()) {
       return res.status(400).json({
         success: false,
         error: {
           message: 'Validation failed',
-          details: errors.array()
+          details: [{ msg: 'Success URL is required' }]
         }
       });
     }
-
-    let { plan, successUrl, cancelUrl } = req.body;
+    
+    if (!cancelUrl || typeof cancelUrl !== 'string' || !cancelUrl.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Validation failed',
+          details: [{ msg: 'Cancel URL is required' }]
+        }
+      });
+    }
     
     // Trim URLs to handle trailing spaces
     if (typeof successUrl === 'string') successUrl = successUrl.trim();
@@ -243,6 +256,10 @@ router.post('/checkout-session', auth, [
     try {
       if (user.stripeCustomerId) {
         try {
+          const stripe = getStripe();
+          if (!stripe) {
+            throw new Error('Stripe not initialized');
+          }
           customer = await stripe.customers.retrieve(user.stripeCustomerId);
           // Check if customer was deleted
           if (customer.deleted) {

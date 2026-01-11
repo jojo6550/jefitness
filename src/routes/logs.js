@@ -58,24 +58,6 @@ console.warn = function(...args) {
   originalConsoleWarn.apply(console, args);
 };
 
-console.warn = function(...args) {
-  const message = args.join(' ');
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    level: 'warn',
-    category: 'warn',
-    message: message,
-    user: null,
-    ip: null,
-    userAgent: null
-  };
-  realtimeLogs.push(logEntry);
-  if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
-  }
-  originalConsoleWarn.apply(console, args);
-};
-
 // GET /api/logs - Get logs with pagination and filtering
 router.get('/', auth, (req, res) => {
   try {
@@ -177,7 +159,14 @@ router.get('/export', auth, (req, res) => {
   }
 });
 
-// Attach realtimeLogs to router for testing
-router.realtimeLogs = realtimeLogs;
+// Attach realtimeLogs to router for testing (as a getter to always return current logs)
+Object.defineProperty(router, 'realtimeLogs', {
+  get() {
+    return realtimeLogs;
+  },
+  set(value) {
+    realtimeLogs = value;
+  }
+});
 
 module.exports = router;

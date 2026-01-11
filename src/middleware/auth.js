@@ -13,16 +13,14 @@ function auth(req, res, next) {
 
     if (!token) {
         return res.status(401).json({
-            msg: 'No token, authorization denied',
-            error: 'No token, authorization denied'
+            msg: 'No token, authorization denied'
         });
     }
 
     try {
         if (!process.env.JWT_SECRET) {
             return res.status(500).json({
-                msg: 'Server configuration error: JWT secret missing.',
-                error: 'Server configuration error'
+                msg: 'Server configuration error: JWT secret missing.'
             });
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -30,8 +28,7 @@ function auth(req, res, next) {
         next();
     } catch (err) {
         return res.status(401).json({
-            msg: 'Token is not valid',
-            error: 'Token is not valid'
+            msg: 'Token is not valid'
         });
     }
 }

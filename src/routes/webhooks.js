@@ -1,9 +1,18 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 
 const router = express.Router();
+
+// Lazy initialization of Stripe to avoid issues in test environment
+let stripeInstance = null;
+const getStripe = () => {
+  if (!stripeInstance && process.env.STRIPE_SECRET_KEY) {
+    const stripe = require('stripe');
+    stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeInstance;
+};
 
 /**
  * Webhook signature verification
@@ -34,6 +43,10 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
   try {
     // Verify the event came from Stripe
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
     event = stripe.webhooks.constructEvent(
       req.body,
       sig,
