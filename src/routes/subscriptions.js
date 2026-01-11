@@ -177,8 +177,8 @@ router.get('/:customerId', [
  */
 router.post('/checkout-session', auth, [
   body('plan').isIn(['1-month', '3-month', '6-month', '12-month']),
-  body('successUrl').isURL(),
-  body('cancelUrl').isURL()
+  body('successUrl').isURL({ protocols: ['http', 'https'], require_tld: false }),
+  body('cancelUrl').isURL({ protocols: ['http', 'https'], require_tld: false })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
