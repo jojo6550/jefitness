@@ -137,17 +137,14 @@ async function loadPlans() {
         }
 
         const data = await response.json();
-        
+
         if (data.success && data.data) {
             availablePlans = data.data;
             displayPlans(data.data);
-            plansLoading.style.display = 'none';
-            plansContainer.style.display = 'grid';
         }
     } catch (error) {
         console.error('❌ Error loading plans:', error);
-        plansLoading.innerHTML = '<p class="text-danger">Failed to load subscription plans. Please refresh the page.</p>';
-        showAlert('Failed to load subscription plans', 'error');
+        showAlert('Failed to load subscription plans. Prices may not be up to date.', 'error');
     }
 }
 
@@ -155,38 +152,58 @@ async function loadPlans() {
  * Display subscription plans
  */
 function displayPlans(plans) {
-    plansContainer.innerHTML = '';
-
-    // Show 3 tiers: 1-month, 3-month, 12-month
+    // Update existing HTML cards with dynamic prices from Stripe
     const planOrder = ['1-month', '3-month', '12-month'];
 
     planOrder.forEach((planKey) => {
         const plan = plans[planKey];
         if (!plan) return;
 
-        const isFeatured = planKey === '12-month'; // Highlight 12-month plan as premium
+        // Find the corresponding HTML card
+        const cardSelector = planKey === '1-month' ? '.plan-card:nth-child(1)' :
+                           planKey === '3-month' ? '.plan-card:nth-child(2)' :
+                           '.plan-card:nth-child(3)';
 
-        const planCard = document.createElement('div');
-        planCard.className = `plan-card ${isFeatured ? 'featured' : ''}`;
-        planCard.innerHTML = `
-            ${isFeatured ? '<div class="badge">PREMIUM</div>' : ''}
-            <h3 class="plan-name">${plan.duration}</h3>
-            <p class="plan-duration">${planKey}</p>
-            <div class="plan-price">
-                ${plan.displayPrice}
-                <span>/month</span>
-            </div>
-            ${plan.savings ? `<div class="plan-savings">Save ${plan.savings}</div>` : ''}
-            <ul class="plan-features">
-                ${getPlanFeatures(planKey)}
-            </ul>
-            <button class="plan-button" onclick="selectPlan('${planKey}')">
-                ${planKey === '1-month' ? 'Start Free Trial' : 'Get Started'}
-            </button>
-        `;
+        const planCard = document.querySelector(`${cardSelector}`);
 
-        plansContainer.appendChild(planCard);
+        if (planCard) {
+            // Update price
+            const priceElement = planCard.querySelector('.plan-price');
+            if (priceElement) {
+                priceElement.innerHTML = `
+                    ${plan.displayPrice}
+                    <span>/month</span>
+                `;
+            }
+
+            // Update savings if exists
+            if (plan.savings) {
+                const savingsElement = planCard.querySelector('.plan-savings');
+                if (savingsElement) {
+                    savingsElement.textContent = `Save ${plan.savings}`;
+                    savingsElement.style.display = 'block';
+                }
+            }
+
+            // Update button onclick
+            const button = planCard.querySelector('.plan-button');
+            if (button) {
+                button.onclick = () => selectPlan(planKey);
+            }
+        }
     });
+
+    // Show the plans container
+    const plansContainer = document.querySelector('.plans-container');
+    if (plansContainer) {
+        plansContainer.style.display = 'grid';
+    }
+
+    // Hide loading
+    const plansLoading = document.getElementById('plansLoading');
+    if (plansLoading) {
+        plansLoading.style.display = 'none';
+    }
 }
 
 /**
