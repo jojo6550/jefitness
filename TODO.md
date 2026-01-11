@@ -19,15 +19,15 @@
 - [ ] Delete tests/ directory
 
 ## Step 4: Edit Referenced Files to Remove Links/Routes
-- [ ] Edit public/js/router.js to remove marketplace and programs routes
-- [ ] Edit public/js/navigation.js to remove marketplace and programs navigation items
-- [ ] Edit www/pages/partials/navbar.html to remove marketplace link
-- [ ] Edit public/pages/dashboard.html to remove marketplace link
-- [ ] Edit public/js/my-programs.js to remove marketplace references
-- [ ] Edit public/js/program-details.js to remove marketplace references
+- [x] Edit public/js/router.js to remove marketplace and programs routes
+- [x] Edit public/js/navigation.js to remove marketplace and programs navigation items
+- [x] Edit www/pages/partials/navbar.html to remove marketplace link
+- [x] Edit public/pages/dashboard.html to remove marketplace link
+- [x] Edit public/js/my-programs.js to remove marketplace references
+- [x] Edit public/js/program-details.js to remove marketplace references
 
 ## Step 5: Edit package.json
-- [ ] Remove "seed:programs" script from package.json
+- [x] Remove "seed:programs" script from package.json
 
 ## Step 6: Verification
 - [ ] Verify no broken references remain
