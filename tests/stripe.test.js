@@ -82,7 +82,7 @@ jest.mock('stripe', () => {
   }));
 });
 
-beforeAll(async () => {
+beforeEach(async () => {
   // Create test user
   const bcrypt = require('bcryptjs');
   const salt = await bcrypt.genSalt(10);
