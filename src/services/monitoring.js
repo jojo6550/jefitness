@@ -399,11 +399,12 @@ class MonitoringService {
     }
 
     // Alert on high memory usage and trigger cleanup
-    const memoryUsagePercent = (this.metrics.memoryUsage.heapUsed / this.metrics.memoryUsage.heapTotal) * 100;
+    const currentMemoryUsage = process.memoryUsage();
+    const memoryUsagePercent = (currentMemoryUsage.heapUsed / currentMemoryUsage.heapTotal) * 100;
     if (memoryUsagePercent > 90) {
       this.sendAlert('HIGH_MEMORY_USAGE', {
         memoryUsagePercent: memoryUsagePercent.toFixed(2) + '%',
-        heapUsed: Math.round(this.metrics.memoryUsage.heapUsed / 1024 / 1024) + ' MB'
+        heapUsed: Math.round(currentMemoryUsage.heapUsed / 1024 / 1024) + ' MB'
       });
 
       // Trigger memory cleanup when usage is critical

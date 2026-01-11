@@ -268,7 +268,7 @@ router.post('/login', requireDbConnection, [
         const user = await User.findOne({ email });
         if (!user) {
             console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
-            return res.status(400).json({ msg: 'Invalid credentials' });
+            return res.status(401).json({ msg: 'Invalid credentials' });
         }
 
         // Check if account is locked

@@ -68,9 +68,9 @@ console.warn = function(...args) {
     ip: null,
     userAgent: null
   };
-  realtimeLogs.unshift(logEntry);
+  realtimeLogs.push(logEntry);
   if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
   }
   originalConsoleWarn.apply(console, args);
 };
