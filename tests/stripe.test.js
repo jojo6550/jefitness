@@ -575,7 +575,6 @@ describe('Stripe Subscription System', () => {
           .expect(400);
 
         expect(response.body.msg).toContain('incorrect');
-      });
     });
   });
 
