@@ -102,7 +102,6 @@ describe('User Scalability Tests', () => {
   });
 
   describe('Active User Activities Simulation', () => {
-    let testUsers = [];
     let trainer;
 
     beforeEach(async () => {
