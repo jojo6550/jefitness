@@ -54,7 +54,7 @@ const createStripeCustomerForUser = async (user) => {
     });
 
     user.stripeCustomerId = customer.id;
-    user.subscriptionStatus = 'free'; // Default to free tier
+    user.subscriptionStatus = 'inactive'; // Default to inactive (free tier)
     await user.save();
     console.log(`Stripe customer created | UserId: ${user._id} | CustomerId: ${customer.id}`);
   } catch (err) {

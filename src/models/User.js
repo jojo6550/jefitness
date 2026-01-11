@@ -34,6 +34,7 @@ const UserSchema = new mongoose.Schema({
         minlength: [8, 'Password must be at least 8 characters long']
     },
     createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
     lastLoggedIn: { type: Date },
     role: {
         type: String,
@@ -196,9 +197,9 @@ const UserSchema = new mongoose.Schema({
     
     // Current subscription details - Stripe is source of truth
     stripeSubscriptionId: { type: String }, // Stripe subscription ID
-    subscriptionStatus: { 
-        type: String, 
-        enum: ['active', 'inactive', 'canceled', 'past_due', 'unpaid', 'trialing'],
+    subscriptionStatus: {
+        type: String,
+        enum: ['active', 'inactive', 'canceled', 'past_due', 'unpaid', 'trialing', 'expired', 'cancelled', 'free'],
         default: 'inactive'
     },
     subscriptionType: { type: String }, // e.g., "1 Month", "3 Months", "6 Months", "12 Months"
@@ -236,7 +237,6 @@ UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 });
 UserSchema.index({ stripeSubscriptionId: 1 });
 UserSchema.index({ subscriptionStatus: 1 });
-UserSchema.index({ stripeCustomerId: 1 });
 UserSchema.index({ currentPeriodEnd: 1 }); // For efficient subscription expiry checks
 
 /**
