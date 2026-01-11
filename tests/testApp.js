@@ -11,6 +11,7 @@ const auth = require('../src/middleware/auth');
 const authRoutes = require('../src/routes/auth');
 const programs = require('../src/routes/programs');
 const users = require('../src/routes/users');
+const subscriptions = require('../src/routes/subscriptions');
 
 // Create test app
 const app = express();
@@ -22,10 +23,11 @@ app.use(helmet({
 app.use(express.json());
 app.use(cors());
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/programs', programs);
-app.use('/api/users', users);
+// Routes - use v1 prefix to match actual routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/programs', programs);
+app.use('/api/v1/users', users);
+app.use('/api/v1/subscriptions', subscriptions);
 
 // Error handling
 app.use((err, req, res, next) => {

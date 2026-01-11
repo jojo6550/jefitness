@@ -11,6 +11,7 @@ require('../src/models/Order');
 require('../src/models/Program');
 require('../src/models/Cart');
 require('../src/models/Chat');
+require('../src/models/Subscription');
 
 // 🔴 Fail fast instead of buffering forever
 mongoose.set('bufferCommands', false);

@@ -171,15 +171,25 @@ describe('Stripe Subscription System', () => {
     });
 
     it('should require complete account information', async () => {
-      // Create user without firstName/lastName
+      // Create user with valid data first
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
+
       const incompleteUser = new User({
-        firstName: '',
-        lastName: '',
+        firstName: 'Incomplete',
+        lastName: 'User',
         email: 'incomplete@example.com',
-        password: 'hashedpass',
+        password: hashedPassword,
         isEmailVerified: true
       });
       await incompleteUser.save();
+
+      // Now update to have empty names (bypassing model validation)
+      await User.findByIdAndUpdate(incompleteUser._id, {
+        firstName: '',
+        lastName: ''
+      });
 
       const jwt = require('jsonwebtoken');
       const token = jwt.sign({ id: incompleteUser._id }, process.env.JWT_SECRET);
@@ -329,7 +339,7 @@ describe('Stripe Subscription System', () => {
           .get('/api/v1/auth/account')
           .expect(401);
 
-        expect(response.body.msg).toBeDefined();
+        expect(response.body.error).toBeDefined();
       });
     });
 
