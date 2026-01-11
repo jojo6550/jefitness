@@ -7,47 +7,24 @@ const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
-let capturedLogs = [];
+const mockConsoleLog = jest.fn();
+const mockConsoleError = jest.fn();
+const mockConsoleWarn = jest.fn();
 
-console.log = function(...args) {
-  const message = args.join(' ');
-  capturedLogs.push({
-    timestamp: new Date().toISOString(),
-    level: 'info',
-    category: 'app',
-    message: message
-  });
-  originalConsoleLog.apply(console, args);
-};
-
-console.error = function(...args) {
-  const message = args.join(' ');
-  capturedLogs.push({
-    timestamp: new Date().toISOString(),
-    level: 'error',
-    category: 'error',
-    message: message
-  });
-  originalConsoleError.apply(console, args);
-};
-
-console.warn = function(...args) {
-  const message = args.join(' ');
-  capturedLogs.push({
-    timestamp: new Date().toISOString(),
-    level: 'warn',
-    category: 'warn',
-    message: message
-  });
-  originalConsoleWarn.apply(console, args);
-};
+console.log = mockConsoleLog;
+console.error = mockConsoleError;
+console.warn = mockConsoleWarn;
 
 describe('Log Storage Memory Management', () => {
   let app;
 
   beforeEach(() => {
-    // Clear captured logs but don't reset realtimeLogs (it's global)
-    capturedLogs = [];
+    // Clear mocks and reset realtimeLogs
+    mockConsoleLog.mockClear();
+    mockConsoleError.mockClear();
+    mockConsoleWarn.mockClear();
+    logsRouter.realtimeLogs.length = 0; // Clear the global array
+
     // Create Express app for testing
     app = express();
     app.use(express.json());

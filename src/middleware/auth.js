@@ -26,7 +26,7 @@ function auth(req, res, next) {
         next();
     } catch (err) {
         console.error('Auth Middleware: Token verification failed:', err.message);
-        return res.status(400).json({ msg: 'Token is not valid' });
+        return res.status(401).json({ msg: 'Token is not valid' });
     }
 }
 
