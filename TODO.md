@@ -1,9 +1,10 @@
-# TODO: Implement Stripe Subscription Backend API
+# TODO: Fix Stripe Integration Tests
 
-## Tasks
-- [x] Create src/services/stripe.js: Initialize Stripe client and define functions for customer creation, subscription creation, and retrieval
-- [x] Create src/routes/subscriptions.js: Implement POST /api/subscriptions/create and GET /api/subscriptions/:customerId endpoints with validation and error handling
-- [x] Update src/server.js: Add subscriptions route mounting under /api/v1/subscriptions
-- [x] Create tests/routes/subscriptions.test.js: Unit tests for creating subscriptions, error handling, and fetching subscriptions using Jest with mocked Stripe
-- [ ] Ensure STRIPE_SECRET_KEY is set in .env
-- [ ] Run unit tests to verify functionality
+## Completed
+- [x] Identified the issue: Duplicate mongoose.connect calls (global setup.js and test file)
+- [x] Removed MongoDB setup from tests/stripe-integration.test.js
+- [x] Removed unused MongoMemoryServer import
+
+## Pending
+- [ ] Run tests to verify the fix works
+- [ ] If tests still fail, investigate further

@@ -45,6 +45,11 @@ beforeAll(async () => {
   process.env.FRONTEND_URL = 'http://localhost:3000';
   process.env.CLEANUP_TIME = '30';
   process.env.CRON_SCHEDULE = '*/30 * * * *';
+  process.env.STRIPE_SECRET_KEY = 'sk_test_fake_key_for_testing';
+  process.env.STRIPE_PRICE_1_MONTH = 'price_test_1month';
+  process.env.STRIPE_PRICE_3_MONTH = 'price_test_3month';
+  process.env.STRIPE_PRICE_6_MONTH = 'price_test_6month';
+  process.env.STRIPE_PRICE_12_MONTH = 'price_test_12month';
 });
 
 afterEach(async () => {

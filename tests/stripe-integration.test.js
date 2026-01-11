@@ -6,15 +6,16 @@ const Subscription = require('../src/models/Subscription');
 const app = require('../src/server');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
-let mongoServer;
-
 jest.mock('stripe', () => {
   return jest.fn(() => ({
     customers: {
       list: jest.fn().mockResolvedValue({ data: [] }),
-      create: jest.fn().mockResolvedValue({
-        id: 'cus_test123',
-        email: 'test@example.com'
+      create: jest.fn().mockImplementation((params) => {
+        return Promise.resolve({
+          id: 'cus_test123',
+          email: params.email || 'test@example.com',
+          metadata: params.metadata || {}
+        });
       }),
       retrieve: jest.fn().mockResolvedValue({
         id: 'cus_test123',
@@ -36,11 +37,17 @@ jest.mock('stripe', () => {
       list: jest.fn().mockResolvedValue({ data: [] }),
       retrieve: jest.fn().mockResolvedValue({
         id: 'sub_test123',
-        status: 'active'
+        status: 'active',
+        items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] },
+        current_period_start: Math.floor(Date.now() / 1000),
+        current_period_end: Math.floor(Date.now() / 1000) + 2592000
       }),
       update: jest.fn().mockResolvedValue({
         id: 'sub_test123',
-        status: 'active'
+        status: 'active',
+        items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] },
+        current_period_start: Math.floor(Date.now() / 1000),
+        current_period_end: Math.floor(Date.now() / 1000) + 2592000
       }),
       del: jest.fn().mockResolvedValue({
         id: 'sub_test123',
@@ -59,20 +66,19 @@ jest.mock('stripe', () => {
       list: jest.fn().mockResolvedValue({ data: [] })
     },
     webhooks: {
-      constructEvent: jest.fn()
+      constructEvent: jest.fn().mockReturnValue({
+        type: 'checkout.session.completed',
+        id: 'evt_test123',
+        data: {
+          object: {
+            id: 'cs_test123',
+            customer: 'cus_webhook123',
+            subscription: 'sub_webhook123'
+          }
+        }
+      })
     }
   }));
-});
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
 });
 
 describe('Stripe Subscription Integration Tests', () => {
@@ -258,11 +264,15 @@ describe('Stripe Subscription Integration Tests', () => {
     
     it('should process checkout.session.completed webhook', async () => {
       // Create user for webhook
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
+
       const user = new User({
         firstName: 'Webhook',
         lastName: 'Test',
         email: 'webhook@example.com',
-        password: 'hashed',
+        password: hashedPassword,
         isEmailVerified: true,
         stripeCustomerId: 'cus_webhook123'
       });
@@ -297,11 +307,15 @@ describe('Stripe Subscription Integration Tests', () => {
     });
 
     it('should handle multiple webhook events in sequence', async () => {
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
+
       const user = new User({
         firstName: 'Sequential',
         lastName: 'Test',
         email: 'sequential@example.com',
-        password: 'hashed',
+        password: hashedPassword,
         stripeCustomerId: 'cus_seq123'
       });
       await user.save();
@@ -405,6 +419,7 @@ describe('Stripe Subscription Integration Tests', () => {
         userId: user1._id,
         stripeCustomerId: 'cus_1',
         stripeSubscriptionId: 'sub_1',
+        stripePriceId: 'price_1month',
         plan: '1-month',
         amount: 999,
         status: 'active',
