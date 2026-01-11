@@ -60,12 +60,13 @@ const ensureAuthenticated = (req, res, next) => {
  * GET /api/v1/subscriptions/plans
  * Get all available subscription plans with pricing
  */
-router.get('/plans', (req, res) => {
+router.get('/plans', auth, async (req, res) => {
   try {
+    const plans = await getAllActivePrices();
     res.json({
       success: true,
       data: {
-        plans: PLAN_PRICING,
+        plans,
         free: { amount: 0, currency: 'usd', duration: 'Unlimited', features: ['Basic access'] }
       }
     });
@@ -421,8 +422,11 @@ router.post('/:subscriptionId/update-plan', auth, [
 
     // Update in database
     subscription.plan = plan;
-    subscription.stripePriceId = PRICE_IDS[plan];
-    subscription.amount = PLAN_PRICING[plan].amount;
+    const productId = PRODUCT_IDS[plan];
+    const priceId = await getPriceIdForProduct(productId);
+    subscription.stripePriceId = priceId;
+    const planPricing = await getPlanPricing();
+    subscription.amount = planPricing[plan].amount;
     subscription.currentPeriodStart = new Date(updatedStripeSubscription.current_period_start * 1000);
     subscription.currentPeriodEnd = new Date(updatedStripeSubscription.current_period_end * 1000);
     subscription.status = updatedStripeSubscription.status;

@@ -1,46 +1,89 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 /**
- * STRIPE PRICE IDS CONFIGURATION
- * Replace these with your actual Stripe Price IDs from the dashboard
+ * STRIPE PRODUCT IDS CONFIGURATION
+ * Replace these with your actual Stripe Product IDs from the dashboard
  * You can find them at: https://dashboard.stripe.com/test/products
+ * Each product should have at least one active recurring price
  */
-const PRICE_IDS = {
-  '1-month': process.env.STRIPE_PRICE_1_MONTH || 'price_1NfYT7GBrdnKY4igWvWr9x7q', // Replace with actual Price ID
-  '3-month': process.env.STRIPE_PRICE_3_MONTH || 'price_1NfYT7GBrdnKY4igX2Ks1a8r',
-  '6-month': process.env.STRIPE_PRICE_6_MONTH || 'price_1NfYT7GBrdnKY4igY3Lt2b9s',
-  '12-month': process.env.STRIPE_PRICE_12_MONTH || 'price_1NfYT7GBrdnKY4igZ4Mu3c0t'
+const PRODUCT_IDS = {
+  '1-month': process.env.STRIPE_PRODUCT_1_MONTH || 'prod_1NfYT7GBrdnKY4igWvWr9x7q', // Replace with actual Product ID
+  '3-month': process.env.STRIPE_PRODUCT_3_MONTH || 'prod_1NfYT7GBrdnKY4igX2Ks1a8r',
+  '6-month': process.env.STRIPE_PRODUCT_6_MONTH || 'prod_1NfYT7GBrdnKY4igY3Lt2b9s',
+  '12-month': process.env.STRIPE_PRODUCT_12_MONTH || 'prod_1NfYT7GBrdnKY4igZ4Mu3c0t'
 };
 
 /**
- * PLAN PRICING (for frontend display)
- * Update these with your actual pricing
+ * Get the active recurring price ID for a product
+ * @param {string} productId - Stripe product ID
+ * @returns {Promise<string|null>} Price ID or null if not found
  */
-const PLAN_PRICING = {
-  '1-month': {
-    amount: 999, // in cents ($9.99)
-    displayPrice: '$9.99',
-    duration: '1 Month'
-  },
-  '3-month': {
-    amount: 2799, // in cents ($27.99)
-    displayPrice: '$27.99',
-    duration: '3 Months',
-    savings: '$2.98' // shows savings vs 1-month plan
-  },
-  '6-month': {
-    amount: 4999, // in cents ($49.99)
-    displayPrice: '$49.99',
-    duration: '6 Months',
-    savings: '$9.95'
-  },
-  '12-month': {
-    amount: 8999, // in cents ($89.99)
-    displayPrice: '$89.99',
-    duration: '12 Months',
-    savings: '$29.89'
+async function getPriceIdForProduct(productId) {
+  try {
+    const prices = await stripe.prices.list({
+      product: productId,
+      active: true,
+      type: 'recurring',
+      limit: 1
+    });
+
+    return prices.data.length > 0 ? prices.data[0].id : null;
+  } catch (error) {
+    console.error(`Failed to get price for product ${productId}:`, error.message);
+    return null;
   }
-};
+}
+
+/**
+ * Get dynamic plan pricing from Stripe products
+ * @returns {Promise<Object>} Plan pricing object
+ */
+async function getPlanPricing() {
+  const plans = {};
+
+  for (const [planKey, productId] of Object.entries(PRODUCT_IDS)) {
+    try {
+      const priceId = await getPriceIdForProduct(productId);
+      if (priceId) {
+        const price = await stripe.prices.retrieve(priceId);
+        const amount = price.unit_amount;
+        const displayPrice = `$${(amount / 100).toFixed(2)}`;
+
+        plans[planKey] = {
+          amount,
+          displayPrice,
+          duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          productId,
+          priceId
+        };
+      } else {
+        // Fallback to static pricing if price not found
+        console.warn(`No active recurring price found for product ${productId}, using fallback`);
+        plans[planKey] = getFallbackPricing(planKey);
+      }
+    } catch (error) {
+      console.error(`Error getting pricing for ${planKey}:`, error.message);
+      plans[planKey] = getFallbackPricing(planKey);
+    }
+  }
+
+  return plans;
+}
+
+/**
+ * Fallback pricing when Stripe is unavailable or prices not found
+ * @param {string} planKey - Plan key
+ * @returns {Object} Fallback pricing object
+ */
+function getFallbackPricing(planKey) {
+  const fallbacks = {
+    '1-month': { amount: 999, displayPrice: '$9.99', duration: '1 Month' },
+    '3-month': { amount: 2799, displayPrice: '$27.99', duration: '3 Months', savings: '$2.98' },
+    '6-month': { amount: 4999, displayPrice: '$49.99', duration: '6 Months', savings: '$9.95' },
+    '12-month': { amount: 8999, displayPrice: '$89.99', duration: '12 Months', savings: '$29.89' }
+  };
+  return fallbacks[planKey] || fallbacks['1-month'];
+}
 
 /**
  * Create or retrieve a Stripe customer
@@ -92,9 +135,14 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
  */
 async function createSubscription(customerId, plan) {
   try {
-    const priceId = PRICE_IDS[plan];
-    if (!priceId) {
+    const productId = PRODUCT_IDS[plan];
+    if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);
+    }
+
+    const priceId = await getPriceIdForProduct(productId);
+    if (!priceId) {
+      throw new Error(`No active recurring price found for plan: ${plan}`);
     }
 
     const subscription = await stripe.subscriptions.create({
@@ -167,17 +215,22 @@ async function updateSubscription(subscriptionId, updates = {}) {
 
     // If plan is changing, update the price
     if (updates.plan) {
-      const newPriceId = PRICE_IDS[updates.plan];
-      if (!newPriceId) {
+      const productId = PRODUCT_IDS[updates.plan];
+      if (!productId) {
         throw new Error(`Invalid plan: ${updates.plan}`);
       }
-      
+
+      const newPriceId = await getPriceIdForProduct(productId);
+      if (!newPriceId) {
+        throw new Error(`No active recurring price found for plan: ${updates.plan}`);
+      }
+
       // Update subscription items
       updateData.items = [{
         id: subscription.items.data[0].id,
         price: newPriceId
       }];
-      
+
       // Proration - charge or credit for the difference immediately
       updateData.proration_behavior = 'create_prorations';
     }
@@ -282,9 +335,14 @@ async function getSubscriptionInvoices(subscriptionId) {
  */
 async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
   try {
-    const priceId = PRICE_IDS[plan];
-    if (!priceId) {
+    const productId = PRODUCT_IDS[plan];
+    if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);
+    }
+
+    const priceId = await getPriceIdForProduct(productId);
+    if (!priceId) {
+      throw new Error(`No active recurring price found for plan: ${plan}`);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -368,6 +426,47 @@ async function createPaymentIntent(customerId, amount, currency = 'usd') {
   }
 }
 
+/**
+ * Get all active Stripe subscription prices with product details
+ * @returns {Promise<Array>} Array of price objects with product details
+ */
+async function getAllActivePrices() {
+  try {
+    const prices = await stripe.prices.list({
+      active: true,
+      type: 'recurring',
+      expand: ['data.product'],
+      limit: 100
+    });
+
+    const formattedPrices = prices.data.map(price => ({
+      priceId: price.id,
+      productId: price.product.id,
+      productName: price.product.name,
+      interval: price.recurring.interval,
+      amount: price.unit_amount / 100, // Convert cents to dollars
+      currency: price.currency
+    }));
+
+    // Sort by interval (monthly first, then yearly), then by amount
+    formattedPrices.sort((a, b) => {
+      const intervalOrder = { month: 1, year: 2 };
+      const aOrder = intervalOrder[a.interval] || 99;
+      const bOrder = intervalOrder[b.interval] || 99;
+
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      return a.amount - b.amount;
+    });
+
+    return formattedPrices;
+  } catch (error) {
+    throw new Error(`Failed to fetch active prices: ${error.message}`);
+  }
+}
+
 module.exports = {
   createOrRetrieveCustomer,
   createSubscription,
@@ -381,6 +480,8 @@ module.exports = {
   getPaymentMethods,
   deletePaymentMethod,
   createPaymentIntent,
-  PRICE_IDS,
-  PLAN_PRICING
+  getPriceIdForProduct,
+  getPlanPricing,
+  getAllActivePrices,
+  PRODUCT_IDS
 };
