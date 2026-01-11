@@ -12,7 +12,6 @@ class Navigation {
       { label: 'My Profile', route: '/profile', icon: 'person-circle', roleRequired: null },
       { label: 'Schedule', route: '/schedule', icon: 'calendar-event', roleRequired: 'user' },
       { label: 'Services', route: '/services', icon: 'briefcase', roleRequired: null },
-      { label: 'Marketplace', route: '/marketplace', icon: 'shop', roleRequired: 'user' },
       { label: 'My Orders', route: '/orders', icon: 'bag-check', roleRequired: 'user' },
       { label: 'Reports', route: '/reports', icon: 'bar-chart', roleRequired: 'user' },
       { label: 'Questionnaire', route: '/questionnaire', icon: 'clipboard-check', roleRequired: null },

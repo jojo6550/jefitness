@@ -1,26 +1,34 @@
-# Program Payments Implementation TODO
+# TODO: Remove Programs, Marketplace, and Unused Tests
 
-## Completed Tasks
-- [x] Add PROGRAM_PRODUCT_IDS configuration in stripe.js
-- [x] Create createProgramCheckoutSession function in stripe.js
-- [x] Add program checkout endpoint in programs.js
-- [x] Update exports in stripe.js to include new functions
-- [x] Add program purchase checkout session endpoint
-- [x] Update webhook handler to assign programs after successful payment
+## Step 1: Delete Programs-Related Files
+- [ ] Delete src/models/Program.js
+- [ ] Delete src/seedPrograms.js
+- [ ] Delete public/js/my-programs.js
+- [ ] Delete public/js/program-details.js
+- [ ] Delete public/js/workout-programs.js
+- [ ] Delete public/pages/my-programs.html
+- [ ] Delete public/pages/program-details.html
+- [ ] Delete public/pages/workout-programs.html
+- [ ] Delete public/pages/programs/ directory
 
-## Remaining Tasks
-- [ ] Add program purchase history tracking
-- [ ] Test the program purchase flow
-- [ ] Update frontend to use the new checkout endpoint
+## Step 2: Delete Marketplace-Related Files
+- [ ] Delete public/js/marketplace.js
+- [ ] Delete public/pages/marketplace.html
 
-## Environment Variables Needed
-Set the following environment variables for each program:
-- STRIPE_PROGRAM_{PROGRAM_SLUG} (e.g., STRIPE_PROGRAM_BEGINNER_WORKOUT for program with slug 'beginner-workout')
+## Step 3: Delete Tests Directory
+- [ ] Delete tests/ directory
 
-## Testing Checklist
-- [ ] Create test program with product ID
-- [ ] Test checkout session creation
-- [ ] Test successful payment flow
-- [ ] Test program assignment after payment
-- [ ] Test error handling for invalid programs
-- [ ] Test duplicate purchase prevention
+## Step 4: Edit Referenced Files to Remove Links/Routes
+- [ ] Edit public/js/router.js to remove marketplace and programs routes
+- [ ] Edit public/js/navigation.js to remove marketplace and programs navigation items
+- [ ] Edit www/pages/partials/navbar.html to remove marketplace link
+- [ ] Edit public/pages/dashboard.html to remove marketplace link
+- [ ] Edit public/js/my-programs.js to remove marketplace references
+- [ ] Edit public/js/program-details.js to remove marketplace references
+
+## Step 5: Edit package.json
+- [ ] Remove "seed:programs" script from package.json
+
+## Step 6: Verification
+- [ ] Verify no broken references remain
+- [ ] Test the application to ensure functionality is intact

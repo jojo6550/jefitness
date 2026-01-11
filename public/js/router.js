@@ -13,7 +13,6 @@ class Router {
       '/admin': 'pages/admin-dashboard.html',
       '/schedule': 'pages/schedule.html',
       '/services': 'pages/services.html',
-      '/marketplace': 'pages/marketplace.html',
       '/orders': 'pages/orders.html',
       '/reports': 'pages/reports.html',
       '/questionnaire': 'pages/questionnaire.html',
