@@ -33,6 +33,9 @@ window.initDashboard = async () => {
 
       // Load cart count
       loadCartCount();
+
+      // Load subscription status
+      loadSubscriptionStatus();
     } catch (err) {
       console.error('Error verifying admin status:', err);
       const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
@@ -55,7 +58,7 @@ async function loadCartCount() {
         if (res.ok) {
             const cart = await res.json();
             const count = cart.items ? cart.items.length : 0;
-            
+
             const dashboardCartCount = document.getElementById('dashboard-cart-count');
             if (dashboardCartCount) {
                 dashboardCartCount.textContent = count;
@@ -72,4 +75,64 @@ async function loadCartCount() {
         console.error('Error loading cart count:', err);
     }
 }
+
+// Load subscription status for dashboard
+async function loadSubscriptionStatus() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const statusElement = document.getElementById('subscription-status');
+    const actionsElement = document.getElementById('subscription-actions');
+    const upgradeBtn = document.getElementById('upgrade-subscription-btn');
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const subscription = data.data;
+
+            // Update status display
+            let statusText = '';
+            let statusClass = '';
+
+            if (subscription.hasSubscription && subscription.status === 'active') {
+                statusText = `Active: ${subscription.plan}`;
+                statusClass = 'text-success';
+            } else if (subscription.status === 'canceled' || subscription.status === 'cancel_pending') {
+                statusText = `Canceled: ${subscription.plan}`;
+                statusClass = 'text-warning';
+            } else {
+                statusText = 'Free Tier';
+                statusClass = 'text-muted';
+            }
+
+            statusElement.innerHTML = `<div class="text-center"><small class="${statusClass}">${statusText}</small></div>`;
+
+            // Show actions
+            actionsElement.classList.remove('d-none');
+
+            // Show upgrade button if not active subscription
+            if (!subscription.hasSubscription || subscription.status !== 'active') {
+                upgradeBtn.classList.remove('d-none');
+            } else {
+                upgradeBtn.classList.add('d-none');
+            }
+        } else {
+            statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
+        }
+    } catch (err) {
+        console.error('Error loading subscription status:', err);
+        statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Error loading</small></div>';
+    }
+}
+
+// Event listener for upgrade subscription button
+document.getElementById('upgrade-subscription-btn').addEventListener('click', () => {
+    window.location.href = 'subscriptions.html';
+});
 
