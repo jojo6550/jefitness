@@ -31,9 +31,6 @@ window.initDashboard = async () => {
         if (adminLink) adminLink.style.display = 'none';
       }
 
-      // Load cart count
-      loadCartCount();
-
       // Load subscription status
       loadSubscriptionStatus();
     } catch (err) {

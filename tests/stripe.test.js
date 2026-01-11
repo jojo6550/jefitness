@@ -28,6 +28,9 @@ var mockWebhooksConstructEvent;
 var mockPricesList;
 var mockPricesRetrieve;
 var mockProductsRetrieve;
+var mockProgramsFindById;
+var mockProgramsFindOne;
+var mockProgramsFind;
 
 // Initialize mocks - these will overwrite the var declarations with const
 mockCustomersUpdate = jest.fn();
@@ -98,6 +101,40 @@ mockProductsRetrieve = jest.fn().mockResolvedValue({
   id: 'prod_test123',
   name: 'Test Product'
 });
+mockProgramsFindById = jest.fn().mockResolvedValue({
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+});
+mockProgramsFindOne = jest.fn().mockResolvedValue({
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+});
+mockProgramsFind = jest.fn().mockResolvedValue([{
+  _id: 'prog_test123',
+  title: 'Test Program',
+  slug: 'test-program',
+  price: 49.99,
+  description: 'A test program',
+  isPublished: true,
+  isActive: true
+}]);
+
+// Mock Program model
+jest.mock('../src/models/Program', () => ({
+  findById: mockProgramsFindById,
+  findOne: mockProgramsFindOne,
+  find: mockProgramsFind
+}));
 
 // Mock stripe module - must be hoisted but references are already declared as var
 jest.mock('stripe', () => {
@@ -541,6 +578,259 @@ describe('Stripe Subscription System', () => {
       });
     });
   });
+
+  describe('Program Payment System', () => {
+    describe('POST /api/v1/programs/:programId/checkout-session', () => {
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .post('/api/v1/programs/prog_test123/checkout-session')
+          .send({
+            successUrl: 'http://localhost:3000/success',
+            cancelUrl: 'http://localhost:3000/cancel'
+          })
+          .expect(401);
+
+        expect(response.body.error).toBeDefined();
+      });
+
+      it('should validate required fields', async () => {
+        const response = await request(app)
+          .post('/api/v1/programs/prog_test123/checkout-session')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            // Missing required fields
+          })
+          .expect(400);
+
+        expect(response.body.error).toBeDefined();
+      });
+
+      it('should validate program exists', async () => {
+        mockProgramsFindById.mockResolvedValueOnce(null);
+
+        const response = await request(app)
+          .post('/api/v1/programs/invalid_program/checkout-session')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            successUrl: 'http://localhost:3000/success',
+            cancelUrl: 'http://localhost:3000/cancel'
+          })
+          .expect(404);
+
+        expect(response.body.error).toBeDefined();
+      });
+
+      it('should require complete account information', async () => {
+        // Create user with valid data first
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
+
+        const incompleteUser = new User({
+          firstName: 'Incomplete',
+          lastName: 'User',
+          email: 'incomplete@example.com',
+          password: hashedPassword,
+          isEmailVerified: true
+        });
+        await incompleteUser.save();
+
+        // Now update to have empty names (bypassing model validation)
+        await User.findByIdAndUpdate(incompleteUser._id, {
+          firstName: '',
+          lastName: ''
+        });
+
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: incompleteUser._id }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+          .post('/api/v1/programs/prog_test123/checkout-session')
+          .set('Authorization', `Bearer ${token}`)
+          .send({
+            successUrl: 'http://localhost:3000/success',
+            cancelUrl: 'http://localhost:3000/cancel'
+          })
+          .expect(400);
+
+        expect(response.body.error.message).toContain('account information');
+        expect(response.body.error.requiredFields).toBeDefined();
+      });
+
+      it('should create checkout session for authenticated user', async () => {
+        const response = await request(app)
+          .post('/api/v1/programs/prog_test123/checkout-session')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            successUrl: 'http://localhost:3000/success',
+            cancelUrl: 'http://localhost:3000/cancel'
+          })
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data.sessionId).toBeDefined();
+        expect(response.body.data.url).toBeDefined();
+      });
+
+      it('should save Stripe customer ID to user', async () => {
+        await request(app)
+          .post('/api/v1/programs/prog_test123/checkout-session')
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({
+            successUrl: 'http://localhost:3000/success',
+            cancelUrl: 'http://localhost:3000/cancel'
+          })
+          .expect(200);
+
+        const updatedUser = await User.findById(testUser._id);
+        expect(updatedUser.stripeCustomerId).toBeDefined();
+        expect(updatedUser.billingEnvironment).toMatch(/test|production/);
+      });
+    });
+
+    describe('GET /api/v1/programs/my', () => {
+      it('should require authentication', async () => {
+        const response = await request(app)
+          .get('/api/v1/programs/my')
+          .expect(401);
+
+        expect(response.body.error).toBeDefined();
+      });
+
+      it('should return empty array for user with no programs', async () => {
+        const response = await request(app)
+          .get('/api/v1/programs/my')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toEqual([]);
+      });
+
+      it('should return user assigned programs', async () => {
+        // Add program to user's assignedPrograms
+        testUser.assignedPrograms = [{
+          programId: 'prog_test123',
+          assignedAt: new Date(),
+          title: 'Test Program',
+          slug: 'test-program'
+        }];
+        await testUser.save();
+
+        const response = await request(app)
+          .get('/api/v1/programs/my')
+          .set('Authorization', `Bearer ${authToken}`)
+          .expect(200);
+
+        expect(response.body.success).toBe(true);
+        expect(response.body.data).toHaveLength(1);
+        expect(response.body.data[0].programId).toBe('prog_test123');
+        expect(response.body.data[0].title).toBe('Test Program');
+      });
+    });
+
+    describe('Webhook - Program Assignment', () => {
+      it('should assign program to user on successful payment', async () => {
+        // Mock webhook event for program payment completion
+        const webhookEvent = {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test123',
+              mode: 'payment',
+              customer: 'cus_test123',
+              metadata: {
+                programId: 'prog_test123'
+              }
+            }
+          }
+        };
+
+        mockWebhooksConstructEvent.mockReturnValueOnce(webhookEvent);
+
+        const response = await request(app)
+          .post('/api/v1/webhooks/stripe')
+          .set('stripe-signature', 'test_signature')
+          .send(webhookEvent)
+          .expect(200);
+
+        expect(response.text).toBe('Webhook received');
+
+        // Verify user was updated with program
+        const updatedUser = await User.findById(testUser._id);
+        expect(updatedUser.assignedPrograms).toHaveLength(1);
+        expect(updatedUser.assignedPrograms[0].programId).toBe('prog_test123');
+        expect(updatedUser.assignedPrograms[0].assignedAt).toBeDefined();
+      });
+
+      it('should not duplicate program assignment', async () => {
+        // First assign program to user
+        testUser.assignedPrograms = [{
+          programId: 'prog_test123',
+          assignedAt: new Date(),
+          title: 'Test Program',
+          slug: 'test-program'
+        }];
+        await testUser.save();
+
+        // Mock webhook event for same program payment completion
+        const webhookEvent = {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test123',
+              mode: 'payment',
+              customer: 'cus_test123',
+              metadata: {
+                programId: 'prog_test123'
+              }
+            }
+          }
+        };
+
+        mockWebhooksConstructEvent.mockReturnValueOnce(webhookEvent);
+
+        const response = await request(app)
+          .post('/api/v1/webhooks/stripe')
+          .set('stripe-signature', 'test_signature')
+          .send(webhookEvent)
+          .expect(200);
+
+        expect(response.text).toBe('Webhook received');
+
+        // Verify program was not duplicated
+        const updatedUser = await User.findById(testUser._id);
+        expect(updatedUser.assignedPrograms).toHaveLength(1);
+        expect(updatedUser.assignedPrograms[0].programId).toBe('prog_test123');
+      });
+
+      it('should handle subscription webhooks normally', async () => {
+        // Mock webhook event for subscription payment completion
+        const webhookEvent = {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test123',
+              mode: 'subscription',
+              customer: 'cus_test123',
+              subscription: 'sub_test123'
+            }
+          }
+        };
+
+        mockWebhooksConstructEvent.mockReturnValueOnce(webhookEvent);
+
+        const response = await request(app)
+          .post('/api/v1/webhooks/stripe')
+          .set('stripe-signature', 'test_signature')
+          .send(webhookEvent)
+          .expect(200);
+
+        expect(response.text).toBe('Webhook received');
+      });
+    });
+  });
+});
 
   describe('Subscription Management', () => {
     let subToken;

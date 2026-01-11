@@ -7,9 +7,7 @@ const mongoose = require('mongoose');
 
 // Import all models to register schemas
 require('../src/models/User');
-require('../src/models/Order');
 require('../src/models/Program');
-require('../src/models/Cart');
 require('../src/models/Chat');
 require('../src/models/Subscription');
 
@@ -37,9 +35,7 @@ beforeAll(async () => {
 
   // Ensure indexes are created for unique constraints
   await mongoose.model('User').createIndexes();
-  await mongoose.model('Order').createIndexes();
   await mongoose.model('Program').createIndexes();
-  await mongoose.model('Cart').createIndexes();
 
   // Test env vars
   process.env.JWT_SECRET = 'test-jwt-secret-key';

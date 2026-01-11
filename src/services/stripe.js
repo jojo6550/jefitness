@@ -14,6 +14,16 @@ const PRODUCT_IDS = {
 };
 
 /**
+ * PROGRAM PRODUCT IDS CONFIGURATION
+ * Product IDs for program purchases (one-time payments)
+ */
+const PROGRAM_PRODUCT_IDS = {
+  // Add your program product IDs here, mapped by program slug or ID
+  // Example: 'program-slug': process.env.STRIPE_PROGRAM_SLUG || 'prod_program_slug'
+  // You can add specific ones as needed
+};
+
+/**
  * Get the active recurring price ID for a product
  * @param {string} productId - Stripe product ID
  * @returns {Promise<string|null>} Price ID or null if not found
@@ -384,6 +394,59 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
 }
 
 /**
+ * Create a checkout session for program purchase (one-time payment)
+ * @param {string} customerId - Stripe customer ID
+ * @param {string} programId - Program ID or slug
+ * @param {string} successUrl - URL to redirect on successful payment
+ * @param {string} cancelUrl - URL to redirect if payment is canceled
+ * @returns {Promise<Object>} Checkout session object
+ */
+async function createProgramCheckoutSession(customerId, programId, successUrl, cancelUrl) {
+  try {
+    // Get program details to find the product ID
+    const Program = require('../models/Program');
+    const program = await Program.findById(programId);
+    if (!program) {
+      throw new Error(`Program not found: ${programId}`);
+    }
+
+    // Use program slug to find product ID from environment
+    const productId = PROGRAM_PRODUCT_IDS[program.slug] || process.env[`STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')}`];
+    if (!productId) {
+      throw new Error(`No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`);
+    }
+
+    const priceId = await getPriceIdForProduct(productId);
+    if (!priceId) {
+      throw new Error(`No active price found for program: ${program.slug}`);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'payment', // One-time payment for programs
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1
+        }
+      ],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      billing_address_collection: 'required',
+      metadata: {
+        programId: programId,
+        programSlug: program.slug
+      }
+    });
+
+    return session;
+  } catch (error) {
+    throw new Error(`Failed to create program checkout session: ${error.message}`);
+  }
+}
+
+/**
  * Get payment methods for a customer
  * @param {string} customerId - Stripe customer ID
  * @returns {Promise<Array>} Array of payment method objects
@@ -502,11 +565,13 @@ module.exports = {
   resumeSubscription,
   getSubscriptionInvoices,
   createCheckoutSession,
+  createProgramCheckoutSession,
   getPaymentMethods,
   deletePaymentMethod,
   createPaymentIntent,
   getPriceIdForProduct,
   getPlanPricing,
   getAllActivePrices,
-  PRODUCT_IDS
+  PRODUCT_IDS,
+  PROGRAM_PRODUCT_IDS
 };

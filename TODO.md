@@ -1,13 +1,26 @@
-# Remove Shopping Cart and Implement Direct Stripe Purchases
+# Program Payments Implementation TODO
 
-## Tasks
-- [ ] Remove cart-related routes from server.js
-- [ ] Remove cart model and routes files
-- [ ] Update orders.js to handle direct purchases instead of cart-based orders
-- [ ] Add Stripe checkout session creation for programs
-- [ ] Update webhooks.js to handle checkout.session.completed events
-- [ ] Update program-details.js to show "Buy Now" instead of "Add to Cart"
-- [ ] Update marketplace.js to remove cart functionality
-- [ ] Remove cart-related pages (cart.html, checkout.html)
-- [ ] Update navbar to remove cart links
-- [ ] Test the complete purchase flow
+## Completed Tasks
+- [x] Add PROGRAM_PRODUCT_IDS configuration in stripe.js
+- [x] Create createProgramCheckoutSession function in stripe.js
+- [x] Add program checkout endpoint in programs.js
+- [x] Update exports in stripe.js to include new functions
+- [x] Add program purchase checkout session endpoint
+- [x] Update webhook handler to assign programs after successful payment
+
+## Remaining Tasks
+- [ ] Add program purchase history tracking
+- [ ] Test the program purchase flow
+- [ ] Update frontend to use the new checkout endpoint
+
+## Environment Variables Needed
+Set the following environment variables for each program:
+- STRIPE_PROGRAM_{PROGRAM_SLUG} (e.g., STRIPE_PROGRAM_BEGINNER_WORKOUT for program with slug 'beginner-workout')
+
+## Testing Checklist
+- [ ] Create test program with product ID
+- [ ] Test checkout session creation
+- [ ] Test successful payment flow
+- [ ] Test program assignment after payment
+- [ ] Test error handling for invalid programs
+- [ ] Test duplicate purchase prevention

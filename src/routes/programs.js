@@ -1,8 +1,15 @@
 const express = require('express');
+const { body, param, validationResult } = require('express-validator');
 const router = express.Router();
 const Program = require('../models/Program');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const {
+  createOrRetrieveCustomer,
+  createProgramCheckoutSession,
+  PROGRAM_PRODUCT_IDS
+} = require('../services/stripe');
 
 // 1. Marketplace Listing - Published programs only, preview fields only
 // GET /api/programs/marketplace

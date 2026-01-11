@@ -358,4 +358,68 @@ async function handlePaymentIntentFailed(paymentIntent) {
   // Additional logic if needed
 }
 
+/**
+ * Handle checkout.session.completed event
+ * Called when a checkout session is completed
+ */
+async function handleCheckoutSessionCompleted(session) {
+  console.log(`✅ Checkout session completed: ${session.id}`);
+
+  try {
+    // Handle subscription checkout completion
+    if (session.mode === 'subscription') {
+      // Find the subscription that was created
+      const subscription = await Subscription.findOne({
+        stripeSubscriptionId: session.subscription
+      });
+
+      if (subscription) {
+        // Update user with subscription info
+        const user = await User.findOne({ stripeCustomerId: session.customer });
+        if (user) {
+          user.subscriptionId = session.subscription;
+          user.subscriptionStatus = 'active';
+          user.subscriptionPlan = subscription.plan;
+          user.subscriptionStartDate = new Date();
+          user.subscriptionEndDate = subscription.currentPeriodEnd;
+          user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+          await user.save();
+          console.log(`✅ User subscription updated: ${user._id}`);
+        }
+      }
+    }
+
+    // Handle one-time payment completion (program purchases)
+    if (session.mode === 'payment') {
+      // Check if this is a program purchase
+      if (session.metadata && session.metadata.programId) {
+        const programId = session.metadata.programId;
+        const user = await User.findOne({ stripeCustomerId: session.customer });
+
+        if (user) {
+          // Check if program is already assigned to prevent duplicates
+          const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
+
+          if (!alreadyAssigned) {
+            // Add program to user's assigned programs
+            user.assignedPrograms.push({
+              programId: programId,
+              assignedAt: new Date()
+            });
+
+            await user.save();
+            console.log(`✅ Program ${programId} assigned to user ${user._id}`);
+          } else {
+            console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
+          }
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error(`Error handling checkout session completed event:`, error);
+    throw error;
+  }
+}
+
 module.exports = router;
