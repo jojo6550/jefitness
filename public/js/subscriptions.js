@@ -152,19 +152,25 @@ async function loadPlans() {
  * Display subscription plans
  */
 function displayPlans(plans) {
+    console.log('📊 Displaying plans:', plans);
+
     // Update existing HTML cards with dynamic prices from Stripe
     const planOrder = ['1-month', '3-month', '12-month'];
 
-    planOrder.forEach((planKey) => {
+    const planCards = document.querySelectorAll('.plan-card');
+    console.log('🎴 Found plan cards:', planCards.length);
+
+    planOrder.forEach((planKey, index) => {
         const plan = plans[planKey];
-        if (!plan) return;
+        console.log(`🔍 Processing ${planKey}:`, plan);
 
-        // Find the corresponding HTML card
-        const cardSelector = planKey === '1-month' ? '.plan-card:nth-child(1)' :
-                           planKey === '3-month' ? '.plan-card:nth-child(2)' :
-                           '.plan-card:nth-child(3)';
+        if (!plan) {
+            console.warn(`⚠️ No plan data for ${planKey}`);
+            return;
+        }
 
-        const planCard = document.querySelector(`${cardSelector}`);
+        const planCard = planCards[index];
+        console.log(`🎯 Card ${index} for ${planKey}:`, planCard);
 
         if (planCard) {
             // Update price
@@ -174,6 +180,9 @@ function displayPlans(plans) {
                     ${plan.displayPrice}
                     <span>/month</span>
                 `;
+                console.log(`💰 Updated price for ${planKey}: ${plan.displayPrice}`);
+            } else {
+                console.warn(`⚠️ No price element found for ${planKey}`);
             }
 
             // Update savings if exists
@@ -182,6 +191,7 @@ function displayPlans(plans) {
                 if (savingsElement) {
                     savingsElement.textContent = `Save ${plan.savings}`;
                     savingsElement.style.display = 'block';
+                    console.log(`💸 Updated savings for ${planKey}: ${plan.savings}`);
                 }
             }
 
@@ -189,7 +199,10 @@ function displayPlans(plans) {
             const button = planCard.querySelector('.plan-button');
             if (button) {
                 button.onclick = () => selectPlan(planKey);
+                console.log(`🔘 Updated button for ${planKey}`);
             }
+        } else {
+            console.warn(`⚠️ No card found for ${planKey} at index ${index}`);
         }
     });
 
