@@ -710,9 +710,7 @@ describe('Stripe Subscription System', () => {
         // Add program to user's assignedPrograms
         testUser.assignedPrograms = [{
           programId: 'prog_test123',
-          assignedAt: new Date(),
-          title: 'Test Program',
-          slug: 'test-program'
+          assignedAt: new Date()
         }];
         await testUser.save();
 
@@ -725,11 +723,16 @@ describe('Stripe Subscription System', () => {
         expect(response.body.data).toHaveLength(1);
         expect(response.body.data[0].programId).toBe('prog_test123');
         expect(response.body.data[0].title).toBe('Test Program');
+        expect(response.body.data[0].slug).toBe('test-program');
       });
     });
 
     describe('Webhook - Program Assignment', () => {
       it('should assign program to user on successful payment', async () => {
+        // Set stripe customer ID for test user
+        testUser.stripeCustomerId = 'cus_test123';
+        await testUser.save();
+
         // Mock webhook event for program payment completion
         const webhookEvent = {
           type: 'checkout.session.completed',
@@ -763,12 +766,13 @@ describe('Stripe Subscription System', () => {
       });
 
       it('should not duplicate program assignment', async () => {
+        // Set stripe customer ID for test user
+        testUser.stripeCustomerId = 'cus_test123';
+
         // First assign program to user
         testUser.assignedPrograms = [{
           programId: 'prog_test123',
-          assignedAt: new Date(),
-          title: 'Test Program',
-          slug: 'test-program'
+          assignedAt: new Date()
         }];
         await testUser.save();
 

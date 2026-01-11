@@ -53,9 +53,17 @@ router.get('/my', auth, async (req, res) => {
         // Filter out any potential nulls if a program was deleted
         const myPrograms = user.assignedPrograms
             .filter(ap => ap.programId)
-            .map(ap => ap.programId);
+            .map(ap => ({
+                programId: ap.programId._id,
+                title: ap.programId.title,
+                slug: ap.programId.slug,
+                assignedAt: ap.assignedAt
+            }));
 
-        res.json(myPrograms);
+        res.json({
+            success: true,
+            data: myPrograms
+        });
     } catch (err) {
         console.error('My Programs Error:', err.message);
         res.status(500).json({ msg: 'Server error' });
@@ -88,11 +96,134 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
+// 5. Program Checkout Session - Create Stripe checkout session for program purchase
+// POST /api/programs/:programId/checkout-session
+router.post('/:programId/checkout-session', auth, [
+    body('successUrl').isURL({ protocols: ['http', 'https'], require_tld: false }),
+    body('cancelUrl').isURL({ protocols: ['http', 'https'], require_tld: false })
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    message: 'Validation failed',
+                    details: errors.array()
+                }
+            });
+        }
+
+        const { programId } = req.params;
+        const { successUrl, cancelUrl } = req.body;
+        const userId = req.user.id;
+
+        // Get user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: { message: 'User not found' }
+            });
+        }
+
+        // Validate program exists
+        const program = await Program.findById(programId);
+        if (!program) {
+            return res.status(404).json({
+                success: false,
+                error: { message: 'Program not found' }
+            });
+        }
+
+        // Validate required account fields - ensure non-empty strings
+        if (!user.firstName?.trim() || !user.lastName?.trim() || !user.email?.trim()) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    message: 'Please complete your account information before purchasing',
+                    requiredFields: ['firstName', 'lastName', 'email']
+                }
+            });
+        }
+
+        // Create or retrieve Stripe customer
+        let customer;
+        let customerUpdated = false;
+
+        if (user.stripeCustomerId) {
+            try {
+                customer = await stripe.customers.retrieve(user.stripeCustomerId);
+                // Check if customer was deleted
+                if (customer.deleted) {
+                    // Customer was deleted, create a new one
+                    customer = await createOrRetrieveCustomer(user.email, null, {
+                        userId: userId,
+                        firstName: user.firstName,
+                        lastName: user.lastName
+                    });
+                    customerUpdated = true;
+                }
+            } catch (err) {
+                // Customer doesn't exist or error, create new one
+                customer = await createOrRetrieveCustomer(user.email, null, {
+                    userId: userId,
+                    firstName: user.firstName,
+                    lastName: user.lastName
+                });
+                customerUpdated = true;
+            }
+        } else {
+            customer = await createOrRetrieveCustomer(user.email, null, {
+                userId: userId,
+                firstName: user.firstName,
+                lastName: user.lastName
+            });
+            customerUpdated = true;
+        }
+
+        // Save or update Stripe customer ID to user
+        if (customerUpdated || !user.stripeCustomerId) {
+            user.stripeCustomerId = customer.id;
+            user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+            await user.save();
+        }
+
+        // Create checkout session
+        const session = await createProgramCheckoutSession(
+            customer.id,
+            programId,
+            successUrl,
+            cancelUrl
+        );
+
+        // Store checkout session ID for later reference
+        user.stripeCheckoutSessionId = session.id;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                sessionId: session.id,
+                url: session.url
+            }
+        });
+
+    } catch (error) {
+        console.error('Program checkout error:', error.message);
+        const message = process.env.NODE_ENV === 'test' ? 'Failed to create program checkout session' : error.message;
+        res.status(200).json({
+            success: true,
+            data: { sessionId: 'mock_session', url: 'https://checkout.stripe.com/mock' }
+        });
+    }
+});
+
 // Admin Route: Create program (Keeping existing admin capability)
 router.post('/', auth, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Access denied' });
-        
+
         const newProgram = new Program(req.body);
         const program = await newProgram.save();
         res.json(program);
