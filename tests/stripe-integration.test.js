@@ -16,12 +16,25 @@ jest.mock('../src/services/stripe', () => ({
     '6-month': 'price_6month',
     '12-month': 'price_12month'
   },
+  PRODUCT_IDS: {
+    '1-month': 'prod_1month',
+    '3-month': 'prod_3month',
+    '6-month': 'prod_6month',
+    '12-month': 'prod_12month'
+  },
   PLAN_PRICING: {
     '1-month': { amount: 999, currency: 'usd', duration: '1 month' },
     '3-month': { amount: 2997, currency: 'usd', duration: '3 months' },
     '6-month': { amount: 5994, currency: 'usd', duration: '6 months' },
     '12-month': { amount: 11988, currency: 'usd', duration: '12 months' }
   },
+  getPlanPricing: jest.fn().mockResolvedValue({
+    '1-month': { amount: 999, currency: 'usd', duration: '1 month' },
+    '3-month': { amount: 2997, currency: 'usd', duration: '3 months' },
+    '6-month': { amount: 5994, currency: 'usd', duration: '6 months' },
+    '12-month': { amount: 11988, currency: 'usd', duration: '12 months' }
+  }),
+  getPriceIdForProduct: jest.fn().mockResolvedValue('price_test123'),
   createOrRetrieveCustomer: jest.fn().mockResolvedValue({
     id: 'cus_test123',
     email: 'test@example.com'
@@ -116,6 +129,25 @@ jest.mock('stripe', () => {
 
     invoices: {
       list: jest.fn().mockResolvedValue({ data: [] })
+    },
+
+    prices: {
+      list: jest.fn().mockResolvedValue({
+        data: [{
+          id: 'price_test123',
+          product: 'prod_test123',
+          unit_amount: 999,
+          currency: 'usd',
+          recurring: { interval: 'month' }
+        }]
+      }),
+      retrieve: jest.fn().mockResolvedValue({
+        id: 'price_test123',
+        product: 'prod_test123',
+        unit_amount: 999,
+        currency: 'usd',
+        recurring: { interval: 'month' }
+      })
     },
 
     webhooks: {

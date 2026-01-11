@@ -41,9 +41,16 @@ async function getPriceIdForProduct(productId) {
 async function getPlanPricing() {
   const plans = {};
 
+  console.log('🔄 Starting getPlanPricing...');
+  console.log('📋 PRODUCT_IDS:', PRODUCT_IDS);
+
   for (const [planKey, productId] of Object.entries(PRODUCT_IDS)) {
+    console.log(`🔍 Processing ${planKey} with productId: ${productId}`);
+
     try {
       const priceId = await getPriceIdForProduct(productId);
+      console.log(`💰 Price ID for ${planKey}: ${priceId}`);
+
       if (priceId) {
         const price = await stripe.prices.retrieve(priceId);
         const amount = price.unit_amount;
@@ -56,17 +63,22 @@ async function getPlanPricing() {
           productId,
           priceId
         };
+
+        console.log(`✅ Successfully loaded pricing for ${planKey}: ${displayPrice}`);
       } else {
         // Fallback to static pricing if price not found
-        console.warn(`No active recurring price found for product ${productId}, using fallback`);
+        console.warn(`⚠️ No active recurring price found for product ${productId}, using fallback`);
         plans[planKey] = getFallbackPricing(planKey);
+        console.log(`🔄 Using fallback pricing for ${planKey}: ${plans[planKey].displayPrice}`);
       }
     } catch (error) {
-      console.error(`Error getting pricing for ${planKey}:`, error.message);
+      console.error(`❌ Error getting pricing for ${planKey}:`, error.message);
       plans[planKey] = getFallbackPricing(planKey);
+      console.log(`🔄 Using fallback pricing for ${planKey} due to error: ${plans[planKey].displayPrice}`);
     }
   }
 
+  console.log('📊 Final plans object:', plans);
   return plans;
 }
 
