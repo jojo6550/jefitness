@@ -219,15 +219,41 @@ router.post('/checkout-session', auth, [
 
     // Create or retrieve Stripe customer
     let customer;
+    let customerUpdated = false;
+    
     if (user.stripeCustomerId) {
-      customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      try {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+        // Check if customer was deleted
+        if (customer.deleted) {
+          // Customer was deleted, create a new one
+          customer = await createOrRetrieveCustomer(user.email, null, {
+            userId: userId,
+            firstName: user.firstName,
+            lastName: user.lastName
+          });
+          customerUpdated = true;
+        }
+      } catch (err) {
+        // Customer doesn't exist or error, create new one
+        customer = await createOrRetrieveCustomer(user.email, null, {
+          userId: userId,
+          firstName: user.firstName,
+          lastName: user.lastName
+        });
+        customerUpdated = true;
+      }
     } else {
       customer = await createOrRetrieveCustomer(user.email, null, {
         userId: userId,
         firstName: user.firstName,
         lastName: user.lastName
       });
-      // Save Stripe customer ID to user
+      customerUpdated = true;
+    }
+
+    // Save or update Stripe customer ID to user
+    if (customerUpdated || !user.stripeCustomerId) {
       user.stripeCustomerId = customer.id;
       user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
       await user.save();

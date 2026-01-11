@@ -63,11 +63,13 @@ mockSubscriptionsRetrieve = jest.fn().mockResolvedValue({
 mockSubscriptionsUpdate = jest.fn().mockResolvedValue({
   id: 'sub_test123',
   status: 'active',
+  cancel_at_period_end: false,
   current_period_end: Math.floor(Date.now() / 1000) + 2592000
 });
 mockSubscriptionsDel = jest.fn().mockResolvedValue({
   id: 'sub_test123',
   status: 'canceled',
+  cancel_at_period_end: false,
   current_period_start: Math.floor(Date.now() / 1000),
   current_period_end: Math.floor(Date.now() / 1000) + 2592000,
   items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
