@@ -179,8 +179,22 @@ router.get('/:customerId', [
  */
 router.post('/checkout-session', auth, [
   body('plan').isIn(['1-month', '3-month', '6-month', '12-month']),
-  body('successUrl').isURL({ protocols: ['http', 'https'], require_tld: false }),
-  body('cancelUrl').isURL({ protocols: ['http', 'https'], require_tld: false })
+  body('successUrl').custom((value) => {
+    const trimmedValue = typeof value === 'string' ? value.trim() : '';
+    if (!trimmedValue) throw new Error('Success URL must be a non-empty string');
+    if (!trimmedValue.startsWith('http://') && !trimmedValue.startsWith('https://')) {
+      throw new Error('Success URL must start with http:// or https://');
+    }
+    return true;
+  }),
+  body('cancelUrl').custom((value) => {
+    const trimmedValue = typeof value === 'string' ? value.trim() : '';
+    if (!trimmedValue) throw new Error('Cancel URL must be a non-empty string');
+    if (!trimmedValue.startsWith('http://') && !trimmedValue.startsWith('https://')) {
+      throw new Error('Cancel URL must start with http:// or https://');
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -194,7 +208,12 @@ router.post('/checkout-session', auth, [
       });
     }
 
-    const { plan, successUrl, cancelUrl } = req.body;
+    let { plan, successUrl, cancelUrl } = req.body;
+    
+    // Trim URLs to handle trailing spaces
+    if (typeof successUrl === 'string') successUrl = successUrl.trim();
+    if (typeof cancelUrl === 'string') cancelUrl = cancelUrl.trim();
+    
     const userId = req.user.id;
 
     // Get user

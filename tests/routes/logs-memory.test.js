@@ -1,34 +1,35 @@
 const express = require('express');
 const request = require('supertest');
-const logsRouter = require('../../src/routes/logs');
-
-// Mock console methods to capture logs
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
-const originalConsoleWarn = console.warn;
-
-const mockConsoleLog = jest.fn();
-const mockConsoleError = jest.fn();
-const mockConsoleWarn = jest.fn();
-
-console.log = mockConsoleLog;
-console.error = mockConsoleError;
-console.warn = mockConsoleWarn;
 
 describe('Log Storage Memory Management', () => {
   let app;
+  let logsRouter;
+  let originalConsoleLog;
+  let originalConsoleError;
+  let originalConsoleWarn;
+
+  beforeAll(() => {
+    // Save original console methods
+    originalConsoleLog = console.log;
+    originalConsoleError = console.error;
+    originalConsoleWarn = console.warn;
+  });
 
   beforeEach(() => {
-    // Clear mocks and reset realtimeLogs
-    mockConsoleLog.mockClear();
-    mockConsoleError.mockClear();
-    mockConsoleWarn.mockClear();
+    // Clear the module cache and reload to get fresh router
+    delete require.cache[require.resolve('../../src/routes/logs')];
+    logsRouter = require('../../src/routes/logs');
     logsRouter.realtimeLogs.length = 0; // Clear the global array
 
     // Create Express app for testing
     app = express();
     app.use(express.json());
     app.use('/api/logs', logsRouter);
+  });
+
+  afterEach(() => {
+    // Clean up module cache after each test
+    delete require.cache[require.resolve('../../src/routes/logs')];
   });
 
   afterAll(() => {
@@ -80,7 +81,7 @@ describe('Log Storage Memory Management', () => {
 
     // Wait for cleanup interval (simulated)
     setTimeout(() => {
-      // The cleanup happens every 5 minutes, but for testing we can check the limit
+      // The cleanup happens every 5 minutes, but for testing we check the limit
       expect(logsRouter.realtimeLogs.length).toBeLessThanOrEqual(500);
       done();
     }, 100);

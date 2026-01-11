@@ -62,17 +62,9 @@ router.get('/my', auth, async (req, res) => {
         // Filter out any potential nulls if a program was deleted
         const myPrograms = user.assignedPrograms
             .filter(ap => ap.programId)
-            .map(ap => ({
-                programId: ap.programId._id,
-                title: ap.programId.title,
-                slug: ap.programId.slug,
-                assignedAt: ap.assignedAt
-            }));
+            .map(ap => ap.programId);
 
-        res.json({
-            success: true,
-            data: myPrograms
-        });
+        res.json(myPrograms);
     } catch (err) {
         console.error('My Programs Error:', err.message);
         res.status(500).json({ msg: 'Server error' });

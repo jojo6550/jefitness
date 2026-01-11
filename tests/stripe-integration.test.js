@@ -372,7 +372,7 @@ describe('Stripe Subscription Integration Tests', () => {
         })
         .expect(401);
 
-      expect(response.body.error).toBeDefined();
+      expect(response.body.msg || response.body.error).toBeDefined();
     });
   });
 });

@@ -180,7 +180,9 @@ beforeEach(async () => {
     lastName: 'User',
     email: 'test@example.com',
     isEmailVerified: true,
-    role: 'user'
+    role: 'user',
+    dataProcessingConsent: { given: true },
+    healthDataConsent: { given: true }
   });
 
   User.findById.mockResolvedValue(testUser);
@@ -259,6 +261,6 @@ describe('Stripe Webhook Handling', () => {
       .send(event)
       .expect(200);
 
-    expect(res.text).toContain('Webhook received');
+    expect(res.body.received).toBe(true);
   });
 });

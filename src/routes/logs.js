@@ -16,45 +16,46 @@ setInterval(() => {
   }
 }, CLEANUP_INTERVAL);
 
-// Override console methods to capture logs
+// Store original console methods
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
-console.log = function(...args) {
-  const message = args.join(' ');
+// Helper function to add log entry
+const addLogEntry = (level, category, message) => {
   const logEntry = {
     timestamp: new Date().toISOString(),
-    level: 'info',
-    category: 'app',
-    message: message,
+    level,
+    category,
+    message,
     user: null,
     ip: null,
     userAgent: null
   };
   realtimeLogs.push(logEntry);
+  // Keep only the last MAX_LOGS entries
   if (realtimeLogs.length > MAX_LOGS) {
     realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
   }
+};
+
+// Override console methods to capture logs
+console.log = function(...args) {
+  const message = args.join(' ');
+  addLogEntry('info', 'app', message);
   originalConsoleLog.apply(console, args);
 };
 
 console.error = function(...args) {
   const message = args.join(' ');
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    level: 'error',
-    category: 'error',
-    message: message,
-    user: null,
-    ip: null,
-    userAgent: null
-  };
-  realtimeLogs.push(logEntry);
-  if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
-  }
+  addLogEntry('error', 'error', message);
   originalConsoleError.apply(console, args);
+};
+
+console.warn = function(...args) {
+  const message = args.join(' ');
+  addLogEntry('warn', 'warn', message);
+  originalConsoleWarn.apply(console, args);
 };
 
 console.warn = function(...args) {

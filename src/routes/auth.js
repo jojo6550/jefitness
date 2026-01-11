@@ -9,7 +9,16 @@ const User = require('../models/User');
 const auth = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { requireDbConnection } = require('../middleware/dbConnection');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Lazy initialization of Stripe to avoid issues in test environment
+let stripeInstance = null;
+const getStripe = () => {
+  if (!stripeInstance && process.env.STRIPE_SECRET_KEY) {
+    const stripe = require('stripe');
+    stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeInstance;
+};
 
 // Lazy initialization of Mailjet client
 let mailjet = null;
@@ -32,6 +41,9 @@ const createStripeCustomerForUser = async (user) => {
     if (!process.env.STRIPE_SECRET_KEY || user.stripeCustomerId) {
       return; // Skip if no Stripe key or customer already exists
     }
+
+    const stripe = getStripe();
+    if (!stripe) return; // Skip if Stripe not initialized
 
     const customer = await stripe.customers.create({
       email: user.email,
@@ -496,15 +508,18 @@ router.put('/account', auth, [
             // Sync email with Stripe customer (non-blocking)
             if (user.stripeCustomerId) {
                 try {
-                    await stripe.customers.update(user.stripeCustomerId, {
-                        email: email,
-                        name: `${user.firstName} ${user.lastName}`,
-                        metadata: {
-                            firstName: user.firstName,
-                            lastName: user.lastName
-                        }
-                    });
-                    console.log(`Stripe customer updated | UserId: ${user._id} | CustomerId: ${user.stripeCustomerId}`);
+                    const stripe = getStripe();
+                    if (stripe) {
+                        await stripe.customers.update(user.stripeCustomerId, {
+                            email: email,
+                            name: `${user.firstName} ${user.lastName}`,
+                            metadata: {
+                                firstName: user.firstName,
+                                lastName: user.lastName
+                            }
+                        });
+                        console.log(`Stripe customer updated | UserId: ${user._id} | CustomerId: ${user.stripeCustomerId}`);
+                    }
                 } catch (stripeErr) {
                     console.error(`Stripe customer update failed (non-blocking) | UserId: ${user._id} | Error: ${stripeErr.message}`);
                     // Stripe failure does not block account update
