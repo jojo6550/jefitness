@@ -15,8 +15,9 @@ const {
   getSubscriptionInvoices,
   createCheckoutSession,
   getPaymentMethods,
-  PRICE_IDS,
-  PLAN_PRICING
+  PRODUCT_IDS,
+  getPlanPricing,
+  getPriceIdForProduct
 } = require('../services/stripe');
 
 const router = express.Router();
@@ -62,7 +63,7 @@ const ensureAuthenticated = (req, res, next) => {
  */
 router.get('/plans', async (req, res) => {
   try {
-    const plans = await getAllActivePrices();
+    const plans = await getPlanPricing();
     res.json({
       success: true,
       data: {
@@ -403,10 +404,14 @@ router.post('/:subscriptionId/update-plan', auth, [
       const stripeSub = await stripe.subscriptions.retrieve(subscriptionId);
       const itemId = stripeSub.items.data[0].id;
 
+      // Get the new price ID dynamically
+      const productId = PRODUCT_IDS[plan];
+      const newPriceId = await getPriceIdForProduct(productId);
+
       updatedStripeSubscription = await stripe.subscriptions.update(subscriptionId, {
         items: [{
           id: itemId,
-          price: PRICE_IDS[plan],
+          price: newPriceId,
         }],
         proration_behavior: 'always_invoice',
       });

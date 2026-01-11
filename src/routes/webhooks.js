@@ -156,13 +156,8 @@ async function handleSubscriptionCreated(subscription) {
       plan = planMap[priceId];
     }
 
-    // Get pricing info
-    const PLAN_PRICING = {
-      '1-month': { amount: 999 },
-      '3-month': { amount: 2799 },
-      '6-month': { amount: 4999 },
-      '12-month': { amount: 8999 }
-    };
+    // Get pricing info dynamically
+    const planPricing = await getPlanPricing();
 
     // Create subscription record in database
     const newSubscription = new Subscription({
@@ -174,7 +169,7 @@ async function handleSubscriptionCreated(subscription) {
       currentPeriodStart: new Date(subscription.current_period_start * 1000),
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       status: subscription.status,
-      amount: PLAN_PRICING[plan].amount,
+      amount: planPricing[plan]?.amount || 0,
       paymentMethodId: subscription.default_payment_method,
       lastWebhookEventAt: new Date()
     });

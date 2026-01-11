@@ -1,10 +1,11 @@
-# TODO: Fix Stripe Integration Tests
+# Subscription Page Creation TODO
 
-## Completed
-- [x] Identified the issue: Duplicate mongoose.connect calls (global setup.js and test file)
-- [x] Removed MongoDB setup from tests/stripe-integration.test.js
-- [x] Removed unused MongoMemoryServer import
+## Completed Tasks
+- [x] Create public/pages/subscriptions.html with card layout for each plan (1-month, 3-month, 12-month)
+- [x] Include necessary CSS/JS dependencies (Bootstrap, subscriptions.js)
+- [x] Add modal structures for payment and plan management
+- [x] Fix Stripe script loading issue (added https://js.stripe.com/v3/ script)
 
-## Pending
-- [ ] Run tests to verify the fix works
-- [ ] If tests still fail, investigate further
+## Pending Tasks
+- [ ] Test dynamic loading of prices and descriptions from Stripe
+- [ ] Verify integration with existing user authentication and subscription management
