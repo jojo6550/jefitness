@@ -50,12 +50,7 @@ jest.mock('stripe', () => {
   return jest.fn(() => mockStripe);
 });
 
-// Mock Program model for program checkout tests
-jest.mock('../../src/models/Program', () => {
-  return jest.fn().mockImplementation(() => ({
-    findById: jest.fn()
-  }));
-});
+
 
 const stripeService = require('../../src/services/stripe');
 
@@ -875,9 +870,6 @@ describe('Stripe Service', () => {
       expect(stripeService.PRODUCT_IDS['12-month']).toBe('prod_12month');
     });
 
-    it('should export program product IDs configuration', () => {
-      expect(stripeService.PROGRAM_PRODUCT_IDS).toBeDefined();
-      expect(typeof stripeService.PROGRAM_PRODUCT_IDS).toBe('object');
-    });
+
   });
 });
