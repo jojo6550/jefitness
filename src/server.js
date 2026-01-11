@@ -183,7 +183,6 @@ app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRes
 app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/users'));
 app.use('/api/v1/nutrition', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/nutrition'));
 app.use('/api/v1/notifications', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/notifications'));
-app.use('/api/v1/programs', apiLimiter, versioning, require('./routes/programs'));
 
 app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
 app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, checkDataRestriction, apiLimiter, versioning, require('./routes/chat'));
@@ -227,20 +226,38 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Backward compatibility - redirect old routes to v1
-app.use('/api/auth', (req, res) => res.redirect(307, '/api/v1/auth' + req.path.replace('/api/auth', '')));
-app.use('/api/sleep', auth, (req, res) => res.redirect(307, '/api/v1/sleep' + req.path.replace('/api/sleep', '')));
-app.use('/api/clients', auth, (req, res) => res.redirect(307, '/api/v1/clients' + req.path.replace('/api/clients', '')));
-app.use('/api/logs', auth, (req, res) => res.redirect(307, '/api/v1/logs' + req.path.replace('/api/logs', '')));
-app.use('/api/appointments', auth, (req, res) => res.redirect(307, '/api/v1/appointments' + req.path.replace('/api/appointments', '')));
-app.use('/api/users', auth, (req, res) => res.redirect(307, '/api/v1/users' + req.path.replace('/api/users', '')));
-app.use('/api/nutrition', auth, (req, res) => res.redirect(307, '/api/v1/nutrition' + req.path.replace('/api/nutrition', '')));
-app.use('/api/notifications', auth, (req, res) => res.redirect(307, '/api/v1/notifications' + req.path.replace('/api/notifications', '')));
-app.use('/api/programs', (req, res) => res.redirect(307, '/api/v1/programs' + req.path.replace('/api/programs', '')));
+app.use('/api/auth', (req, res, next) => {
+  res.redirect(307, '/api/v1/auth' + req.path);
+});
+app.use('/api/sleep', (req, res, next) => {
+  res.redirect(307, '/api/v1/sleep' + req.path);
+});
+app.use('/api/clients', (req, res, next) => {
+  res.redirect(307, '/api/v1/clients' + req.path);
+});
+app.use('/api/logs', (req, res, next) => {
+  res.redirect(307, '/api/v1/logs' + req.path);
+});
+app.use('/api/appointments', (req, res, next) => {
+  res.redirect(307, '/api/v1/appointments' + req.path);
+});
+app.use('/api/users', (req, res, next) => {
+  res.redirect(307, '/api/v1/users' + req.path);
+});
+app.use('/api/nutrition', (req, res, next) => {
+  res.redirect(307, '/api/v1/nutrition' + req.path);
+});
+app.use('/api/notifications', (req, res, next) => {
+  res.redirect(307, '/api/v1/notifications' + req.path);
+});
+app.use('/api/medical-documents', (req, res, next) => {
+  res.redirect(307, '/api/v1/medical-documents' + req.path);
+});
+app.use('/api/trainer', (req, res, next) => {
+  res.redirect(307, '/api/v1/trainer' + req.path);
+});
 
-app.use('/api/medical-documents', auth, (req, res) => res.redirect(307, '/api/v1/medical-documents' + req.path.replace('/api/medical-documents', '')));
-app.use('/api/trainer', auth, (req, res) => res.redirect(307, '/api/v1/trainer' + req.path.replace('/api/trainer', '')));
-
-// 404 handler for API routes
+// 404 handler for API routes (after all routes and redirects)
 app.use('/api', (req, res) => {
   res.status(404).json({
     success: false,
