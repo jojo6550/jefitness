@@ -11,7 +11,7 @@
 
 // Configuration
 const API_BASE_URL = '/api/v1';
-const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igVgAj5QvWG6Y3bfFhM15NZPuL3gYTxjMmcf6x7Iz9ZaDrQvNCkB7lj8jDg4PQE4xmVZRw00Gw00HIQP8y1N'; // Replace with your Stripe publishable key
+const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
 // Initialize Stripe
 const stripe = Stripe(STRIPE_PUBLIC_KEY);

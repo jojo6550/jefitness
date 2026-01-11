@@ -46,8 +46,10 @@ app.use(helmet({
         "'unsafe-inline'",
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
-        "https://unpkg.com"
+        "https://unpkg.com",
+        "https://js.stripe.com"
       ],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
@@ -63,7 +65,12 @@ app.use(helmet({
       connectSrc: [
         "'self'",
         "https://api.mailjet.com",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
+        "https://api.stripe.com"
+      ],
+      frameSrc: [
+        "'self'",
+        "https://js.stripe.com"
       ],
       imgSrc: [
         "'self'",
