@@ -22,6 +22,35 @@ const getMailjetClient = () => {
   return mailjet;
 };
 
+/**
+ * Helper function to create Stripe customer for a user
+ * Stripe failures are logged but do not block the operation
+ */
+const createStripeCustomerForUser = async (user) => {
+  try {
+    if (!process.env.STRIPE_SECRET_KEY || user.stripeCustomerId) {
+      return; // Skip if no Stripe key or customer already exists
+    }
+
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      metadata: {
+        userId: user._id.toString()
+      }
+    });
+
+    user.stripeCustomerId = customer.id;
+    user.subscriptionStatus = 'free'; // Default to free tier
+    await user.save();
+    console.log(`Stripe customer created | UserId: ${user._id} | CustomerId: ${customer.id}`);
+  } catch (err) {
+    console.error(`Stripe customer creation failed (non-blocking) | UserId: ${user._id} | Error: ${err.message}`);
+    // Stripe failure does not block registration
+  }
+};
+
 
 // Password strength validation function
 const validatePasswordStrength = (password) => {
@@ -139,6 +168,9 @@ router.post('/signup', requireDbConnection, [
         });
 
         await newUser.save();
+
+        // Create Stripe customer (non-blocking)
+        await createStripeCustomerForUser(newUser);
 
         // Send OTP email via Mailjet
         const mailjetClient = getMailjetClient();
@@ -304,6 +336,12 @@ router.post('/login', requireDbConnection, [
         user.failedLoginAttempts = 0;
         user.lockoutUntil = undefined;
         user.lastLoggedIn = new Date();
+
+        // Lazily create Stripe customer if missing (non-blocking)
+        if (!user.stripeCustomerId) {
+          await createStripeCustomerForUser(user);
+        }
+
         await user.save();
 
         // Include role in JWT payload
@@ -455,21 +493,22 @@ router.put('/account', auth, [
 
             user.email = email;
 
-            // Sync email with Stripe customer
-            if (user.stripeCustomerId) {
+            // Sync email with Stripe customer (non-blocking)
+            if (user.stripeCustomerId && process.env.STRIPE_SECRET_KEY) {
                 try {
                     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
                     await stripe.customers.update(user.stripeCustomerId, {
                         email: email,
+                        name: `${user.firstName} ${user.lastName}`,
                         metadata: {
                             firstName: user.firstName,
                             lastName: user.lastName
                         }
                     });
-                    console.log(`Stripe customer ${user.stripeCustomerId} updated with new email: ${email}`);
+                    console.log(`Stripe customer updated | UserId: ${user._id} | CustomerId: ${user.stripeCustomerId}`);
                 } catch (stripeErr) {
-                    console.warn(`Failed to sync email with Stripe: ${stripeErr.message}`);
-                    // Don't fail the request if Stripe update fails
+                    console.error(`Stripe customer update failed (non-blocking) | UserId: ${user._id} | Error: ${stripeErr.message}`);
+                    // Stripe failure does not block account update
                 }
             }
         }

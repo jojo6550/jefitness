@@ -198,8 +198,8 @@ const UserSchema = new mongoose.Schema({
     subscriptionId: { type: String }, // Stripe subscription ID
     subscriptionStatus: { 
         type: String, 
-        enum: ['none', 'active', 'past_due', 'canceled', 'unpaid', 'trialing'],
-        default: 'none'
+        enum: ['free', 'none', 'active', 'past_due', 'canceled', 'unpaid', 'trialing'],
+        default: 'free'
     },
     subscriptionPriceId: { type: String }, // Stripe Price ID for current plan
     subscriptionPlan: { 
