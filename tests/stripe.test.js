@@ -83,10 +83,6 @@ jest.mock('stripe', () => {
 });
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-
   // Create test user
   const bcrypt = require('bcryptjs');
   const salt = await bcrypt.genSalt(10);
@@ -106,11 +102,6 @@ beforeAll(async () => {
   // Generate auth token
   const jwt = require('jsonwebtoken');
   authToken = jwt.sign({ id: testUser._id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
 });
 
 describe('Stripe Subscription System', () => {
