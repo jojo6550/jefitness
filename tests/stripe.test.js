@@ -4,85 +4,153 @@ const request = require('supertest');
 const User = require('../src/models/User');
 const Subscription = require('../src/models/Subscription');
 const app = require('../src/server');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-let mongoServer;
-let authToken;
-let testUser;
 
-// Mock Stripe
+// ============================================
+// MOCK STRIPE - Using var to avoid TDZ issues
+// ============================================
+// Note: Using var instead of const because Jest hoists jest.mock() to the top.
+// var is hoisted and initialized (not in TDZ), so the mock factory can reference
+// these variables before the actual const declarations run.
+
+var mockCustomersUpdate;
+var mockCustomersList;
+var mockCustomersCreate;
+var mockCustomersRetrieve;
+var mockSubscriptionsCreate;
+var mockSubscriptionsList;
+var mockSubscriptionsRetrieve;
+var mockSubscriptionsUpdate;
+var mockSubscriptionsDel;
+var mockCheckoutSessionsCreate;
+var mockInvoicesList;
+var mockPaymentMethodsList;
+var mockWebhooksConstructEvent;
+var mockPricesList;
+var mockPricesRetrieve;
+var mockProductsRetrieve;
+
+// Initialize mocks - these will overwrite the var declarations with const
+mockCustomersUpdate = jest.fn();
+mockCustomersList = jest.fn().mockResolvedValue({ data: [] });
+mockCustomersCreate = jest.fn().mockResolvedValue({
+  id: 'cus_test123',
+  email: 'test@example.com'
+});
+mockCustomersRetrieve = jest.fn().mockResolvedValue({
+  id: 'cus_test123',
+  email: 'test@example.com'
+});
+mockSubscriptionsCreate = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+});
+mockSubscriptionsList = jest.fn().mockResolvedValue({
+  data: [{
+    id: 'sub_test123',
+    status: 'active',
+    current_period_end: Math.floor(Date.now() / 1000) + 2592000
+  }]
+});
+mockSubscriptionsRetrieve = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000
+});
+mockSubscriptionsUpdate = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'active',
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000
+});
+mockSubscriptionsDel = jest.fn().mockResolvedValue({
+  id: 'sub_test123',
+  status: 'canceled',
+  current_period_start: Math.floor(Date.now() / 1000),
+  current_period_end: Math.floor(Date.now() / 1000) + 2592000,
+  items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
+});
+mockCheckoutSessionsCreate = jest.fn().mockResolvedValue({
+  id: 'cs_test123',
+  url: 'https://checkout.stripe.com/test123'
+});
+mockInvoicesList = jest.fn().mockResolvedValue({ data: [] });
+mockPaymentMethodsList = jest.fn().mockResolvedValue({ data: [] });
+mockWebhooksConstructEvent = jest.fn();
+mockPricesList = jest.fn().mockResolvedValue({
+  data: [{
+    id: 'price_test123',
+    product: 'prod_test123',
+    unit_amount: 999,
+    recurring: { interval: 'month' }
+  }]
+});
+mockPricesRetrieve = jest.fn().mockResolvedValue({
+  id: 'price_test123',
+  unit_amount: 999,
+  currency: 'usd'
+});
+mockProductsRetrieve = jest.fn().mockResolvedValue({
+  id: 'prod_test123',
+  name: 'Test Product'
+});
+
+// Mock stripe module - must be hoisted but references are already declared as var
 jest.mock('stripe', () => {
-  return jest.fn(() => ({
+  return jest.fn().mockImplementation(() => ({
     customers: {
-      list: jest.fn().mockResolvedValue({ data: [] }),
-      create: jest.fn().mockResolvedValue({
-        id: 'cus_test123',
-        email: 'test@example.com'
-      }),
-      retrieve: jest.fn().mockResolvedValue({
-        id: 'cus_test123',
-        email: 'test@example.com'
-      }),
-      update: jest.fn().mockResolvedValue({
-        id: 'cus_test123',
-        email: 'test@example.com'
-      })
+      list: mockCustomersList,
+      create: mockCustomersCreate,
+      retrieve: mockCustomersRetrieve,
+      update: mockCustomersUpdate
     },
     subscriptions: {
-      create: jest.fn().mockResolvedValue({
-        id: 'sub_test123',
-        status: 'active',
-        current_period_start: Math.floor(Date.now() / 1000),
-        current_period_end: Math.floor(Date.now() / 1000) + 2592000,
-        items: { data: [{ id: 'si_test123', price: { id: 'price_test123' } }] }
-      }),
-      list: jest.fn().mockResolvedValue({
-        data: [{
-          id: 'sub_test123',
-          status: 'active',
-          current_period_end: Math.floor(Date.now() / 1000) + 2592000
-        }]
-      }),
-      retrieve: jest.fn().mockResolvedValue({
-        id: 'sub_test123',
-        status: 'active',
-        current_period_start: Math.floor(Date.now() / 1000),
-        current_period_end: Math.floor(Date.now() / 1000) + 2592000
-      }),
-      update: jest.fn().mockResolvedValue({
-        id: 'sub_test123',
-        status: 'active',
-        current_period_end: Math.floor(Date.now() / 1000) + 2592000
-      }),
-      del: jest.fn().mockResolvedValue({
-        id: 'sub_test123',
-        status: 'canceled'
-      })
+      create: mockSubscriptionsCreate,
+      list: mockSubscriptionsList,
+      retrieve: mockSubscriptionsRetrieve,
+      update: mockSubscriptionsUpdate,
+      del: mockSubscriptionsDel
     },
     checkout: {
       sessions: {
-        create: jest.fn().mockResolvedValue({
-          id: 'cs_test123',
-          url: 'https://checkout.stripe.com/test123'
-        })
+        create: mockCheckoutSessionsCreate
       }
     },
     invoices: {
-      list: jest.fn().mockResolvedValue({
-        data: []
-      })
+      list: mockInvoicesList
     },
     paymentMethods: {
-      list: jest.fn().mockResolvedValue({
-        data: []
-      })
+      list: mockPaymentMethodsList
     },
     webhooks: {
-      constructEvent: jest.fn()
+      constructEvent: mockWebhooksConstructEvent
+    },
+    prices: {
+      list: mockPricesList,
+      retrieve: mockPricesRetrieve
+    },
+    products: {
+      retrieve: mockProductsRetrieve
     }
   }));
 });
 
+// ============================================
+// TEST SETUP - Uses global setup from tests/setup.js
+// ============================================
+
 beforeEach(async () => {
+  // Reset all mocks before each test
+  mockCustomersUpdate.mockResolvedValue({
+    id: 'cus_test123',
+    email: 'test@example.com'
+  });
+  
+  // Clear all mock call history
+  jest.clearAllMocks();
+  
   // Create test user
   const bcrypt = require('bcryptjs');
   const salt = await bcrypt.genSalt(10);
@@ -103,6 +171,16 @@ beforeEach(async () => {
   const jwt = require('jsonwebtoken');
   authToken = jwt.sign({ id: testUser._id, role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
 });
+
+afterEach(async () => {
+  // Clean up database
+  await User.deleteMany({});
+  await Subscription.deleteMany({});
+});
+
+// ============================================
+// TEST SUITES
+// ============================================
 
 describe('Stripe Subscription System', () => {
   describe('GET /api/v1/subscriptions/plans', () => {
@@ -375,8 +453,7 @@ describe('Stripe Subscription System', () => {
         expect(response.body.user.email).toBe('newemail@example.com');
 
         // Verify Stripe was updated
-        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-        expect(stripe.customers.update).toHaveBeenCalled();
+        expect(mockCustomersUpdate).toHaveBeenCalled();
       });
 
       it('should prevent duplicate email', async () => {
@@ -541,12 +618,17 @@ describe('Stripe Subscription System', () => {
       });
 
       it('should prevent user from canceling others subscriptions', async () => {
-        // Create another user
+        // Create another user with valid password
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('TestPassword123!', salt);
+
         const otherUser = new User({
           firstName: 'Other',
           lastName: 'User',
           email: 'otheruser@example.com',
-          password: 'hashed'
+          password: hashedPassword,
+          isEmailVerified: true
         });
         await otherUser.save();
 
@@ -583,3 +665,4 @@ describe('Stripe Subscription System', () => {
     });
   });
 });
+
