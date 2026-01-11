@@ -7,5 +7,5 @@
 - [x] Fix Stripe script loading issue (added https://js.stripe.com/v3/ script)
 
 ## Pending Tasks
-- [ ] Test dynamic loading of prices and descriptions from Stripe
+- [ ] Test dynamic loading of prices and descriptions from Stripe (fixed API data structure issue)
 - [ ] Verify integration with existing user authentication and subscription management

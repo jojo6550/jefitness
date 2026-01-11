@@ -139,8 +139,8 @@ async function loadPlans() {
         const data = await response.json();
 
         if (data.success && data.data) {
-            availablePlans = data.data;
-            displayPlans(data.data);
+            availablePlans = data.data.plans;
+            displayPlans(data.data.plans);
         }
     } catch (error) {
         console.error('❌ Error loading plans:', error);
