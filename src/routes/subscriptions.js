@@ -599,7 +599,7 @@ router.post('/:subscriptionId/resume', auth, [
 
   } catch (error) {
     console.error('Error resuming subscription:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: { message: error.message || 'Failed to resume subscription' }
     });

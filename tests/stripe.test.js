@@ -141,6 +141,10 @@ jest.mock('stripe', () => {
 // TEST SETUP - Uses global setup from tests/setup.js
 // ============================================
 
+// Declare test variables at the top level
+let testUser;
+let authToken;
+
 beforeEach(async () => {
   // Reset all mocks before each test
   mockCustomersUpdate.mockResolvedValue({
