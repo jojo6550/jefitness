@@ -1,13 +1,9 @@
-# Test Fixes Completed
+# TODO: Implement Stripe Subscription Backend API
 
-## Fixed Issues:
-- [x] user-scalability.test.js: Moved user creation to beforeEach and added consents
-- [x] chat.test.js: Added dataProcessingConsent and healthDataConsent to test users
-- [x] logs-memory.test.js: Removed resetting realtimeLogs in beforeEach
-- [x] dbConnection.test.js: Updated middleware to check for 'signup' in path
-- [x] monitoring-memory.test.js: Updated test to expect cleanup at 85% memory usage
-- [x] auth.test.js: Updated test to expect 400 for invalid token
-
-## Followup Steps:
-- [ ] Run tests to verify all fixes work
-- [ ] Address any remaining issues if tests still fail
+## Tasks
+- [x] Create src/services/stripe.js: Initialize Stripe client and define functions for customer creation, subscription creation, and retrieval
+- [x] Create src/routes/subscriptions.js: Implement POST /api/subscriptions/create and GET /api/subscriptions/:customerId endpoints with validation and error handling
+- [x] Update src/server.js: Add subscriptions route mounting under /api/v1/subscriptions
+- [x] Create tests/routes/subscriptions.test.js: Unit tests for creating subscriptions, error handling, and fetching subscriptions using Jest with mocked Stripe
+- [ ] Ensure STRIPE_SECRET_KEY is set in .env
+- [ ] Run unit tests to verify functionality

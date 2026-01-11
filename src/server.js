@@ -183,6 +183,7 @@ app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, require
 app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, checkDataRestriction, apiLimiter, versioning, require('./routes/chat'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
+app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
 
 // API Documentation routes (only in development)
 if (process.env.NODE_ENV !== 'production') {
