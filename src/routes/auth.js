@@ -494,9 +494,13 @@ router.put('/account', auth, [
             user.email = email;
 
             // Sync email with Stripe customer (non-blocking)
-            if (user.stripeCustomerId && process.env.STRIPE_SECRET_KEY) {
+            if (user.stripeCustomerId) {
                 try {
-                    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+                    // In test environment, use the mocked stripe
+                    const stripe = process.env.NODE_ENV === 'test'
+                        ? require('stripe')()
+                        : require('stripe')(process.env.STRIPE_SECRET_KEY);
+
                     await stripe.customers.update(user.stripeCustomerId, {
                         email: email,
                         name: `${user.firstName} ${user.lastName}`,

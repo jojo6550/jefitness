@@ -316,6 +316,7 @@ router.get('/user/current', auth, async (req, res) => {
         id: subscription._id,
         plan: subscription.plan,
         status: subscription.status,
+        hasSubscription: subscription.status === 'active',
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,
@@ -527,7 +528,8 @@ router.delete('/:subscriptionId/cancel', auth, [
       data: {
         subscription: {
           ...subscription.toObject(),
-          cancelAtPeriodEnd
+          cancelAtPeriodEnd,
+          status: subscription.status
         },
         message: 'Subscription update processed'
       }

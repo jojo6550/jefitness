@@ -1,11 +1,13 @@
-# Subscription Page Creation TODO
+# Fix Failing Stripe Tests
 
-## Completed Tasks
-- [x] Create public/pages/subscriptions.html with card layout for each plan (1-month, 3-month, 12-month)
-- [x] Include necessary CSS/JS dependencies (Bootstrap, subscriptions.js)
-- [x] Add modal structures for payment and plan management
-- [x] Fix Stripe script loading issue (added https://js.stripe.com/v3/ script)
+## Issues Identified
+1. **GET /api/v1/subscriptions/user/current**: Missing `hasSubscription: true` in response for active subscriptions
+2. **PUT /api/v1/auth/account**: Stripe customer update not called due to missing STRIPE_SECRET_KEY in test environment
+3. **DELETE /api/v1/subscriptions/:subscriptionId/cancel (immediate)**: Response status undefined after immediate cancellation
+4. **DELETE /api/v1/subscriptions/:subscriptionId/cancel (authorization)**: Invalid password hash in test user creation
 
-## Pending Tasks
-- [ ] Test dynamic loading of prices and descriptions from Stripe (added debugging logs to diagnose why only 1-month loads)
-- [ ] Verify integration with existing user authentication and subscription management
+## Tasks
+- [x] Fix subscriptions route to include hasSubscription field
+- [x] Update auth route to handle Stripe updates in test environment
+- [x] Fix cancel subscription response structure
+- [x] Fix test user password hashing
