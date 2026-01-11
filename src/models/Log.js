@@ -40,10 +40,6 @@ const LogSchema = new mongoose.Schema({
     metadata: {
         type: mongoose.Schema.Types.Mixed,
         default: {}
-    },
-    stack: {
-        type: String,
-        default: null
     }
 }, {
     timestamps: true

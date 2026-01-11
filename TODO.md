@@ -1,34 +1,24 @@
-# TODO: Remove Programs, Marketplace, and Unused Tests
+# Stripe Subscription-Based Access Control Implementation
 
-## Step 1: Delete Programs-Related Files
-- [ ] Delete src/models/Program.js
-- [ ] Delete src/seedPrograms.js
-- [ ] Delete public/js/my-programs.js
-- [ ] Delete public/js/program-details.js
-- [ ] Delete public/js/workout-programs.js
-- [ ] Delete public/pages/my-programs.html
-- [ ] Delete public/pages/program-details.html
-- [ ] Delete public/pages/workout-programs.html
-- [ ] Delete public/pages/programs/ directory
+## Current Status
+- [x] Update Webhook Handlers: Modify src/routes/webhooks.js to update User model instead of Subscription model
+- [x] Apply Middleware to Routes: Add requireActiveSubscription to appointment routes
+- [x] Frontend Subscription Checks: Update appointments.js to check subscription status and disable UI accordingly
+- [x] Dashboard Subscription Display: Update dashboard.js to show subscription info
+- [x] Subscription Expiry Logic: Implement automatic status updates when currentPeriodEnd is reached
+- [x] Edge Case Handling: Handle cancellations, upgrades, and failed payments
 
-## Step 2: Delete Marketplace-Related Files
-- [ ] Delete public/js/marketplace.js
-- [ ] Delete public/pages/marketplace.html
+## Implementation Steps
+1. Update webhook handlers to store subscription data in User model
+2. Apply requireActiveSubscription middleware to appointment creation and access routes
+3. Update frontend to check subscription status and hide/disable appointment features for non-subscribers
+4. Update dashboard to display current subscription information
+5. Implement automatic subscription expiry logic
+6. Handle edge cases like subscription cancellations and upgrades
+7. Ensure idempotent webhook processing
 
-## Step 3: Delete Tests Directory
-- [ ] Delete tests/ directory
-
-## Step 4: Edit Referenced Files to Remove Links/Routes
-- [x] Edit public/js/router.js to remove marketplace and programs routes
-- [x] Edit public/js/navigation.js to remove marketplace and programs navigation items
-- [x] Edit www/pages/partials/navbar.html to remove marketplace link
-- [x] Edit public/pages/dashboard.html to remove marketplace link
-- [x] Edit public/js/my-programs.js to remove marketplace references
-- [x] Edit public/js/program-details.js to remove marketplace references
-
-## Step 5: Edit package.json
-- [x] Remove "seed:programs" script from package.json
-
-## Step 6: Verification
-- [ ] Verify no broken references remain
-- [ ] Test the application to ensure functionality is intact
+## Testing Requirements
+- Test webhook processing with Stripe test events
+- Verify appointment blocking for non-subscribers
+- Test subscription expiry scenarios
+- Validate frontend UI state management

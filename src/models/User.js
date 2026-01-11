@@ -194,22 +194,26 @@ const UserSchema = new mongoose.Schema({
     // Stripe customer ID - links user to Stripe account
     stripeCustomerId: { type: String, unique: true, sparse: true },
     
-    // Current subscription details
-    subscriptionId: { type: String }, // Stripe subscription ID
+    // Current subscription details - Stripe is source of truth
+    stripeSubscriptionId: { type: String }, // Stripe subscription ID
     subscriptionStatus: { 
         type: String, 
-        enum: ['free', 'none', 'active', 'past_due', 'canceled', 'unpaid', 'trialing'],
-        default: 'free'
+        enum: ['active', 'inactive', 'canceled', 'past_due', 'unpaid', 'trialing'],
+        default: 'inactive'
     },
-    subscriptionPriceId: { type: String }, // Stripe Price ID for current plan
+    subscriptionType: { type: String }, // e.g., "1 Month", "3 Months", "6 Months", "12 Months"
+    stripePriceId: { type: String }, // Stripe Price ID for current plan
+    
+    // Subscription period tracking - from Stripe webhooks
+    currentPeriodStart: { type: Date },
+    currentPeriodEnd: { type: Date },
+    
+    // Legacy fields for backward compatibility
     subscriptionPlan: { 
         type: String,
         enum: ['free', '1-month', '3-month', '6-month', '12-month'],
         default: 'free'
     },
-    subscriptionStartDate: { type: Date },
-    subscriptionEndDate: { type: Date },
-    subscriptionRenewalDate: { type: Date },
     
     // Billing environment tracking
     billingEnvironment: {
@@ -218,13 +222,11 @@ const UserSchema = new mongoose.Schema({
         default: 'test'
     },
     
-    // Free tier flag
-    hasFreeTier: { type: Boolean, default: true },
-    
     // Subscription metadata
     stripeCheckoutSessionId: { type: String },
-    lastPaymentFailure: { type: Date },
-    lastPaymentFailureReason: { type: String }
+    
+    // Cancellation tracking
+    cancelAtPeriodEnd: { type: Boolean, default: false }
 });
 
 // Database indexes for optimization
@@ -232,8 +234,51 @@ UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 });
-UserSchema.index({ subscriptionId: 1 });
+UserSchema.index({ stripeSubscriptionId: 1 });
 UserSchema.index({ subscriptionStatus: 1 });
+UserSchema.index({ stripeCustomerId: 1 });
+UserSchema.index({ currentPeriodEnd: 1 }); // For efficient subscription expiry checks
+
+/**
+ * Instance method to check if user has an active subscription
+ * @returns {boolean} True if subscription is active and not expired
+ */
+UserSchema.methods.hasActiveSubscription = function() {
+    // Check subscription status
+    if (this.subscriptionStatus !== 'active' && this.subscriptionStatus !== 'trialing') {
+        return false;
+    }
+    
+    // Check if subscription period is still valid
+    if (this.currentPeriodEnd && new Date() > this.currentPeriodEnd) {
+        return false;
+    }
+    
+    return true;
+};
+
+/**
+ * Instance method to get formatted subscription info for display
+ * @returns {object} Formatted subscription information
+ */
+UserSchema.methods.getSubscriptionInfo = function() {
+    if (!this.hasActiveSubscription()) {
+        return {
+            hasSubscription: false,
+            status: 'inactive',
+            message: 'No active subscription'
+        };
+    }
+    
+    return {
+        hasSubscription: true,
+        status: this.subscriptionStatus,
+        type: this.subscriptionType || 'Unknown',
+        displayText: `Active Plan: ${this.subscriptionType || 'Unknown'}`,
+        expiresAt: this.currentPeriodEnd,
+        renewsAt: this.cancelAtPeriodEnd ? null : this.currentPeriodEnd
+    };
+};
 
 // Encrypt sensitive fields
 const encKey = process.env.ENCRYPTION_KEY;
@@ -265,7 +310,11 @@ if (encKey) {
             'activityStatus',
             'hasMedical',
             'onboardingCompleted',
-            'onboardingCompletedAt'
+            'onboardingCompletedAt',
+            'subscriptionStatus',
+            'subscriptionType',
+            'stripeSubscriptionId',
+            'stripeCustomerId'
         ]
     });
 }

@@ -5,6 +5,7 @@ const API_BASE_URL = isLocalhost
 
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
+let userSubscriptionStatus = null;
 
 // ====== Load Appointments ======
 async function loadAppointments() {

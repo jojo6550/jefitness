@@ -3,6 +3,7 @@ const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 
 /**
@@ -169,7 +170,7 @@ router.get('/:id', auth, async (req, res) => {
  * @throws  {400} Missing required fields or invalid trainer or time slot full (max 6 clients per slot)
  * @throws  {500} Server error
  */
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, requireActiveSubscription, async (req, res) => {
     try {
         const { trainerId, date, time, notes } = req.body;
 
