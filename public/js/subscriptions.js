@@ -157,18 +157,19 @@ async function loadPlans() {
 function displayPlans(plans) {
     plansContainer.innerHTML = '';
 
-    const planOrder = ['1-month', '3-month', '6-month', '12-month'];
+    // Show 3 tiers: 1-month, 3-month, 12-month
+    const planOrder = ['1-month', '3-month', '12-month'];
 
     planOrder.forEach((planKey) => {
         const plan = plans[planKey];
         if (!plan) return;
 
-        const isFeatured = planKey === '12-month'; // Highlight 12-month plan
+        const isFeatured = planKey === '12-month'; // Highlight 12-month plan as premium
 
         const planCard = document.createElement('div');
         planCard.className = `plan-card ${isFeatured ? 'featured' : ''}`;
         planCard.innerHTML = `
-            ${isFeatured ? '<div class="badge">BEST VALUE</div>' : ''}
+            ${isFeatured ? '<div class="badge">PREMIUM</div>' : ''}
             <h3 class="plan-name">${plan.duration}</h3>
             <p class="plan-duration">${planKey}</p>
             <div class="plan-price">
@@ -177,19 +178,47 @@ function displayPlans(plans) {
             </div>
             ${plan.savings ? `<div class="plan-savings">Save ${plan.savings}</div>` : ''}
             <ul class="plan-features">
-                <li>Full access to all workouts</li>
-                <li>Personalized training plans</li>
-                <li>Progress tracking</li>
-                <li>Community support</li>
-                <li>Mobile app access</li>
+                ${getPlanFeatures(planKey)}
             </ul>
             <button class="plan-button" onclick="selectPlan('${planKey}')">
-                Get Started
+                ${planKey === '1-month' ? 'Start Free Trial' : 'Get Started'}
             </button>
         `;
 
         plansContainer.appendChild(planCard);
     });
+}
+
+/**
+ * Get features for each plan tier
+ */
+function getPlanFeatures(planKey) {
+    const features = {
+        '1-month': [
+            'Access to basic workouts',
+            'Progress tracking',
+            'Community support',
+            'Mobile app access'
+        ],
+        '3-month': [
+            'Full access to all workouts',
+            'Personalized training plans',
+            'Advanced progress tracking',
+            'Priority community support',
+            'Mobile app access',
+            'Nutrition guidance'
+        ],
+        '12-month': [
+            'Everything in 3-month plan',
+            '1-on-1 trainer consultations',
+            'Custom meal planning',
+            'Advanced analytics',
+            'Priority support',
+            'Exclusive content access'
+        ]
+    };
+
+    return features[planKey].map(feature => `<li>${feature}</li>`).join('');
 }
 
 /**

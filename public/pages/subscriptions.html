@@ -502,11 +502,71 @@
 
         <!-- Subscription Plans Section -->
         <section style="padding: 40px 0;">
-            <div id="plansLoading" class="loading">
-                <div class="spinner"></div>
-                <p>Loading subscription plans...</p>
+            <div class="plans-container">
+                <!-- Basic Plan -->
+                <div class="plan-card">
+                    <h3 class="plan-name">1 Month</h3>
+                    <p class="plan-duration">1-month</p>
+                    <div class="plan-price">
+                        $9.99
+                        <span>/month</span>
+                    </div>
+                    <ul class="plan-features">
+                        <li>Access to basic workouts</li>
+                        <li>Progress tracking</li>
+                        <li>Community support</li>
+                        <li>Mobile app access</li>
+                    </ul>
+                    <button class="plan-button" onclick="selectPlan('1-month')">
+                        Start Free Trial
+                    </button>
+                </div>
+
+                <!-- Standard Plan -->
+                <div class="plan-card">
+                    <h3 class="plan-name">3 Months</h3>
+                    <p class="plan-duration">3-month</p>
+                    <div class="plan-price">
+                        $27.99
+                        <span>/month</span>
+                    </div>
+                    <div class="plan-savings">Save $2.98</div>
+                    <ul class="plan-features">
+                        <li>Full access to all workouts</li>
+                        <li>Personalized training plans</li>
+                        <li>Advanced progress tracking</li>
+                        <li>Priority community support</li>
+                        <li>Mobile app access</li>
+                        <li>Nutrition guidance</li>
+                    </ul>
+                    <button class="plan-button" onclick="selectPlan('3-month')">
+                        Get Started
+                    </button>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="plan-card featured">
+                    <div class="badge">PREMIUM</div>
+                    <h3 class="plan-name">12 Months</h3>
+                    <p class="plan-duration">12-month</p>
+                    <div class="plan-price">
+                        $89.99
+                        <span>/month</span>
+                    </div>
+                    <div class="plan-savings">Save $29.89</div>
+                    <ul class="plan-features">
+                        <li>Everything in 3-month plan</li>
+                        <li>1-on-1 trainer consultations</li>
+                        <li>Custom meal planning</li>
+                        <li>Advanced analytics</li>
+                        <li>Priority support</li>
+                        <li>Exclusive content access</li>
+                    </ul>
+                    <button class="plan-button" onclick="selectPlan('12-month')">
+                        Get Started
+                    </button>
+                </div>
             </div>
-            <div id="plansContainer" class="plans-container" style="display: none;"></div>
         </section>
 
         <!-- User's Current Subscriptions -->
