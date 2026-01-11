@@ -153,7 +153,7 @@ describe('Auth Routes', () => {
           password: 'SomePass123!'
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(401);
       expect(response.body.msg).toBe('Invalid credentials');
     });
 

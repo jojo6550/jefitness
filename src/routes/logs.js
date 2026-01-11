@@ -11,7 +11,7 @@ const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 setInterval(() => {
   if (realtimeLogs.length > MAX_LOGS) {
     const removedCount = realtimeLogs.length - MAX_LOGS;
-    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
     console.log(`Log cleanup: Removed ${removedCount} old log entries`);
   }
 }, CLEANUP_INTERVAL);
@@ -32,9 +32,9 @@ console.log = function(...args) {
     ip: null,
     userAgent: null
   };
-  realtimeLogs.unshift(logEntry);
+  realtimeLogs.push(logEntry);
   if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
   }
   originalConsoleLog.apply(console, args);
 };
@@ -50,9 +50,9 @@ console.error = function(...args) {
     ip: null,
     userAgent: null
   };
-  realtimeLogs.unshift(logEntry);
+  realtimeLogs.push(logEntry);
   if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(0, MAX_LOGS);
+    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
   }
   originalConsoleError.apply(console, args);
 };
@@ -175,5 +175,8 @@ router.get('/export', auth, (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
+// Attach realtimeLogs to router for testing
+router.realtimeLogs = realtimeLogs;
 
 module.exports = router;

@@ -26,7 +26,7 @@ const requireDbConnection = (req, res, next) => {
     console.warn(`[DB] Database ${connectionState === 2 ? 'connecting' : 'disconnecting'}, request queued or rejected`);
     
     // For login, we should reject - can't authenticate without DB
-    if (req.path.includes('/auth/login')) {
+    if (req.path.includes('login')) {
       return res.status(503).json({
         msg: 'Service temporarily unavailable. Database connection in progress.',
         retryAfter: 10

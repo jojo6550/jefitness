@@ -6,6 +6,7 @@ class CacheService {
   constructor() {
     this.memoryCache = new Map(); // In-memory cache
     this.memoryCacheTTL = new Map(); // TTL tracking for memory cache
+    this.getTime = () => Date.now(); // Time function, can be mocked for testing
   }
 
   /**
@@ -44,7 +45,8 @@ class CacheService {
   async get(key) {
     // Check if entry has expired
     const expiry = this.memoryCacheTTL.get(key);
-    if (expiry && Date.now() > expiry) {
+    const now = this.getTime();
+    if (expiry && now > expiry) {
       this.memoryCache.delete(key);
       this.memoryCacheTTL.delete(key);
       return null;
@@ -55,7 +57,7 @@ class CacheService {
   async set(key, value, ttl = 3600) {
     // Store in memory cache with TTL
     this.memoryCache.set(key, value);
-    this.memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+    this.memoryCacheTTL.set(key, this.getTime() + (ttl * 1000));
   }
 
   async del(key) {

@@ -9,6 +9,8 @@ describe('Cache Service - Memory Cache', () => {
       clearInterval(cacheService.memoryCacheCleanupInterval);
       cacheService.memoryCacheCleanupInterval = null;
     }
+    // Mock getTime for testing
+    cacheService.getTime = jest.fn(() => Date.now());
   });
 
   afterEach(async () => {
@@ -80,8 +82,9 @@ describe('Cache Service - Memory Cache', () => {
         // Set with very short TTL (1 second)
         await cacheService.set(key, value, 1);
 
-        // Advance time past expiration
-        jest.advanceTimersByTime(2000);
+        // Advance time past expiration by mocking getTime
+        const originalTime = Date.now();
+        cacheService.getTime.mockReturnValue(originalTime + 2000);
 
         const retrieved = await cacheService.get(key);
         expect(retrieved).toBe(null);
