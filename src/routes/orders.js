@@ -13,7 +13,13 @@ function generateOrderNumber() {
     return `ORD-${timestamp}-${random}`;
 }
 
-// POST /api/orders - Create new order from cart
+/**
+ * @route POST /api/v1/orders
+ * @desc Create order from product cart using Stripe payment
+ * @access Private
+ * @note Subscriptions use separate /api/v1/subscriptions endpoints
+ *       Orders are only for physical/digital products, NOT subscriptions
+ */
 router.post('/', auth, async (req, res) => {
     try {
         const { paymentMethod, billingInfo } = req.body;

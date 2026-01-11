@@ -188,7 +188,43 @@ const UserSchema = new mongoose.Schema({
         ipAddress: { type: String },
         userAgent: { type: String },
         details: { type: mongoose.Schema.Types.Mixed }
-    }]
+    }],
+
+    // ===== STRIPE SUBSCRIPTION FIELDS =====
+    // Stripe customer ID - links user to Stripe account
+    stripeCustomerId: { type: String, unique: true, sparse: true },
+    
+    // Current subscription details
+    subscriptionId: { type: String }, // Stripe subscription ID
+    subscriptionStatus: { 
+        type: String, 
+        enum: ['none', 'active', 'past_due', 'canceled', 'unpaid', 'trialing'],
+        default: 'none'
+    },
+    subscriptionPriceId: { type: String }, // Stripe Price ID for current plan
+    subscriptionPlan: { 
+        type: String,
+        enum: ['free', '1-month', '3-month', '6-month', '12-month'],
+        default: 'free'
+    },
+    subscriptionStartDate: { type: Date },
+    subscriptionEndDate: { type: Date },
+    subscriptionRenewalDate: { type: Date },
+    
+    // Billing environment tracking
+    billingEnvironment: {
+        type: String,
+        enum: ['test', 'production'],
+        default: 'test'
+    },
+    
+    // Free tier flag
+    hasFreeTier: { type: Boolean, default: true },
+    
+    // Subscription metadata
+    stripeCheckoutSessionId: { type: String },
+    lastPaymentFailure: { type: Date },
+    lastPaymentFailureReason: { type: String }
 });
 
 // Database indexes for optimization
@@ -196,6 +232,9 @@ UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 });
+UserSchema.index({ stripeCustomerId: 1 });
+UserSchema.index({ subscriptionId: 1 });
+UserSchema.index({ subscriptionStatus: 1 });
 
 // Encrypt sensitive fields
 const encKey = process.env.ENCRYPTION_KEY;

@@ -22,7 +22,38 @@ const {
 const router = express.Router();
 
 // ===========================
-// GET ENDPOINTS
+// MIDDLEWARE
+// ===========================
+
+/**
+ * Middleware to check if user is authenticated
+ * If not authenticated and trying to access subscription, redirect to login
+ */
+const ensureAuthenticated = (req, res, next) => {
+  if (!req.user || !req.user.id) {
+    // For API calls, return 401
+    if (req.path.startsWith('/api')) {
+      return res.status(401).json({
+        success: false,
+        error: {
+          message: 'Authentication required. Please log in to access subscriptions.'
+        }
+      });
+    }
+    // Otherwise, redirect to login (for browser requests)
+    return res.status(401).json({
+      success: false,
+      error: {
+        message: 'Please log in first',
+        redirect: '/login.html'
+      }
+    });
+  }
+  next();
+};
+
+// ===========================
+// PUBLIC ENDPOINTS (No Auth Required)
 // ===========================
 
 /**
@@ -33,327 +64,29 @@ router.get('/plans', (req, res) => {
   try {
     res.json({
       success: true,
-      data: PLAN_PRICING
+      data: {
+        plans: PLAN_PRICING,
+        free: { amount: 0, currency: 'usd', duration: 'Unlimited', features: ['Basic access'] }
+      }
     });
   } catch (error) {
     console.error('Error fetching plans:', error);
     res.status(500).json({
       success: false,
-      error: {
-        message: 'Failed to fetch plans'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/v1/subscriptions/user/:userId
- * Get all subscriptions for a logged-in user
- */
-router.get('/user/:userId', auth, [
-  param('userId').isMongoId()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { userId } = req.params;
-
-    // Security: Ensure user can only access their own subscriptions
-    if (req.user.user.id !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          message: 'Unauthorized: Cannot access other user\'s subscriptions'
-        }
-      });
-    }
-
-    // Find user subscriptions in database
-    const subscriptions = await Subscription.find({ userId }).populate('userId', 'email firstName lastName');
-
-    res.json({
-      success: true,
-      data: {
-        subscriptions,
-        count: subscriptions.length
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving user subscriptions:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to retrieve subscriptions'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/v1/subscriptions/stripe/:customerId
- * Get all subscriptions from Stripe for a customer
- */
-router.get('/stripe/:customerId', [
-  param('customerId').isString().notEmpty()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { customerId } = req.params;
-
-    // Get customer subscriptions from Stripe
-    const subscriptions = await getCustomerSubscriptions(customerId);
-
-    res.json({
-      success: true,
-      data: {
-        subscriptions,
-        count: subscriptions.length
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving Stripe subscriptions:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to retrieve subscriptions'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/v1/subscriptions/:subscriptionId
- * Get a single subscription details
- */
-router.get('/:subscriptionId', [
-  param('subscriptionId').isString().notEmpty()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { subscriptionId } = req.params;
-
-    // Try to get from database first
-    let subscription = await Subscription.findOne({ stripeSubscriptionId: subscriptionId });
-
-    // If not in database, fetch from Stripe
-    if (!subscription) {
-      const stripeSubscription = await getSubscription(subscriptionId);
-      res.json({
-        success: true,
-        data: {
-          subscription: stripeSubscription,
-          source: 'stripe'
-        }
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: {
-        subscription,
-        source: 'database'
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving subscription:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to retrieve subscription'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/v1/subscriptions/:subscriptionId/invoices
- * Get invoices for a subscription
- */
-router.get('/:subscriptionId/invoices', [
-  param('subscriptionId').isString().notEmpty()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { subscriptionId } = req.params;
-    const invoices = await getSubscriptionInvoices(subscriptionId);
-
-    res.json({
-      success: true,
-      data: {
-        invoices,
-        count: invoices.length
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving invoices:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to retrieve invoices'
-      }
-    });
-  }
-});
-
-/**
- * GET /api/v1/subscriptions/:customerId/payment-methods
- * Get payment methods for a customer
- */
-router.get('/customer/:customerId/payment-methods', [
-  param('customerId').isString().notEmpty()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { customerId } = req.params;
-    const paymentMethods = await getPaymentMethods(customerId);
-
-    res.json({
-      success: true,
-      data: {
-        paymentMethods,
-        count: paymentMethods.length
-      }
-    });
-  } catch (error) {
-    console.error('Error retrieving payment methods:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to retrieve payment methods'
-      }
+      error: { message: 'Failed to fetch plans' }
     });
   }
 });
 
 // ===========================
-// POST ENDPOINTS
+// AUTHENTICATED ENDPOINTS
 // ===========================
-
-/**
- * POST /api/v1/subscriptions/create
- * Create a new subscription
- */
-router.post('/create', auth, [
-  body('email').isEmail().normalizeEmail(),
-  body('paymentMethodId').isString().notEmpty(),
-  body('plan').isIn(['1-month', '3-month', '6-month', '12-month'])
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
-      });
-    }
-
-    const { email, paymentMethodId, plan } = req.body;
-    const userId = req.user.user.id;
-
-    // Create or retrieve Stripe customer
-    const customer = await createOrRetrieveCustomer(email, paymentMethodId, {
-      userId: userId,
-      source: 'subscription_creation'
-    });
-
-    // Create subscription in Stripe
-    const stripeSubscription = await createSubscription(customer.id, plan);
-
-    // Save to database
-    const subscription = await Subscription.create({
-      userId,
-      stripeCustomerId: customer.id,
-      stripeSubscriptionId: stripeSubscription.id,
-      plan,
-      stripePriceId: PRICE_IDS[plan],
-      currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
-      status: stripeSubscription.status,
-      amount: PLAN_PRICING[plan].amount,
-      paymentMethodId
-    });
-
-    res.status(201).json({
-      success: true,
-      data: {
-        subscription,
-        customer: {
-          id: customer.id,
-          email: customer.email
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error creating subscription:', error);
-    res.status(500).json({
-      success: false,
-      error: {
-        message: error.message || 'Failed to create subscription'
-      }
-    });
-  }
-});
 
 /**
  * POST /api/v1/subscriptions/checkout-session
- * Create a Stripe Checkout session for subscription
+ * Create a Stripe Checkout session (with authentication)
  */
 router.post('/checkout-session', auth, [
-  body('email').isEmail().normalizeEmail(),
   body('plan').isIn(['1-month', '3-month', '6-month', '12-month']),
   body('successUrl').isURL(),
   body('cancelUrl').isURL()
@@ -370,13 +103,44 @@ router.post('/checkout-session', auth, [
       });
     }
 
-    const { email, plan, successUrl, cancelUrl } = req.body;
+    const { plan, successUrl, cancelUrl } = req.body;
+    const userId = req.user.id;
+
+    // Get user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'User not found' }
+      });
+    }
+
+    // Validate required account fields
+    if (!user.firstName || !user.lastName || !user.email) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Please complete your account information before purchasing',
+          requiredFields: ['firstName', 'lastName', 'email']
+        }
+      });
+    }
 
     // Create or retrieve Stripe customer
-    const customer = await createOrRetrieveCustomer(email, null, {
-      email: email,
-      source: 'checkout_session'
-    });
+    let customer;
+    if (user.stripeCustomerId) {
+      customer = await stripe.customers.retrieve(user.stripeCustomerId);
+    } else {
+      customer = await createOrRetrieveCustomer(user.email, null, {
+        userId: userId,
+        firstName: user.firstName,
+        lastName: user.lastName
+      });
+      // Save Stripe customer ID to user
+      user.stripeCustomerId = customer.id;
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+      await user.save();
+    }
 
     // Create checkout session
     const session = await createCheckoutSession(
@@ -386,11 +150,15 @@ router.post('/checkout-session', auth, [
       cancelUrl
     );
 
+    // Store checkout session ID for later reference
+    user.stripeCheckoutSessionId = session.id;
+    await user.save();
+
     res.json({
       success: true,
       data: {
-        session,
-        sessionUrl: session.url
+        sessionId: session.id,
+        url: session.url
       }
     });
 
@@ -398,9 +166,107 @@ router.post('/checkout-session', auth, [
     console.error('Error creating checkout session:', error);
     res.status(500).json({
       success: false,
-      error: {
-        message: error.message || 'Failed to create checkout session'
+      error: { message: error.message || 'Failed to create checkout session' }
+    });
+  }
+});
+
+/**
+ * GET /api/v1/subscriptions/user/current
+ * Get current user's active subscription
+ */
+router.get('/user/current', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user to check subscription status
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'User not found' }
+      });
+    }
+
+    // If no subscription, return free tier info
+    if (!user.subscriptionId || user.subscriptionStatus === 'none') {
+      return res.json({
+        success: true,
+        data: {
+          plan: 'free',
+          status: 'active',
+          hasSubscription: false,
+          message: 'You are on the free tier'
+        }
+      });
+    }
+
+    // Get subscription from database
+    const subscription = await Subscription.findOne({
+      userId,
+      stripeSubscriptionId: user.subscriptionId
+    });
+
+    if (!subscription) {
+      return res.json({
+        success: true,
+        data: {
+          plan: user.subscriptionPlan || 'free',
+          status: user.subscriptionStatus || 'none',
+          hasSubscription: user.subscriptionStatus === 'active'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: subscription._id,
+        plan: subscription.plan,
+        status: subscription.status,
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        amount: subscription.amount,
+        currency: subscription.currency,
+        billingEnvironment: subscription.billingEnvironment,
+        canceledAt: subscription.canceledAt,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd
       }
+    });
+
+  } catch (error) {
+    console.error('Error fetching user subscription:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to fetch subscription' }
+    });
+  }
+});
+
+/**
+ * GET /api/v1/subscriptions/user/all
+ * Get all subscriptions for authenticated user
+ */
+router.get('/user/all', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const subscriptions = await Subscription.find({ userId })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      data: {
+        subscriptions,
+        count: subscriptions.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving user subscriptions:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message || 'Failed to retrieve subscriptions' }
     });
   }
 });
@@ -418,16 +284,13 @@ router.post('/:subscriptionId/update-plan', auth, [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
+        error: { message: 'Validation failed', details: errors.array() }
       });
     }
 
     const { subscriptionId } = req.params;
     const { plan } = req.body;
-    const userId = req.user.user.id;
+    const userId = req.user.id;
 
     // Verify user owns this subscription
     const subscription = await Subscription.findOne({
@@ -438,9 +301,7 @@ router.post('/:subscriptionId/update-plan', auth, [
     if (!subscription) {
       return res.status(404).json({
         success: false,
-        error: {
-          message: 'Subscription not found'
-        }
+        error: { message: 'Subscription not found' }
       });
     }
 
@@ -454,7 +315,15 @@ router.post('/:subscriptionId/update-plan', auth, [
     subscription.currentPeriodStart = new Date(updatedStripeSubscription.current_period_start * 1000);
     subscription.currentPeriodEnd = new Date(updatedStripeSubscription.current_period_end * 1000);
     subscription.status = updatedStripeSubscription.status;
+    subscription.updatedAt = new Date();
     await subscription.save();
+
+    // Update user record
+    const user = await User.findById(userId);
+    user.subscriptionPlan = plan;
+    user.subscriptionStatus = updatedStripeSubscription.status;
+    user.subscriptionEndDate = new Date(updatedStripeSubscription.current_period_end * 1000);
+    await user.save();
 
     res.json({
       success: true,
@@ -468,16 +337,10 @@ router.post('/:subscriptionId/update-plan', auth, [
     console.error('Error updating subscription plan:', error);
     res.status(500).json({
       success: false,
-      error: {
-        message: error.message || 'Failed to update subscription plan'
-      }
+      error: { message: error.message || 'Failed to update subscription plan' }
     });
   }
 });
-
-// ===========================
-// DELETE/CANCEL ENDPOINTS
-// ===========================
 
 /**
  * DELETE /api/v1/subscriptions/:subscriptionId/cancel
@@ -492,16 +355,13 @@ router.delete('/:subscriptionId/cancel', auth, [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
+        error: { message: 'Validation failed', details: errors.array() }
       });
     }
 
     const { subscriptionId } = req.params;
     const { atPeriodEnd = false } = req.body;
-    const userId = req.user.user.id;
+    const userId = req.user.id;
 
     // Verify user owns this subscription
     const subscription = await Subscription.findOne({
@@ -512,9 +372,7 @@ router.delete('/:subscriptionId/cancel', auth, [
     if (!subscription) {
       return res.status(404).json({
         success: false,
-        error: {
-          message: 'Subscription not found'
-        }
+        error: { message: 'Subscription not found' }
       });
     }
 
@@ -525,13 +383,24 @@ router.delete('/:subscriptionId/cancel', auth, [
     subscription.status = canceledSubscription.status;
     subscription.canceledAt = new Date();
     subscription.cancelAtPeriodEnd = atPeriodEnd;
+    subscription.updatedAt = new Date();
     await subscription.save();
+
+    // Update user record
+    const user = await User.findById(userId);
+    if (!atPeriodEnd) {
+      user.subscriptionStatus = 'canceled';
+      user.subscriptionId = null;
+    } else {
+      user.subscriptionStatus = 'cancel_pending';
+    }
+    await user.save();
 
     res.json({
       success: true,
       data: {
         subscription,
-        message: atPeriodEnd 
+        message: atPeriodEnd
           ? 'Subscription will be canceled at the end of the billing period'
           : 'Subscription has been canceled immediately'
       }
@@ -541,16 +410,14 @@ router.delete('/:subscriptionId/cancel', auth, [
     console.error('Error canceling subscription:', error);
     res.status(500).json({
       success: false,
-      error: {
-        message: error.message || 'Failed to cancel subscription'
-      }
+      error: { message: error.message || 'Failed to cancel subscription' }
     });
   }
 });
 
 /**
  * POST /api/v1/subscriptions/:subscriptionId/resume
- * Resume a subscription that was canceled
+ * Resume a canceled subscription
  */
 router.post('/:subscriptionId/resume', auth, [
   param('subscriptionId').isString().notEmpty()
@@ -560,15 +427,12 @@ router.post('/:subscriptionId/resume', auth, [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
-        }
+        error: { message: 'Validation failed', details: errors.array() }
       });
     }
 
     const { subscriptionId } = req.params;
-    const userId = req.user.user.id;
+    const userId = req.user.id;
 
     // Verify user owns this subscription
     const subscription = await Subscription.findOne({
@@ -579,9 +443,7 @@ router.post('/:subscriptionId/resume', auth, [
     if (!subscription) {
       return res.status(404).json({
         success: false,
-        error: {
-          message: 'Subscription not found'
-        }
+        error: { message: 'Subscription not found' }
       });
     }
 
@@ -592,7 +454,14 @@ router.post('/:subscriptionId/resume', auth, [
     subscription.status = resumedSubscription.status;
     subscription.canceledAt = null;
     subscription.cancelAtPeriodEnd = false;
+    subscription.updatedAt = new Date();
     await subscription.save();
+
+    // Update user record
+    const user = await User.findById(userId);
+    user.subscriptionStatus = 'active';
+    user.subscriptionId = subscriptionId;
+    await user.save();
 
     res.json({
       success: true,
@@ -606,9 +475,58 @@ router.post('/:subscriptionId/resume', auth, [
     console.error('Error resuming subscription:', error);
     res.status(500).json({
       success: false,
-      error: {
-        message: error.message || 'Failed to resume subscription'
+      error: { message: error.message || 'Failed to resume subscription' }
+    });
+  }
+});
+
+/**
+ * GET /api/v1/subscriptions/:subscriptionId/invoices
+ * Get invoices for authenticated user's subscription
+ */
+router.get('/:subscriptionId/invoices', auth, [
+  param('subscriptionId').isString().notEmpty()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Validation failed', details: errors.array() }
+      });
+    }
+
+    const { subscriptionId } = req.params;
+    const userId = req.user.id;
+
+    // Verify user owns this subscription
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: subscriptionId,
+      userId
+    });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'Subscription not found' }
+      });
+    }
+
+    const invoices = await getSubscriptionInvoices(subscriptionId);
+
+    res.json({
+      success: true,
+      data: {
+        invoices,
+        count: invoices.length
       }
+    });
+
+  } catch (error) {
+    console.error('Error retrieving invoices:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: error.message || 'Failed to retrieve invoices' }
     });
   }
 });

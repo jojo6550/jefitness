@@ -322,6 +322,181 @@ router.post('/login', requireDbConnection, [
 
 /**
  * @swagger
+ * /api/v1/auth/account:
+ *   get:
+ *     summary: Get logged in user's account information
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account information retrieved successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/account', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        console.log(`User action: account_info_accessed | UserId: ${req.user.id}`);
+        res.json({
+            id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone,
+            createdAt: user.createdAt,
+            subscriptionStatus: user.subscriptionStatus,
+            subscriptionPlan: user.subscriptionPlan,
+            billingEnvironment: user.billingEnvironment,
+            stripeCustomerId: user.stripeCustomerId
+        });
+    } catch (err) {
+        console.error(`Error: ${JSON.stringify(err)} | Context: Get account info | UserId: ${req.user.id}`);
+        res.status(500).send('Server Error');
+    }
+});
+
+/**
+ * @swagger
+ * /api/v1/auth/account:
+ *   put:
+ *     summary: Update account information (name, email, password)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               currentPassword:
+ *                 type: string
+ *                 description: Required if changing password
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account updated successfully
+ *       400:
+ *         description: Validation failed or invalid current password
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+router.put('/account', auth, [
+    body('firstName').optional().trim().isLength({ min: 1 }),
+    body('lastName').optional().trim().isLength({ min: 1 }),
+    body('email').optional().isEmail().normalizeEmail({ gmail_remove_dots: false }),
+    body('newPassword').optional().isLength({ min: 8 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+    }
+
+    const { firstName, lastName, email, currentPassword, newPassword } = req.body;
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // If changing password, verify current password
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ msg: 'Current password is required to change password' });
+            }
+
+            const isMatch = await bcrypt.compare(currentPassword, user.password);
+            if (!isMatch) {
+                console.log(`Security event: password_change_failed | UserId: ${user._id} | Reason: Invalid current password`);
+                return res.status(400).json({ msg: 'Current password is incorrect' });
+            }
+
+            // Validate new password strength
+            const passwordError = validatePasswordStrength(newPassword);
+            if (passwordError) {
+                return res.status(400).json({ msg: passwordError });
+            }
+
+            // Hash and update password
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
+            console.log(`Security event: password_changed | UserId: ${user._id}`);
+        }
+
+        // Update name fields
+        if (firstName !== undefined) user.firstName = firstName;
+        if (lastName !== undefined) user.lastName = lastName;
+
+        // If email is changing, check for duplicates and sync with Stripe
+        if (email && email !== user.email) {
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({ msg: 'Email is already in use' });
+            }
+
+            user.email = email;
+
+            // Sync email with Stripe customer
+            if (user.stripeCustomerId) {
+                try {
+                    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+                    await stripe.customers.update(user.stripeCustomerId, {
+                        email: email,
+                        metadata: {
+                            firstName: user.firstName,
+                            lastName: user.lastName
+                        }
+                    });
+                    console.log(`Stripe customer ${user.stripeCustomerId} updated with new email: ${email}`);
+                } catch (stripeErr) {
+                    console.warn(`Failed to sync email with Stripe: ${stripeErr.message}`);
+                    // Don't fail the request if Stripe update fails
+                }
+            }
+        }
+
+        await user.save();
+
+        console.log(`User action: account_updated | UserId: ${user._id} | Email: ${user.email}`);
+        res.json({
+            msg: 'Account updated successfully',
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phone,
+                subscriptionStatus: user.subscriptionStatus,
+                subscriptionPlan: user.subscriptionPlan
+            }
+        });
+    } catch (err) {
+        console.error(`Error: ${JSON.stringify(err)} | Context: Update account | UserId: ${req.user.id}`);
+        res.status(500).send('Server Error');
+    }
+});
+
+/**
+ * @swagger
  * /api/auth/me:
  *   get:
  *     summary: Get logged in user's full profile details

@@ -21,6 +21,7 @@ let selectedPlan = null;
 let cardElement = null;
 let currentSubscriptionId = null;
 let userToken = null;
+let availablePlans = null;
 
 // DOM Elements
 const alertContainer = document.getElementById('alertContainer');
@@ -135,6 +136,7 @@ async function loadPlans() {
         const data = await response.json();
         
         if (data.success && data.data) {
+            availablePlans = data.data;
             displayPlans(data.data);
             plansLoading.style.display = 'none';
             plansContainer.style.display = 'grid';
@@ -425,19 +427,32 @@ function displayUserSubscriptions(subscriptions) {
 function openUpgradeModal(subscriptionId) {
     currentSubscriptionId = subscriptionId;
     const planSelectionModal = new bootstrap.Modal(document.getElementById('planSelectionModal'));
-    
-    // Load available plans for upgrade
+
+    // Load available plans for upgrade using actual prices
     const container = document.getElementById('planSelectionContainer');
-    container.innerHTML = `
-        <p class="text-muted mb-3">Select a different plan to upgrade or downgrade:</p>
-        <div style="display: grid; gap: 15px;">
+    let plansHtml = '<p class="text-muted mb-3">Select a different plan to upgrade or downgrade:</p><div style="display: grid; gap: 15px;">';
+
+    if (availablePlans) {
+        const planOrder = ['1-month', '3-month', '6-month', '12-month'];
+        planOrder.forEach(planKey => {
+            const plan = availablePlans[planKey];
+            if (plan) {
+                plansHtml += `<button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('${planKey}')">${plan.duration} - ${plan.displayPrice}/mo</button>`;
+            }
+        });
+    } else {
+        // Fallback to hardcoded if plans not loaded
+        plansHtml += `
             <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('1-month')">1-Month Plan - $9.99/mo</button>
             <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('3-month')">3-Month Plan - $27.99/mo</button>
             <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('6-month')">6-Month Plan - $49.99/mo</button>
             <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('12-month')">12-Month Plan - $89.99/mo</button>
-        </div>
-    `;
-    
+        `;
+    }
+
+    plansHtml += '</div>';
+    container.innerHTML = plansHtml;
+
     planSelectionModal.show();
 }
 

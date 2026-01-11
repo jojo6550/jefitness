@@ -111,6 +111,19 @@ const SubscriptionSchema = new mongoose.Schema({
     default: null
   },
   
+  // Billing environment (test or production)
+  billingEnvironment: {
+    type: String,
+    enum: ['test', 'production'],
+    default: 'test'
+  },
+
+  // Checkout session tracking
+  checkoutSessionId: {
+    type: String,
+    sparse: true
+  },
+
   // Invoice tracking
   invoices: [{
     stripeInvoiceId: String,
@@ -119,6 +132,13 @@ const SubscriptionSchema = new mongoose.Schema({
     paidAt: Date,
     dueDatetime: Date,
     url: String
+  }],
+
+  // Event log for webhook processing
+  eventLog: [{
+    eventType: String, // 'customer.subscription.created', 'invoice.payment_succeeded', etc.
+    timestamp: { type: Date, default: Date.now },
+    metadata: mongoose.Schema.Types.Mixed
   }]
 });
 

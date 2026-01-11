@@ -4,7 +4,13 @@ const Cart = require('../models/Cart');
 const Program = require('../models/Program');
 const auth = require('../middleware/auth');
 
-// GET /api/cart - Get user's cart
+/**
+ * @route GET /api/v1/cart
+ * @desc Get user's product cart (separate from subscriptions)
+ * @access Private
+ * @note Subscriptions are managed via /api/v1/subscriptions routes
+ *       Cart contains only physical/digital products, NOT subscriptions
+ */
 router.get('/', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) {
