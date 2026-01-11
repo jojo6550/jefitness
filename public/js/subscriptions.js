@@ -261,7 +261,7 @@ function selectPlan(plan) {
         // Redirect to login if not authenticated
         showAlert('Please log in to subscribe', 'info');
         setTimeout(() => {
-            window.location.href = '/auth.html?redirect=/subscriptions.html';
+            window.location.href = '/pages/login.html?redirect=/subscriptions.html';
         }, 1500);
         return;
     }
@@ -723,5 +723,5 @@ function showAlert(message, type = 'info') {
  */
 function logout() {
     localStorage.removeItem('token');
-    window.location.href = '/auth.html';
+    window.location.href = '/pages/login.html';
 }

@@ -96,13 +96,22 @@ const baseUrl = isLocalhost
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
 
-          // Role-based redirection
-          if (data.user.role === 'admin') {
-            window.location.href = '../pages/admin-dashboard.html';
-          } else if (data.user.role === 'trainer') {
-            window.location.href = '../pages/trainer-dashboard.html';
+          // Check for redirect parameter
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectPath = urlParams.get('redirect');
+
+          if (redirectPath) {
+            // Redirect to the specified path
+            window.location.href = redirectPath;
           } else {
-            window.location.href = '../pages/dashboard.html';
+            // Role-based redirection
+            if (data.user.role === 'admin') {
+              window.location.href = '../pages/admin-dashboard.html';
+            } else if (data.user.role === 'trainer') {
+              window.location.href = '../pages/trainer-dashboard.html';
+            } else {
+              window.location.href = '../pages/dashboard.html';
+            }
           }
         } else {
           showMessage(data.msg || 'Login failed', 'error');
