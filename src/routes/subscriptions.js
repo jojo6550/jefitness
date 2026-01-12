@@ -92,10 +92,9 @@ router.get('/plans', async (req, res) => {
 
 /**
  * POST /api/v1/subscriptions/create
- * Create a new subscription (legacy endpoint for backward compatibility)
+ * Create a new subscription (authenticated endpoint)
  */
-router.post('/create', [
-  body('email').isEmail(),
+router.post('/create', auth, [
   body('paymentMethodId').isString().notEmpty(),
   body('plan').isIn(['1-month', '3-month', '6-month', '12-month'])
 ], async (req, res) => {
@@ -111,11 +110,20 @@ router.post('/create', [
       });
     }
 
-    const { email, paymentMethodId, plan } = req.body;
+    const { paymentMethodId, plan } = req.body;
+    const userId = req.user.id;
+
+    // Get user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'User not found' }
+      });
+    }
 
     // Check if user already has an active subscription
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser && existingUser.hasActiveSubscription()) {
+    if (user.hasActiveSubscription()) {
       return res.status(400).json({
         success: false,
         error: {
@@ -125,28 +133,72 @@ router.post('/create', [
       });
     }
 
-    // Create or retrieve Stripe customer
-    const customer = await createOrRetrieveCustomer(email, paymentMethodId);
+    // Get or create Stripe customer
+    let customer;
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    if (user.stripeCustomerId) {
+      try {
+        customer = await stripe.customers.retrieve(user.stripeCustomerId);
+        // Check if customer was deleted
+        if (customer.deleted) {
+          customer = await stripe.customers.create({
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            metadata: { userId: userId }
+          });
+          user.stripeCustomerId = customer.id;
+        }
+      } catch (err) {
+        // Customer doesn't exist, create new one
+        customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          metadata: { userId: userId }
+        });
+        user.stripeCustomerId = customer.id;
+      }
+    } else {
+      customer = await stripe.customers.create({
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        metadata: { userId: userId }
+      });
+      user.stripeCustomerId = customer.id;
+    }
+
+    // Attach payment method to customer
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
+      await stripe.customers.update(customer.id, {
+        invoice_settings: { default_payment_method: paymentMethodId }
+      });
+    } catch (attachError) {
+      console.error('Payment method attach error:', attachError.message);
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Invalid payment method' }
+      });
+    }
 
     // Create subscription
     const subscription = await createSubscription(customer.id, plan);
 
     // Update user's database record with subscription info
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (user) {
-      user.stripeCustomerId = customer.id;
-      user.stripeSubscriptionId = subscription.id;
-      user.subscriptionStatus = subscription.status;
-      user.subscriptionType = plan;
-      user.stripePriceId = subscription.items.data[0]?.price.id;
-      user.currentPeriodStart = new Date(subscription.current_period_start * 1000);
-      user.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-      user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
-      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+    user.stripeSubscriptionId = subscription.id;
+    user.subscriptionStatus = subscription.status;
+    user.subscriptionType = plan;
+    user.stripePriceId = subscription.items.data[0]?.price.id;
+    user.currentPeriodStart = new Date(subscription.current_period_start * 1000);
+    user.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 
-      await user.save();
-      console.log(`✅ User subscription updated in database: ${user._id}`);
-    }
+    await user.save();
+    console.log(`✅ User subscription updated in database: ${user._id}`);
 
     res.status(201).json({
       success: true,
@@ -160,10 +212,11 @@ router.post('/create', [
     });
 
   } catch (error) {
-    console.error('Error creating subscription:', error);
+    console.error('Error creating subscription:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: { message: 'Failed to create subscription' }
+      error: { message: 'Failed to create subscription', details: error.message }
     });
   }
 });

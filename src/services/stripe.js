@@ -145,6 +145,18 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
       if (Object.keys(metadata).length > 0) {
         customer = await stripe.customers.update(customer.id, { metadata });
       }
+      // Attach payment method if provided and not already attached
+      if (paymentMethodId) {
+        try {
+          await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
+          await stripe.customers.update(customer.id, {
+            invoice_settings: { default_payment_method: paymentMethodId }
+          });
+        } catch (attachError) {
+          // Payment method might already be attached, ignore error
+          console.warn('Payment method attach warning:', attachError.message);
+        }
+      }
     } else {
       // Create new customer
       customer = await stripe.customers.create({
@@ -183,7 +195,11 @@ async function createSubscription(customerId, plan) {
       throw new Error(`No active recurring price found for plan: ${plan}`);
     }
 
-    const subscription = await getStripe().subscriptions.create({
+    // Get customer to check default payment method
+    const customer = await getStripe().customers.retrieve(customerId);
+    const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
+
+    const subscriptionData = {
       customer: customerId,
       items: [{
         price: priceId
@@ -192,7 +208,14 @@ async function createSubscription(customerId, plan) {
       expand: ['latest_invoice.payment_intent'],
       // Allow incomplete payment - customer can complete it later
       payment_behavior: 'allow_incomplete'
-    });
+    };
+
+    // Set default payment method if available
+    if (defaultPaymentMethod) {
+      subscriptionData.default_payment_method = defaultPaymentMethod;
+    }
+
+    const subscription = await getStripe().subscriptions.create(subscriptionData);
 
     return subscription;
   } catch (error) {
