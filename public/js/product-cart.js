@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sync local cart with server
     async function syncCart() {
         try {
-            const res = await fetch(`${baseUrl}/api/cart`, {
+            const res = await fetch(`${baseUrl}/api/v1/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Update server cart
             try {
-                await fetch(`${baseUrl}/api/cart/products/${productId}`, {
+                await fetch(`${baseUrl}/api/v1/cart/products/${productId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update server cart
         try {
-            await fetch(`${baseUrl}/api/cart/products/${productId}`, {
+            await fetch(`${baseUrl}/api/v1/cart/products/${productId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cancelUrl = `${currentUrl}/pages/cart.html`;
 
             // Create checkout session
-            const res = await fetch(`${baseUrl}/api/checkout/create-session`, {
+            const res = await fetch(`${baseUrl}/api/v1/checkout/create-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

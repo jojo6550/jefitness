@@ -203,6 +203,7 @@ app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction
 app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
 app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
 app.use('/api/v1/checkout', auth, apiLimiter, versioning, require('./routes/checkout'));
+app.use('/api/v1/products', auth, apiLimiter, versioning, require('./routes/products'));
 app.use('/webhooks', require('./routes/webhooks'));
 
 // API Documentation routes (only in development)

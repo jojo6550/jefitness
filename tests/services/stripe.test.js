@@ -869,6 +869,9 @@ describe('Stripe Service', () => {
       expect(typeof stripeService.getPriceIdForProduct).toBe('function');
       expect(typeof stripeService.getPlanPricing).toBe('function');
       expect(typeof stripeService.getAllActivePrices).toBe('function');
+      expect(typeof stripeService.createProductCheckoutSession).toBe('function');
+      expect(typeof stripeService.getCheckoutSession).toBe('function');
+      expect(typeof stripeService.getOrCreateProductCustomer).toBe('function');
     });
 
     it('should export product IDs configuration', () => {
@@ -880,7 +883,274 @@ describe('Stripe Service', () => {
       // Verify they use environment variables or fallback values
       expect(typeof stripeService.PRODUCT_IDS['1-month']).toBe('string');
     });
+  });
 
+  // ============================================
+  // CREATE PRODUCT CHECKOUT SESSION TESTS
+  // ============================================
+  describe('createProductCheckoutSession', () => {
+    const mockCustomerId = 'cus_test123';
+    const mockLineItems = [
+      { productId: 'seamoss-small', name: 'Seamoss Small', price: 1599, quantity: 2 },
+      { productId: 'coconut-water', name: 'Coconut Water', price: 899, quantity: 1 }
+    ];
+    const mockSuccessUrl = 'https://example.com/success';
+    const mockCancelUrl = 'https://example.com/cancel';
 
+    beforeEach(() => {
+      mockStripe.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_test123',
+        url: 'https://checkout.stripe.com/pay/cs_test123',
+        payment_status: 'unpaid',
+        amount_total: 4097
+      });
+    });
+
+    it('should create checkout session for products', async () => {
+      const session = await stripeService.createProductCheckoutSession(
+        mockCustomerId,
+        mockLineItems,
+        mockSuccessUrl,
+        mockCancelUrl
+      );
+
+      expect(session.id).toBe('cs_test123');
+      expect(session.url).toBe('https://checkout.stripe.com/pay/cs_test123');
+      expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith({
+        customer: mockCustomerId,
+        payment_method_types: ['card'],
+        mode: 'payment',
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Seamoss Small',
+                metadata: { productId: 'seamoss-small' }
+              },
+              unit_amount: 1599
+            },
+            quantity: 2
+          },
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Coconut Water',
+                metadata: { productId: 'coconut-water' }
+              },
+              unit_amount: 899
+            },
+            quantity: 1
+          }
+        ],
+        success_url: mockSuccessUrl,
+        cancel_url: mockCancelUrl,
+        metadata: expect.objectContaining({
+          customerId: mockCustomerId
+        })
+      });
+    });
+
+    it('should include order items in metadata', async () => {
+      await stripeService.createProductCheckoutSession(
+        mockCustomerId,
+        mockLineItems,
+        mockSuccessUrl,
+        mockCancelUrl
+      );
+
+      const createCall = mockStripe.checkout.sessions.create.mock.calls[0][0];
+      expect(createCall.metadata.orderItems).toBeDefined();
+      expect(JSON.parse(createCall.metadata.orderItems)).toHaveLength(2);
+    });
+
+    it('should throw error if Stripe fails', async () => {
+      mockStripe.checkout.sessions.create.mockRejectedValue(
+        new Error('Stripe API error')
+      );
+
+      await expect(
+        stripeService.createProductCheckoutSession(
+          mockCustomerId,
+          mockLineItems,
+          mockSuccessUrl,
+          mockCancelUrl
+        )
+      ).rejects.toThrow('Failed to create product checkout session');
+    });
+
+    it('should calculate correct total in metadata', async () => {
+      await stripeService.createProductCheckoutSession(
+        mockCustomerId,
+        mockLineItems,
+        mockSuccessUrl,
+        mockCancelUrl
+      );
+
+      const createCall = mockStripe.checkout.sessions.create.mock.calls[0][0];
+      // 1599 * 2 + 899 * 1 = 4097 cents = $40.97
+      expect(createCall.metadata.totalAmount).toBe('4097');
+    });
+
+    it('should handle empty line items', async () => {
+      mockStripe.checkout.sessions.create.mockResolvedValue({
+        id: 'cs_empty',
+        url: 'https://checkout.stripe.com/pay/cs_empty',
+        payment_status: 'unpaid',
+        amount_total: 0
+      });
+
+      const session = await stripeService.createProductCheckoutSession(
+        mockCustomerId,
+        [],
+        mockSuccessUrl,
+        mockCancelUrl
+      );
+
+      expect(session.id).toBe('cs_empty');
+      expect(mockStripe.checkout.sessions.create).toHaveBeenCalled();
+    });
+  });
+
+  // ============================================
+  // GET CHECKOUT SESSION TESTS
+  // ============================================
+  describe('getCheckoutSession', () => {
+    const mockSessionId = 'cs_test123';
+
+    it('should retrieve checkout session by ID', async () => {
+      mockStripe.checkout.sessions.create.mockResolvedValue({
+        id: mockSessionId,
+        payment_status: 'paid',
+        amount_total: 4097,
+        customer_email: 'test@example.com'
+      });
+
+      // First create a session
+      await stripeService.createProductCheckoutSession(
+        'cus_test123',
+        [{ productId: 'test', name: 'Test', price: 1000, quantity: 1 }],
+        'https://example.com/success',
+        'https://example.com/cancel'
+      );
+
+      // Mock the retrieve for getCheckoutSession
+      const mockSession = {
+        id: mockSessionId,
+        payment_status: 'paid',
+        amount_total: 4097,
+        customer_email: 'test@example.com'
+      };
+
+      // Since we need to test getCheckoutSession separately
+      // Let's mock checkout.sessions.retrieve
+      mockStripe.checkout.sessions.retrieve = jest.fn().mockResolvedValue(mockSession);
+
+      const session = await stripeService.getCheckoutSession(mockSessionId);
+
+      expect(session.id).toBe(mockSessionId);
+      expect(mockStripe.checkout.sessions.retrieve).toHaveBeenCalledWith(
+        mockSessionId,
+        { expand: ['line_items'] }
+      );
+    });
+
+    it('should return null for invalid session ID', async () => {
+      mockStripe.checkout.sessions.retrieve = jest.fn().mockRejectedValue(
+        new Error('No such session')
+      );
+
+      const session = await stripeService.getCheckoutSession('cs_invalid');
+
+      expect(session).toBeNull();
+    });
+  });
+
+  // ============================================
+  // GET OR CREATE PRODUCT CUSTOMER TESTS
+  // ============================================
+  describe('getOrCreateProductCustomer', () => {
+    const mockEmail = 'customer@example.com';
+    const mockUserId = 'user_123456';
+
+    it('should create new customer if not exists', async () => {
+      mockStripe.customers.list.mockResolvedValue({ data: [] });
+      mockStripe.customers.create.mockResolvedValue({
+        id: 'cus_new123',
+        email: mockEmail
+      });
+
+      const customer = await stripeService.getOrCreateProductCustomer(mockEmail, mockUserId);
+
+      expect(customer.id).toBe('cus_new123');
+      expect(mockStripe.customers.create).toHaveBeenCalledWith({
+        email: mockEmail,
+        metadata: {
+          userId: mockUserId,
+          type: 'product_customer'
+        }
+      });
+    });
+
+    it('should return existing customer by email', async () => {
+      mockStripe.customers.list.mockResolvedValue({
+        data: [{
+          id: 'cus_existing123',
+          email: mockEmail
+        }]
+      });
+
+      const customer = await stripeService.getOrCreateProductCustomer(mockEmail);
+
+      expect(customer.id).toBe('cus_existing123');
+      expect(mockStripe.customers.create).not.toHaveBeenCalled();
+    });
+
+    it('should update metadata for existing customer', async () => {
+      mockStripe.customers.list.mockResolvedValue({
+        data: [{
+          id: 'cus_existing123',
+          email: mockEmail
+        }]
+      });
+      mockStripe.customers.update.mockResolvedValue({
+        id: 'cus_existing123',
+        metadata: { userId: mockUserId, type: 'product_customer' }
+      });
+
+      const customer = await stripeService.getOrCreateProductCustomer(mockEmail, mockUserId);
+
+      expect(mockStripe.customers.update).toHaveBeenCalledWith(
+        'cus_existing123',
+        { metadata: { userId: mockUserId, type: 'product_customer' } }
+      );
+    });
+
+    it('should throw error on Stripe failure', async () => {
+      mockStripe.customers.list.mockRejectedValue(new Error('Stripe error'));
+
+      await expect(
+        stripeService.getOrCreateProductCustomer(mockEmail)
+      ).rejects.toThrow('Failed to get or create product customer');
+    });
+
+    it('should handle multiple customers by email', async () => {
+      mockStripe.customers.list.mockResolvedValue({
+        data: [
+          { id: 'cus_1', email: mockEmail },
+          { id: 'cus_2', email: mockEmail }
+        ]
+      });
+      // Should use the first one
+      mockStripe.customers.update.mockResolvedValue({
+        id: 'cus_1',
+        metadata: { type: 'product_customer' }
+      });
+
+      const customer = await stripeService.getOrCreateProductCustomer(mockEmail);
+
+      expect(customer.id).toBe('cus_1');
+    });
   });
 });
