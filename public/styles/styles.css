@@ -784,12 +784,24 @@ footer {
     padding: 0.75rem;
     background-color: var(--bg-input);
     transition: var(--transition-base);
+    position: relative;
+    min-height: 40px;
+    cursor: text;
 }
 
 #paymentModal #cardElement.StripeElement--focus {
     border-color: var(--primary-accent);
     box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25);
-    transform: scale(1.02);
+}
+
+#paymentModal #cardElement .StripeElement {
+    padding: 0.5rem 0;
+    cursor: text;
+    pointer-events: auto !important;
+}
+
+#paymentModal #cardElement iframe {
+    pointer-events: auto !important;
 }
 
 #paymentModal .d-grid .btn-primary {
