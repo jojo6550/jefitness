@@ -25,6 +25,7 @@ let cardElement = null;
 let currentSubscriptionId = null;
 let userToken = null;
 let availablePlans = null;
+let hasActiveSubscription = false;
 
 // DOM Elements
 const alertContainer = document.getElementById('alertContainer');
@@ -256,13 +257,19 @@ function getPlanFeatures(planKey) {
  */
 function selectPlan(plan) {
     selectedPlan = plan;
-    
+
     if (!userToken) {
         // Redirect to login if not authenticated
         showAlert('Please log in to subscribe', 'info');
         setTimeout(() => {
             window.location.href = '/pages/login.html?redirect=/subscriptions.html';
         }, 1500);
+        return;
+    }
+
+    // Check if user already has an active subscription
+    if (hasActiveSubscription) {
+        showAlert('You already have an active subscription. You can only cancel your current subscription.', 'warning');
         return;
     }
 
@@ -488,79 +495,7 @@ function displayUserSubscriptions(subscriptions) {
     });
 }
 
-/**
- * Open upgrade/change plan modal
- */
-function openUpgradeModal(subscriptionId) {
-    currentSubscriptionId = subscriptionId;
-    const planSelectionModal = new bootstrap.Modal(document.getElementById('planSelectionModal'));
 
-    // Load available plans for upgrade using actual prices
-    const container = document.getElementById('planSelectionContainer');
-    let plansHtml = '<p class="text-muted mb-3">Select a different plan to upgrade or downgrade:</p><div style="display: grid; gap: 15px;">';
-
-    if (availablePlans) {
-        const planOrder = ['1-month', '3-month', '6-month', '12-month'];
-        planOrder.forEach(planKey => {
-            const plan = availablePlans[planKey];
-            if (plan) {
-                plansHtml += `<button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('${planKey}')">${plan.duration} - ${plan.displayPrice}/mo</button>`;
-            }
-        });
-    } else {
-        // Fallback to hardcoded if plans not loaded
-        plansHtml += `
-            <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('1-month')">1-Month Plan - $9.99/mo</button>
-            <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('3-month')">3-Month Plan - $27.99/mo</button>
-            <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('6-month')">6-Month Plan - $49.99/mo</button>
-            <button class="btn btn-outline-primary w-100" onclick="changeSubscriptionPlan('12-month')">12-Month Plan - $89.99/mo</button>
-        `;
-    }
-
-    plansHtml += '</div>';
-    container.innerHTML = plansHtml;
-
-    planSelectionModal.show();
-}
-
-/**
- * Change subscription plan
- */
-async function changeSubscriptionPlan(newPlan) {
-    if (!currentSubscriptionId) {
-        showAlert('Subscription ID not found', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/subscriptions/${currentSubscriptionId}/update-plan`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-            },
-            body: JSON.stringify({
-                plan: newPlan
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showAlert(`✅ Subscription updated to ${newPlan} plan!`, 'success');
-            bootstrap.Modal.getInstance(document.getElementById('planSelectionModal')).hide();
-            setTimeout(() => {
-                loadUserSubscriptions();
-            }, 1500);
-        } else {
-            throw new Error(data.error?.message || 'Failed to update plan');
-        }
-
-    } catch (error) {
-        console.error('❌ Error updating plan:', error);
-        showAlert(`Failed to update plan: ${error.message}`, 'error');
-    }
-}
 
 /**
  * Open cancel subscription confirmation modal

@@ -248,8 +248,8 @@ async function handleSubscriptionDeleted(subscription) {
 
   try {
     // Find subscription in database
-    const dbSubscription = await Subscription.findOne({ 
-      stripeSubscriptionId: subscription.id 
+    const dbSubscription = await Subscription.findOne({
+      stripeSubscriptionId: subscription.id
     });
 
     if (!dbSubscription) {
@@ -264,6 +264,20 @@ async function handleSubscriptionDeleted(subscription) {
 
     await dbSubscription.save();
     console.log(`✅ Subscription marked as canceled in database: ${subscription.id}`);
+
+    // Update user subscription status to inactive (removed)
+    const user = await User.findOne({ stripeSubscriptionId: subscription.id });
+    if (user) {
+      user.subscriptionStatus = 'inactive';
+      user.stripeSubscriptionId = null;
+      user.subscriptionType = null;
+      user.stripePriceId = null;
+      user.currentPeriodStart = null;
+      user.currentPeriodEnd = null;
+      user.cancelAtPeriodEnd = false;
+      await user.save();
+      console.log(`✅ User subscription status removed: ${user._id}`);
+    }
 
   } catch (error) {
     console.error(`Error handling subscription deleted event:`, error);

@@ -31,8 +31,7 @@ window.initDashboard = async () => {
         if (adminLink) adminLink.style.display = 'none';
       }
 
-      // Load subscription status
-      loadSubscriptionStatus();
+
     } catch (err) {
       console.error('Error verifying admin status:', err);
       const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
