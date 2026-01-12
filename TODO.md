@@ -1,24 +1,18 @@
-# Stripe Subscription-Based Access Control Implementation
+# CORS Fix for Login Issue
 
-## Current Status
-- [x] Update Webhook Handlers: Modify src/routes/webhooks.js to update User model instead of Subscription model
-- [x] Apply Middleware to Routes: Add requireActiveSubscription to appointment routes
-- [x] Frontend Subscription Checks: Update appointments.js to check subscription status and disable UI accordingly
-- [x] Dashboard Subscription Display: Update dashboard.js to show subscription info
-- [x] Subscription Expiry Logic: Implement automatic status updates when currentPeriodEnd is reached
-- [x] Edge Case Handling: Handle cancellations, upgrades, and failed payments
+## Problem
+- Console errors showing CORS policy blocking fetch to 'http://localhost:10000/api/auth/login' from origin 'http://127.0.0.1:5501'
+- Tracking Prevention blocking storage access (browser-specific, not critical)
 
-## Implementation Steps
-1. Update webhook handlers to store subscription data in User model
-2. Apply requireActiveSubscription middleware to appointment creation and access routes
-3. Update frontend to check subscription status and hide/disable appointment features for non-subscribers
-4. Update dashboard to display current subscription information
-5. Implement automatic subscription expiry logic
-6. Handle edge cases like subscription cancellations and upgrades
-7. Ensure idempotent webhook processing
+## Solution Implemented
+- [x] Added 'http://127.0.0.1:5500' and 'http://127.0.0.1:5501' to allowedOrigins in corsConfig.js
+- [x] Added OPTIONS handler for /api/auth/* routes in server.js to handle CORS preflight before redirect
 
-## Testing Requirements
-- Test webhook processing with Stripe test events
-- Verify appointment blocking for non-subscribers
-- Test subscription expiry scenarios
-- Validate frontend UI state management
+## Files Modified
+- src/middleware/corsConfig.js: Added IP versions of localhost to allowed origins
+- src/server.js: Added OPTIONS handler for auth routes
+
+## Next Steps
+- Restart the server to apply CORS changes
+- Test login functionality from http://127.0.0.1:5501
+- Verify no more CORS errors in console

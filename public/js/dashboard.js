@@ -31,6 +31,8 @@ window.initDashboard = async () => {
         if (adminLink) adminLink.style.display = 'none';
       }
 
+      // Load subscription status
+      await loadSubscriptionStatus();
 
     } catch (err) {
       console.error('Error verifying admin status:', err);
@@ -97,7 +99,9 @@ async function loadSubscriptionStatus() {
             let statusClass = '';
 
             if (subscription.hasSubscription && subscription.status === 'active') {
-                statusText = `Active: ${subscription.plan}`;
+                // Display "Active Plan: X Months"
+                const planDisplay = subscription.plan.replace('-', ' ').toUpperCase();
+                statusText = `Active Plan: ${planDisplay}`;
                 statusClass = 'text-success';
             } else if (subscription.status === 'canceled' || subscription.status === 'cancel_pending') {
                 statusText = `Canceled: ${subscription.plan}`;

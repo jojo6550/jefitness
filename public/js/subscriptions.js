@@ -156,7 +156,7 @@ function displayPlans(plans) {
     console.log('📊 Displaying plans:', plans);
 
     // Update existing HTML cards with dynamic prices from Stripe
-    const planOrder = ['1-month', '3-month', '12-month'];
+    const planOrder = ['1-month', '3-month', '6-month', '12-month'];
 
     const planCards = document.querySelectorAll('.plan-card');
     console.log('🎴 Found plan cards:', planCards.length);
@@ -174,6 +174,21 @@ function displayPlans(plans) {
         console.log(`🎯 Card ${index} for ${planKey}:`, planCard);
 
         if (planCard) {
+            // Check if user has active subscription and this is not the active plan
+            let isDisabled = false;
+            if (hasActiveSubscription && userSubscriptions && userSubscriptions.length > 0) {
+                const activePlan = userSubscriptions[0];
+                // Disable if this plan is not the active one
+                isDisabled = activePlan.plan !== planKey;
+            }
+
+            // Apply disabled styling
+            if (isDisabled) {
+                planCard.classList.add('disabled-plan');
+            } else {
+                planCard.classList.remove('disabled-plan');
+            }
+
             // Update price
             const priceElement = planCard.querySelector('.plan-price');
             if (priceElement) {
@@ -196,10 +211,18 @@ function displayPlans(plans) {
                 }
             }
 
-            // Update button onclick
+            // Update button onclick and disabled state
             const button = planCard.querySelector('.plan-button');
             if (button) {
-                button.onclick = () => selectPlan(planKey);
+                if (isDisabled) {
+                    button.disabled = true;
+                    button.textContent = 'Current Plan';
+                    button.onclick = null;
+                } else {
+                    button.disabled = false;
+                    button.textContent = 'Select Plan';
+                    button.onclick = () => selectPlan(planKey);
+                }
                 console.log(`🔘 Updated button for ${planKey}`);
             }
         } else {
@@ -255,7 +278,7 @@ function getPlanFeatures(planKey) {
 /**
  * Select a plan for checkout
  */
-function selectPlan(plan) {
+async function selectPlan(plan) {
     selectedPlan = plan;
 
     if (!userToken) {
@@ -273,13 +296,38 @@ function selectPlan(plan) {
         return;
     }
 
-    // Show payment modal
-    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-    paymentModal.show();
+    try {
+        // Create checkout session
+        const response = await fetch(`${API_BASE_URL}/subscriptions/checkout-session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({
+                plan: plan,
+                successUrl: `${window.location.origin}/pages/subscription-success.html`,
+                cancelUrl: `${window.location.origin}/pages/subscriptions.html`
+            })
+        });
 
-    // Update modal title
-    const planName = plan.toUpperCase().replace('-', ' ');
-    document.getElementById('paymentModalLabel').textContent = `Subscribe to ${planName} Plan`;
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error?.message || 'Failed to create checkout session');
+        }
+
+        if (data.success && data.data.url) {
+            // Redirect to Stripe Checkout
+            window.location.href = data.data.url;
+        } else {
+            throw new Error('Invalid checkout session response');
+        }
+
+    } catch (error) {
+        console.error('❌ Checkout error:', error);
+        showAlert(`Failed to start checkout: ${error.message}`, 'error');
+    }
 }
 
 /**
@@ -381,28 +429,6 @@ async function loadUserSubscriptions() {
     try {
         if (!userToken) return;
 
-        // Get current user info from auth endpoint
-        const response = await fetch(`${API_BASE_URL.replace('/api/v1', '')}/api/auth/me`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${userToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            console.warn('Could not load user profile');
-            return;
-        }
-
-        const userData = await response.json();
-        const userId = userData._id || userData.id;
-
-        if (!userId) {
-            console.warn('User ID not found');
-            return;
-        }
-
         // Fetch subscriptions using the current endpoint
         const subsResponse = await fetch(`${API_BASE_URL}/subscriptions/user/current`, {
             method: 'GET',
@@ -413,23 +439,32 @@ async function loadUserSubscriptions() {
         });
 
         if (!subsResponse.ok) {
-            throw new Error('Failed to load subscriptions');
+            console.warn('Could not load user subscriptions');
+            return;
         }
 
         const subsData = await subsResponse.json();
 
         if (subsData.success && subsData.data && !subsData.data.hasSubscription) {
-            // User has no subscription, show free tier message
+            // User has no subscription, show free tier
             hasActiveSubscription = false;
             displayUserSubscriptions([]);
-            userSubscriptionsSection.style.display = 'block';
+            userSubscriptionsSection.style.display = 'none';
             plansContainer.style.display = 'grid'; // Show plans for purchase
+            // Re-display plans to ensure they're not greyed out
+            if (availablePlans) {
+                displayPlans(availablePlans);
+            }
         } else if (subsData.success && subsData.data) {
             // User has subscription, display it
             hasActiveSubscription = true;
             displayUserSubscriptions([subsData.data]);
             userSubscriptionsSection.style.display = 'block';
-            plansContainer.style.display = 'none'; // Hide plans since they have active subscription
+            plansContainer.style.display = 'grid'; // Show plans but greyed out
+            // Re-display plans to apply greyed out styling
+            if (availablePlans) {
+                displayPlans(availablePlans);
+            }
         }
 
     } catch (error) {

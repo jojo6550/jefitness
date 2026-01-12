@@ -7,6 +7,40 @@ let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
 let userSubscriptionStatus = null;
 
+// ====== Check Subscription Status ======
+async function checkSubscriptionStatus() {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/subscriptions/user/current`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('Could not check subscription status');
+            return false;
+        }
+
+        const subsData = await response.json();
+
+        if (subsData.success && subsData.data && subsData.data.hasSubscription && subsData.data.status === 'active') {
+            userSubscriptionStatus = true;
+            return true;
+        } else {
+            userSubscriptionStatus = false;
+            return false;
+        }
+    } catch (error) {
+        console.error('Error checking subscription status:', error);
+        return false;
+    }
+}
+
 // ====== Load Appointments ======
 async function loadAppointments() {
     try {
@@ -246,11 +280,31 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
 
 // ====== Init ======
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check subscription status first
+    const hasActiveSubscription = await checkSubscriptionStatus();
+
+    // Show/hide subscription lock message
+    const subscriptionLock = document.getElementById('subscriptionLock');
+    if (subscriptionLock) {
+        subscriptionLock.style.display = hasActiveSubscription ? 'none' : 'block';
+    }
+
+    // Disable booking functionality for non-subscribers
+    const bookNowBtn = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#bookingModal"]');
+    if (bookNowBtn && !hasActiveSubscription) {
+        bookNowBtn.disabled = true;
+        bookNowBtn.textContent = 'Subscription Required';
+        bookNowBtn.classList.remove('btn-success');
+        bookNowBtn.classList.add('btn-secondary');
+    }
+
     loadAppointments();
 
-    // Load trainers into booking form
-    const newTrainerSelect = document.getElementById('trainerSelect');
-    if (newTrainerSelect) await loadTrainersInto(newTrainerSelect);
+    // Load trainers into booking form only if user has subscription
+    if (hasActiveSubscription) {
+        const newTrainerSelect = document.getElementById('trainerSelect');
+        if (newTrainerSelect) await loadTrainersInto(newTrainerSelect);
+    }
 
     // Set minimum date to today for date inputs
     const today = new Date().toISOString().split('T')[0];
