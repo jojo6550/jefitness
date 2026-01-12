@@ -125,7 +125,7 @@ app.use(cacheControl);
 const { getFileHash, invalidateCache } = require('./utils/cacheVersion');
 
 // Serve static files
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // -----------------------------
 // MongoDB Connection
@@ -227,7 +227,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Backward compatibility - redirect old routes to v1
 // Handle OPTIONS requests for CORS preflight before redirect
-app.options('/api/auth/*', cors(corsOptions));
+app.options('/api/auth', cors(corsOptions));
 app.use('/api/auth', (req, res, next) => {
   res.redirect(307, '/api/v1/auth' + req.path);
 });
