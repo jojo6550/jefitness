@@ -170,6 +170,18 @@ if (process.env.NODE_ENV !== 'test') {
 const { apiLimiter } = require('./middleware/rateLimiter');
 
 // -----------------------------
+// Health Check Endpoint
+// -----------------------------
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// -----------------------------
 // Routes with API Versioning
 // -----------------------------
 const auth = require('./middleware/auth');
@@ -231,9 +243,7 @@ app.options('/api/auth', cors(corsOptions));
 app.use('/api/auth', (req, res, next) => {
   res.redirect(307, '/api/v1/auth' + req.path);
 });
-app.use('/api/sleep', (req, res, next) => {
-  res.redirect(307, '/api/v1/sleep' + req.path);
-});
+
 app.use('/api/clients', (req, res, next) => {
   res.redirect(307, '/api/v1/clients' + req.path);
 });
@@ -246,9 +256,7 @@ app.use('/api/appointments', (req, res, next) => {
 app.use('/api/users', (req, res, next) => {
   res.redirect(307, '/api/v1/users' + req.path);
 });
-app.use('/api/nutrition', (req, res, next) => {
-  res.redirect(307, '/api/v1/nutrition' + req.path);
-});
+
 app.use('/api/notifications', (req, res, next) => {
   res.redirect(307, '/api/v1/notifications' + req.path);
 });
@@ -409,8 +417,8 @@ wss.on('connection', (ws, req) => {
   try {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.user.id;
-    const userRole = decoded.user.role;
+    const userId = decoded.id;
+    const userRole = decoded.role;
 
     // Store client connection
     clients.set(userId, { ws, userId, userRole });

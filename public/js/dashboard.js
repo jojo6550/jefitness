@@ -83,6 +83,11 @@ async function loadSubscriptionStatus() {
     const actionsElement = document.getElementById('subscription-actions');
     const upgradeBtn = document.getElementById('upgrade-subscription-btn');
 
+    if (!statusElement || !actionsElement || !upgradeBtn) {
+        console.warn('Subscription status elements not found');
+        return;
+    }
+
     try {
         const res = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
             headers: {

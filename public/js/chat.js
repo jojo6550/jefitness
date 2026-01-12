@@ -24,6 +24,12 @@ class ChatWidget {
     this.partnerName = document.getElementById('chat-partner-name');
     this.partnerRole = document.getElementById('chat-partner-role');
 
+    // Check if required elements exist
+    if (!this.widget || !this.toggleBtn) {
+      console.error('Chat widget elements not found');
+      return;
+    }
+
     this.init();
   }
 

@@ -1,18 +1,23 @@
-# CORS Fix for Login Issue
+# Debugging Fixes TODO
 
-## Problem
-- Console errors showing CORS policy blocking fetch to 'http://localhost:10000/api/auth/login' from origin 'http://127.0.0.1:5501'
-- Tracking Prevention blocking storage access (browser-specific, not critical)
+## Static File Serving (404 navbar)
+- [ ] Update navbar-loader.js to use absolute path '/pages/partials/navbar.html' instead of relative
 
-## Solution Implemented
-- [x] Added 'http://127.0.0.1:5500' and 'http://127.0.0.1:5501' to allowedOrigins in corsConfig.js
-- [x] Added OPTIONS handler for /api/auth/* routes in server.js to handle CORS preflight before redirect
+## API Connection Refused Errors
+- [ ] Update api.config.js to use window.location.origin for dynamic base URL resolution
+- [ ] Remove hardcoded localhost:5001
 
-## Files Modified
-- src/middleware/corsConfig.js: Added IP versions of localhost to allowed origins
-- src/server.js: Added OPTIONS handler for auth routes
+## WebSocket Reconnect Loop
+- [ ] Update websocket.js to use window.location.origin for WebSocket URL
+- [ ] Add backend availability check before reconnecting
+- [ ] Implement exponential backoff for reconnections
 
-## Next Steps
-- Restart the server to apply CORS changes
-- Test login functionality from http://127.0.0.1:5501
-- Verify no more CORS errors in console
+## Environment Configuration
+- [ ] Ensure frontend and backend environments align (use same port dynamically)
+
+## Backend Health Check
+- [ ] Add /api/health endpoint in server.js for verification
+
+## Defensive Frontend Behavior
+- [ ] Add user-friendly handling when backend is unavailable
+- [ ] Prevent repeated failed API calls from spamming logs

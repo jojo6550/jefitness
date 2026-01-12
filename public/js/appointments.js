@@ -13,7 +13,7 @@ async function checkSubscriptionStatus() {
     if (!token) return false;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/subscriptions/user/current`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

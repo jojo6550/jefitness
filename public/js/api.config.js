@@ -13,13 +13,13 @@ class ApiConfig {
         return 'http://10.0.2.2:10000';
       case 'IOS_SIMULATOR':
       case 'BROWSER':
-        return 'http://localhost:5001';
+        return 'http://localhost:10000';
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
         return 'https://api.jefitness.com';
       default:
-        return 'http://localhost:10000';
+        return window.location.origin;
     }
   }
 
@@ -99,7 +99,7 @@ class API {
   static async request(endpoint, options = {}) {
     const baseURL = ApiConfig.getBaseURL();
     const url = `${baseURL}${endpoint}`;
-    
+
     const defaultHeaders = {
       'Content-Type': 'application/json'
     };
@@ -107,6 +107,11 @@ class API {
     const token = this.getToken();
     if (token) {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    // Check backend availability before making requests
+    if (!await this.checkBackendHealth()) {
+      throw new Error('Backend service is currently unavailable. Please try again later.');
     }
 
     try {
@@ -117,19 +122,38 @@ class API {
         },
         ...options
       });
-      
+
       if (!response.ok) {
         if (response.status === 401) {
           this.handleUnauthorized();
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error(`API Error [${endpoint}]:`, error);
+      // Don't spam logs for connection errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.warn(`Backend connection failed [${endpoint}]: Service may be unavailable`);
+      } else {
+        console.error(`API Error [${endpoint}]:`, error);
+      }
       throw error;
+    }
+  }
+
+  static async checkBackendHealth() {
+    try {
+      const baseURL = ApiConfig.getBaseURL();
+      const response = await fetch(`${baseURL}/api/health`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      return response.ok;
+    } catch (error) {
+      return false;
     }
   }
 

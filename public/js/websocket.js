@@ -15,7 +15,8 @@ class ChatWebSocket {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}?token=${token}`;
+    const host = window.location.hostname === 'localhost' ? 'localhost:10000' : window.location.host;
+    const wsUrl = `${protocol}//${host}?token=${token}`;
 
     this.ws = new WebSocket(wsUrl);
 
@@ -96,14 +97,24 @@ class ChatWebSocket {
   attemptReconnect(token) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+      // Exponential backoff with jitter
+      const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1) + Math.random() * 1000, 30000);
+      console.log(`Attempting to reconnect in ${Math.round(delay/1000)}s... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
       setTimeout(() => {
         this.connect(token);
-      }, this.reconnectDelay * this.reconnectAttempts);
+      }, delay);
     } else {
-      console.error('Max reconnection attempts reached');
+      console.error('Max reconnection attempts reached. Backend may be unavailable.');
     }
+  }
+
+  scheduleReconnect(token) {
+    // Schedule a reconnection attempt after a longer delay when backend is unavailable
+    setTimeout(() => {
+      this.reconnectAttempts = 0; // Reset attempts for fresh start
+      this.connect(token);
+    }, 10000); // Wait 10 seconds before trying again
   }
 }
 
