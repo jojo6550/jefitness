@@ -494,6 +494,7 @@ router.get('/user/current', auth, async (req, res) => {
       success: true,
       data: {
         id: subscription._id,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
         plan: subscription.plan,
         status: subscription.status,
         hasSubscription: subscription.status === 'active',

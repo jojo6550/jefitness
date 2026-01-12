@@ -187,7 +187,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         }
 
         // Cancel the subscription
-        const cancelRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/${subscription.id}/cancel`, {
+        const cancelRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
