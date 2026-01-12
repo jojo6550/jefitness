@@ -708,6 +708,142 @@ footer {
     animation: spin 0.8s linear infinite;
 }
 
+/* Payment Modal Enhancements for Maximum Visibility */
+#paymentModal .modal-dialog {
+    max-width: 600px;
+    margin: 2rem auto;
+}
+
+#paymentModal .modal-content {
+    background-color: var(--bg-card);
+    border: 2px solid var(--primary-accent);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 210, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+#paymentModal .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+}
+
+#paymentModal .modal-header {
+    background: var(--gradient-primary);
+    border-bottom: 2px solid var(--primary-accent);
+    padding: 1.5rem 2rem;
+}
+
+#paymentModal .modal-title {
+    color: var(--text-on-accent);
+    font-weight: 700;
+    font-size: 1.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#paymentModal .btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+#paymentModal .btn-close:hover {
+    opacity: 1;
+}
+
+#paymentModal .modal-body {
+    padding: 2rem;
+    background-color: var(--bg-card);
+}
+
+#paymentModal .form-label {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+#paymentModal .form-control {
+    background-color: var(--bg-input);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: var(--transition-base);
+}
+
+#paymentModal .form-control:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25);
+    color: var(--text-primary);
+    transform: scale(1.02);
+}
+
+#paymentModal #cardElement {
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem;
+    background-color: var(--bg-input);
+    transition: var(--transition-base);
+}
+
+#paymentModal #cardElement.StripeElement--focus {
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25);
+    transform: scale(1.02);
+}
+
+#paymentModal .d-grid .btn-primary {
+    background: var(--gradient-primary);
+    border: none;
+    color: var(--text-on-accent);
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
+    transition: var(--transition-base);
+}
+
+#paymentModal .d-grid .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
+    background: linear-gradient(135deg, #fff, var(--primary-accent));
+    color: var(--text-on-accent);
+}
+
+#paymentModal .d-grid .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Animation for modal appearance */
+#paymentModal.fade .modal-dialog {
+    animation: modalZoomIn 0.3s ease-out;
+}
+
+@keyframes modalZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Enhanced card errors styling */
+#paymentModal #cardErrors {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: var(--border-radius-md);
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
+    color: #dc3545;
+    font-weight: 500;
+}
+
 /* Responsive Design */
 @media (max-width: 576px) {
     .login-form, .signup-form, .otp-form {
@@ -739,5 +875,20 @@ footer {
 
     .medical-upload-zone {
         padding: 1.5rem;
+    }
+
+    /* Payment Modal Mobile Enhancements */
+    #paymentModal .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100vw - 2rem);
+    }
+
+    #paymentModal .modal-header,
+    #paymentModal .modal-body {
+        padding: 1.5rem;
+    }
+
+    #paymentModal .modal-title {
+        font-size: 1.25rem;
     }
 }

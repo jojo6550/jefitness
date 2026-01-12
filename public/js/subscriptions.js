@@ -296,38 +296,9 @@ async function selectPlan(plan) {
         return;
     }
 
-    try {
-        // Create checkout session
-        const response = await fetch(`${API_BASE_URL}/subscriptions/checkout-session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-            },
-            body: JSON.stringify({
-                plan: plan,
-                successUrl: `${window.location.origin}/pages/subscription-success.html`,
-                cancelUrl: `${window.location.origin}/pages/subscriptions.html`
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error?.message || 'Failed to create checkout session');
-        }
-
-        if (data.success && data.data.url) {
-            // Redirect to Stripe Checkout
-            window.location.href = data.data.url;
-        } else {
-            throw new Error('Invalid checkout session response');
-        }
-
-    } catch (error) {
-        console.error('❌ Checkout error:', error);
-        showAlert(`Failed to start checkout: ${error.message}`, 'error');
-    }
+    // Open the payment modal instead of redirecting to Stripe Checkout
+    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    paymentModal.show();
 }
 
 /**
