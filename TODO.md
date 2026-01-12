@@ -1,23 +1,17 @@
-# Debugging Fixes TODO
+# Navbar Implementation TODO
 
-## Static File Serving (404 navbar)
-- [ ] Update navbar-loader.js to use absolute path '/pages/partials/navbar.html' instead of relative
+## Completed Tasks
+- [x] Create reusable navbar in public/pages/partials/navbar.html
+  - [x] Left side: "JEFITNESS" brand link to dashboard.html
+  - [x] Left side: Subscription status badge (loads dynamically)
+  - [x] Right side: Dashboard, Products, Subscription, Logout links
+- [x] Embed navbar directly in products.html and remove navbar-loader.js
+- [x] Embed navbar directly in dashboard.html and remove navbar-loader.js
+- [x] Embed navbar directly in subscriptions.html and remove navbar-loader.js
+- [x] Embed navbar directly in schedule.html (appointments) and remove navbar-loader.js
 
-## API Connection Refused Errors
-- [ ] Update api.config.js to use window.location.origin for dynamic base URL resolution
-- [ ] Remove hardcoded localhost:5001
-
-## WebSocket Reconnect Loop
-- [ ] Update websocket.js to use window.location.origin for WebSocket URL
-- [ ] Add backend availability check before reconnecting
-- [ ] Implement exponential backoff for reconnections
-
-## Environment Configuration
-- [ ] Ensure frontend and backend environments align (use same port dynamically)
-
-## Backend Health Check
-- [ ] Add /api/health endpoint in server.js for verification
-
-## Defensive Frontend Behavior
-- [ ] Add user-friendly handling when backend is unavailable
-- [ ] Prevent repeated failed API calls from spamming logs
+## Notes
+- Products page already had login session checks
+- Cart functionality remains in products page (not moved to navbar)
+- Subscription status loads from API and displays appropriate badge colors
+- Navbar is now embedded directly in key pages instead of using navbar-loader.js

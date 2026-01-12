@@ -5,7 +5,7 @@
  */
 
 const express = require('express');
-const { authenticate } = require('../middleware/auth');
+const auth = require('../middleware/auth');
 const {
   getProduct,
   getProductPrice,
@@ -38,7 +38,7 @@ function getProductIdsFromEnv() {
  * Query params:
  *   - format: 'full' | 'frontend' (default: 'frontend')
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const format = req.query.format || 'frontend';
     const productIds = getProductIdsFromEnv();
@@ -106,7 +106,7 @@ router.get('/', authenticate, async (req, res) => {
  * GET /api/v1/products/:productId
  * Get a single product from Stripe
  */
-router.get('/:productId', authenticate, async (req, res) => {
+router.get('/:productId', auth, async (req, res) => {
   try {
     const { productId } = req.params;
     
@@ -155,7 +155,7 @@ router.get('/:productId', authenticate, async (req, res) => {
  * Query params:
  *   - quantity: number (default: 1)
  */
-router.get('/:productId/price', authenticate, async (req, res) => {
+router.get('/:productId/price', auth, async (req, res) => {
   try {
     const { productId } = req.params;
     const quantity = parseInt(req.query.quantity) || 1;
