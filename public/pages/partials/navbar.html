@@ -18,6 +18,7 @@
     </div>
 </nav>
 
+<script src="../js/logout.js"></script>
 <script>
 // Load subscription status for navbar
 async function loadNavbarSubscriptionStatus() {
@@ -81,6 +82,9 @@ async function loadNavbarSubscriptionStatus() {
     }
 }
 
-// Load subscription status when navbar is loaded
-document.addEventListener('DOMContentLoaded', loadNavbarSubscriptionStatus);
+// Load subscription status and attach logout listener when navbar is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    loadNavbarSubscriptionStatus();
+    attachLogoutListener();
+});
 </script>

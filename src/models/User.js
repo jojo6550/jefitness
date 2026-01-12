@@ -125,9 +125,7 @@ const UserSchema = new mongoose.Schema({
         }
     ],
 
-    // Onboarding tracking
-    onboardingCompleted: { type: Boolean, default: false },
-    onboardingCompletedAt: { type: Date },
+
 
     // GDPR/HIPAA Compliance Fields
     dataProcessingConsent: {
@@ -309,8 +307,6 @@ if (encKey) {
             'lastLoggedIn',
             'activityStatus',
             'hasMedical',
-            'onboardingCompleted',
-            'onboardingCompletedAt',
             'subscriptionStatus',
             'subscriptionType',
             'stripeSubscriptionId',

@@ -1301,40 +1301,13 @@ router.post('/verify-email', async (req, res) => {
                 id: user._id,
                 name: `${user.firstName} ${user.lastName}`,
                 email: user.email,
-                role: user.role,
-                onboardingCompleted: user.onboardingCompleted
+                role: user.role
             }
         });
 
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: Email verification | Email: ${email}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
-    }
-});
-
-// POST /api/auth/onboarding-complete - Mark onboarding as complete
-router.post('/onboarding-complete', auth, async (req, res) => {
-    try {
-        const user = await User.findByIdAndUpdate(
-            req.user.id,
-            {
-                onboardingCompleted: true,
-                onboardingCompletedAt: new Date()
-            },
-            { new: true }
-        ).select('onboardingCompleted onboardingCompletedAt');
-
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        res.json({
-            msg: 'Onboarding marked as complete',
-            onboardingCompleted: user.onboardingCompleted
-        });
-    } catch (err) {
-        console.error('Onboarding completion error:', err.message);
-        res.status(500).json({ msg: 'Error completing onboarding' });
     }
 });
 

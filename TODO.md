@@ -9,6 +9,7 @@
 - [x] Embed navbar directly in dashboard.html and remove navbar-loader.js
 - [x] Embed navbar directly in subscriptions.html and remove navbar-loader.js
 - [x] Embed navbar directly in schedule.html (appointments) and remove navbar-loader.js
+- [x] Embed navbar directly in meet-your-trainer.html and remove navbar-loader.js
 
 ## Notes
 - Products page already had login session checks
