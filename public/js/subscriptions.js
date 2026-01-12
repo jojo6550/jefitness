@@ -431,14 +431,21 @@ async function loadUserSubscriptions() {
                 displayPlans(availablePlans);
             }
         } else if (subsData.success && subsData.data) {
-            // User has subscription, display it
+            // User has subscription, hide plans and only show subscription details
             hasActiveSubscription = true;
             displayUserSubscriptions([subsData.data]);
             userSubscriptionsSection.style.display = 'block';
-            plansContainer.style.display = 'grid'; // Show plans but greyed out
-            // Re-display plans to apply greyed out styling
-            if (availablePlans) {
-                displayPlans(availablePlans);
+            plansContainer.style.display = 'none'; // Hide plans completely
+            
+            // Hide the loading spinner and title/description
+            if (plansLoading) {
+                plansLoading.style.display = 'none';
+            }
+            
+            // Hide the page header for choosing plans
+            const pageHeader = document.querySelector('.text-center.mb-5');
+            if (pageHeader) {
+                pageHeader.style.display = 'none';
             }
         }
 

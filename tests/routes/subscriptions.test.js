@@ -1,13 +1,35 @@
 const request = require('supertest');
 const app = require('../../src/server');
+const User = require('../../src/models/User');
+const jwt = require('jsonwebtoken');
 const { createOrRetrieveCustomer, createSubscription, getCustomerSubscriptions } = require('../../src/services/stripe');
 
 // Mock Stripe service
 jest.mock('../../src/services/stripe');
 
+let userToken;
+let userId;
+
 describe('Subscriptions API', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    
+    // Create test user and generate token
+    const user = new User({
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'test@example.com',
+      password: 'password123',
+      role: 'user',
+      isEmailVerified: true,
+      dataProcessingConsent: { given: true },
+      healthDataConsent: { given: true },
+    });
+    await user.save();
+    userId = user._id;
+    
+    // Generate JWT token
+    userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET);
   });
 
   describe('POST /api/v1/subscriptions/create', () => {
@@ -41,6 +63,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(validRequest)
         .expect(201);
 
@@ -61,6 +84,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(request3Month)
         .expect(201);
 
@@ -75,6 +99,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(request6Month)
         .expect(201);
 
@@ -89,6 +114,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(request12Month)
         .expect(201);
 
@@ -101,6 +127,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(invalidRequest)
         .expect(400);
 
@@ -114,6 +141,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(invalidRequest)
         .expect(400);
 
@@ -126,6 +154,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(invalidRequest)
         .expect(400);
 
@@ -138,6 +167,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(validRequest)
         .expect(500);
 
@@ -151,6 +181,7 @@ describe('Subscriptions API', () => {
 
       const response = await request(app)
         .post('/api/v1/subscriptions/create')
+        .set('Authorization', `Bearer ${userToken}`)
         .send(validRequest)
         .expect(500);
 
