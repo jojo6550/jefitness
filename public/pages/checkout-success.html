@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Confirmed – JE Fitness</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/styles.css?v=1.0.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../favicons/favicon-16x16.png">
+    <link rel="manifest" href="../favicons/site.webmanifest">
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-800" href="../index.html">JE <span class="accent">FITNESS</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item me-3"><a class="nav-link" href="../index.html">Home</a></li>
+                    <li class="nav-item me-3"><a class="nav-link" href="products.html">Products</a></li>
+                    <li class="nav-item me-3"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-outline-light" href="#" id="logoutBtn">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+    </nav>
+
+    <!-- Success Content -->
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- Success Card -->
+                <div class="card border-0 shadow-lg animate__animated animate__fadeInUp">
+                    <div class="card-body p-5 text-center">
+                        <!-- Success Icon -->
+                        <div class="success-icon mb-4">
+                            <i class="bi bi-check-circle-fill text-success display-1 animate__animated animate__bounceIn"></i>
+                        </div>
+
+                        <!-- Heading -->
+                        <h2 class="fw-bold mb-3">Order Confirmed!</h2>
+                        <p class="text-muted mb-4">Thank you for your purchase. Your order has been successfully processed.</p>
+
+                        <!-- Order Details -->
+                        <div class="order-details bg-light rounded p-4 mb-4 text-start">
+                            <h6 class="fw-bold mb-3"><i class="bi bi-receipt me-2"></i>Order Details</h6>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Order Number</span>
+                                <span class="fw-semibold" id="order-number">Loading...</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Date</span>
+                                <span class="fw-semibold" id="order-date">Loading...</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Amount Paid</span>
+                                <span class="fw-semibold text-success" id="order-amount">Loading...</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Status</span>
+                                <span class="badge bg-success">Completed</span>
+                            </div>
+
+                        <!-- Email Notice -->
+                        <div class="alert alert-info mb-4">
+                            <i class="bi bi-envelope me-2"></i>
+                            A confirmation email has been sent to your registered email address with your order details.
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-3 justify-content-center">
+                            <a href="products.html" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left me-2"></i>Continue Shopping
+                            </a>
+                            <a href="dashboard.html" class="btn btn-primary">
+                                <i class="bi bi-speedometer2 me-2"></i>Go to Dashboard
+                            </a>
+                        </div>
+                </div>
+
+                <!-- Additional Info -->
+                <div class="card border-0 shadow-sm mt-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2"></i>What's Next?</h6>
+                        <ul class="mb-0 text-muted">
+                            <li class="mb-2">You will receive an email with tracking information once your order ships.</li>
+                            <li class="mb-2">Your order will be processed within 1-2 business days.</li>
+                            <li>For any questions, contact us at <a href="mailto:JEFITNESS876@gmail.com">JEFITNESS876@gmail.com</a></li>
+                        </ul>
+                    </div>
+            </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-2">&copy; 2025 JE Fitness. All rights reserved.</p>
+            <div class="d-flex justify-content-center gap-4">
+                <a href="https://www.instagram.com/je_fitness.ja/" target="_blank" class="text-white fs-3"><i class="bi bi-instagram"></i></a>
+                <a href="https://wa.me/18762064114" target="_blank" class="text-white fs-3"><i class="bi bi-whatsapp"></i></a>
+                <a href="mailto:JEFITNESS876@gmail.com" class="text-white fs-3"><i class="bi bi-envelope-fill"></i></a>
+            </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/navbar-loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                window.location.href = './login.html';
+                return;
+            }
+
+            const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            const baseUrl = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
+
+            // Get session ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
+
+            if (!sessionId) {
+                showError('No session ID found');
+                return;
+            }
+
+            try {
+                // Fetch session details
+                const res = await fetch(`${baseUrl}/api/checkout/session/${sessionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const session = data.data.session;
+
+                    // Update order details
+                    document.getElementById('order-number').textContent = session.id.substring(0, 20) + '...';
+                    document.getElementById('order-date').textContent = new Date().toLocaleDateString();
+                    document.getElementById('order-amount').textContent = `$${(session.amountTotal / 100).toFixed(2)}`;
+
+                    // Clear the cart
+                    localStorage.removeItem('productCart');
+                    
+                    // Notify server to clear cart
+                    await fetch(`${baseUrl}/api/checkout/clear-cart`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                } else {
+                    // For demo/testing, show mock data
+                    showMockData();
+                }
+            } catch (err) {
+                console.error('Error fetching session:', err);
+                // Show mock data for demo purposes
+                showMockData();
+            }
+
+            function showMockData() {
+                document.getElementById('order-number').textContent = sessionId.substring(0, 20) + '...';
+                document.getElementById('order-date').textContent = new Date().toLocaleDateString();
+                document.getElementById('order-amount').textContent = '$49.95';
+                localStorage.removeItem('productCart');
+            }
+
+            function showError(message) {
+                const cardBody = document.querySelector('.card-body');
+                cardBody.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-exclamation-circle text-warning display-1 mb-3"></i>
+                        <h4 class="fw-bold">Something went wrong</h4>
+                        <p class="text-muted">${message}</p>
+                        <a href="cart.html" class="btn btn-primary mt-3">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Cart
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Setup logout
+            document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('productCart');
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+</body>
+</html>

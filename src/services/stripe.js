@@ -638,6 +638,150 @@ async function getAllActivePrices() {
   }
 }
 
+/**
+ * Create a checkout session for product purchases (one-time payment with quantity)
+ * @param {string} customerId - Stripe customer ID
+ * @param {Array} items - Array of { productId, name, price, quantity }
+ * @param {string} successUrl - URL to redirect on successful payment
+ * @param {string} cancelUrl - URL to redirect if payment is canceled
+ * @returns {Promise<Object>} Checkout session object
+ */
+async function createProductCheckoutSession(customerId, items, successUrl, cancelUrl) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    // Validate items
+    if (!items || items.length === 0) {
+      throw new Error('No items provided for checkout');
+    }
+
+    // Build line items for Stripe
+    const lineItems = items.map(item => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.name,
+          description: `Product ID: ${item.productId}`,
+          metadata: {
+            productId: item.productId
+          }
+        },
+        unit_amount: item.price, // Price in cents
+      },
+      quantity: item.quantity
+    }));
+
+    // Calculate total for metadata
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'payment', // One-time payment
+      line_items: lineItems,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      billing_address_collection: 'required',
+      phone_number_collection: {
+        enabled: true
+      },
+      metadata: {
+        type: 'product_purchase',
+        itemCount: items.length.toString(),
+        totalAmount: totalAmount.toString(),
+        // Store item details as JSON string
+        items: JSON.stringify(items.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          totalPrice: item.price * item.quantity
+        })))
+      },
+      // Enable additional payment method types if needed
+      payment_method_options: {
+        card: {
+          request_three_d_secure: 'automatic'
+        }
+      }
+    });
+
+    console.log(`✅ Product checkout session created: ${session.id} for customer: ${customerId}`);
+    console.log(`📦 Items: ${items.length}, Total: $${(totalAmount / 100).toFixed(2)}`);
+
+    return session;
+  } catch (error) {
+    console.error('Failed to create product checkout session:', error.message);
+    throw new Error(`Failed to create checkout session: ${error.message}`);
+  }
+}
+
+/**
+ * Verify and retrieve a checkout session
+ * @param {string} sessionId - Stripe checkout session ID
+ * @returns {Promise<Object>} Checkout session object
+ */
+async function getCheckoutSession(sessionId) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent', 'customer']
+    });
+
+    return session;
+  } catch (error) {
+    throw new Error(`Failed to retrieve checkout session: ${error.message}`);
+  }
+}
+
+/**
+ * Create or get a Stripe customer for product purchases
+ * @param {string} email - Customer email
+ * @param {string} name - Customer name (optional)
+ * @returns {Promise<Object>} Stripe customer object
+ */
+async function getOrCreateProductCustomer(email, name = null) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    // Check if customer already exists
+    const existingCustomers = await stripe.customers.list({
+      email: email,
+      limit: 1
+    });
+
+    if (existingCustomers.data.length > 0) {
+      console.log(`✅ Found existing customer: ${existingCustomers.data[0].id}`);
+      return existingCustomers.data[0];
+    }
+
+    // Create new customer
+    const customer = await stripe.customers.create({
+      email: email,
+      name: name || undefined,
+      metadata: {
+        source: 'jefitness_product_purchase'
+      }
+    });
+
+    console.log(`✅ Created new customer: ${customer.id}`);
+    return customer;
+  } catch (error) {
+    throw new Error(`Failed to get/create customer: ${error.message}`);
+  }
+}
+
 module.exports = {
   createOrRetrieveCustomer,
   createSubscription,
@@ -649,6 +793,9 @@ module.exports = {
   getSubscriptionInvoices,
   createCheckoutSession,
   createProgramCheckoutSession,
+  createProductCheckoutSession,
+  getCheckoutSession,
+  getOrCreateProductCustomer,
   getPaymentMethods,
   deletePaymentMethod,
   createPaymentIntent,

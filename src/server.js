@@ -201,6 +201,8 @@ app.use('/api/v1/chat', auth, requireDataProcessingConsent, sanitizeInput, check
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
 app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
+app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
+app.use('/api/v1/checkout', auth, apiLimiter, versioning, require('./routes/checkout'));
 app.use('/webhooks', require('./routes/webhooks'));
 
 // API Documentation routes (only in development)
