@@ -95,6 +95,7 @@ router.get('/plans', async (req, res) => {
  * Create a new subscription (authenticated endpoint)
  */
 router.post('/create', auth, [
+  body('email').isEmail().normalizeEmail(),
   body('paymentMethodId').isString().notEmpty(),
   body('plan').isIn(['1-month', '3-month', '6-month', '12-month'])
 ], async (req, res) => {
@@ -110,7 +111,7 @@ router.post('/create', auth, [
       });
     }
 
-    const { paymentMethodId, plan } = req.body;
+    const { email, paymentMethodId, plan } = req.body;
     const userId = req.user.id;
 
     // Get user
@@ -133,58 +134,28 @@ router.post('/create', auth, [
       });
     }
 
-    // Get or create Stripe customer
+    // Use service functions to create or retrieve customer and create subscription
+    // This allows for proper mocking in tests
     let customer;
-    const stripe = getStripe();
-    if (!stripe) {
-      throw new Error('Stripe not initialized');
-    }
-
-    if (user.stripeCustomerId) {
-      try {
-        customer = await stripe.customers.retrieve(user.stripeCustomerId);
-        // Check if customer was deleted
-        if (customer.deleted) {
-          customer = await stripe.customers.create({
-            email: user.email,
-            name: `${user.firstName} ${user.lastName}`,
-            metadata: { userId: userId }
-          });
-          user.stripeCustomerId = customer.id;
-        }
-      } catch (err) {
-        // Customer doesn't exist, create new one
-        customer = await stripe.customers.create({
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          metadata: { userId: userId }
-        });
-        user.stripeCustomerId = customer.id;
-      }
-    } else {
-      customer = await stripe.customers.create({
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        metadata: { userId: userId }
-      });
-      user.stripeCustomerId = customer.id;
-    }
-
-    // Attach payment method to customer
     try {
-      await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
-      await stripe.customers.update(customer.id, {
-        invoice_settings: { default_payment_method: paymentMethodId }
+      customer = await createOrRetrieveCustomer(email, paymentMethodId, {
+        userId: userId,
+        firstName: user.firstName,
+        lastName: user.lastName
       });
-    } catch (attachError) {
-      console.error('Payment method attach error:', attachError.message);
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Invalid payment method' }
-      });
+    } catch (customerError) {
+      // If the error is about invalid payment method, return 400
+      if (customerError.message && customerError.message.includes('Invalid payment method')) {
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Invalid payment method' }
+        });
+      }
+      // For other Stripe errors (like customer creation failure), return 500
+      throw customerError;
     }
 
-    // Create subscription
+    // Create subscription using the service function
     const subscription = await createSubscription(customer.id, plan);
 
     // Update user's database record with subscription info

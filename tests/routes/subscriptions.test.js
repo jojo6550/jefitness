@@ -7,6 +7,27 @@ const { createOrRetrieveCustomer, createSubscription, getCustomerSubscriptions }
 // Mock Stripe service
 jest.mock('../../src/services/stripe');
 
+// Mock Stripe instance for getStripe()
+const mockStripe = {
+  customers: {
+    create: jest.fn(),
+    retrieve: jest.fn().mockResolvedValue({
+      id: 'cus_test123',
+      email: 'test@example.com',
+      deleted: false,
+      invoice_settings: { default_payment_method: 'pm_test123' }
+    })
+  },
+  paymentMethods: {
+    attach: jest.fn().mockResolvedValue({ id: 'pm_test123' })
+  }
+};
+
+// Mock the stripe module
+jest.mock('stripe', () => {
+  return jest.fn(() => mockStripe);
+});
+
 let userToken;
 let userId;
 
@@ -30,6 +51,19 @@ describe('Subscriptions API', () => {
     
     // Generate JWT token
     userToken = jwt.sign({ id: userId, role: 'user' }, process.env.JWT_SECRET);
+    
+    // Reset mockStripe
+    mockStripe.customers.create.mockResolvedValue({
+      id: 'cus_test123',
+      email: 'test@example.com'
+    });
+    mockStripe.customers.retrieve.mockResolvedValue({
+      id: 'cus_test123',
+      email: 'test@example.com',
+      deleted: false,
+      invoice_settings: { default_payment_method: 'pm_test123' }
+    });
+    mockStripe.paymentMethods.attach.mockResolvedValue({ id: 'pm_test123' });
   });
 
   describe('POST /api/v1/subscriptions/create', () => {
@@ -73,7 +107,15 @@ describe('Subscriptions API', () => {
         id: mockCustomer.id,
         email: mockCustomer.email
       });
-      expect(createOrRetrieveCustomer).toHaveBeenCalledWith(validRequest.email, validRequest.paymentMethodId);
+      expect(createOrRetrieveCustomer).toHaveBeenCalledWith(
+        validRequest.email,
+        validRequest.paymentMethodId,
+        expect.objectContaining({
+          userId: userId,
+          firstName: 'Test',
+          lastName: 'User'
+        })
+      );
       expect(createSubscription).toHaveBeenCalledWith(mockCustomer.id, validRequest.plan);
     });
 

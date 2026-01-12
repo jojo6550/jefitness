@@ -12,7 +12,10 @@ const mockStripe = {
     list: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    retrieve: jest.fn()
+    retrieve: jest.fn().mockResolvedValue({
+      id: 'cus_test123',
+      invoice_settings: { default_payment_method: 'pm_test123' }
+    })
   },
   prices: {
     list: jest.fn(),
@@ -271,7 +274,8 @@ describe('Stripe Service', () => {
         customer: 'cus_123',
         items: [{ price: 'price_123' }],
         expand: ['latest_invoice.payment_intent'],
-        payment_behavior: 'allow_incomplete'
+        payment_behavior: 'allow_incomplete',
+        default_payment_method: 'pm_test123'
       });
     });
 
