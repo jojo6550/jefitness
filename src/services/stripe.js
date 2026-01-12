@@ -915,6 +915,34 @@ async function getProductPrice(productId, quantity = 1) {
 }
 
 /**
+ * Format a single product for frontend display
+ * @param {Object} product - Stripe product with prices
+ * @returns {Object} Formatted product object
+ */
+function formatProductForFrontend(product) {
+  if (!product) return null;
+  
+  // Find the one-time price (for product purchases)
+  const oneTimePrice = product.prices && product.prices.length > 0 
+    ? product.prices.find(p => p.type === 'one_time') || product.prices[0]
+    : null;
+
+  return {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    priceId: oneTimePrice?.id,
+    price: oneTimePrice?.amount,
+    formattedPrice: oneTimePrice?.amount 
+      ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
+      : 'N/A',
+    currency: oneTimePrice?.currency || 'usd',
+    images: product.images,
+    metadata: product.metadata
+  };
+}
+
+/**
  * Format products for frontend display
  * @param {Array} products - Array of Stripe products with prices
  * @returns {Array} Formatted products array
@@ -922,24 +950,7 @@ async function getProductPrice(productId, quantity = 1) {
 function formatProductsForFrontend(products) {
   return products
     .filter(product => product.active && product.prices && product.prices.length > 0)
-    .map(product => {
-      // Find the one-time price (for product purchases)
-      const oneTimePrice = product.prices.find(p => p.type === 'one_time') || product.prices[0];
-
-      return {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-        priceId: oneTimePrice?.id,
-        price: oneTimePrice?.amount,
-        formattedPrice: oneTimePrice?.amount 
-          ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
-          : 'N/A',
-        currency: oneTimePrice?.currency || 'usd',
-        images: product.images,
-        metadata: product.metadata
-      };
-    });
+    .map(formatProductForFrontend);
 }
 
 module.exports = {
@@ -965,6 +976,7 @@ module.exports = {
   getAllProducts,
   getProduct,
   getProductPrice,
+  formatProductForFrontend,
   formatProductsForFrontend,
   PRODUCT_IDS,
   PROGRAM_PRODUCT_IDS

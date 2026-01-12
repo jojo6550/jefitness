@@ -1,40 +1,82 @@
 /**
  * Products API Route
  * Fetches product and pricing information from Stripe
+ * Uses environment variables for product IDs (STRIPE_PRODUCT_1, STRIPE_PRODUCT_2, etc.)
  */
 
 const express = require('express');
 const { authenticate } = require('../middleware/auth');
 const {
-  getAllProducts,
   getProduct,
   getProductPrice,
-  formatProductsForFrontend
+  formatProductForFrontend
 } = require('../services/stripe');
 
 const router = express.Router();
 
+// Get product IDs from environment variables
+// Format: STRIPE_PRODUCT_1, STRIPE_PRODUCT_2, etc.
+function getProductIdsFromEnv() {
+  const productIds = [];
+  const env = process.env;
+  
+  // Check for STRIPE_PRODUCT_1, STRIPE_PRODUCT_2, etc.
+  for (let i = 1; env[`STRIPE_PRODUCT_${i}`]; i++) {
+    const productId = env[`STRIPE_PRODUCT_${i}`];
+    if (productId && productId.trim()) {
+      productIds.push(productId.trim());
+    }
+  }
+  
+  // If no products configured, return empty array
+  return productIds;
+}
+
 /**
  * GET /api/v1/products
- * Get all products from Stripe
+ * Get all products configured in environment variables
  * Query params:
  *   - format: 'full' | 'frontend' (default: 'frontend')
  */
 router.get('/', authenticate, async (req, res) => {
   try {
     const format = req.query.format || 'frontend';
+    const productIds = getProductIdsFromEnv();
     
-    // Fetch all products from Stripe
-    const products = await getAllProducts(true);
+    if (productIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          products: [],
+          count: 0,
+          message: 'No products configured. Add STRIPE_PRODUCT_1, STRIPE_PRODUCT_2, etc. to your environment variables.'
+        }
+      });
+    }
+    
+    // Fetch products from Stripe by ID
+    const products = [];
+    const errors = [];
+    
+    for (const productId of productIds) {
+      try {
+        const product = await getProduct(productId);
+        products.push(product);
+      } catch (err) {
+        console.warn(`Could not fetch product ${productId}:`, err.message);
+        errors.push({ productId, error: err.message });
+      }
+    }
     
     if (format === 'frontend') {
       // Format for frontend display
-      const formattedProducts = formatProductsForFrontend(products);
+      const formattedProducts = products.map(formatProductForFrontend);
       return res.status(200).json({
         success: true,
         data: {
           products: formattedProducts,
-          count: formattedProducts.length
+          count: formattedProducts.length,
+          errors: errors.length > 0 ? errors : undefined
         }
       });
     }
@@ -44,7 +86,8 @@ router.get('/', authenticate, async (req, res) => {
       success: true,
       data: {
         products: products,
-        count: products.length
+        count: products.length,
+        errors: errors.length > 0 ? errors : undefined
       }
     });
   } catch (error) {
