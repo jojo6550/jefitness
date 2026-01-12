@@ -99,6 +99,8 @@ async function loadSubscriptionStatus() {
             const data = await res.json();
             const subscription = data.data;
 
+            console.log('Subscription data:', subscription); // Debug log
+
             // Update status display
             let statusText = '';
             let statusClass = '';
@@ -121,11 +123,23 @@ async function loadSubscriptionStatus() {
             // Show actions
             actionsElement.classList.remove('d-none');
 
-            // Show upgrade button if not active subscription
-            if (!subscription.hasSubscription || subscription.status !== 'active') {
-                upgradeBtn.classList.remove('d-none');
-            } else {
+            // Show appropriate buttons based on subscription status
+            console.log('Checking button visibility:', {
+                hasSubscription: subscription.hasSubscription,
+                status: subscription.status,
+                condition: subscription.hasSubscription && subscription.status === 'active'
+            }); // Debug log
+
+            if (subscription.hasSubscription && subscription.status === 'active') {
+                // Show cancel button for active subscriptions
+                console.log('Showing cancel button'); // Debug log
+                document.getElementById('cancel-subscription-btn').classList.remove('d-none');
                 upgradeBtn.classList.add('d-none');
+            } else {
+                // Show upgrade button for non-active subscriptions
+                console.log('Showing upgrade button'); // Debug log
+                document.getElementById('cancel-subscription-btn').classList.add('d-none');
+                upgradeBtn.classList.remove('d-none');
             }
         } else {
             statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
@@ -139,5 +153,64 @@ async function loadSubscriptionStatus() {
 // Event listener for upgrade subscription button
 document.getElementById('upgrade-subscription-btn').addEventListener('click', () => {
     window.location.href = '../subscriptions.html';
+});
+
+// Event listener for cancel subscription button
+document.getElementById('cancel-subscription-btn').addEventListener('click', async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? You will be moved to the free tier.')) {
+        return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Please log in to cancel your subscription.');
+        return;
+    }
+
+    try {
+        // Get current subscription to find the subscription ID
+        const currentRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!currentRes.ok) {
+            throw new Error('Failed to get current subscription');
+        }
+
+        const currentData = await currentRes.json();
+        const subscription = currentData.data;
+
+        if (!subscription || !subscription.id) {
+            throw new Error('No active subscription found');
+        }
+
+        // Cancel the subscription
+        const cancelRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/${subscription.id}/cancel`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                atPeriodEnd: false // Immediate cancellation
+            })
+        });
+
+        const cancelData = await cancelRes.json();
+
+        if (cancelData.success) {
+            alert('✅ Subscription has been canceled immediately. You are now on the free tier.');
+            // Reload subscription status
+            await loadSubscriptionStatus();
+        } else {
+            throw new Error(cancelData.error?.message || 'Failed to cancel subscription');
+        }
+
+    } catch (error) {
+        console.error('❌ Error canceling subscription:', error);
+        alert(`Failed to cancel subscription: ${error.message}`);
+    }
 });
 

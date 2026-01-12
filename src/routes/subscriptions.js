@@ -131,6 +131,23 @@ router.post('/create', [
     // Create subscription
     const subscription = await createSubscription(customer.id, plan);
 
+    // Update user's database record with subscription info
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (user) {
+      user.stripeCustomerId = customer.id;
+      user.stripeSubscriptionId = subscription.id;
+      user.subscriptionStatus = subscription.status;
+      user.subscriptionType = plan;
+      user.stripePriceId = subscription.items.data[0]?.price.id;
+      user.currentPeriodStart = new Date(subscription.current_period_start * 1000);
+      user.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+      user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+
+      await user.save();
+      console.log(`✅ User subscription updated in database: ${user._id}`);
+    }
+
     res.status(201).json({
       success: true,
       data: {
@@ -391,7 +408,7 @@ router.get('/user/current', auth, async (req, res) => {
     }
 
     // If no subscription, return free tier info
-    if (!user.subscriptionId || user.subscriptionStatus === 'none') {
+    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
       return res.json({
         success: true,
         data: {
@@ -406,7 +423,7 @@ router.get('/user/current', auth, async (req, res) => {
     // Get subscription from database
     const subscription = await Subscription.findOne({
       userId,
-      stripeSubscriptionId: user.subscriptionId
+      stripeSubscriptionId: user.stripeSubscriptionId
     });
 
     if (!subscription) {
@@ -525,15 +542,16 @@ router.delete('/:subscriptionId/cancel', auth, [
     subscription.updatedAt = new Date();
     await subscription.save();
 
-    // Update user record
+    // Update user record to free tier
     const user = await User.findById(userId);
     if (user) {
-      if (!atPeriodEnd) {
-        user.subscriptionStatus = 'canceled';
-        user.subscriptionId = null;
-      } else {
-        user.subscriptionStatus = 'cancel_pending';
-      }
+      user.subscriptionStatus = 'free';
+      user.subscriptionId = null;
+      user.subscriptionType = null;
+      user.stripePriceId = null;
+      user.currentPeriodStart = null;
+      user.currentPeriodEnd = null;
+      user.cancelAtPeriodEnd = false;
       await user.save();
     }
 

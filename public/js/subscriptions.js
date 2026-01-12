@@ -368,17 +368,21 @@ async function handlePaymentSubmit(event) {
         if (data.success) {
             // Success!
             showAlert(`✅ Subscription to ${selectedPlan} plan created successfully!`, 'success');
-            
+
             // Close modal
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            
+
             // Reset form
             paymentForm.reset();
             cardElement.clear();
-            
-            // Reload subscriptions
+
+            // Update user subscription status and navigate to appointments
             setTimeout(() => {
+                // Reload subscriptions to update status
                 loadUserSubscriptions();
+
+                // Navigate to appointments page
+                window.location.href = '/pages/appointments.html';
             }, 1500);
         }
 
@@ -546,13 +550,13 @@ async function handleConfirmCancel() {
 
         if (data.success) {
             const message = atPeriodEnd
-                ? '✅ Subscription will be canceled at the end of your billing period'
-                : '✅ Subscription has been canceled immediately';
+                ? '✅ Subscription will be canceled at the end of your billing period and you will be moved to the free tier'
+                : '✅ Subscription has been canceled immediately. You are now on the free tier';
             showAlert(message, 'success');
-            
+
             bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
             document.getElementById('atPeriodEndCheck').checked = false;
-            
+
             setTimeout(() => {
                 loadUserSubscriptions();
             }, 1500);
