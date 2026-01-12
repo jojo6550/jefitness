@@ -850,6 +850,196 @@ describe('Stripe Service', () => {
   });
 
   // ============================================
+  // FORMAT PRODUCT FOR FRONTEND TESTS
+  // ============================================
+  describe('formatProductForFrontend', () => {
+    it('should format a single product for frontend display', () => {
+      const mockStripeProduct = {
+        id: 'prod_seamoss_small',
+        name: 'Seamoss - Small Size',
+        description: 'Premium organic Seamoss from Jamaica',
+        active: true,
+        metadata: {
+          icon: 'bi-droplet-fill',
+          color: 'primary'
+        },
+        images: ['https://example.com/seamoss.jpg'],
+        prices: [
+          { id: 'price_1599', amount: 1599, currency: 'usd', type: 'one_time' }
+        ]
+      };
+
+      const formatted = stripeService.formatProductForFrontend(mockStripeProduct);
+
+      expect(formatted).toEqual({
+        id: 'prod_seamoss_small',
+        name: 'Seamoss - Small Size',
+        description: 'Premium organic Seamoss from Jamaica',
+        priceId: 'price_1599',
+        price: 1599,
+        formattedPrice: '$15.99',
+        currency: 'usd',
+        images: ['https://example.com/seamoss.jpg'],
+        metadata: {
+          icon: 'bi-droplet-fill',
+          color: 'primary'
+        }
+      });
+    });
+
+    it('should return null for null product', () => {
+      expect(stripeService.formatProductForFrontend(null)).toBeNull();
+    });
+
+    it('should return null for undefined product', () => {
+      expect(stripeService.formatProductForFrontend(undefined)).toBeNull();
+    });
+
+    it('should use first price if no one_time price available', () => {
+      const mockStripeProduct = {
+        id: 'prod_test',
+        name: 'Test Product',
+        description: 'A test product',
+        active: true,
+        metadata: {},
+        images: [],
+        prices: [
+          { id: 'price_recurring', amount: 2999, currency: 'usd', type: 'recurring' }
+        ]
+      };
+
+      const formatted = stripeService.formatProductForFrontend(mockStripeProduct);
+
+      expect(formatted.priceId).toBe('price_recurring');
+      expect(formatted.price).toBe(2999);
+      expect(formatted.formattedPrice).toBe('$29.99');
+    });
+
+    it('should handle product without prices', () => {
+      const mockStripeProduct = {
+        id: 'prod_no_price',
+        name: 'No Price Product',
+        description: 'Has no prices',
+        active: true,
+        metadata: {},
+        images: [],
+        prices: []
+      };
+
+      const formatted = stripeService.formatProductForFrontend(mockStripeProduct);
+
+      expect(formatted.id).toBe('prod_no_price');
+      expect(formatted.formattedPrice).toBe('N/A');
+      expect(formatted.price).toBeUndefined();
+    });
+
+    it('should use default currency when not specified', () => {
+      const mockStripeProduct = {
+        id: 'prod_currency',
+        name: 'Currency Test',
+        active: true,
+        prices: [{ id: 'price_1', amount: 1000 }]
+      };
+
+      const formatted = stripeService.formatProductForFrontend(mockStripeProduct);
+
+      expect(formatted.currency).toBe('usd');
+    });
+
+    it('should format price correctly with 2 decimal places', () => {
+      const mockStripeProduct = {
+        id: 'prod_price',
+        name: 'Price Test',
+        active: true,
+        prices: [{ id: 'price_1', amount: 1599, currency: 'usd' }]
+      };
+
+      const formatted = stripeService.formatProductForFrontend(mockStripeProduct);
+
+      expect(formatted.formattedPrice).toBe('$15.99');
+    });
+  });
+
+  // ============================================
+  // FORMAT PRODUCTS FOR FRONTEND TESTS
+  // ============================================
+  describe('formatProductsForFrontend', () => {
+    it('should format multiple products for frontend', () => {
+      const mockStripeProducts = [
+        {
+          id: 'prod_1',
+          name: 'Product 1',
+          active: true,
+          prices: [{ id: 'price_1', amount: 1000, currency: 'usd' }]
+        },
+        {
+          id: 'prod_2',
+          name: 'Product 2',
+          active: true,
+          prices: [{ id: 'price_2', amount: 2000, currency: 'usd' }]
+        }
+      ];
+
+      const formatted = stripeService.formatProductsForFrontend(mockStripeProducts);
+
+      expect(formatted).toHaveLength(2);
+      expect(formatted[0].id).toBe('prod_1');
+      expect(formatted[0].formattedPrice).toBe('$10.00');
+      expect(formatted[1].id).toBe('prod_2');
+      expect(formatted[1].formattedPrice).toBe('$20.00');
+    });
+
+    it('should filter out inactive products', () => {
+      const mockStripeProducts = [
+        {
+          id: 'prod_active',
+          name: 'Active Product',
+          active: true,
+          prices: [{ id: 'price_1', amount: 1000 }]
+        },
+        {
+          id: 'prod_inactive',
+          name: 'Inactive Product',
+          active: false,
+          prices: [{ id: 'price_2', amount: 2000 }]
+        }
+      ];
+
+      const formatted = stripeService.formatProductsForFrontend(mockStripeProducts);
+
+      expect(formatted).toHaveLength(1);
+      expect(formatted[0].id).toBe('prod_active');
+    });
+
+    it('should filter out products without prices', () => {
+      const mockStripeProducts = [
+        {
+          id: 'prod_with_price',
+          name: 'With Price',
+          active: true,
+          prices: [{ id: 'price_1', amount: 1000 }]
+        },
+        {
+          id: 'prod_no_price',
+          name: 'No Price',
+          active: true,
+          prices: []
+        }
+      ];
+
+      const formatted = stripeService.formatProductsForFrontend(mockStripeProducts);
+
+      expect(formatted).toHaveLength(1);
+      expect(formatted[0].id).toBe('prod_with_price');
+    });
+
+    it('should handle empty array', () => {
+      const formatted = stripeService.formatProductsForFrontend([]);
+      expect(formatted).toHaveLength(0);
+    });
+  });
+
+  // ============================================
   // MODULE EXPORTS TESTS
   // ============================================
   describe('Module Exports', () => {
@@ -872,6 +1062,8 @@ describe('Stripe Service', () => {
       expect(typeof stripeService.createProductCheckoutSession).toBe('function');
       expect(typeof stripeService.getCheckoutSession).toBe('function');
       expect(typeof stripeService.getOrCreateProductCustomer).toBe('function');
+      expect(typeof stripeService.formatProductForFrontend).toBe('function');
+      expect(typeof stripeService.formatProductsForFrontend).toBe('function');
     });
 
     it('should export product IDs configuration', () => {
@@ -882,6 +1074,11 @@ describe('Stripe Service', () => {
       expect(stripeService.PRODUCT_IDS['12-month']).toBeDefined();
       // Verify they use environment variables or fallback values
       expect(typeof stripeService.PRODUCT_IDS['1-month']).toBe('string');
+    });
+
+    it('should export PROGRAM_PRODUCT_IDS', () => {
+      expect(stripeService.PROGRAM_PRODUCT_IDS).toBeDefined();
+      expect(typeof stripeService.PROGRAM_PRODUCT_IDS).toBe('object');
     });
   });
 

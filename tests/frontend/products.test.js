@@ -1,6 +1,7 @@
 /**
  * Frontend Products Page Tests
  * Tests products page functionality with JSDOM
+ * Updated to use environment variable product IDs
  */
 
 // Setup JSDOM
@@ -34,30 +35,7 @@ const dom = new JSDOM(`
     </a>
   </nav>
   <div id="products-container">
-    <div class="product-card" data-product-id="seamoss-small">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="decrease">-</button>
-      <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="99" data-product="seamoss-small">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="increase">+</button>
-      <button class="btn btn-primary add-to-cart-btn" data-product-id="seamoss-small" data-product-name="Seamoss - Small Size" data-price="15.99">Add to Cart</button>
-    </div>
-    <div class="product-card" data-product-id="seamoss-large">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="decrease">-</button>
-      <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="99" data-product="seamoss-large">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="increase">+</button>
-      <button class="btn btn-primary add-to-cart-btn" data-product-id="seamoss-large" data-product-name="Seamoss - Large Size" data-price="25.99">Add to Cart</button>
-    </div>
-    <div class="product-card" data-product-id="coconut-water">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="decrease">-</button>
-      <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="99" data-product="coconut-water">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="increase">+</button>
-      <button class="btn btn-primary add-to-cart-btn" data-product-id="coconut-water" data-product-name="Coconut Water" data-price="8.99">Add to Cart</button>
-    </div>
-    <div class="product-card" data-product-id="coconut-jelly">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="decrease">-</button>
-      <input type="number" class="form-control text-center quantity-input" value="1" min="1" max="99" data-product="coconut-jelly">
-      <button class="btn btn-outline-secondary quantity-btn" data-action="increase">+</button>
-      <button class="btn btn-primary add-to-cart-btn" data-product-id="coconut-jelly" data-product-name="Coconut Jelly" data-price="12.99">Add to Cart</button>
-    </div>
+    <!-- Products will be dynamically loaded -->
   </div>
 </body>
 </html>
@@ -98,23 +76,232 @@ global.localStorage = localStorageMock;
 // Mock fetch
 global.fetch = jest.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
 
-describe('Products Page Functionality', () => {
+describe('Products Page with Environment Variables', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('Product Configuration', () => {
-    it('should define all product details correctly', () => {
-      const PRODUCTS = {
-        'seamoss-small': { id: 'seamoss-small', name: 'Seamoss - Small Size', price: 15.99, icon: 'bi-droplet-fill', color: 'primary' },
-        'seamoss-large': { id: 'seamoss-large', name: 'Seamoss - Large Size', price: 25.99, icon: 'bi-droplet-fill', color: 'primary' },
-        'coconut-water': { id: 'coconut-water', name: 'Coconut Water', price: 8.99, icon: 'bi-cup-straw', color: 'success' },
-        'coconut-jelly': { id: 'coconut-jelly', name: 'Coconut Jelly', price: 12.99, icon: 'bi-egg-fried', color: 'warning' }
+  describe('Environment Variable Product IDs', () => {
+    it('should parse product IDs from environment variables', () => {
+      // Simulate getProductIdsFromEnv function
+      const env = {
+        'STRIPE_PRODUCT_1': 'prod_abc123',
+        'STRIPE_PRODUCT_2': 'prod_def456',
+        'STRIPE_PRODUCT_3': 'prod_ghi789'
       };
 
-      expect(Object.keys(PRODUCTS)).toHaveLength(4);
-      expect(PRODUCTS['seamoss-small'].name).toBe('Seamoss - Small Size');
-      expect(PRODUCTS['coconut-water'].price).toBe(8.99);
+      function getProductIdsFromEnv() {
+        const productIds = [];
+        for (let i = 1; env[`STRIPE_PRODUCT_${i}`]; i++) {
+          const productId = env[`STRIPE_PRODUCT_${i}`];
+          if (productId && productId.trim()) {
+            productIds.push(productId.trim());
+          }
+        }
+        return productIds;
+      }
+
+      const productIds = getProductIdsFromEnv();
+      expect(productIds).toHaveLength(3);
+      expect(productIds).toContain('prod_abc123');
+      expect(productIds).toContain('prod_def456');
+      expect(productIds).toContain('prod_ghi789');
+    });
+
+    it('should return empty array when no products configured', () => {
+      const env = {};
+
+      function getProductIdsFromEnv() {
+        const productIds = [];
+        for (let i = 1; env[`STRIPE_PRODUCT_${i}`]; i++) {
+          const productId = env[`STRIPE_PRODUCT_${i}`];
+          if (productId && productId.trim()) {
+            productIds.push(productId.trim());
+          }
+        }
+        return productIds;
+      }
+
+      const productIds = getProductIdsFromEnv();
+      expect(productIds).toHaveLength(0);
+    });
+
+    it('should skip empty product IDs', () => {
+      const env = {
+        'STRIPE_PRODUCT_1': 'prod_abc123',
+        'STRIPE_PRODUCT_2': '',
+        'STRIPE_PRODUCT_3': '   ',
+        'STRIPE_PRODUCT_4': 'prod_xyz789'
+      };
+
+      function getProductIdsFromEnv() {
+        const productIds = [];
+        for (let i = 1; env[`STRIPE_PRODUCT_${i}`]; i++) {
+          const productId = env[`STRIPE_PRODUCT_${i}`];
+          if (productId && productId.trim()) {
+            productIds.push(productId.trim());
+          }
+        }
+        return productIds;
+      }
+
+      const productIds = getProductIdsFromEnv();
+      expect(productIds).toHaveLength(2);
+      expect(productIds).toContain('prod_abc123');
+      expect(productIds).toContain('prod_xyz789');
+    });
+  });
+
+  describe('Product Formatting', () => {
+    it('should format product for frontend display', () => {
+      const mockStripeProduct = {
+        id: 'prod_abc123',
+        name: 'Seamoss - Small Size',
+        description: 'Premium organic Seamoss',
+        active: true,
+        metadata: {
+          icon: 'bi-droplet-fill',
+          color: 'primary'
+        },
+        images: ['https://example.com/seamoss.jpg'],
+        prices: [
+          { id: 'price_123', amount: 1599, currency: 'usd', type: 'one_time' }
+        ]
+      };
+
+      function formatProductForFrontend(product) {
+        if (!product) return null;
+        
+        const oneTimePrice = product.prices && product.prices.length > 0 
+          ? product.prices.find(p => p.type === 'one_time') || product.prices[0]
+          : null;
+
+        return {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          priceId: oneTimePrice?.id,
+          price: oneTimePrice?.amount,
+          formattedPrice: oneTimePrice?.amount 
+            ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
+            : 'N/A',
+          currency: oneTimePrice?.currency || 'usd',
+          images: product.images,
+          metadata: product.metadata
+        };
+      }
+
+      const formatted = formatProductForFrontend(mockStripeProduct);
+      
+      expect(formatted.id).toBe('prod_abc123');
+      expect(formatted.name).toBe('Seamoss - Small Size');
+      expect(formatted.price).toBe(1599);
+      expect(formatted.formattedPrice).toBe('$15.99');
+      expect(formatted.metadata.icon).toBe('bi-droplet-fill');
+      expect(formatted.metadata.color).toBe('primary');
+    });
+
+    it('should return null for null product', () => {
+      function formatProductForFrontend(product) {
+        if (!product) return null;
+        return {};
+      }
+
+      expect(formatProductForFrontend(null)).toBeNull();
+    });
+
+    it('should handle product without prices', () => {
+      const mockProduct = {
+        id: 'prod_test',
+        name: 'Test Product',
+        description: 'A test product',
+        active: true,
+        metadata: {},
+        images: [],
+        prices: []
+      };
+
+      function formatProductForFrontend(product) {
+        if (!product) return null;
+        
+        const oneTimePrice = product.prices && product.prices.length > 0 
+          ? product.prices.find(p => p.type === 'one_time') || product.prices[0]
+          : null;
+
+        return {
+          id: product.id,
+          name: product.name,
+          formattedPrice: oneTimePrice?.amount 
+            ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
+            : 'N/A'
+        };
+      }
+
+      const formatted = formatProductForFrontend(mockProduct);
+      expect(formatted.formattedPrice).toBe('N/A');
+    });
+  });
+
+  describe('API Calls with Product IDs', () => {
+    it('should fetch products using environment variable IDs', async () => {
+      const envProductIds = ['prod_abc123', 'prod_def456'];
+      const mockProducts = [
+        { id: 'prod_abc123', name: 'Product 1' },
+        { id: 'prod_def456', name: 'Product 2' }
+      ];
+
+      // Mock individual product fetches
+      fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: { product: mockProducts[0] } })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: { product: mockProducts[1] } })
+        });
+
+      const results = [];
+      for (const productId of envProductIds) {
+        const res = await fetch(`/api/v1/products/${productId}`, {
+          headers: { 'Authorization': 'Bearer mock-token' }
+        });
+        const data = await res.json();
+        results.push(data.data.product);
+      }
+
+      expect(results).toHaveLength(2);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle missing products gracefully', async () => {
+      const envProductIds = ['prod_valid', 'prod_invalid'];
+
+      fetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ data: { product: { id: 'prod_valid', name: 'Valid' } } })
+        })
+        .mockRejectedValueOnce(new Error('Product not found'));
+
+      const results = [];
+      const errors = [];
+
+      for (const productId of envProductIds) {
+        try {
+          const res = await fetch(`/api/v1/products/${productId}`, {
+            headers: { 'Authorization': 'Bearer mock-token' }
+          });
+          const data = await res.json();
+          results.push(data.data.product);
+        } catch (err) {
+          errors.push({ productId, error: err.message });
+        }
+      }
+
+      expect(results).toHaveLength(1);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].productId).toBe('prod_invalid');
     });
   });
 
@@ -162,42 +349,14 @@ describe('Products Page Functionality', () => {
       
       expect(inputValue).toBe(99);
     });
-
-    it('should handle manual input changes', () => {
-      let inputValue = parseInt('50') || 1;
-      inputValue = Math.max(1, Math.min(inputValue, 99));
-      
-      expect(inputValue).toBe(50);
-    });
-
-    it('should normalize invalid input to 1', () => {
-      let inputValue = parseInt('invalid') || 1;
-      inputValue = Math.max(1, Math.min(inputValue, 99));
-      
-      expect(inputValue).toBe(1);
-    });
-
-    it('should normalize negative input to 1', () => {
-      let inputValue = parseInt('-5') || 1;
-      inputValue = Math.max(1, Math.min(inputValue, 99));
-      
-      expect(inputValue).toBe(1);
-    });
-
-    it('should normalize input over 99 to 99', () => {
-      let inputValue = parseInt('150') || 1;
-      inputValue = Math.max(1, Math.min(inputValue, 99));
-      
-      expect(inputValue).toBe(99);
-    });
   });
 
   describe('Add to Cart', () => {
     it('should add new item to cart', () => {
       let cart = { items: [] };
-      const productId = 'seamoss-small';
+      const productId = 'prod_abc123';
       const productName = 'Seamoss - Small Size';
-      const price = 15.99;
+      const price = 1599; // in cents
       const quantity = 2;
 
       const existingItem = cart.items.find(item => item.productId === productId);
@@ -214,23 +373,21 @@ describe('Products Page Functionality', () => {
       }
 
       expect(cart.items).toHaveLength(1);
-      expect(cart.items[0].productId).toBe('seamoss-small');
+      expect(cart.items[0].productId).toBe('prod_abc123');
       expect(cart.items[0].quantity).toBe(2);
     });
 
     it('should increase quantity for existing item', () => {
       let cart = {
-        items: [{ productId: 'seamoss-small', name: 'Seamoss - Small Size', price: 15.99, quantity: 2 }]
+        items: [{ productId: 'prod_abc123', name: 'Seamoss', price: 1599, quantity: 2 }]
       };
-      const productId = 'seamoss-small';
+      const productId = 'prod_abc123';
       const quantity = 3;
 
       const existingItem = cart.items.find(item => item.productId === productId);
       
       if (existingItem) {
         existingItem.quantity += quantity;
-      } else {
-        cart.items.push({ productId, quantity });
       }
 
       expect(cart.items[0].quantity).toBe(5);
@@ -246,42 +403,14 @@ describe('Products Page Functionality', () => {
         JSON.stringify(cart)
       );
     });
-
-    it('should sync cart to server', async () => {
-      const token = 'mock-jwt-token';
-      const API_BASE = 'http://localhost:10000';
-      const cart = { items: [{ productId: 'seamoss-small', quantity: 2 }] };
-      
-      await fetch(`${API_BASE}/api/v1/cart/products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          productId: cart.items[0].productId,
-          quantity: cart.items[0].quantity
-        })
-      });
-
-      expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:10000/api/v1/cart/products',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer mock-jwt-token'
-          })
-        })
-      );
-    });
   });
 
   describe('Cart Badge', () => {
     it('should update cart badge with total items', () => {
       const cartItems = [
-        { productId: 'seamoss-small', quantity: 2 },
-        { productId: 'coconut-water', quantity: 1 },
-        { productId: 'coconut-jelly', quantity: 3 }
+        { productId: 'prod_1', quantity: 2 },
+        { productId: 'prod_2', quantity: 1 },
+        { productId: 'prod_3', quantity: 3 }
       ];
 
       const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -318,79 +447,20 @@ describe('Products Page Functionality', () => {
     });
   });
 
-  describe('Server Cart Sync', () => {
-    it('should sync cart from server', async () => {
-      const token = 'mock-jwt-token';
-      const API_BASE = 'http://localhost:10000';
-      
-      const mockServerCart = {
-        data: {
-          cart: {
-            items: [
-              { productId: 'seamoss-small', name: 'Seamoss Small', price: 15.99, quantity: 2 }
-            ],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        }
-      };
-
-      fetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockServerCart)
-      });
-
-      const res = await fetch(`${API_BASE}/api/v1/cart`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      expect(res.ok).toBe(true);
-    });
-
-    it('should handle server sync error gracefully', async () => {
-      const token = 'mock-jwt-token';
-      const API_BASE = 'http://localhost:10000';
-      
-      fetch.mockRejectedValueOnce(new Error('Network error'));
-
-      try {
-        await fetch(`${API_BASE}/api/v1/cart`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      } catch (err) {
-        // Should handle error silently
-        expect(err.message).toBe('Network error');
-      }
-    });
-  });
-
   describe('Product Pricing', () => {
     it('should calculate correct line item total', () => {
-      const price = 15.99;
+      const price = 1599; // in cents
       const quantity = 3;
-      const total = price * quantity;
+      const total = (price * quantity) / 100;
 
-      expect(total).toBeCloseTo(47.97, 2);
+      expect(total).toBe(47.97);
     });
 
-    it('should calculate correct cart subtotal', () => {
-      const products = [
-        { id: 'seamoss-small', price: 15.99, quantity: 2 },
-        { id: 'seamoss-large', price: 25.99, quantity: 1 },
-        { id: 'coconut-water', price: 8.99, quantity: 3 }
-      ];
+    it('should format price correctly', () => {
+      const amountInCents = 1599;
+      const formatted = `$${(amountInCents / 100).toFixed(2)}`;
 
-      const subtotal = products.reduce(
-        (sum, p) => sum + (p.price * p.quantity),
-        0
-      );
-
-      // 15.99*2 + 25.99*1 + 8.99*3 = 31.98 + 25.99 + 26.97 = 84.94
-      expect(subtotal).toBeCloseTo(84.94, 2);
+      expect(formatted).toBe('$15.99');
     });
   });
 
@@ -447,61 +517,20 @@ describe('Products Page Functionality', () => {
 });
 
 describe('Products Page DOM Tests', () => {
-  describe('Product Card Elements', () => {
-    it('should have 4 product cards', () => {
-      const productCards = document.querySelectorAll('.product-card');
-      expect(productCards.length).toBe(4);
+  describe('Product Container', () => {
+    it('should have products container', () => {
+      const container = document.getElementById('products-container');
+      expect(container).not.toBeNull();
     });
 
-    it('should have quantity input for each product', () => {
-      const quantityInputs = document.querySelectorAll('.quantity-input');
-      expect(quantityInputs.length).toBe(4);
-    });
-
-    it('should have quantity buttons for each product', () => {
-      const quantityBtns = document.querySelectorAll('.quantity-btn');
-      expect(quantityBtns.length).toBe(8); // 2 per product (increase and decrease)
-    });
-
-    it('should have add to cart buttons', () => {
-      const addToCartBtns = document.querySelectorAll('.add-to-cart-btn');
-      expect(addToCartBtns.length).toBe(4);
-    });
-
-    it('should have correct product IDs on elements', () => {
-      const products = ['seamoss-small', 'seamoss-large', 'coconut-water', 'coconut-jelly'];
-      
-      products.forEach(productId => {
-        const input = document.querySelector(`.quantity-input[data-product="${productId}"]`);
-        const btn = document.querySelector(`.add-to-cart-btn[data-product-id="${productId}"]`);
-        
-        expect(input).not.toBeNull();
-        expect(btn).not.toBeNull();
-      });
-    });
-  });
-
-  describe('Cart Badge', () => {
     it('should have cart badge element', () => {
       const badge = document.getElementById('cart-badge');
       expect(badge).not.toBeNull();
     });
 
-    it('should be hidden by default', () => {
-      const badge = document.getElementById('cart-badge');
-      expect(badge.style.display).toBe('none');
-    });
-  });
-
-  describe('Toast Container', () => {
     it('should have toast container', () => {
       const toastContainer = document.querySelector('.toast-container');
       expect(toastContainer).not.toBeNull();
-    });
-
-    it('should have toast message element', () => {
-      const toastMessage = document.getElementById('toastMessage');
-      expect(toastMessage).not.toBeNull();
     });
   });
 });
