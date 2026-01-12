@@ -139,7 +139,7 @@ router.post('/create', auth, [
     let customer;
     try {
       customer = await createOrRetrieveCustomer(email, paymentMethodId, {
-        userId: userId,
+        userId: userId.toString(),
         firstName: user.firstName,
         lastName: user.lastName
       });

@@ -111,7 +111,7 @@ describe('Subscriptions API', () => {
         validRequest.email,
         validRequest.paymentMethodId,
         expect.objectContaining({
-          userId: userId,
+          userId: userId.toString(),
           firstName: 'Test',
           lastName: 'User'
         })
