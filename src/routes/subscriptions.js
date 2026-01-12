@@ -113,6 +113,18 @@ router.post('/create', [
 
     const { email, paymentMethodId, plan } = req.body;
 
+    // Check if user already has an active subscription
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser && existingUser.hasActiveSubscription()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'You already have an active subscription. You can only cancel your current subscription.',
+          code: 'ACTIVE_SUBSCRIPTION_EXISTS'
+        }
+      });
+    }
+
     // Create or retrieve Stripe customer
     const customer = await createOrRetrieveCustomer(email, paymentMethodId);
 
@@ -235,6 +247,17 @@ router.post('/checkout-session', auth, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: { message: 'User not found' }
+      });
+    }
+
+    // Check if user already has an active subscription
+    if (user.hasActiveSubscription()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'You already have an active subscription. You can only cancel your current subscription.',
+          code: 'ACTIVE_SUBSCRIPTION_EXISTS'
+        }
       });
     }
 

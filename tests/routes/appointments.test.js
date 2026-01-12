@@ -5,6 +5,11 @@ const User = require('../../src/models/User');
 const Appointment = require('../../src/models/Appointment');
 const jwt = require('jsonwebtoken');
 
+// Mock the subscription middleware
+jest.mock('../../src/middleware/subscriptionAuth', () => ({
+  requireActiveSubscription: (req, res, next) => next()
+}));
+
 const app = express();
 app.use(express.json());
 
@@ -19,6 +24,12 @@ app.use((req, res, next) => {
       return res.status(401).json({ msg: 'Unauthorized' });
     }
   }
+  next();
+});
+
+// Mock subscription middleware to allow all requests for testing
+app.use('/api/appointments', (req, res, next) => {
+  // Skip subscription check for tests
   next();
 });
 

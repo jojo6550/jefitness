@@ -420,12 +420,16 @@ async function loadUserSubscriptions() {
 
         if (subsData.success && subsData.data && !subsData.data.hasSubscription) {
             // User has no subscription, show free tier message
+            hasActiveSubscription = false;
             displayUserSubscriptions([]);
             userSubscriptionsSection.style.display = 'block';
+            plansContainer.style.display = 'grid'; // Show plans for purchase
         } else if (subsData.success && subsData.data) {
             // User has subscription, display it
+            hasActiveSubscription = true;
             displayUserSubscriptions([subsData.data]);
             userSubscriptionsSection.style.display = 'block';
+            plansContainer.style.display = 'none'; // Hide plans since they have active subscription
         }
 
     } catch (error) {
