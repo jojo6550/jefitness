@@ -178,8 +178,8 @@ async function main() {
         user.subscriptionType = selectedPlan.key;
         user.subscriptionStatus = updatedSubscription.status;
         user.stripePriceId = updatedSubscription.items.data[0]?.price.id;
-        user.currentPeriodStart = new Date(updatedSubscription.current_period_start * 1000);
-        user.currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
+        user.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : null;
+        user.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : null;
         user.cancelAtPeriodEnd = updatedSubscription.cancel_at_period_end || false;
 
         await user.save();
@@ -194,8 +194,8 @@ async function main() {
           subscriptionRecord.plan = selectedPlan.key;
           subscriptionRecord.status = updatedSubscription.status;
           subscriptionRecord.priceId = updatedSubscription.items.data[0]?.price.id;
-          subscriptionRecord.currentPeriodStart = new Date(updatedSubscription.current_period_start * 1000);
-          subscriptionRecord.currentPeriodEnd = new Date(updatedSubscription.current_period_end * 1000);
+          subscriptionRecord.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : new Date();
+          subscriptionRecord.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
           subscriptionRecord.cancelAtPeriodEnd = updatedSubscription.cancel_at_period_end || false;
           subscriptionRecord.updatedAt = new Date();
 

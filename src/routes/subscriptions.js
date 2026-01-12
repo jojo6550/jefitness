@@ -192,8 +192,8 @@ router.post('/create', auth, [
     user.subscriptionStatus = subscription.status;
     user.subscriptionType = plan;
     user.stripePriceId = subscription.items.data[0]?.price.id;
-    user.currentPeriodStart = new Date(subscription.current_period_start * 1000);
-    user.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
     user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
     user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 

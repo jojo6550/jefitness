@@ -59,7 +59,7 @@ async function createStripeSubscription(user, plan) {
 
     // Create or retrieve Stripe customer
     const customer = await createOrRetrieveCustomer(user.email, null, {
-      userId: user._id,
+      userId: user._id.toString(),
       firstName: user.firstName,
       lastName: user.lastName
     });
@@ -83,22 +83,28 @@ async function createStripeSubscription(user, plan) {
     user.subscriptionStatus = subscription.status;
     user.subscriptionType = plan;
     user.stripePriceId = subscription.items.data[0]?.price.id;
-    user.currentPeriodStart = new Date(subscription.current_period_start * 1000);
-    user.currentPeriodEnd = new Date(subscription.current_period_end * 1000);
+    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
     user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
 
     await user.save();
 
     // Create subscription record in database
+    const currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : new Date();
+    const currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
+
     const subscriptionRecord = new Subscription({
       userId: user._id,
+      stripeCustomerId: customer.id,
       stripeSubscriptionId: subscription.id,
       plan: plan,
+      stripePriceId: subscription.items.data[0]?.price.id,
+      currentPeriodStart: currentPeriodStart,
+      currentPeriodEnd: currentPeriodEnd,
       status: subscription.status,
-      priceId: subscription.items.data[0]?.price.id,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+      amount: subscription.items.data[0]?.price.unit_amount || 0, // Amount in cents
+      currency: subscription.items.data[0]?.price.currency || 'usd',
       billingEnvironment: user.billingEnvironment
     });
 
@@ -163,3 +169,42 @@ async function main() {
     }
 
     // Confirm creation
+    const confirm = await question(`\n⚠️  Create ${plan} subscription for ${user.firstName} ${user.lastName}? (yes/no): `);
+    if (confirm.toLowerCase() !== 'yes') {
+      console.log('❌ Operation cancelled');
+      process.exit(0);
+    }
+
+    console.log('\n🔄 Creating subscription...');
+
+    // Create the subscription
+    const result = await createStripeSubscription(user, plan);
+
+    console.log('\n🎉 Subscription created successfully!');
+    console.log(`📊 Plan: ${plan}`);
+    console.log(`📅 Status: ${result.subscription.status}`);
+    console.log(`🔗 Subscription ID: ${result.subscription.id}`);
+    console.log(`👤 Customer ID: ${result.customer.id}`);
+    console.log(`💰 Price ID: ${result.subscription.items.data[0]?.price.id}`);
+
+    const periodEnd = new Date(result.subscription.current_period_end * 1000);
+    console.log(`📅 Current period ends: ${periodEnd.toLocaleDateString()}`);
+
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    process.exit(1);
+  } finally {
+    rl.close();
+    await mongoose.connection.close();
+  }
+}
+
+// Handle script interruption
+process.on('SIGINT', async () => {
+  console.log('\n\n⚠️  Operation interrupted');
+  rl.close();
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+main();
