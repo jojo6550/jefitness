@@ -40,21 +40,25 @@
     <div class="mb-3">
       <label for="inputFirstName" class="form-label">First Name</label>
       <input type="text" class="form-control" id="inputFirstName" name="firstName" placeholder="Your first name" required>
+      <div id="firstNameError" class="invalid-feedback"></div>
     </div>
 
     <div class="mb-3">
       <label for="inputLastName" class="form-label">Last Name</label>
       <input type="text" class="form-control" id="inputLastName" name="lastName" placeholder="Your last name" required>
+      <div id="lastNameError" class="invalid-feedback"></div>
     </div>
 
     <div class="mb-3">
       <label for="inputEmail" class="form-label">Email address</label>
       <input type="email" class="form-control" id="inputEmail" name="email" placeholder="name@example.com" required>
+      <div id="signupEmailError" class="invalid-feedback"></div>
     </div>
 
     <div class="mb-3">
       <label for="inputPassword" class="form-label">Password</label>
       <input type="password" class="form-control" id="inputPassword" name="password" placeholder="Enter a secure password" required>
+      <div id="signupPasswordError" class="invalid-feedback"></div>
       <div id="password-requirements" class="mt-2">
         <small>Password must contain:</small>
         <ul class="list-unstyled small">
@@ -65,6 +69,12 @@
           <li id="req-special" class="text-muted">At least one special character (!@#$%^&*(),.?":{}|<>)</li>
         </ul>
       </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="inputConfirmPassword" class="form-label">Confirm Password</label>
+      <input type="password" class="form-control" id="inputConfirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+      <div id="confirmPasswordError" class="invalid-feedback"></div>
     </div>
 
     <div class="mb-3 form-check">

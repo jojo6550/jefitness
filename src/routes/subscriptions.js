@@ -516,6 +516,70 @@ router.get('/user/all', auth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v1/subscriptions/status
+ * Get current user's subscription status for navbar display
+ */
+router.get('/status', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user to check subscription status
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { message: 'User not found' }
+      });
+    }
+
+    // If no subscription, return free tier info
+    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
+      return res.json({
+        success: true,
+        data: {
+          plan: 'free',
+          status: 'active',
+          hasSubscription: false
+        }
+      });
+    }
+
+    // Get subscription from database
+    const subscription = await Subscription.findOne({
+      userId,
+      stripeSubscriptionId: user.stripeSubscriptionId
+    });
+
+    if (!subscription) {
+      return res.json({
+        success: true,
+        data: {
+          plan: user.subscriptionType || 'free',
+          status: user.subscriptionStatus || 'none',
+          hasSubscription: user.subscriptionStatus === 'active'
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        plan: subscription.plan,
+        status: subscription.status,
+        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching subscription status:', error);
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to fetch subscription status' }
+    });
+  }
+});
+
 
 
 /**

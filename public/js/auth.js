@@ -362,29 +362,32 @@ const baseUrl = isLocalhost
     });
 
     // Resend OTP functionality
-    document.getElementById('resendOtp').addEventListener('click', async () => {
-      const firstName = document.getElementById('inputFirstName').value;
-      const lastName = document.getElementById('inputLastName').value;
-      const email = document.getElementById('inputEmail').value;
-      const password = document.getElementById('inputPassword').value;
+    const resendOtpBtn = document.getElementById('resendOtp');
+    if (resendOtpBtn) {
+      resendOtpBtn.addEventListener('click', async () => {
+        const firstName = document.getElementById('inputFirstName').value;
+        const lastName = document.getElementById('inputLastName').value;
+        const email = document.getElementById('inputEmail').value;
+        const password = document.getElementById('inputPassword').value;
 
-      try {
-        const response = await fetch(`${baseUrl}/api/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firstName, lastName, email, password })
-        });
+        try {
+          const response = await fetch(`${baseUrl}/api/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ firstName, lastName, email, password })
+          });
 
-        if (response.ok) {
-          alert('OTP resent to your email.');
-        } else {
+          if (response.ok) {
+            alert('OTP resent to your email.');
+          } else {
+            alert('Failed to resend OTP.');
+          }
+        } catch (err) {
+          console.error('Error:', err);
           alert('Failed to resend OTP.');
         }
-      } catch (err) {
-        console.error('Error:', err);
-        alert('Failed to resend OTP.');
-      }
-    });
+      });
+    }
   }
 
   // FORGOT PASSWORD
