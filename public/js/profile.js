@@ -2,11 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('userProfileForm');
     const formMessage = document.getElementById('formMessage');
 
-// Determine the base URL
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
+const API_BASE = window.ApiConfig.getBaseURL();
 
     // Helper to show messages
     function showMessage(message, type = 'success') {
@@ -21,7 +17,7 @@ const API_BASE_URL = isLocalhost
     // Fetch profile data and populate form
     async function loadProfile() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -96,7 +92,7 @@ const API_BASE_URL = isLocalhost
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+            const response = await fetch(`${API_BASE}/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
