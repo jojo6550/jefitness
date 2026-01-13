@@ -1,40 +1,16 @@
-# TODO: Replace isLocalhost base URL logic with ApiConfig.getAPI_BASE()
+# Fix Subscription Flow Integration Tests
 
-## Files to Update (27 total)
-- [ ] public/pages/subscriptions.html
-- [ ] public/pages/products.html
-- [ ] public/pages/partials/navbar.html
-- [ ] public/pages/checkout-success.html
-- [ ] public/js/auth.js
-- [ ] public/js/profile.js
-- [ ] public/js/subscriptions.js
-- [ ] public/js/trainer-appointments.js
-- [ ] public/js/view-statistics.js
-- [ ] public/js/trainer-dashboard.js
-- [ ] public/js/trainer-clients.js
-- [ ] public/js/sleep-tracker.js
-- [ ] public/js/session-check.js
-- [ ] public/js/role-guard.js
-- [ ] public/js/reports.js
-- [ ] public/js/program-details.js
-- [ ] public/js/product-cart.js
-- [ ] public/js/nutrition-logger.js
-- [ ] public/js/medical-documents.js
-- [ ] public/js/dashboard.js
-- [ ] public/js/dashboard-notifications.js
-- [ ] public/js/checkout.js
-- [ ] public/js/cart.js
-- [ ] public/js/admin-notifications.js
-- [ ] public/js/admin-dashboard.js
+## Issues Identified
+1. **Plans endpoint**: Returns plans object, test expects array
+2. **Webhook endpoint**: Returns JSON, test expects plain text 'Webhook received'
+3. **Status endpoint**: Requires stripeSubscriptionId, test doesn't set it
+4. **Cancel endpoint**: Sometimes doesn't return message
+5. **Access control**: Middleware should work once subscription is set
 
-## Plan
-Replace:
-```
-
-const API_BASE = window.ApiConfig.getAPI_BASE();```
-With:
-```
-window.API_BASE = window.ApiConfig.getAPI_BASE();
-```
-
-And update any variable references from API_BASE/API_BASE to API_BASE.
+## Tasks
+- [ ] Fix /plans route to return plans as array
+- [ ] Fix webhook handler to return plain text response
+- [ ] Update /status endpoint logic to check subscription.isActive without stripeSubscriptionId
+- [ ] Ensure cancel endpoint always returns message
+- [ ] Update test setup for proper subscription fields
+- [ ] Run tests to verify fixes

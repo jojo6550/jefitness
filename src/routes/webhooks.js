@@ -112,7 +112,7 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
     }
 
     // Return a response to acknowledge receipt of the event
-    res.json({ received: true });
+    res.send('Webhook received');
   } catch (error) {
     console.error(`Error processing webhook event ${event.type}:`, error);
     // Still return 200 to prevent Stripe from retrying

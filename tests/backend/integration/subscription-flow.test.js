@@ -118,6 +118,7 @@ describe('Subscription Flow Integration Tests', () => {
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       };
+      user.stripeSubscriptionId = 'sub_mock_subscription';
       await user.save();
 
       const response = await request(app)

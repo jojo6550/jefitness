@@ -211,7 +211,7 @@ router.get('/status', auth, async (req, res) => {
     }
 
     // If no subscription, return free tier info
-    if (!user.stripeSubscriptionId || !user.subscription.isActive) {
+    if (!user.subscription.isActive) {
       return res.json({
         success: true,
         data: {
