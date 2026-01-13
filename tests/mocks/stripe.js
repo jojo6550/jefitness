@@ -9,15 +9,24 @@ const mockStripe = {
     }
   },
   webhooks: {
-    constructEvent: jest.fn().mockReturnValue({
-      type: 'checkout.session.completed',
-      data: {
-        object: {
-          id: 'cs_test_mock_session',
-          customer: 'cus_mock_customer',
-          subscription: 'sub_mock_subscription'
-        }
+    constructEvent: jest.fn((body, signature, secret) => {
+      // Mock webhook signature verification
+      if (signature === 'mock_signature') {
+        return {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_test_mock_session',
+              customer: 'cus_mock_customer',
+              subscription: 'sub_mock_subscription',
+              metadata: {
+                userId: 'test_user_id'
+              }
+            }
+          }
+        };
       }
+      throw new Error('Invalid signature');
     })
   },
   customers: {

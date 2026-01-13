@@ -74,7 +74,14 @@ const ensureAuthenticated = (req, res, next) => {
  */
 router.get('/plans', async (req, res) => {
   try {
-    const plans = await getPlanPricing();
+    const plansObject = await getPlanPricing();
+    // Convert plans object to array for frontend compatibility
+    const plans = Object.entries(plansObject).map(([key, value]) => ({
+      id: key,
+      name: key.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      ...value
+    }));
+
     res.json({
       success: true,
       data: {
@@ -210,8 +217,8 @@ router.get('/status', auth, async (req, res) => {
       });
     }
 
-    // If no subscription, return free tier info
-    if (!user.subscription.isActive) {
+    // If no subscription or subscription is not active/expired, return free tier info
+    if (!user.hasActiveSubscription()) {
       return res.json({
         success: true,
         data: {
