@@ -145,7 +145,7 @@ describe('Middleware Tests', () => {
         firstName: '<script>alert("xss")</script>John',
         lastName: 'Doe',
         email: 'john@example.com',
-        password: 'password123',
+        password: 'Password123!',
         dataProcessingConsent: { given: true },
         healthDataConsent: { given: true }
       };
