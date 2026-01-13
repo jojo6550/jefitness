@@ -1,4 +1,4 @@
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
@@ -10,7 +10,7 @@ async function checkSubscriptionStatus() {
     if (!token) return false;
 
     try {
-        const response = await fetch(`${API_BASE}/api/v1/subscriptions/user/current`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -41,7 +41,7 @@ async function checkSubscriptionStatus() {
 // ====== Load Appointments ======
 async function loadAppointments() {
     try {
-        const response = await fetch(`${API_BASE}/api/appointments/user`, {
+        const response = await fetch(`${window.API_BASE}/api/appointments/user`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -108,7 +108,7 @@ function showError(message) {
 async function viewAppointment(appointmentId) {
     try {
         currentViewAppointmentId = appointmentId;
-        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}/api/appointments/${appointmentId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -139,7 +139,7 @@ async function viewAppointment(appointmentId) {
 // ====== Reusable: Load Trainers into any select ======
 async function loadTrainersInto(selectElement, selectedId = '') {
     try {
-        const resp = await fetch(`${API_BASE}/api/users/trainers`, {
+        const resp = await fetch(`${window.API_BASE}/api/users/trainers`, {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });
         if (!resp.ok) throw new Error('Failed to fetch trainers');
@@ -166,7 +166,7 @@ const editModal = new bootstrap.Modal(editModalElement);
 function editAppointment(appointmentId) {
     currentEditAppointmentId = appointmentId;
 
-    fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+    fetch(`${window.API_BASE}/api/appointments/${appointmentId}`, {
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -201,7 +201,7 @@ document.getElementById('editAppointmentForm')?.addEventListener('submit', async
     if (!date || !time) { alert('Date and time are required.'); return; }
 
     try {
-        const res = await fetch(`${API_BASE}/api/appointments/${currentEditAppointmentId}`, {
+        const res = await fetch(`${window.API_BASE}/api/appointments/${currentEditAppointmentId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: JSON.stringify({ date, time, notes, trainerId })
@@ -246,7 +246,7 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
 
     let res;
     try {
-        res = await fetch(`${API_BASE}/api/appointments`, {
+        res = await fetch(`${window.API_BASE}/api/appointments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
             body: JSON.stringify({ date, time, notes, trainerId })

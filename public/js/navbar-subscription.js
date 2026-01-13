@@ -19,7 +19,7 @@ async function loadNavbarSubscriptionStatus() {
             }
         });
 
-        if (response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
             // Clear invalid token
             localStorage.removeItem('token');
             sessionStorage.removeItem('token');
