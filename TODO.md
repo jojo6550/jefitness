@@ -1,29 +1,55 @@
-# Subscription Refactor TODO
+# Test Suite Implementation TODO
 
-## Backend Routes
-- [ ] Update src/routes/subscriptions.js: Replace old field checks with user.subscription.isActive, use user.subscription.plan, etc.
-- [ ] Update src/routes/webhooks.js: Populate/clear subscription object instead of old fields
-- [ ] Update src/routes/auth.js: Return subscription info using new structure
+## Directory Structure
+- [x] Create /tests directory
+- [x] Create /tests/backend/unit
+- [x] Create /tests/backend/integration
+- [x] Create /tests/backend/stress
+- [x] Create /tests/frontend/ui
+- [x] Create /tests/frontend/integration
 
-## Middleware
-- [ ] Update src/middleware/subscriptionAuth.js: Remove old field references in error details
+## Setup Files
+- [ ] Create /tests/setup.js (backend: DB, server)
+- [ ] Create /tests/setup-jsdom.js (frontend: jsdom)
+- [ ] Create /tests/mocks/ directory
+- [ ] Create mocks for Stripe, Mailjet, web-push
 
-## Services
-- [ ] Update src/services/subscriptionExpiry.js: Use subscription object for expiry checks
+## Backend Unit Tests
+- [ ] Auth routes: login, signup, password reset
+- [ ] User routes: CRUD operations
+- [ ] Subscription routes: create, update, cancel
+- [ ] Appointment routes: book, cancel, reschedule
+- [ ] Middleware tests: auth, rate limiter, validation
+- [ ] Model tests: User, Subscription, etc.
+- [ ] Service tests: cache, compliance
 
-## Scripts
-- [ ] Update scripts/fix-user-subscriptions.js: Use new subscription object
-- [ ] Update scripts/manage-user-subscription.js: Use new subscription object
-- [ ] Update scripts/change-user-plan.js: Use new subscription object
-- [ ] Update scripts/migrate-users.js: Use new subscription object
+## Backend Integration Tests
+- [ ] User registration flow
+- [ ] Login and authentication flow
+- [ ] Subscription purchase flow
+- [ ] Appointment booking flow
+- [ ] GDPR compliance flows
 
-## Tests
-- [ ] Update tests/services/subscriptionExpiry.test.js: Update test data and assertions
+## Backend Stress Tests
+- [ ] Concurrent auth requests
+- [ ] Concurrent subscription operations
+- [ ] High load on appointment booking
+- [ ] Database query stress
 
-## Frontend
-- [ ] Update public/js/subscriptions.js: Use user.subscription.isActive and new fields
-- [ ] Update public/pages/dashboard.html: Update UI gating logic
+## Frontend UI Tests
+- [ ] Login page: form validation, submission
+- [ ] Dashboard: data display, navigation
+- [ ] Profile: form updates, validation
+- [ ] Subscription: plan selection, payment
 
-## Cleanup
-- [ ] Remove all logic referencing deprecated fields
-- [ ] Ensure expiration checks use subscription.currentPeriodEnd
+## Frontend Integration Tests
+- [ ] API mocking for login
+- [ ] API mocking for dashboard data
+- [ ] Error handling for failed requests
+- [ ] Conditional rendering based on responses
+
+## Final Steps
+- [ ] Update jest.config.js if needed
+- [ ] Run npm test to verify
+- [ ] Check coverage
+- [ ] Document assumptions and patterns
