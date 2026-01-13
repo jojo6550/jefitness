@@ -193,41 +193,65 @@ router.post('/create', auth, [
 });
 
 /**
- * GET /api/v1/subscriptions/:customerId
- * Get subscriptions for a specific Stripe customer (legacy endpoint)
+ * GET /api/v1/subscriptions/status
+ * Get current user's subscription status for navbar display
  */
-router.get('/:customerId', [
-  param('customerId').matches(/^cus_[a-zA-Z0-9]+$/).withMessage('Invalid customer ID format')
-], async (req, res) => {
+router.get('/status', auth, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
+    const userId = req.user.id;
+
+    // Get user to check subscription status
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        error: {
-          message: 'Validation failed',
-          details: errors.array()
+        error: { message: 'User not found' }
+      });
+    }
+
+    // If no subscription, return free tier info
+    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
+      return res.json({
+        success: true,
+        data: {
+          plan: 'free',
+          status: 'active',
+          hasSubscription: false
         }
       });
     }
 
-    const { customerId } = req.params;
+    // Get subscription from database
+    const subscription = await Subscription.findOne({
+      userId,
+      stripeSubscriptionId: user.stripeSubscriptionId
+    });
 
-    const subscriptions = await getCustomerSubscriptions(customerId);
+    if (!subscription) {
+      return res.json({
+        success: true,
+        data: {
+          plan: user.subscriptionType || 'free',
+          status: user.subscriptionStatus || 'none',
+          hasSubscription: user.subscriptionStatus === 'active'
+        }
+      });
+    }
 
     res.json({
       success: true,
       data: {
-        subscriptions,
-        count: subscriptions.length
+        plan: subscription.plan,
+        status: subscription.status,
+        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing'
       }
     });
 
   } catch (error) {
-    console.error('Error retrieving customer subscriptions:', error);
+    console.error('Error fetching subscription status:', error);
     res.status(500).json({
       success: false,
-      error: { message: 'Failed to retrieve subscriptions' }
+      error: { message: 'Failed to fetch subscription status' }
     });
   }
 });
@@ -243,7 +267,7 @@ router.get('/:customerId', [
 router.post('/checkout-session', auth, async (req, res) => {
   try {
     let { plan, successUrl, cancelUrl } = req.body;
-    
+
     // Validate plan
     if (!plan || !['1-month', '3-month', '6-month', '12-month'].includes(plan)) {
       return res.status(400).json({
@@ -254,7 +278,7 @@ router.post('/checkout-session', auth, async (req, res) => {
         }
       });
     }
-    
+
     // Validate URLs
     if (!successUrl || typeof successUrl !== 'string' || !successUrl.trim()) {
       return res.status(400).json({
@@ -265,7 +289,7 @@ router.post('/checkout-session', auth, async (req, res) => {
         }
       });
     }
-    
+
     if (!cancelUrl || typeof cancelUrl !== 'string' || !cancelUrl.trim()) {
       return res.status(400).json({
         success: false,
@@ -275,11 +299,11 @@ router.post('/checkout-session', auth, async (req, res) => {
         }
       });
     }
-    
+
     // Trim URLs to handle trailing spaces
     if (typeof successUrl === 'string') successUrl = successUrl.trim();
     if (typeof cancelUrl === 'string') cancelUrl = cancelUrl.trim();
-    
+
     const userId = req.user.id;
 
     // Get user
@@ -517,65 +541,41 @@ router.get('/user/all', auth, async (req, res) => {
 });
 
 /**
- * GET /api/v1/subscriptions/status
- * Get current user's subscription status for navbar display
+ * GET /api/v1/subscriptions/:customerId
+ * Get subscriptions for a specific Stripe customer (legacy endpoint)
  */
-router.get('/status', auth, async (req, res) => {
+router.get('/:customerId', [
+  param('customerId').matches(/^cus_[a-zA-Z0-9]+$/).withMessage('Invalid customer ID format')
+], async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    // Get user to check subscription status
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        error: { message: 'User not found' }
-      });
-    }
-
-    // If no subscription, return free tier info
-    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
-      return res.json({
-        success: true,
-        data: {
-          plan: 'free',
-          status: 'active',
-          hasSubscription: false
+        error: {
+          message: 'Validation failed',
+          details: errors.array()
         }
       });
     }
 
-    // Get subscription from database
-    const subscription = await Subscription.findOne({
-      userId,
-      stripeSubscriptionId: user.stripeSubscriptionId
-    });
+    const { customerId } = req.params;
 
-    if (!subscription) {
-      return res.json({
-        success: true,
-        data: {
-          plan: user.subscriptionType || 'free',
-          status: user.subscriptionStatus || 'none',
-          hasSubscription: user.subscriptionStatus === 'active'
-        }
-      });
-    }
+    const subscriptions = await getCustomerSubscriptions(customerId);
 
     res.json({
       success: true,
       data: {
-        plan: subscription.plan,
-        status: subscription.status,
-        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing'
+        subscriptions,
+        count: subscriptions.length
       }
     });
 
   } catch (error) {
-    console.error('Error fetching subscription status:', error);
+    console.error('Error retrieving customer subscriptions:', error);
     res.status(500).json({
       success: false,
-      error: { message: 'Failed to fetch subscription status' }
+      error: { message: 'Failed to retrieve subscriptions' }
     });
   }
 });
