@@ -424,12 +424,12 @@ async function handleCheckoutSessionCompleted(session) {
         user.subscription.plan = plan;
         user.subscription.stripePriceId = priceId;
         user.subscription.stripeSubscriptionId = session.subscription;
-        user.subscription.currentPeriodStart = subscription?.current_period_start 
-          ? new Date(subscription.current_period_start * 1000) 
-          : (session.subscription?.current_period_start ? new Date(session.subscription.current_period_start * 1000) : new Date());
-        user.subscription.currentPeriodEnd = subscription?.current_period_end 
-          ? new Date(subscription.current_period_end * 1000) 
-          : (session.subscription?.current_period_end ? new Date(session.subscription.current_period_end * 1000) : null);
+        user.subscription.currentPeriodStart = subscription?.current_period_start
+          ? new Date(subscription.current_period_start * 1000)
+          : null; // Don't fallback to session data as it's not available
+        user.subscription.currentPeriodEnd = subscription?.current_period_end
+          ? new Date(subscription.current_period_end * 1000)
+          : null; // Don't fallback to session data as it's not available
         user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 
         await user.save();

@@ -243,27 +243,29 @@ router.get('/status', auth, async (req, res) => {
     });
 
     if (!subscription) {
+      const hasActiveSub = user.hasActiveSubscription();
       return res.json({
         success: true,
         data: {
           plan: user.subscription.plan || 'free',
-          status: user.subscription.isActive ? 'active' : 'inactive',
-          hasSubscription: user.subscription.isActive,
-          isActive: user.subscription.isActive,
-          hasActiveSubscription: user.subscription.isActive,
+          status: hasActiveSub ? 'active' : 'inactive',
+          hasSubscription: hasActiveSub,
+          isActive: hasActiveSub,
+          hasActiveSubscription: hasActiveSub,
           currentPeriodEnd: user.subscription.currentPeriodEnd
         }
       });
     }
 
+    const hasActiveSub = user.hasActiveSubscription();
     res.json({
       success: true,
       data: {
         plan: subscription.plan,
         status: subscription.status,
         hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
-        isActive: user.subscription.isActive,
-        hasActiveSubscription: user.subscription.isActive,
+        isActive: hasActiveSub,
+        hasActiveSubscription: hasActiveSub,
         currentPeriodEnd: user.subscription.currentPeriodEnd
       }
     });
@@ -558,22 +560,24 @@ router.get('/user/current', auth, async (req, res) => {
       }
 
       console.log('⚠️ No subscription document and no active user record, returning free tier');
+      const hasActiveSub = user.hasActiveSubscription();
       return res.json({
         success: true,
         data: {
           plan: user.subscription.plan || 'free',
-          status: user.subscription.isActive ? 'active' : 'inactive',
+          status: hasActiveSub ? 'active' : 'inactive',
           stripeSubscriptionId: user.stripeSubscriptionId,
           currentPeriodStart: user.subscription.currentPeriodStart,
           currentPeriodEnd: user.subscription.currentPeriodEnd,
-          hasSubscription: user.subscription.isActive,
-          isActive: user.subscription.isActive,
-          hasActiveSubscription: user.hasActiveSubscription()
+          hasSubscription: hasActiveSub,
+          isActive: hasActiveSub,
+          hasActiveSubscription: hasActiveSub
         }
       });
     }
 
     console.log('✅ Returning subscription data from Subscription document');
+    const hasActiveSub = user.hasActiveSubscription();
     res.json({
       success: true,
       data: {
@@ -583,8 +587,8 @@ router.get('/user/current', auth, async (req, res) => {
         status: subscription.status,
         hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
         // Include user-level isActive for frontend compatibility
-        isActive: user.subscription.isActive,
-        hasActiveSubscription: user.hasActiveSubscription(),
+        isActive: hasActiveSub,
+        hasActiveSubscription: hasActiveSub,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,
