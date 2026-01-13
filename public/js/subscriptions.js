@@ -506,28 +506,60 @@ function displayUserSubscriptions(subscriptions) {
     subscriptions.forEach(sub => {
         console.log('🔍 Processing subscription:', sub);
 
-        // Handle different data structures - subscription data comes from User model
-        const plan = sub.subscriptionType || sub.plan || 'FREE';
-        const status = sub.subscriptionStatus || sub.status || 'active';
-        const stripeSubscriptionId = sub.stripeSubscriptionId || sub.id;
+        // Get plan from subscription data - handle different response formats
+        let plan = null;
+        let status = 'active';
+        let stripeSubscriptionId = null;
+        let currentPeriodStart = null;
+        let currentPeriodEnd = null;
+        let amount = 0;
+        let isActive = false;
+        let hasActiveSubscription = false;
 
-        console.log('📋 Plan:', plan, 'Status:', status, 'ID:', stripeSubscriptionId);
+        // Handle response from /user/current endpoint
+        if (sub.subscription) {
+            // Data comes from user.subscription sub-document
+            plan = sub.subscription.plan;
+            isActive = sub.subscription.isActive === true;
+            currentPeriodStart = sub.subscription.currentPeriodStart;
+            currentPeriodEnd = sub.subscription.currentPeriodEnd;
+            stripeSubscriptionId = sub.subscription.stripeSubscriptionId || sub.stripeSubscriptionId;
+        } else {
+            // Direct properties
+            plan = sub.plan || sub.subscriptionType;
+            isActive = sub.isActive === true;
+            currentPeriodStart = sub.currentPeriodStart;
+            currentPeriodEnd = sub.currentPeriodEnd;
+            stripeSubscriptionId = sub.stripeSubscriptionId || sub.id;
+        }
 
-        // Skip if plan is still undefined
-        if (!plan || plan === 'undefined') {
-            console.warn('⚠️ Skipping subscription with invalid plan:', sub);
+        // Get status from response
+        status = sub.status || sub.subscriptionStatus || 'active';
+        hasActiveSubscription = sub.hasActiveSubscription === true || (isActive && status === 'active');
+
+        // Use source to determine if data came from user record (new format)
+        if (sub.source === 'user_record') {
+            // New format with all fields populated
+            console.log('📋 Using user_record format');
+        }
+
+        // Get amount from response or calculate
+        amount = sub.amount || 0;
+
+        console.log('📋 Plan:', plan, 'Status:', status, 'ID:', stripeSubscriptionId, 'isActive:', isActive, 'hasActiveSub:', hasActiveSubscription);
+
+        // Skip if plan is invalid
+        if (!plan || plan === 'undefined' || plan === 'free') {
+            console.log('ℹ️ No active paid subscription to display');
             return;
         }
 
         // Handle dates - may be null/undefined
-        const startDate = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : new Date();
+        let startDate = currentPeriodStart ? new Date(currentPeriodStart) : new Date();
+        let endDate = currentPeriodEnd ? new Date(currentPeriodEnd) : null;
 
         // Calculate end date based on plan type if not provided
-        let endDate;
-        if (sub.currentPeriodEnd) {
-            endDate = new Date(sub.currentPeriodEnd);
-        } else {
-            // Calculate based on plan type
+        if (!endDate) {
             const planDurations = {
                 '1-month': 30,
                 '3-month': 90,
@@ -538,7 +570,7 @@ function displayUserSubscriptions(subscriptions) {
             endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
         }
 
-        // Calculate amount based on plan type (simplified pricing)
+        // Get amount from sub.amount or use plan pricing
         const planPricing = {
             '1-month': 29.99,
             '3-month': 79.99,
@@ -546,20 +578,23 @@ function displayUserSubscriptions(subscriptions) {
             '12-month': 279.99,
             'free': 0
         };
-        const amount = planPricing[plan.toLowerCase()] || 0;
+        amount = amount || planPricing[plan.toLowerCase()] || 29.99;
 
         // Calculate days left
         const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+        const isExpired = daysLeft <= 0;
 
-        console.log('💰 Amount:', amount, 'Days left:', daysLeft);
+        console.log('💰 Amount:', amount, 'Days left:', daysLeft, 'isExpired:', isExpired);
 
         const subCard = document.createElement('div');
         subCard.className = 'subscription-card';
         subCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div>
-                    <h5>${plan.toUpperCase()} Plan</h5>
-                    <span class="subscription-status ${status}">${status.toUpperCase()}</span>
+                    <h5>${plan.replace('-', ' ').toUpperCase()} Plan</h5>
+                    <span class="subscription-status ${hasActiveSubscription && !isExpired ? 'active' : 'expired'}">
+                        ${isExpired ? 'EXPIRED' : (status === 'active' ? 'ACTIVE' : status.toUpperCase())}
+                    </span>
                 </div>
                 <div class="text-end">
                     <div class="detail-value" style="color: var(--primary-color);">\$${amount.toFixed(2)}</div>
@@ -568,34 +603,35 @@ function displayUserSubscriptions(subscriptions) {
             </div>
 
             <div class="subscription-details">
+                ${currentPeriodStart ? `
                 <div class="detail-item">
                     <div class="detail-label">Period Start</div>
                     <div class="detail-value">${startDate.toLocaleDateString()}</div>
                 </div>
+                ` : ''}
                 <div class="detail-item">
                     <div class="detail-label">Next Billing</div>
                     <div class="detail-value">${endDate.toLocaleDateString()}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Days Left</div>
-                    <div class="detail-value">${daysLeft > 0 ? daysLeft : 'Expired'}</div>
+                    <div class="detail-value ${isExpired ? 'text-danger' : ''}">${isExpired ? 'Expired' : daysLeft}</div>
                 </div>
             </div>
 
             <div class="subscription-actions">
-                <button class="btn-small" onclick="openUpgradeModal('${stripeSubscriptionId}')">
-                    <i class="bi bi-arrow-up me-1"></i>Upgrade/Change
-                </button>
-                <button class="btn-small" onclick="downloadInvoices('${stripeSubscriptionId}')">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>Invoices
-                </button>
-                ${status !== 'canceled' && status !== 'cancelled' ? `
-                    <button class="btn-small danger" onclick="openCancelModal('${stripeSubscriptionId}')">
-                        <i class="bi bi-x-circle me-1"></i>Cancel
+                ${!isExpired ? `
+                    <button class="btn-small" onclick="downloadInvoices('${stripeSubscriptionId || ''}')">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Invoices
                     </button>
+                    ${status !== 'canceled' && status !== 'cancelled' ? `
+                        <button class="btn-small danger" onclick="openCancelModal('${stripeSubscriptionId || ''}')">
+                            <i class="bi bi-x-circle me-1"></i>Cancel
+                        </button>
+                    ` : ''}
                 ` : `
-                    <button class="btn-small success" onclick="resumeSubscription('${stripeSubscriptionId}')">
-                        <i class="bi bi-play-circle me-1"></i>Resume
+                    <button class="btn-small" onclick="openUpgradeModal('${stripeSubscriptionId || ''}')">
+                        <i class="bi bi-arrow-up me-1"></i>Renew/Upgrade
                     </button>
                 `}
             </div>

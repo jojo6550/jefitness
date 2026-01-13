@@ -83,6 +83,11 @@
     color: white;
 }
 
+.subscription-status.expired {
+    background-color: #dc3545;
+    color: white;
+}
+
 .subscription-status.canceled,
 .subscription-status.cancel_pending {
     background-color: #ffc107;
