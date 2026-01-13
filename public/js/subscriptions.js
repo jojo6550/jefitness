@@ -492,7 +492,22 @@ function displayUserSubscriptions(subscriptions) {
 
         // Handle dates - may be null/undefined
         const startDate = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : new Date();
-        const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
+
+        // Calculate end date based on plan type if not provided
+        let endDate;
+        if (sub.currentPeriodEnd) {
+            endDate = new Date(sub.currentPeriodEnd);
+        } else {
+            // Calculate based on plan type
+            const planDurations = {
+                '1-month': 30,
+                '3-month': 90,
+                '6-month': 180,
+                '12-month': 365
+            };
+            const durationDays = planDurations[plan.toLowerCase()] || 30;
+            endDate = new Date(startDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        }
 
         // Calculate amount based on plan type (simplified pricing)
         const planPricing = {

@@ -7,3 +7,4 @@
 - [x] Update API response to return correct field names from User model
 - [x] Fix JavaScript errors (undefined toUpperCase, pricing display issues)
 - [x] Add better error handling and logging for subscription display
+- [x] Add CSS styling for subscription cards when user has active subscription (created public/styles/subscription-cards.css and linked to subscriptions.html)
