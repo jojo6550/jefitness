@@ -294,6 +294,12 @@ const baseUrl = isLocalhost
         return;
       }
 
+      const agreeTermsCheckbox = document.getElementById('agreeTerms');
+      if (!agreeTermsCheckbox.checked) {
+        showMessage('Please accept the terms and conditions to continue.', 'error');
+        return;
+      }
+
       const firstName = document.getElementById('inputFirstName').value;
       const lastName = document.getElementById('inputLastName').value;
       const email = document.getElementById('inputEmail').value;
@@ -307,7 +313,14 @@ const baseUrl = isLocalhost
         const response = await fetch(`${baseUrl}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ firstName, lastName, email, password })
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            password,
+            dataProcessingConsent: { given: true },
+            healthDataConsent: { given: true }
+          })
         });
 
         const data = await response.json();
@@ -374,7 +387,14 @@ const baseUrl = isLocalhost
           const response = await fetch(`${baseUrl}/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ firstName, lastName, email, password })
+            body: JSON.stringify({
+              firstName,
+              lastName,
+              email,
+              password,
+              dataProcessingConsent: { given: true },
+              healthDataConsent: { given: true }
+            })
           });
 
           if (response.ok) {
