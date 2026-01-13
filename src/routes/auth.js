@@ -1353,6 +1353,18 @@ router.post('/verify-email', async (req, res) => {
  */
 router.post('/logout', auth, async (req, res) => {
     try {
+        // Extract token from Authorization header
+        const authHeader = req.header('Authorization');
+        let token;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.replace('Bearer ', '').trim();
+        }
+
+        // Blacklist the token to invalidate it
+        if (token) {
+            blacklistToken(token);
+        }
+
         console.log(`Security event: logout | UserId: ${req.user.id} | Email: ${req.user.email}`);
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {

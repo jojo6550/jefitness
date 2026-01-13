@@ -37,9 +37,9 @@ async function logoutUser() {
     localStorage.removeItem('userRole');
     console.log('Logout: Token and user data removed from localStorage.');
 
-    // Redirect the user to the login page
+    // Redirect the user to the dashboard page (which will check session and redirect to login if invalid)
     // Use replace to prevent back button from showing cached page
-    window.location.replace('../pages/login.html');
+    window.location.replace('../pages/dashboard.html');
 }
 
 // Function to attach the logout event listener
