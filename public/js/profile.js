@@ -34,20 +34,20 @@ const API_BASE_URL = isLocalhost
             const data = await response.json();
 
             // Populate form fields
-            document.getElementById('fullName').value = data.firstName + ' ' + data.lastName;
-            if (data.dob) document.getElementById('dob').value = new Date(data.dob).toISOString().split('T')[0];
-            if (data.gender) document.getElementById('gender').value = data.gender;
-            if (data.email) document.getElementById('email').value = data.email;
-            if (data.phone) document.getElementById('phone').value = data.phone;
-            if (data.activityStatus) document.getElementById('activityStatus').value = data.activityStatus;
-            if (data.startWeight !== undefined && data.startWeight !== null) document.getElementById('startWeight').value = data.startWeight;
-            if (data.currentWeight !== undefined && data.currentWeight !== null) document.getElementById('currentWeight').value = data.currentWeight;
-            if (data.goals) document.getElementById('goals').value = data.goals;
-            if (data.reason) document.getElementById('reason').value = data.reason;
+            document.getElementById('fullName').value = data.user.firstName + ' ' + data.user.lastName;
+            if (data.user.dob) document.getElementById('dob').value = new Date(data.user.dob).toISOString().split('T')[0];
+            if (data.user.gender) document.getElementById('gender').value = data.user.gender;
+            if (data.user.email) document.getElementById('email').value = data.user.email;
+            if (data.user.phone) document.getElementById('phone').value = data.user.phone;
+            if (data.user.activityStatus) document.getElementById('activityStatus').value = data.user.activityStatus;
+            if (data.user.startWeight !== undefined && data.user.startWeight !== null) document.getElementById('startWeight').value = data.user.startWeight;
+            if (data.user.currentWeight !== undefined && data.user.currentWeight !== null) document.getElementById('currentWeight').value = data.user.currentWeight;
+            if (data.user.goals) document.getElementById('goals').value = data.user.goals;
+            if (data.user.reason) document.getElementById('reason').value = data.user.reason;
 
             // Calculate days enrolled
-            if (data.createdAt) {
-                const createdDate = new Date(data.createdAt);
+            if (data.user.createdAt) {
+                const createdDate = new Date(data.user.createdAt);
                 const now = new Date();
                 const diffTime = Math.abs(now - createdDate);
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
