@@ -376,13 +376,13 @@ async function handlePaymentSubmit(event) {
             paymentForm.reset();
             cardElement.clear();
 
-            // Update user subscription status and navigate to appointments
+            // Update user subscription status and navigate to dashboard
             setTimeout(() => {
                 // Reload subscriptions to update status
                 loadUserSubscriptions();
 
-                // Navigate to appointments page
-                window.location.href = '/pages/appointments.html';
+                // Navigate to dashboard page
+                window.location.href = '/pages/dashboard.html';
             }, 1500);
         }
 

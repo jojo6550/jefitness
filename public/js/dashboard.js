@@ -130,16 +130,28 @@ async function loadSubscriptionStatus() {
                 condition: subscription.hasSubscription && subscription.status === 'active'
             }); // Debug log
 
-            if (subscription.hasSubscription && subscription.status === 'active') {
+            if (subscription.hasSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
                 // Show cancel button for active subscriptions
                 console.log('Showing cancel button'); // Debug log
                 document.getElementById('cancel-subscription-btn').classList.remove('d-none');
                 upgradeBtn.classList.add('d-none');
+
+                // Hide subscription card for users with active subscription
+                const subscriptionCard = document.getElementById('subscription-card');
+                if (subscriptionCard) {
+                    subscriptionCard.style.display = 'none';
+                }
             } else {
                 // Show upgrade button for non-active subscriptions
                 console.log('Showing upgrade button'); // Debug log
                 document.getElementById('cancel-subscription-btn').classList.add('d-none');
                 upgradeBtn.classList.remove('d-none');
+
+                // Show subscription card for users without active subscription
+                const subscriptionCard = document.getElementById('subscription-card');
+                if (subscriptionCard) {
+                    subscriptionCard.style.display = '';
+                }
             }
         } else {
             statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
