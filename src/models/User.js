@@ -223,7 +223,12 @@ const UserSchema = new mongoose.Schema({
         enum: ['test', 'production'],
         default: 'test'
     },
-    stripeCheckoutSessionId: { type: String }
+    stripeCheckoutSessionId: { type: String },
+    subscriptionStatus: {
+        type: String,
+        enum: ['active', 'inactive', 'past_due', 'canceled', 'expired'],
+        default: 'inactive'
+    }
 
 });
 
