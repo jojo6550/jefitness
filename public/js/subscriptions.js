@@ -37,6 +37,31 @@ const userSubscriptionsSection = document.getElementById('userSubscriptionsSecti
 const userSubscriptionsContainer = document.getElementById('userSubscriptionsContainer');
 
 /**
+ * Safe API response handler - prevents JSON.parse errors
+ * @param {Response} response - Fetch response object
+ * @returns {Promise<Object>} Parsed JSON data
+ */
+async function handleApiResponse(response) {
+    const contentType = response.headers.get('content-type');
+    
+    // Check if response is JSON
+    if (!contentType || !contentType.includes('application/json')) {
+        // Try to get text for error logging
+        const text = await response.text();
+        console.error('Non-JSON response received:', text.substring(0, 500));
+        throw new Error(`Server returned non-JSON response (${response.status}): ${response.statusText}`);
+    }
+    
+    // Check if response is OK
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `HTTP Error: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+}
+
+/**
  * Initialize the page
  */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -134,11 +159,7 @@ async function loadPlans() {
             }
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to load plans');
-        }
-
-        const data = await response.json();
+        const data = await handleApiResponse(response);
 
         if (data.success && data.data) {
             availablePlans = data.data.plans;
@@ -156,6 +177,23 @@ async function loadPlans() {
 function displayPlans(plans) {
     console.log('📊 Displaying plans:', plans);
 
+    // Backend returns an array, convert to object keyed by plan id
+    // Each plan has an 'id' field like '1-month', '3-month', etc.
+    let plansObject = {};
+    
+    if (Array.isArray(plans)) {
+        // Convert array to object keyed by plan id
+        plans.forEach(plan => {
+            if (plan && plan.id) {
+                plansObject[plan.id] = plan;
+            }
+        });
+        console.log('🔄 Converted plans array to object:', plansObject);
+    } else if (typeof plans === 'object') {
+        // Already an object, use as-is
+        plansObject = plans;
+    }
+
     // Update existing HTML cards with dynamic prices from Stripe
     const planOrder = ['1-month', '3-month', '6-month', '12-month'];
 
@@ -163,7 +201,7 @@ function displayPlans(plans) {
     console.log('🎴 Found plan cards:', planCards.length);
 
     planOrder.forEach((planKey, index) => {
-        const plan = plans[planKey];
+        const plan = plansObject[planKey];
         console.log(`🔍 Processing ${planKey}:`, plan);
 
         if (!plan) {
@@ -353,7 +391,7 @@ async function handlePaymentSubmit(event) {
         }
 
         // Send subscription request to backend
-        const response = await fetch(`${window.API_BASE}/subscriptions/create`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -366,11 +404,7 @@ async function handlePaymentSubmit(event) {
             })
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error?.message || 'Failed to create subscription');
-        }
+        const data = await handleApiResponse(response);
 
         if (data.success) {
             // Success!
@@ -420,12 +454,7 @@ async function loadUserSubscriptions() {
             }
         });
 
-        if (!subsResponse.ok) {
-            console.warn('Could not load user subscriptions');
-            return;
-        }
-
-        const subsData = await subsResponse.json();
+        const subsData = await handleApiResponse(subsResponse);
 
         if (subsData.success && subsData.data && !subsData.data.hasSubscription) {
             // User has no subscription, show free tier
@@ -612,7 +641,7 @@ async function handleConfirmCancel() {
             }
         );
 
-        const data = await response.json();
+        const data = await handleApiResponse(response);
 
         if (data.success) {
             const message = atPeriodEnd
@@ -645,7 +674,7 @@ async function resumeSubscription(subscriptionId) {
     }
 
     try {
-        const response = await fetch(`${window.API_BASE}/subscriptions/${subscriptionId}/resume`,
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/${subscriptionId}/resume`,
             {
                 method: 'POST',
                 headers: {
@@ -655,7 +684,7 @@ async function resumeSubscription(subscriptionId) {
             }
         );
 
-        const data = await response.json();
+        const data = await handleApiResponse(response);
 
         if (data.success) {
             showAlert('✅ Subscription has been resumed', 'success');
@@ -687,7 +716,7 @@ async function downloadInvoices(subscriptionId) {
             }
         );
 
-        const data = await response.json();
+        const data = await handleApiResponse(response);
 
         if (data.success && data.data.invoices.length > 0) {
             showAlert('📄 Opening invoice...', 'info');
