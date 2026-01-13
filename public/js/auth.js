@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetPasswordForm = document.getElementById('reset-password-form');
   const messageDiv = document.getElementById('message');
 
-  const API_BASE = window.ApiConfig.getBaseURL();
+  const API_BASE = window.ApiConfig.getAPI_BASE();
 
 
   // LOGIN
@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('inputPassword').value;
 
         try {
-          const response = await fetch(`${baseUrl}/api/auth/signup`, {
+          const response = await fetch(`${API_BASE}/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

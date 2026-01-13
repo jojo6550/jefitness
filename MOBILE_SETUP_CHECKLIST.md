@@ -90,7 +90,7 @@ Quick reference checklist for converting the website to a mobile app using Capac
   - [ ] Add INTERNET permission
   - [ ] Add other required permissions (CAMERA, LOCATION, etc.)
 - [ ] Edit `android/app/src/main/res/values/strings.xml`:
-  - [ ] Add API base URL: `<string name="api_base_url">http://10.0.2.2:10000</string>`
+  - [ ] Add API base URL: `<string name="API_BASE">http://10.0.2.2:10000</string>`
 
 ## Step 9: Set Up iOS Platform (macOS Only)
 - [ ] Run: `npx cap add ios`

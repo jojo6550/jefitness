@@ -1,15 +1,13 @@
 
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
+
+const API_BASE = window.ApiConfig.getBaseURL();
 
 window.initDashboard = async () => {
     const token = localStorage.getItem('token');
     if (!token) return; // not logged in
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -47,7 +45,7 @@ async function loadCartCount() {
     if (!token) return;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/cart`, {
+        const res = await fetch(`${API_BASE}/api/cart`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -89,7 +87,7 @@ async function loadSubscriptionStatus() {
     }
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
+        const res = await fetch(`${API_BASE}/api/v1/subscriptions/user/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -183,7 +181,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
 
     try {
         // Get current subscription to find the subscription ID
-        const currentRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/user/current`, {
+        const currentRes = await fetch(`${API_BASE}/api/v1/subscriptions/user/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -201,7 +199,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         }
 
         // Cancel the subscription
-        const cancelRes = await fetch(`${API_BASE_URL}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
+        const cancelRes = await fetch(`${API_BASE}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

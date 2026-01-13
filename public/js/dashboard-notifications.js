@@ -20,11 +20,10 @@ async function loadNotifications() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+    const API_BASE = window.ApiConfig.getAPI_BASE();
     try {
-        const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+        const response = await fetch(`${API_BASE}/api/notifications`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -105,9 +104,8 @@ async function registerPushNotifications() {
         return;
     }
 
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+    const API_BASE = window.ApiConfig.getAPI_BASE();
     try {
         const registration = await navigator.serviceWorker.ready;
 
@@ -126,7 +124,7 @@ async function registerPushNotifications() {
                 // Send subscription to server
                 const token = localStorage.getItem('token');
                 if (token && subscription) {
-                    await fetch(`${API_BASE_URL}/api/notifications/subscribe`, {
+                    await fetch(`${API_BASE}/api/notifications/subscribe`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

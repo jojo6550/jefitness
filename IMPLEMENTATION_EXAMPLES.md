@@ -578,7 +578,7 @@ if (document.readyState === 'loading') {
 
 // 1. Check current environment
 ApiConfig.getDebugInfo()
-// Returns: { environment: "BROWSER", baseURL: "http://localhost:10000", ... }
+// Returns: { environment: "BROWSER", API_BASE: "http://localhost:10000", ... }
 
 // 2. Test login (use test credentials)
 await API.auth.login('test@example.com', 'password123')

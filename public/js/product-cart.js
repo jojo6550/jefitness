@@ -6,9 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const baseUrl = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+const API_BASE = window.ApiConfig.getAPI_BASE();
     // DOM Elements
     const loadingSpinner = document.getElementById('loading-spinner');
     const emptyCart = document.getElementById('empty-cart');
@@ -52,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sync local cart with server
     async function syncCart() {
         try {
-            const res = await fetch(`${baseUrl}/api/v1/cart`, {
+            const res = await fetch(`${API_BASE}/api/v1/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -187,7 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Update server cart
             try {
-                await fetch(`${baseUrl}/api/v1/cart/products/${productId}`, {
+                await fetch(`${API_BASE}/api/v1/cart/products/${productId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -215,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update server cart
         try {
-            await fetch(`${baseUrl}/api/v1/cart/products/${productId}`, {
+            await fetch(`${API_BASE}/api/v1/cart/products/${productId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -252,7 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cancelUrl = `${currentUrl}/pages/cart.html`;
 
             // Create checkout session
-            const res = await fetch(`${baseUrl}/api/v1/checkout/create-session`, {
+            const res = await fetch(`${API_BASE}/api/v1/checkout/create-session`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

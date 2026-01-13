@@ -34,8 +34,8 @@ async function loadNavbarSubscriptionStatus() {
             return;
         }
 
-        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        const API_BASE = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
+        
+        const API_BASE = window.ApiConfig.getBaseURL();
 
         const response = await fetch(`${API_BASE}/api/v1/subscriptions/status`, {
             headers: {

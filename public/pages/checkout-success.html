@@ -128,9 +128,8 @@
                 return;
             }
 
-            const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-            const baseUrl = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+            
+        const API_BASE = window.ApiConfig.getAPI_BASE();
             // Get session ID from URL
             const urlParams = new URLSearchParams(window.location.search);
             const sessionId = urlParams.get('session_id');
@@ -142,7 +141,7 @@
 
             try {
                 // Fetch session details
-                const res = await fetch(`${baseUrl}/api/checkout/session/${sessionId}`, {
+                const res = await fetch(`${API_BASE}/api/checkout/session/${sessionId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -161,7 +160,7 @@
                     localStorage.removeItem('productCart');
                     
                     // Notify server to clear cart
-                    await fetch(`${baseUrl}/api/checkout/clear-cart`, {
+                    await fetch(`${API_BASE}/api/checkout/clear-cart`, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`

@@ -1,7 +1,6 @@
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
+
+const API_BASE = window.ApiConfig.getBaseURL();
+
 
 window.initTrainerDashboard = async () => {
     const token = localStorage.getItem('token');
@@ -9,7 +8,7 @@ window.initTrainerDashboard = async () => {
 
     try {
         // Verify user is trainer
-        const userRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const userRes = await fetch(`${API_BASE}/api/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -37,7 +36,7 @@ window.initTrainerDashboard = async () => {
 async function loadDashboardData(token) {
     try {
         // Fetch dashboard overview
-        const dashboardRes = await fetch(`${API_BASE_URL}/api/trainer/dashboard`, {
+        const dashboardRes = await fetch(`${API_BASE}/api/trainer/dashboard`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -148,7 +147,7 @@ async function updateAppointmentStatus(appointmentId, status) {
     if (!token) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-# TODO: Replace isLocalhost base URL logic with ApiConfig.getBaseURL()
+# TODO: Replace isLocalhost base URL logic with ApiConfig.getAPI_BASE()
 
 ## Files to Update (27 total)
 - [ ] public/pages/subscriptions.html
@@ -30,12 +30,11 @@
 ## Plan
 Replace:
 ```
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-```
+
+const API_BASE = window.ApiConfig.getAPI_BASE();```
 With:
 ```
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 ```
 
-And update any variable references from API_BASE_URL/baseUrl to API_BASE.
+And update any variable references from API_BASE/API_BASE to API_BASE.

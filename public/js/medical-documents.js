@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadProgressBar = document.getElementById('uploadProgressBar');
     const uploadStatus = document.getElementById('uploadStatus');
 
-    const API_BASE = window.ApiConfig.getBaseURL();
+    const API_BASE = window.ApiConfig.getAPI_BASE();
 
     let uploadedFiles = [];
 

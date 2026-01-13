@@ -1,11 +1,8 @@
 // session-check.js - Client-side session validation for protected pages
 
 // Determine the base URL
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
 
+const API_BASE = window.ApiConfig.getBaseURL();
 // Function to check if user session is valid
 async function checkSession() {
     const token = localStorage.getItem('token');
@@ -17,7 +14,7 @@ async function checkSession() {
 
     try {
         // Verify token with server
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const response = await fetch(`${API_BASE}/api/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

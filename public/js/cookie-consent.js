@@ -18,7 +18,7 @@ class CookieConsentManager {
         this.healthConsentCategory = document.getElementById('health-consent-category');
 
         // API configuration
-        this.apiBase = window.API_CONFIG ? window.API_CONFIG.baseURL : '';
+        this.apiBase = window.API_CONFIG ? window.API_CONFIG.API_BASE : '';
         this.isLoggedIn = false;
         this.userToken = null;
 

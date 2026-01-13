@@ -33,10 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function verifyToken(token) {
     try {
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const baseUrl = isLocalhost ? 'https://jefitness.onrender.com' : 'https://jefitness.onrender.com';
-      
-      const response = await fetch(`${baseUrl}/api/auth/me`, {
+      const API_BASE = window.ApiConfig.getBaseURL();      
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

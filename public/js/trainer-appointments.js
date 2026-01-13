@@ -1,7 +1,5 @@
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
+
+const API_BASE = window.ApiConfig.getBaseURL();
 
 let currentPage = 1;
 const pageSize = 10;
@@ -13,7 +11,7 @@ window.initTrainerAppointments = async () => {
 
     try {
         // Verify user is trainer
-        const userRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const userRes = await fetch(`${API_BASE}/api/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -53,7 +51,7 @@ async function loadAppointments(token, page = 1, search = '', status = '') {
             ...(status && { status })
         });
 
-        const res = await fetch(`${API_BASE_URL}/api/trainer/appointments?${queryParams}`, {
+        const res = await fetch(`${API_BASE}/api/trainer/appointments?${queryParams}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -204,7 +202,7 @@ async function saveAppointmentStatus() {
     }
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/trainer/appointments/${selectedAppointmentId}`, {
+        const res = await fetch(`${API_BASE}/api/trainer/appointments/${selectedAppointmentId}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,

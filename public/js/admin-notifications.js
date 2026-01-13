@@ -1,8 +1,7 @@
 // Admin Notifications Management
 (function() {
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+    const API_BASE = window.ApiConfig.getAPI_BASE();
     document.addEventListener('DOMContentLoaded', function() {
     const sendNotificationBtn = document.getElementById('sendNotificationBtn');
     const notificationForm = document.querySelector('#notifications-section form');
@@ -44,7 +43,7 @@
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+            const response = await fetch(`${API_BASE}/api/notifications`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -88,7 +87,7 @@
     // Load users for selection
     async function loadUsersForSelection() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/users`, {
+            const response = await fetch(`${API_BASE}/api/users`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -113,7 +112,7 @@
     // Load notifications history
     async function loadNotifications() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/notifications/admin`, {
+            const response = await fetch(`${API_BASE}/api/notifications/admin`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }

@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('userProfileForm');
     const formMessage = document.getElementById('formMessage');
 
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 
     // Helper to show messages
     function showMessage(message, type = 'success') {

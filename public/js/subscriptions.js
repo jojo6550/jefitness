@@ -10,10 +10,8 @@
  */
 
 // Configuration
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000/api/v1'
-    : 'https://jefitness.onrender.com/api/v1';
+
+const API_BASE = window.ApiConfig.getBaseURL();
 const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
 // Initialize Stripe
@@ -127,7 +125,7 @@ function setupEventListeners() {
  */
 async function loadPlans() {
     try {
-        const response = await fetch(`${API_BASE_URL}/subscriptions/plans`, {
+        const response = await fetch(`${API_BASE}/subscriptions/plans`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -353,7 +351,7 @@ async function handlePaymentSubmit(event) {
         }
 
         // Send subscription request to backend
-        const response = await fetch(`${API_BASE_URL}/subscriptions/create`, {
+        const response = await fetch(`${API_BASE}/subscriptions/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -412,7 +410,7 @@ async function loadUserSubscriptions() {
         if (!userToken) return;
 
         // Fetch subscriptions using the current endpoint
-        const subsResponse = await fetch(`${API_BASE_URL}/subscriptions/user/current`, {
+        const subsResponse = await fetch(`${API_BASE}/subscriptions/user/current`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${userToken}`,
@@ -600,7 +598,7 @@ async function handleConfirmCancel() {
 
     try {
         const response = await fetch(
-            `${API_BASE_URL}/subscriptions/${currentSubscriptionId}/cancel`,
+            `${API_BASE}/subscriptions/${currentSubscriptionId}/cancel`,
             {
                 method: 'DELETE',
                 headers: {
@@ -647,7 +645,7 @@ async function resumeSubscription(subscriptionId) {
 
     try {
         const response = await fetch(
-            `${API_BASE_URL}/subscriptions/${subscriptionId}/resume`,
+            `${API_BASE}/subscriptions/${subscriptionId}/resume`,
             {
                 method: 'POST',
                 headers: {
@@ -680,7 +678,7 @@ async function resumeSubscription(subscriptionId) {
 async function downloadInvoices(subscriptionId) {
     try {
         const response = await fetch(
-            `${API_BASE_URL}/subscriptions/${subscriptionId}/invoices`,
+            `${API_BASE}/subscriptions/${subscriptionId}/invoices`,
             {
                 method: 'GET',
                 headers: {

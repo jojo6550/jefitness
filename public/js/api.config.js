@@ -5,7 +5,7 @@
  */
 
 class ApiConfig {
-  static getBaseURL() {
+  static getAPI_BASE() {
     const env = this.getEnvironment();
     
     switch(env) {
@@ -82,7 +82,7 @@ class ApiConfig {
   static getDebugInfo() {
     return {
       environment: this.getEnvironment(),
-      baseURL: this.getBaseURL(),
+      API_BASE: this.getAPI_BASE(),
       platform: window.Capacitor?.getPlatform?.() || 'web',
       hostname: window.location.hostname,
       isNativePlatform: window.Capacitor?.isNativePlatform?.(),
@@ -97,8 +97,8 @@ class ApiConfig {
  */
 class API {
   static async request(endpoint, options = {}) {
-    const baseURL = ApiConfig.getBaseURL();
-    const url = `${baseURL}${endpoint}`;
+    const API_BASE = ApiConfig.getAPI_BASE();
+    const url = `${API_BASE}${endpoint}`;
 
     const defaultHeaders = {
       'Content-Type': 'application/json'
@@ -145,8 +145,8 @@ class API {
 
   static async checkBackendHealth() {
     try {
-      const baseURL = ApiConfig.getBaseURL();
-      const response = await fetch(`${baseURL}/api/health`, {
+      const API_BASE = ApiConfig.getAPI_BASE();
+      const response = await fetch(`${API_BASE}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(5000) // 5 second timeout

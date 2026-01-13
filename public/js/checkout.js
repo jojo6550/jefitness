@@ -6,9 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const baseUrl = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+const API_BASE = window.ApiConfig.getAPI_BASE();
     const checkoutForm = document.getElementById('checkout-form');
     const orderItems = document.getElementById('order-items');
     const summarySubtotal = document.getElementById('summary-subtotal');
@@ -22,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load cart summary
     async function loadCartSummary() {
         try {
-            const res = await fetch(`${baseUrl}/api/cart`, {
+            const res = await fetch(`${API_BASE}/api/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -143,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             placeOrderBtn.disabled = true;
             placeOrderBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
-            const res = await fetch(`${baseUrl}/api/orders`, {
+            const res = await fetch(`${API_BASE}/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -12,8 +12,8 @@ const path = require('path');
 const crypto = require('crypto');
 
 class SecurityAuditor {
-    constructor(baseUrl = 'http://localhost:3000') {
-        this.baseUrl = baseUrl;
+    constructor(API_BASE = 'http://localhost:3000') {
+        this.API_BASE = API_BASE;
         this.results = {
             passed: [],
             failed: [],
@@ -67,7 +67,7 @@ class SecurityAuditor {
         this.log('Checking security headers...');
 
         try {
-            const response = await this.makeRequest(this.baseUrl);
+            const response = await this.makeRequest(this.API_BASE);
 
             const requiredHeaders = {
                 'X-Content-Type-Options': 'nosniff',
@@ -107,7 +107,7 @@ class SecurityAuditor {
         this.log('Testing rate limiting...');
 
         try {
-            const testUrl = `${this.baseUrl}/api/auth/login`;
+            const testUrl = `${this.API_BASE}/api/auth/login`;
             const requests = [];
 
             // Send multiple requests rapidly
@@ -147,7 +147,7 @@ class SecurityAuditor {
             // Test weak passwords
             const weakPasswords = ['password', '123456', 'admin', 'user'];
             for (const password of weakPasswords) {
-                const response = await this.makeRequest(`${this.baseUrl}/api/auth/login`, {
+                const response = await this.makeRequest(`${this.API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -166,7 +166,7 @@ class SecurityAuditor {
             // Test SQL injection
             const sqlPayloads = ["' OR '1'='1", "admin'--", "1' UNION SELECT"];
             for (const payload of sqlPayloads) {
-                const response = await this.makeRequest(`${this.baseUrl}/api/auth/login`, {
+                const response = await this.makeRequest(`${this.API_BASE}/api/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ class SecurityAuditor {
 
         for (const file of sensitiveFiles) {
             try {
-                const response = await this.makeRequest(`${this.baseUrl}${file}`);
+                const response = await this.makeRequest(`${this.API_BASE}${file}`);
                 if (response.status === 200) {
                     this.results.critical.push(`Sensitive file exposed: ${file}`);
                 } else if (response.status !== 404) {
@@ -225,13 +225,13 @@ class SecurityAuditor {
     async checkSSLConfiguration() {
         this.log('Checking SSL/TLS configuration...');
 
-        if (!this.baseUrl.startsWith('https')) {
+        if (!this.API_BASE.startsWith('https')) {
             this.results.warnings.push('Application is not using HTTPS');
             return;
         }
 
         try {
-            const response = await this.makeRequest(this.baseUrl);
+            const response = await this.makeRequest(this.API_BASE);
             // Basic SSL check - in production, use tools like ssllabs for comprehensive testing
             this.results.passed.push('HTTPS is enabled');
         } catch (error) {
@@ -243,7 +243,7 @@ class SecurityAuditor {
         this.log('Checking Content Security Policy...');
 
         try {
-            const response = await this.makeRequest(this.baseUrl);
+            const response = await this.makeRequest(this.API_BASE);
 
             const csp = response.headers['content-security-policy'];
             if (!csp) {
@@ -286,7 +286,7 @@ class SecurityAuditor {
 
             for (const payload of xssPayloads) {
                 // Test in search parameters
-                const response = await this.makeRequest(`${this.baseUrl}/?q=${encodeURIComponent(payload)}`);
+                const response = await this.makeRequest(`${this.API_BASE}/?q=${encodeURIComponent(payload)}`);
 
                 if (response.data.includes(payload)) {
                     this.results.critical.push(`Potential XSS vulnerability with payload: ${payload}`);
@@ -313,7 +313,7 @@ class SecurityAuditor {
             for (const endpoint of apiEndpoints) {
                 const requests = [];
                 for (let i = 0; i < 20; i++) {
-                    requests.push(this.makeRequest(`${this.baseUrl}${endpoint}`));
+                    requests.push(this.makeRequest(`${this.API_BASE}${endpoint}`));
                 }
 
                 const responses = await Promise.allSettled(requests);
@@ -367,7 +367,7 @@ class SecurityAuditor {
 
         const report = {
             timestamp: new Date().toISOString(),
-            target: this.baseUrl,
+            target: this.API_BASE,
             summary: {
                 passed: this.results.passed.length,
                 failed: this.results.failed.length,
@@ -392,7 +392,7 @@ class SecurityAuditor {
         console.log('\n' + '='.repeat(60));
         console.log('SECURITY AUDIT REPORT SUMMARY');
         console.log('='.repeat(60));
-        console.log(`Target: ${this.baseUrl}`);
+        console.log(`Target: ${this.API_BASE}`);
         console.log(`Timestamp: ${report.timestamp}`);
         console.log(`Passed: ${report.summary.passed}`);
         console.log(`Failed: ${report.summary.failed}`);
@@ -424,9 +424,9 @@ class SecurityAuditor {
 // CLI interface
 if (require.main === module) {
     const args = process.argv.slice(2);
-    const baseUrl = args[0] || 'http://localhost:3000';
+    const API_BASE = args[0] || 'http://localhost:3000';
 
-    const auditor = new SecurityAuditor(baseUrl);
+    const auditor = new SecurityAuditor(API_BASE);
     auditor.runFullAudit().catch(error => {
         console.error('Audit failed:', error);
         process.exit(1);

@@ -6,9 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-    const baseUrl = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
-
+    
+const API_BASE = window.ApiConfig.getAPI_BASE();
     const loadingSpinner = document.getElementById('loading-spinner');
     const emptyCart = document.getElementById('empty-cart');
     const cartContent = document.getElementById('cart-content');
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             emptyCart.style.display = 'none';
             cartContent.style.display = 'none';
 
-            const res = await fetch(`${baseUrl}/api/cart`, {
+            const res = await fetch(`${API_BASE}/api/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -116,7 +115,7 @@ function displayCart(cart) {
         }
 
         try {
-            const res = await fetch(`${baseUrl}/api/cart/update/${itemId}`, {
+            const res = await fetch(`${API_BASE}/api/cart/update/${itemId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -153,7 +152,7 @@ function displayCart(cart) {
         }
 
         try {
-            const res = await fetch(`${baseUrl}/api/cart/remove/${itemId}`, {
+            const res = await fetch(`${API_BASE}/api/cart/remove/${itemId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

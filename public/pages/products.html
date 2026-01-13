@@ -82,8 +82,8 @@
                 return;
             }
 
-            const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-            const API_BASE = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
+            
+            const API_BASE = window.ApiConfig.getBaseURL();
 
             const response = await fetch(`${API_BASE}/api/v1/subscriptions/status`, {
                 headers: {
@@ -451,7 +451,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // API configuration
-        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        
         const API_BASE = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
 
         // Product icons and colors mapping based on Stripe product metadata

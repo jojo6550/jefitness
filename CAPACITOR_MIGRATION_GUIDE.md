@@ -267,7 +267,7 @@ Edit **android/app/src/main/res/values/strings.xml**:
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">JE Fitness</string>
-    <string name="api_base_url">http://10.0.2.2:10000</string> <!-- 10.0.2.2 is the host machine IP in Android emulator -->
+    <string name="API_BASE">http://10.0.2.2:10000</string> <!-- 10.0.2.2 is the host machine IP in Android emulator -->
 </resources>
 ```
 
@@ -354,7 +354,7 @@ Create **ios/App/App/Config.swift**:
 import Foundation
 
 struct AppConfig {
-    static let apiBaseURL: String = {
+    static let apiAPI_BASE: String = {
         #if DEBUG
         return "http://localhost:10000" // Development
         #else
@@ -594,7 +594,7 @@ Create **www/js/api.config.js**:
 
 ```javascript
 class ApiConfig {
-  static getBaseURL() {
+  static getAPI_BASE() {
     const env = this.getEnvironment();
     
     switch(env) {
@@ -671,8 +671,8 @@ class ApiConfig {
 // Usage in your API calls
 class API {
   static async request(endpoint, options = {}) {
-    const baseURL = ApiConfig.getBaseURL();
-    const url = `${baseURL}${endpoint}`;
+    const API_BASE = ApiConfig.getAPI_BASE();
+    const url = `${API_BASE}${endpoint}`;
     
     try {
       const response = await fetch(url, {
@@ -815,7 +815,7 @@ npx cap run android
 In the emulator:
 1. Open the app
 2. Go to browser console (right-click → Inspect)
-3. Run: `API.getBaseURL()` to verify correct URL
+3. Run: `API.getAPI_BASE()` to verify correct URL
 4. Test login to confirm backend connection
 
 ### iOS Simulator (macOS Only)
@@ -1111,7 +1111,7 @@ if (process.env.NODE_ENV !== 'production') {
 // Add debugging to www/js/app.js
 console.log('App loaded');
 console.log('Environment:', ApiConfig.getEnvironment());
-console.log('API Base URL:', ApiConfig.getBaseURL());
+console.log('API Base URL:', ApiConfig.getAPI_BASE());
 ```
 
 Check browser console:
@@ -1234,7 +1234,7 @@ Create **production.env**:
 NODE_ENV=production
 MONGO_URI=<production-mongodb-uri>
 PORT=443
-API_BASE_URL=https://api.jefitness.com
+API_BASE=https://api.jefitness.com
 JWT_SECRET=<secure-random-secret>
 ```
 

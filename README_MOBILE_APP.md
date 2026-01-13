@@ -195,7 +195,7 @@ jefitness/
 ApiConfig.getEnvironment() // Returns: BROWSER, ANDROID_EMULATOR, IOS_SIMULATOR, MOBILE_DEVICE, or PRODUCTION
 
 // And sets correct API URL
-ApiConfig.getBaseURL() // Returns appropriate URL for current environment
+ApiConfig.getAPI_BASE() // Returns appropriate URL for current environment
 ```
 
 ### ✅ Client-Side Routing
