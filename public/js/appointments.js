@@ -1,7 +1,4 @@
-const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_BASE_URL = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com';
+const API_BASE_URL = window.ApiConfig.getBaseURL();
 
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;

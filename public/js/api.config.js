@@ -17,7 +17,7 @@ class ApiConfig {
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
-        return 'https://api.jefitness.com';
+        return 'https://jefitness.onrender.com';
       default:
         return window.location.origin;
     }
