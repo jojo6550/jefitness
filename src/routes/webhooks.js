@@ -173,7 +173,7 @@ async function handleSubscriptionCreated(subscription) {
 
     // Update user subscription data - including subscription.isActive flag
     user.stripeSubscriptionId = subscription.id;
-    user.subscriptionStatus = subscription.status;
+    user.subscriptionStatus = 'active'; // Always set to active when subscription is bought
     user.subscriptionType = plan;
     user.stripePriceId = priceId;
     user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
