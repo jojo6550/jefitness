@@ -171,26 +171,28 @@ async function handleSubscriptionCreated(subscription) {
       plan = planMap[priceId];
     }
 
-    // Update user subscription data - including subscription.isActive flag
-    user.stripeSubscriptionId = subscription.id;
-    user.subscriptionStatus = 'active'; // Always set to active when subscription is bought
-    user.subscriptionType = plan;
-    user.stripePriceId = priceId;
-    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-    user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
-    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+    // Create or update Subscription document
+    const subscriptionDoc = await Subscription.findOneAndUpdate(
+      { stripeSubscriptionId: subscription.id },
+      {
+        userId: user._id,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        plan: plan,
+        stripePriceId: priceId,
+        currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
+        currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
+        status: subscription.status,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
+        amount: subscription.items.data[0]?.price.unit_amount || 0,
+        currency: subscription.items.data[0]?.price.currency || 'usd',
+        lastWebhookEventAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
-    // Also update the subscription sub-document for frontend compatibility
-    user.subscription.isActive = true;
-    user.subscription.plan = plan;
-    user.subscription.stripePriceId = priceId;
-    user.subscription.stripeSubscriptionId = subscription.id;
-    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-
-    await user.save();
-    console.log(`✅ User subscription updated: ${user._id}, isActive: true, plan: ${plan}`);
+    console.log(`✅ Subscription document created/updated: ${subscriptionDoc._id}, status: ${subscription.status}, plan: ${plan}`);
 
   } catch (error) {
     console.error(`Error handling subscription created event:`, error);
@@ -254,37 +256,23 @@ async function handleSubscriptionDeleted(subscription) {
   console.log(`✅ Subscription deleted: ${subscription.id}`);
 
   try {
-    // Find subscription in database
-    const dbSubscription = await Subscription.findOne({
-      stripeSubscriptionId: subscription.id
-    });
+    // Update subscription status in database
+    const dbSubscription = await Subscription.findOneAndUpdate(
+      { stripeSubscriptionId: subscription.id },
+      {
+        status: 'canceled',
+        canceledAt: new Date(),
+        lastWebhookEventAt: new Date()
+      },
+      { new: true }
+    );
 
     if (!dbSubscription) {
       console.warn(`Subscription ${subscription.id} not found in database`);
       return;
     }
 
-    // Update subscription status
-    dbSubscription.status = 'canceled';
-    dbSubscription.canceledAt = new Date();
-    dbSubscription.lastWebhookEventAt = new Date();
-
-    await dbSubscription.save();
     console.log(`✅ Subscription marked as canceled in database: ${subscription.id}`);
-
-    // Update user subscription status to inactive (removed)
-    const user = await User.findOne({ stripeSubscriptionId: subscription.id });
-    if (user) {
-      user.subscriptionStatus = 'inactive';
-      user.stripeSubscriptionId = null;
-      user.subscriptionType = null;
-      user.stripePriceId = null;
-      user.currentPeriodStart = null;
-      user.currentPeriodEnd = null;
-      user.cancelAtPeriodEnd = false;
-      await user.save();
-      console.log(`✅ User subscription status removed: ${user._id}`);
-    }
 
   } catch (error) {
     console.error(`Error handling subscription deleted event:`, error);
@@ -310,18 +298,21 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
   try {
     if (invoice.subscription) {
-      // Find user by Stripe subscription ID
-      const user = await User.findOne({ stripeSubscriptionId: invoice.subscription });
+      // Update subscription status to active
+      const subscriptionDoc = await Subscription.findOneAndUpdate(
+        { stripeSubscriptionId: invoice.subscription },
+        {
+          status: 'active',
+          lastWebhookEventAt: new Date()
+        },
+        { new: true }
+      );
 
-      if (user) {
-        // Update subscription status to active
-        user.subscription.isActive = true;
-
-        await user.save();
-        console.log(`✅ Payment recorded for user subscription: ${user._id}`);
+      if (subscriptionDoc) {
+        console.log(`✅ Subscription status updated to active: ${subscriptionDoc._id}`);
 
         // TODO: Send email confirmation to customer
-        // sendPaymentSuccessEmail(user._id, invoice);
+        // sendPaymentSuccessEmail(subscriptionDoc.userId, invoice);
       }
     }
   } catch (error) {
@@ -417,23 +408,33 @@ async function handleCheckoutSessionCompleted(session) {
           plan = planMap[priceId];
         }
 
-        // Update user with FULL subscription info - setting all fields
-        user.stripeSubscriptionId = session.subscription;
-        user.subscriptionStatus = 'active';
-        user.subscription.isActive = true;
-        user.subscription.plan = plan;
-        user.subscription.stripePriceId = priceId;
-        user.subscription.stripeSubscriptionId = session.subscription;
-        user.subscription.currentPeriodStart = subscription?.current_period_start
-          ? new Date(subscription.current_period_start * 1000)
-          : null; // Don't fallback to session data as it's not available
-        user.subscription.currentPeriodEnd = subscription?.current_period_end
-          ? new Date(subscription.current_period_end * 1000)
-          : null; // Don't fallback to session data as it's not available
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        // Create or update Subscription document
+        const subscriptionDoc = await Subscription.findOneAndUpdate(
+          { stripeSubscriptionId: session.subscription },
+          {
+            userId: user._id,
+            stripeCustomerId: session.customer,
+            stripeSubscriptionId: session.subscription,
+            plan: plan,
+            stripePriceId: priceId,
+            currentPeriodStart: subscription?.current_period_start
+              ? new Date(subscription.current_period_start * 1000)
+              : null,
+            currentPeriodEnd: subscription?.current_period_end
+              ? new Date(subscription.current_period_end * 1000)
+              : null,
+            status: subscription?.status || 'active',
+            cancelAtPeriodEnd: subscription?.cancel_at_period_end || false,
+            billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
+            amount: subscription?.items?.data[0]?.price?.unit_amount || 0,
+            currency: subscription?.items?.data[0]?.price?.currency || 'usd',
+            checkoutSessionId: session.id,
+            lastWebhookEventAt: new Date()
+          },
+          { upsert: true, new: true }
+        );
 
-        await user.save();
-        console.log(`✅ User subscription fully updated: ${user._id}, plan: ${plan}, isActive: true, hasActiveSubscription: true`);
+        console.log(`✅ Subscription document created/updated: ${subscriptionDoc._id}, plan: ${plan}, status: ${subscriptionDoc.status}`);
       }
     }
 

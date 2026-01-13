@@ -469,41 +469,22 @@ router.get('/user/current', auth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get user to check subscription status
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: { message: 'User not found' }
-      });
-    }
+    // Query Subscription collection directly for the most recent subscription
+    const subscription = await Subscription.findOne({
+      userId,
+      status: { $in: ['active', 'past_due'] }
+    }).sort({ currentPeriodEnd: -1 });
 
-    // DEBUG: Log user subscription data for troubleshooting
-    console.log('========================================');
-    console.log('🔍 SUBSCRIPTION DEBUG - User Current Endpoint');
-    console.log('========================================');
-    console.log('User ID:', userId);
-    console.log('User Email:', user.email);
-    console.log('stripeSubscriptionId:', user.stripeSubscriptionId);
-    console.log('subscription.isActive:', user.subscription.isActive);
-    console.log('subscription.plan:', user.subscription.plan);
-    console.log('subscription.currentPeriodStart:', user.subscription.currentPeriodStart);
-    console.log('subscription.currentPeriodEnd:', user.subscription.currentPeriodEnd);
-    console.log('subscriptionStatus:', user.subscriptionStatus);
-    console.log('cancelAtPeriodEnd:', user.cancelAtPeriodEnd);
-    console.log('---');
-    console.log('hasActiveSubscription() result:', user.hasActiveSubscription());
-    console.log('========================================');
+    const hasSubscription = !!subscription;
+    const isActive = subscription?.status === 'active';
+    const hasActiveSubscription = hasSubscription && isActive;
 
-    // If no subscription, return free tier info
-    const isUserActive = user.hasActiveSubscription();
-    if (!user.stripeSubscriptionId || !isUserActive) {
-      console.log('⚠️ No active subscription found, returning free tier');
+    if (!hasSubscription) {
       return res.json({
         success: true,
         data: {
           plan: 'free',
-          status: 'active',
+          status: 'inactive',
           hasSubscription: false,
           isActive: false,
           hasActiveSubscription: false,
@@ -512,72 +493,6 @@ router.get('/user/current', auth, async (req, res) => {
       });
     }
 
-    // Get subscription from database
-    const subscription = await Subscription.findOne({
-      userId,
-      stripeSubscriptionId: user.stripeSubscriptionId
-    });
-
-    console.log('📋 Subscription document found:', !!subscription);
-
-    if (!subscription) {
-      // Check if user has subscription data in their user record
-      if (user.stripeSubscriptionId && user.subscription.isActive) {
-        // User has a valid subscription but no Subscription document
-        // This can happen if subscription was created before Subscription model existed
-        const planPricing = {
-          '1-month': 29.99,
-          '3-month': 79.99,
-          '6-month': 149.99,
-          '12-month': 279.99,
-          'free': 0
-        };
-
-        // Double-check hasActiveSubscription using the model method
-        const userHasActiveSubscription = user.hasActiveSubscription();
-
-        console.log('✅ Returning subscription data from user record');
-        res.json({
-          success: true,
-          data: {
-            id: user._id,
-            stripeSubscriptionId: user.stripeSubscriptionId,
-            plan: user.subscription.plan || 'unknown',
-            status: user.subscriptionStatus || 'active',
-            hasSubscription: userHasActiveSubscription,
-            isActive: userHasActiveSubscription,
-            hasActiveSubscription: userHasActiveSubscription,
-            currentPeriodStart: user.subscription.currentPeriodStart,
-            currentPeriodEnd: user.subscription.currentPeriodEnd,
-            amount: planPricing[user.subscription.plan?.toLowerCase()] || 0,
-            currency: 'usd',
-            billingEnvironment: user.billingEnvironment || 'test',
-            cancelAtPeriodEnd: user.cancelAtPeriodEnd || false,
-            source: 'user_record' // Indicates data came from user record, not Subscription document
-          }
-        });
-        return;
-      }
-
-      console.log('⚠️ No subscription document and no active user record, returning free tier');
-      const hasActiveSub = user.hasActiveSubscription();
-      return res.json({
-        success: true,
-        data: {
-          plan: user.subscription.plan || 'free',
-          status: hasActiveSub ? 'active' : 'inactive',
-          stripeSubscriptionId: user.stripeSubscriptionId,
-          currentPeriodStart: user.subscription.currentPeriodStart,
-          currentPeriodEnd: user.subscription.currentPeriodEnd,
-          hasSubscription: hasActiveSub,
-          isActive: hasActiveSub,
-          hasActiveSubscription: hasActiveSub
-        }
-      });
-    }
-
-    console.log('✅ Returning subscription data from Subscription document');
-    const hasActiveSub = user.hasActiveSubscription();
     res.json({
       success: true,
       data: {
@@ -585,17 +500,17 @@ router.get('/user/current', auth, async (req, res) => {
         stripeSubscriptionId: subscription.stripeSubscriptionId,
         plan: subscription.plan,
         status: subscription.status,
-        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
-        // Include user-level isActive for frontend compatibility
-        isActive: hasActiveSub,
-        hasActiveSubscription: hasActiveSub,
+        hasSubscription,
+        isActive,
+        hasActiveSubscription,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,
         currency: subscription.currency,
         billingEnvironment: subscription.billingEnvironment,
         canceledAt: subscription.canceledAt,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+        message: hasActiveSubscription ? 'Active subscription' : 'Subscription inactive'
       }
     });
 

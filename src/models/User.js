@@ -189,46 +189,14 @@ const UserSchema = new mongoose.Schema({
         details: { type: mongoose.Schema.Types.Mixed }
     }],
 
-    // Subscription fields
-    subscription: {
-        isActive: {
-            type: Boolean,
-            default: false
-        },
-        plan: {
-            type: String,
-            default: null // e.g. "1-month", "pro", etc
-        },
-        stripePriceId: {
-            type: String,
-            default: null
-        },
-        stripeSubscriptionId: {
-            type: String,
-            default: null
-        },
-        currentPeriodStart: {
-            type: Date,
-            default: null
-        },
-        currentPeriodEnd: {
-            type: Date,
-            default: null
-        }
-    },
-
+    // Subscription state is owned by Subscription model
     stripeCustomerId: { type: String, unique: true, sparse: true },
     billingEnvironment: {
         type: String,
         enum: ['test', 'production'],
         default: 'test'
     },
-    stripeCheckoutSessionId: { type: String },
-    subscriptionStatus: {
-        type: String,
-        enum: ['active', 'inactive', 'past_due', 'canceled', 'expired'],
-        default: 'inactive'
-    }
+    stripeCheckoutSessionId: { type: String }
 
 });
 
@@ -237,11 +205,6 @@ UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 });
-UserSchema.index({ stripeSubscriptionId: 1 });
-UserSchema.index({ currentPeriodEnd: 1 }); // For efficient subscription expiry checks
-UserSchema.index({ 'subscription.isActive': 1 });
-UserSchema.index({ 'subscription.currentPeriodEnd': 1 });
-UserSchema.index({ 'subscription.stripeSubscriptionId': 1 });
 
 
 UserSchema.methods.hasActiveSubscription = function () {
@@ -306,13 +269,7 @@ if (encKey) {
             'lastLoggedIn',
             'activityStatus',
             'hasMedical',
-            'stripeSubscriptionId',
-            'stripeCustomerId',
-            'subscription.isActive',
-            'subscription.plan',
-            'subscription.stripeSubscriptionId',
-            'subscription.stripePriceId'
-
+            'stripeCustomerId'
         ]
     });
 }
