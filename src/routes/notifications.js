@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 const { logger } = require('../services/logger');
 
 // Middleware to check if user is admin

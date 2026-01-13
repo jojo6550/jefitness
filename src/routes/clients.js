@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const auth = require('../middleware/auth'); // optional if admin-only
+const { auth, blacklistToken } = require('../middleware/auth'); // optional if admin-only
 
 // GET /api/clients - return all users with search, filter, sort, and pagination
 router.get('/', auth, async (req, res) => {

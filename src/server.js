@@ -213,7 +213,7 @@ app.use('/api', require('./routes/cache'));
 // -----------------------------
 // Routes with API Versioning
 // -----------------------------
-const auth = require('./middleware/auth');
+const { auth } = require('./middleware/auth');
 const versioning = require('./middleware/versioning');
 
 app.use('/api/v1/auth', versioning, require('./routes/auth'));

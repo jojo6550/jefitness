@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
 
 // In-memory storage for real-time logs
 let realtimeLogs = [];

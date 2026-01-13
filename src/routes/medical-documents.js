@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads/medical-documents');

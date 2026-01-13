@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 
 // GET /api/users/trainers - Get all trainers
 router.get('/trainers', auth, async (req, res) => {

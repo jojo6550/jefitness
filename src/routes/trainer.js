@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 const { logger, logAdminAction, logUserAction } = require('../services/logger');
 
 /**

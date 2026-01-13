@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 const ChatMessage = require('../models/Chat');
 
 // GET /api/chat/history/:userId - Get chat history with a specific user

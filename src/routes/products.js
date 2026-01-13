@@ -5,7 +5,8 @@
  */
 
 const express = require('express');
-const auth = require('../middleware/auth');
+const { auth, blacklistToken } = require('../middleware/auth');
+
 const {
   getProduct,
   getProductPrice,

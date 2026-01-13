@@ -1,6 +1,9 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
 
+// In-memory token blacklist (in production, use Redis or database)
+const tokenBlacklist = new Set();
+
 function auth(req, res, next) {
     const authHeader = req.header('Authorization');
     let token;
@@ -35,4 +38,14 @@ function auth(req, res, next) {
     }
 }
 
-module.exports = auth;
+// Function to blacklist a token
+function blacklistToken(token) {
+    tokenBlacklist.add(token);
+    // Optional: Set a timeout to remove from blacklist after token expiry
+    // For JWT with 1h expiry, remove after 1 hour
+    setTimeout(() => {
+        tokenBlacklist.delete(token);
+    }, 60 * 60 * 1000); // 1 hour
+}
+
+module.exports = { auth, blacklistToken };
