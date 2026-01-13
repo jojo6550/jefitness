@@ -13,7 +13,8 @@ function auth(req, res, next) {
 
     if (!token) {
         return res.status(401).json({
-            msg: 'No token, authorization denied'
+            success: false,
+            error: 'Access denied. No token provided.'
         });
     }
 
@@ -28,7 +29,8 @@ function auth(req, res, next) {
         next();
     } catch (err) {
         return res.status(401).json({
-            msg: 'Token is not valid'
+            success: false,
+            error: 'Invalid token'
         });
     }
 }

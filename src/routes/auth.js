@@ -142,7 +142,9 @@ router.post('/signup', requireDbConnection, [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
-    body('password').isLength({ min: 1 }).withMessage('Password is required')
+    body('password').isLength({ min: 1 }).withMessage('Password is required'),
+    body('dataProcessingConsent.given').isBoolean().withMessage('Data processing consent is required'),
+    body('healthDataConsent.given').isBoolean().withMessage('Health data consent is required')
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -155,12 +157,12 @@ router.post('/signup', requireDbConnection, [
     // Validate password strength
     const passwordError = validatePasswordStrength(password);
     if (passwordError) {
-        return res.status(400).json({ msg: passwordError });
+        return res.status(400).json({ success: false, error: passwordError });
     }
 
     try {
         const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ msg: 'User already exists.' });
+        if (existingUser) return res.status(400).json({ success: false, error: 'already exists' });
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -220,10 +222,13 @@ router.post('/signup', requireDbConnection, [
         }
 
         console.log(`User action: signup_pending_verification | UserId: ${newUser._id} | Email: ${email}`);
-        // @ts-ignore
         res.status(201).json({
-            msg: 'Signup successful! Please check your email for the verification code.',
-            email: newUser.email
+            success: true,
+            message: 'User created successfully. Please check your email to verify your account.',
+            user: {
+                id: newUser._id,
+                email: newUser.email.toLowerCase()
+            }
         });
 
     } catch (err) {
@@ -361,6 +366,8 @@ router.post('/login', requireDbConnection, [
         console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
 
         res.json({
+            success: true,
+            message: 'Login successful',
             token,
             user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
         });
@@ -608,20 +615,23 @@ router.get('/me', auth, async (req, res) => {
 
         console.log(`User action: profile_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
         res.json({
-            id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role,
-            dob: user.dob,
-            gender: user.gender,
-            phone: user.phone,
-            activityStatus: user.activityStatus,
-            startWeight: user.startWeight,
-            currentWeight: user.currentWeight,
-            goals: user.goals,
-            reason: user.reason,
-            createdAt: user.createdAt
+            success: true,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                dob: user.dob,
+                gender: user.gender,
+                phone: user.phone,
+                activityStatus: user.activityStatus,
+                startWeight: user.startWeight,
+                currentWeight: user.currentWeight,
+                goals: user.goals,
+                reason: user.reason,
+                createdAt: user.createdAt
+            }
         });
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: Get user profile | UserId: ${req.user.id}`);
@@ -1124,7 +1134,7 @@ router.post('/forgot-password', passwordResetLimiter, [
         if (!user) {
             // Do not reveal if user exists or not for security
             console.log(`Security event: forgot_password_failed | Email: ${email} | Reason: User not found`);
-            return res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
+            return res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
         }
 
         // Generate reset token
@@ -1174,7 +1184,7 @@ router.post('/forgot-password', passwordResetLimiter, [
         }
         }
 
-        res.status(200).json({ msg: 'If an account with that email exists, a reset link has been sent.' });
+        res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
 
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: Forgot password | Email: ${email}`);

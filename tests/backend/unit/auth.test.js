@@ -10,7 +10,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john.doe@example.com',
-        password: 'password123',
+        password: 'Password123!',
         dataProcessingConsent: { given: true },
         healthDataConsent: { given: true }
       };
@@ -31,7 +31,9 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'invalid-email',
-        password: 'password123'
+        password: 'Password123!',
+        dataProcessingConsent: { given: true },
+        healthDataConsent: { given: true }
       };
 
       const response = await request(app)
@@ -48,7 +50,7 @@ describe('Auth Routes', () => {
         firstName: 'John',
         lastName: 'Doe',
         email: 'existing@example.com',
-        password: 'password123',
+        password: 'Password123!',
         dataProcessingConsent: { given: true },
         healthDataConsent: { given: true }
       };
@@ -77,7 +79,7 @@ describe('Auth Routes', () => {
         firstName: 'Jane',
         lastName: 'Smith',
         email: 'jane.smith@example.com',
-        password: '$2a$10$hashedpassword', // Pre-hashed password
+        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Pre-hashed password for 'Password123!'
         isEmailVerified: true,
         dataProcessingConsent: { given: true },
         healthDataConsent: { given: true }
@@ -88,7 +90,7 @@ describe('Auth Routes', () => {
     it('should login successfully with correct credentials', async () => {
       const loginData = {
         email: 'jane.smith@example.com',
-        password: 'password123'
+        password: 'Password123!'
       };
 
       const response = await request(app)
@@ -181,7 +183,7 @@ describe('Auth Routes', () => {
       });
       await user.save();
 
-      token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+      token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     });
 
     it('should return user profile with valid token', async () => {
