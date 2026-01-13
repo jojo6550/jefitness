@@ -41,6 +41,7 @@ const userSubscriptionsContainer = document.getElementById('userSubscriptionsCon
  */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Subscriptions page loaded');
+    console.log('dev good');
     
     // Get user token from localStorage
     userToken = localStorage.getItem('token');
@@ -192,11 +193,17 @@ function displayPlans(plans) {
             // Update price
             const priceElement = planCard.querySelector('.plan-price');
             if (priceElement) {
+                // Handle Stripe amounts (in cents) vs display prices
+                let displayPrice = plan.displayPrice;
+                if (plan.amount && !plan.displayPrice) {
+                    // Convert from cents to dollars if displayPrice not provided
+                    displayPrice = `$${(plan.amount / 100).toFixed(2)}`;
+                }
                 priceElement.innerHTML = `
-                    ${plan.displayPrice}
+                    ${displayPrice}
                     <span>/month</span>
                 `;
-                console.log(`💰 Updated price for ${planKey}: ${plan.displayPrice}`);
+                console.log(`💰 Updated price for ${planKey}: ${displayPrice} (original: ${plan.displayPrice || plan.amount})`);
             } else {
                 console.warn(`⚠️ No price element found for ${planKey}`);
             }
@@ -458,22 +465,60 @@ async function loadUserSubscriptions() {
  * Display user's subscriptions
  */
 function displayUserSubscriptions(subscriptions) {
+    console.log('📊 Displaying user subscriptions:', subscriptions);
+
     userSubscriptionsContainer.innerHTML = '';
 
+    if (!subscriptions || subscriptions.length === 0) {
+        console.log('ℹ️ No subscriptions to display');
+        return;
+    }
+
     subscriptions.forEach(sub => {
-        const startDate = new Date(sub.currentPeriodStart);
-        const endDate = new Date(sub.currentPeriodEnd);
+        console.log('🔍 Processing subscription:', sub);
+
+        // Handle different data structures - subscription data comes from User model
+        const plan = sub.subscriptionType || sub.plan || 'FREE';
+        const status = sub.subscriptionStatus || sub.status || 'active';
+        const stripeSubscriptionId = sub.stripeSubscriptionId || sub.id;
+
+        console.log('📋 Plan:', plan, 'Status:', status, 'ID:', stripeSubscriptionId);
+
+        // Skip if plan is still undefined
+        if (!plan || plan === 'undefined') {
+            console.warn('⚠️ Skipping subscription with invalid plan:', sub);
+            return;
+        }
+
+        // Handle dates - may be null/undefined
+        const startDate = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : new Date();
+        const endDate = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
+
+        // Calculate amount based on plan type (simplified pricing)
+        const planPricing = {
+            '1-month': 29.99,
+            '3-month': 79.99,
+            '6-month': 149.99,
+            '12-month': 279.99,
+            'free': 0
+        };
+        const amount = planPricing[plan.toLowerCase()] || 0;
+
+        // Calculate days left
+        const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+
+        console.log('💰 Amount:', amount, 'Days left:', daysLeft);
 
         const subCard = document.createElement('div');
         subCard.className = 'subscription-card';
         subCard.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div>
-                    <h5>${sub.plan.toUpperCase()} Plan</h5>
-                    <span class="subscription-status ${sub.status}">${sub.status.toUpperCase()}</span>
+                    <h5>${plan.toUpperCase()} Plan</h5>
+                    <span class="subscription-status ${status}">${status.toUpperCase()}</span>
                 </div>
                 <div class="text-end">
-                    <div class="detail-value" style="color: var(--primary-color);">$${(sub.amount / 100).toFixed(2)}</div>
+                    <div class="detail-value" style="color: var(--primary-color);">\$${amount.toFixed(2)}</div>
                     <small class="text-muted">/month</small>
                 </div>
             </div>
@@ -489,23 +534,23 @@ function displayUserSubscriptions(subscriptions) {
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Days Left</div>
-                    <div class="detail-value">${Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24))}</div>
+                    <div class="detail-value">${daysLeft > 0 ? daysLeft : 'Expired'}</div>
                 </div>
             </div>
 
             <div class="subscription-actions">
-                <button class="btn-small" onclick="openUpgradeModal('${sub.stripeSubscriptionId}')">
+                <button class="btn-small" onclick="openUpgradeModal('${stripeSubscriptionId}')">
                     <i class="bi bi-arrow-up me-1"></i>Upgrade/Change
                 </button>
-                <button class="btn-small" onclick="downloadInvoices('${sub.stripeSubscriptionId}')">
+                <button class="btn-small" onclick="downloadInvoices('${stripeSubscriptionId}')">
                     <i class="bi bi-file-earmark-pdf me-1"></i>Invoices
                 </button>
-                ${sub.status !== 'canceled' ? `
-                    <button class="btn-small danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">
+                ${status !== 'canceled' && status !== 'cancelled' ? `
+                    <button class="btn-small danger" onclick="openCancelModal('${stripeSubscriptionId}')">
                         <i class="bi bi-x-circle me-1"></i>Cancel
                     </button>
                 ` : `
-                    <button class="btn-small success" onclick="resumeSubscription('${sub.stripeSubscriptionId}')">
+                    <button class="btn-small success" onclick="resumeSubscription('${stripeSubscriptionId}')">
                         <i class="bi bi-play-circle me-1"></i>Resume
                     </button>
                 `}

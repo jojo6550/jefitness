@@ -478,9 +478,12 @@ router.get('/user/current', auth, async (req, res) => {
       return res.json({
         success: true,
         data: {
-          plan: user.subscriptionPlan || 'free',
-          status: user.subscriptionStatus || 'none',
-          hasSubscription: user.subscriptionStatus === 'active'
+          subscriptionType: user.subscriptionType || 'free',
+          subscriptionStatus: user.subscriptionStatus || 'active',
+          stripeSubscriptionId: user.stripeSubscriptionId,
+          currentPeriodStart: user.currentPeriodStart,
+          currentPeriodEnd: user.currentPeriodEnd,
+          hasSubscription: user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing'
         }
       });
     }
