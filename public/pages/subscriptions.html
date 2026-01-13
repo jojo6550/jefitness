@@ -37,73 +37,7 @@
         </div>
     </nav>
 
-    <script>
-    // Load subscription status for navbar
-    async function loadNavbarSubscriptionStatus() {
-        const statusElement = document.getElementById('subscription-status-navbar');
-        if (!statusElement) return;
 
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                statusElement.textContent = 'Not logged in';
-                statusElement.className = 'badge bg-warning text-dark small';
-                return;
-            }
-
-            
-            window.API_BASE = window.ApiConfig.getAPI_BASE();
-
-            const response = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/status`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch subscription status');
-            }
-
-            const data = await response.json();
-
-            if (data.success && data.data) {
-                const subscription = data.data;
-                let statusText = 'Free';
-                let statusClass = 'bg-secondary';
-
-                if (subscription.hasSubscription) {
-                    if (subscription.status === 'active' || subscription.status === 'trialing') {
-                        statusText = `${subscription.plan} Plan`;
-                        statusClass = 'bg-success';
-                    } else if (subscription.status === 'canceled' || subscription.status === 'cancel_pending') {
-                        statusText = `${subscription.plan} (Canceled)`;
-                        statusClass = 'bg-warning text-dark';
-                    } else if (subscription.status === 'past_due') {
-                        statusText = `${subscription.plan} (Past Due)`;
-                        statusClass = 'bg-danger';
-                    } else {
-                        statusText = `${subscription.plan} (${subscription.status})`;
-                        statusClass = 'bg-info';
-                    }
-                }
-
-                statusElement.textContent = statusText;
-                statusElement.className = `badge ${statusClass} text-white small`;
-            } else {
-                statusElement.textContent = 'Free';
-                statusElement.className = 'badge bg-secondary text-white small';
-            }
-        } catch (error) {
-            console.error('Error loading navbar subscription status:', error);
-            statusElement.textContent = 'Error';
-            statusElement.className = 'badge bg-danger text-white small';
-        }
-    }
-
-    // Load subscription status when navbar is loaded
-    document.addEventListener('DOMContentLoaded', loadNavbarSubscriptionStatus);
-    </script>
 
     <main class="container my-5">
         <div class="text-center mb-5">
@@ -317,6 +251,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/api.config.js"></script>
+    <script src="../js/navbar-subscription.js" defer></script>
+    <script src="../js/logout.js" defer></script>
     <script src="https://js.stripe.com/v3/"></script>
     <script src="../js/subscriptions.js"></script>
 </body>
