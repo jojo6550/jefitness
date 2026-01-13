@@ -232,7 +232,8 @@ router.post('/signup', requireDbConnection, [
             message: 'User created successfully. Please check your email to verify your account.',
             user: {
                 id: newUser._id,
-                email: newUser.email.toLowerCase()
+                email: newUser.email.toLowerCase(),
+                firstName: newUser.firstName
             }
         });
 
