@@ -1,6 +1,7 @@
 const request = require('supertest');
 const app = require('../../../src/server');
 const User = require('../../../src/models/User');
+const Subscription = require('../../../src/models/Subscription');
 const jwt = require('jsonwebtoken');
 
 describe('Subscription Flow Integration Tests', () => {

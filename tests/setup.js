@@ -24,6 +24,7 @@ beforeAll(async () => {
   process.env.SIGNING_KEY = 'test-signing-key-32-chars-long';
   process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
   process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_mock';
+  process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_mock';
   process.env.MAILJET_API_KEY = 'mock-api-key';
   process.env.MAILJET_SECRET_KEY = 'mock-secret-key';
   process.env.VAPID_PUBLIC_KEY = 'mock-vapid-public';
