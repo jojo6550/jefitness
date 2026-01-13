@@ -44,7 +44,7 @@ const requestLogger = (req, res, next) => {
     if (res.statusCode === 401 || res.statusCode === 403) {
       logSecurityEvent(
         res.statusCode === 401 ? 'AUTH_FAILED' : 'AUTH_DENIED',
-        req.user?.id || 'unknown',
+        req.user?.id || null,
         {
           path: req.path,
           method: req.method,

@@ -1,10 +1,27 @@
-# Fix Subscription Flow Integration Tests
+# Stripe Subscription System Debug Plan
 
-## Tasks
-- [ ] Add Stripe mocking to the webhook test to bypass signature verification
-- [ ] Update the cancel subscription route to handle cases where no Subscription document exists
-- [ ] Run tests to verify fixes
+## Immediate Fixes Needed
 
-## Details
-- The webhook test fails because Stripe signature verification fails with mock signature
-- The cancel subscription test fails because the route expects a Subscription document but only user data exists
+### 1. Fix Stripe Mocking
+- [ ] Complete the Stripe mock in `tests/mocks/stripe.js` to include all methods used by the service
+- [ ] Add missing methods: `prices.list`, `customers.list`, `products.list`, `paymentMethods.list`, `paymentMethods.detach`, `paymentIntents.create`, `invoices.list`, `checkout.sessions.retrieve`, `products.retrieve`
+
+### 2. Fix Security Logging Type Mismatch
+- [ ] Change 'unknown' to null in `src/middleware/errorHandler.js`
+- [ ] Change 'unknown' to null in `src/middleware/requestLogger.js`
+
+### 3. Fix Subscription Cancellation Test
+- [ ] Ensure `user.stripeSubscriptionId` is set correctly in test setup in `tests/backend/integration/subscription-flow.test.js`
+
+### 4. Fix /me Endpoint Tests
+- [ ] Verify auth middleware mocking in unit tests
+
+### Code Changes
+- [ ] Modify `errorHandler.js` and `requestLogger.js` to use null instead of 'unknown'
+- [ ] Enhance Stripe mock in `tests/mocks/stripe.js`
+- [ ] Review and fix test setup in `subscription-flow.test.js`
+
+### Verification
+- [ ] Run tests to confirm all failures are resolved
+- [ ] Ensure no regressions in existing functionality
+- [ ] Validate that security logging works correctly with proper types
