@@ -189,43 +189,42 @@ const UserSchema = new mongoose.Schema({
         details: { type: mongoose.Schema.Types.Mixed }
     }],
 
-    // ===== STRIPE SUBSCRIPTION FIELDS =====
-    // Stripe customer ID - links user to Stripe account
+    // Subscription fields
+    subscription: {
+        isActive: {
+            type: Boolean,
+            default: false
+        },
+        plan: {
+            type: String,
+            default: null // e.g. "1-month", "pro", etc
+        },
+        stripePriceId: {
+            type: String,
+            default: null
+        },
+        stripeSubscriptionId: {
+            type: String,
+            default: null
+        },
+        currentPeriodStart: {
+            type: Date,
+            default: null
+        },
+        currentPeriodEnd: {
+            type: Date,
+            default: null
+        }
+    },
+
     stripeCustomerId: { type: String, unique: true, sparse: true },
-    
-    // Current subscription details - Stripe is source of truth
-    stripeSubscriptionId: { type: String }, // Stripe subscription ID
-    subscriptionStatus: {
-        type: String,
-        enum: ['active', 'inactive', 'canceled', 'past_due', 'unpaid', 'trialing', 'expired', 'cancelled', 'free'],
-        default: 'inactive'
-    },
-    subscriptionType: { type: String }, // e.g., "1 Month", "3 Months", "6 Months", "12 Months"
-    stripePriceId: { type: String }, // Stripe Price ID for current plan
-    
-    // Subscription period tracking - from Stripe webhooks
-    currentPeriodStart: { type: Date },
-    currentPeriodEnd: { type: Date },
-    
-    // Legacy fields for backward compatibility
-    subscriptionPlan: { 
-        type: String,
-        enum: ['free', '1-month', '3-month', '6-month', '12-month'],
-        default: 'free'
-    },
-    
-    // Billing environment tracking
     billingEnvironment: {
         type: String,
         enum: ['test', 'production'],
         default: 'test'
     },
-    
-    // Subscription metadata
-    stripeCheckoutSessionId: { type: String },
-    
-    // Cancellation tracking
-    cancelAtPeriodEnd: { type: Boolean, default: false }
+    stripeCheckoutSessionId: { type: String }
+
 });
 
 // Database indexes for optimization
@@ -234,49 +233,44 @@ UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 });
 UserSchema.index({ stripeSubscriptionId: 1 });
-UserSchema.index({ subscriptionStatus: 1 });
 UserSchema.index({ currentPeriodEnd: 1 }); // For efficient subscription expiry checks
+UserSchema.index({ 'subscription.isActive': 1 });
+UserSchema.index({ 'subscription.currentPeriodEnd': 1 });
+UserSchema.index({ 'subscription.stripeSubscriptionId': 1 });
 
-/**
- * Instance method to check if user has an active subscription
- * @returns {boolean} True if subscription is active and not expired
- */
-UserSchema.methods.hasActiveSubscription = function() {
-    // Check subscription status
-    if (this.subscriptionStatus !== 'active' && this.subscriptionStatus !== 'trialing') {
+
+UserSchema.methods.hasActiveSubscription = function () {
+    if (!this.subscription?.isActive) return false;
+
+    if (
+        this.subscription.currentPeriodEnd &&
+        new Date() > this.subscription.currentPeriodEnd
+    ) {
         return false;
     }
-    
-    // Check if subscription period is still valid
-    if (this.currentPeriodEnd && new Date() > this.currentPeriodEnd) {
-        return false;
-    }
-    
+
     return true;
 };
 
-/**
- * Instance method to get formatted subscription info for display
- * @returns {object} Formatted subscription information
- */
-UserSchema.methods.getSubscriptionInfo = function() {
+
+UserSchema.methods.getSubscriptionInfo = function () {
     if (!this.hasActiveSubscription()) {
         return {
             hasSubscription: false,
-            status: 'inactive',
+            plan: null,
+            expiresAt: null,
             message: 'No active subscription'
         };
     }
-    
+
     return {
         hasSubscription: true,
-        status: this.subscriptionStatus,
-        type: this.subscriptionType || 'Unknown',
-        displayText: `Active Plan: ${this.subscriptionType || 'Unknown'}`,
-        expiresAt: this.currentPeriodEnd,
-        renewsAt: this.cancelAtPeriodEnd ? null : this.currentPeriodEnd
+        plan: this.subscription.plan,
+        expiresAt: this.subscription.currentPeriodEnd,
+        displayText: `Active Plan: ${this.subscription.plan}`
     };
 };
+
 
 // Encrypt sensitive fields
 const encKey = process.env.ENCRYPTION_KEY;
@@ -307,10 +301,13 @@ if (encKey) {
             'lastLoggedIn',
             'activityStatus',
             'hasMedical',
-            'subscriptionStatus',
-            'subscriptionType',
             'stripeSubscriptionId',
-            'stripeCustomerId'
+            'stripeCustomerId',
+            'subscription.isActive',
+            'subscription.plan',
+            'subscription.stripeSubscriptionId',
+            'subscription.stripePriceId'
+
         ]
     });
 }
