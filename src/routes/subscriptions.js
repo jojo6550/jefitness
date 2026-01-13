@@ -79,6 +79,8 @@ router.get('/plans', async (req, res) => {
     const plans = Object.entries(plansObject).map(([key, value]) => ({
       id: key,
       name: key.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      price: value.displayPrice,
+      interval: value.duration.toLowerCase(),
       ...value
     }));
 
