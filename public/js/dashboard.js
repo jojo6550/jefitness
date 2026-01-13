@@ -1,6 +1,6 @@
 
 
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 
 window.initDashboard = async () => {
     const token = localStorage.getItem('token');

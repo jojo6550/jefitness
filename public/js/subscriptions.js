@@ -11,7 +11,7 @@
 
 // Configuration
 
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
 // Initialize Stripe

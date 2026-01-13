@@ -2,7 +2,7 @@
 
 // Determine the base URL
 
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 // Function to check if user session is valid
 async function checkSession() {
     const token = localStorage.getItem('token');

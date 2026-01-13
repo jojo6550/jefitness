@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function verifyToken(token) {
     try {
-      const API_BASE = window.ApiConfig.getBaseURL();      
+      const API_BASE = window.ApiConfig.getAPI_BASE();      
       const response = await fetch(`${API_BASE}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`

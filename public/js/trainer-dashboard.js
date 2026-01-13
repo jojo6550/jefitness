@@ -1,5 +1,5 @@
 
-const API_BASE = window.ApiConfig.getBaseURL();
+const API_BASE = window.ApiConfig.getAPI_BASE();
 
 
 window.initTrainerDashboard = async () => {
