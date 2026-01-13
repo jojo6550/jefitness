@@ -36,7 +36,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
  * - payment_intent.succeeded: When a payment intent succeeds
  * - payment_intent.payment_failed: When a payment intent fails
  */
-router.post('/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/stripe', process.env.NODE_ENV === 'test' ? express.json() : express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
   let event;
