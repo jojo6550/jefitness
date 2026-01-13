@@ -171,7 +171,7 @@ async function handleSubscriptionCreated(subscription) {
       plan = planMap[priceId];
     }
 
-    // Update user subscription data
+    // Update user subscription data - including subscription.isActive flag
     user.stripeSubscriptionId = subscription.id;
     user.subscriptionStatus = subscription.status;
     user.subscriptionType = plan;
@@ -181,8 +181,16 @@ async function handleSubscriptionCreated(subscription) {
     user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
     user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 
+    // Also update the subscription sub-document for frontend compatibility
+    user.subscription.isActive = true;
+    user.subscription.plan = plan;
+    user.subscription.stripePriceId = priceId;
+    user.subscription.stripeSubscriptionId = subscription.id;
+    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+
     await user.save();
-    console.log(`✅ User subscription updated: ${user._id}`);
+    console.log(`✅ User subscription updated: ${user._id}, isActive: true, plan: ${plan}`);
 
   } catch (error) {
     console.error(`Error handling subscription created event:`, error);

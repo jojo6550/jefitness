@@ -423,7 +423,7 @@ async function handlePaymentSubmit(event) {
                 loadUserSubscriptions();
 
                 // Navigate to dashboard page
-                window.location.href = '/pages/dashboard.html';
+                window.location.href = 'public/pages/dashboard.html';
             }, 1500);
         }
 

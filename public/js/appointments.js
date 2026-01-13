@@ -25,9 +25,34 @@ async function checkSubscriptionStatus() {
 
         const subsData = await response.json();
 
-        if (subsData.success && subsData.data && subsData.data.hasSubscription && subsData.data.status === 'active') {
-            userSubscriptionStatus = true;
-            return true;
+        // Check multiple conditions for active subscription
+        // 1. hasSubscription flag is true and status is active/trialing
+        // 2. Or the new isActive field is true
+        // 3. Also check user model hasActiveSubscription by verifying period hasn't ended
+        
+        if (subsData.success && subsData.data) {
+            const data = subsData.data;
+            
+            // Primary check: hasSubscription with active status
+            const hasActiveSubscription = 
+                (data.hasSubscription && (data.status === 'active' || data.status === 'trialing')) ||
+                data.isActive === true;
+            
+            // Additional check: if currentPeriodEnd exists, ensure it hasn't passed
+            if (data.currentPeriodEnd && new Date(data.currentPeriodEnd) < new Date()) {
+                userSubscriptionStatus = false;
+                return false;
+            }
+            
+            console.log('Subscription check:', {
+                hasSubscription: data.hasSubscription,
+                status: data.status,
+                isActive: data.isActive,
+                hasActiveSubscription
+            });
+            
+            userSubscriptionStatus = hasActiveSubscription;
+            return hasActiveSubscription;
         } else {
             userSubscriptionStatus = false;
             return false;

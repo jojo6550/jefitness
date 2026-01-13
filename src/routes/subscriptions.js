@@ -219,14 +219,19 @@ router.get('/status', auth, async (req, res) => {
       });
     }
 
+    // Check if user has an active subscription using the model method
+    const isUserActive = user.hasActiveSubscription();
+
     // If no subscription or subscription is not active/expired, return free tier info
-    if (!user.hasActiveSubscription()) {
+    if (!isUserActive) {
       return res.json({
         success: true,
         data: {
           plan: 'free',
           status: 'active',
-          hasSubscription: false
+          hasSubscription: false,
+          isActive: false,
+          hasActiveSubscription: false
         }
       });
     }
@@ -243,7 +248,10 @@ router.get('/status', auth, async (req, res) => {
         data: {
           plan: user.subscription.plan || 'free',
           status: user.subscription.isActive ? 'active' : 'inactive',
-          hasSubscription: user.subscription.isActive
+          hasSubscription: user.subscription.isActive,
+          isActive: user.subscription.isActive,
+          hasActiveSubscription: user.subscription.isActive,
+          currentPeriodEnd: user.subscription.currentPeriodEnd
         }
       });
     }
@@ -253,7 +261,10 @@ router.get('/status', auth, async (req, res) => {
       data: {
         plan: subscription.plan,
         status: subscription.status,
-        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing'
+        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
+        isActive: user.subscription.isActive,
+        hasActiveSubscription: user.subscription.isActive,
+        currentPeriodEnd: user.subscription.currentPeriodEnd
       }
     });
 
@@ -466,13 +477,16 @@ router.get('/user/current', auth, async (req, res) => {
     }
 
     // If no subscription, return free tier info
-    if (!user.stripeSubscriptionId || !user.subscription.isActive) {
+    const isUserActive = user.hasActiveSubscription();
+    if (!user.stripeSubscriptionId || !isUserActive) {
       return res.json({
         success: true,
         data: {
           plan: 'free',
           status: 'active',
           hasSubscription: false,
+          isActive: false,
+          hasActiveSubscription: false,
           message: 'You are on the free tier'
         }
       });
@@ -485,6 +499,39 @@ router.get('/user/current', auth, async (req, res) => {
     });
 
     if (!subscription) {
+      // Check if user has subscription data in their user record
+      if (user.stripeSubscriptionId && user.subscription.isActive) {
+        // User has a valid subscription but no Subscription document
+        // This can happen if subscription was created before Subscription model existed
+        const planPricing = {
+          '1-month': 29.99,
+          '3-month': 79.99,
+          '6-month': 149.99,
+          '12-month': 279.99,
+          'free': 0
+        };
+        
+        res.json({
+          success: true,
+          data: {
+            id: user._id,
+            stripeSubscriptionId: user.stripeSubscriptionId,
+            plan: user.subscription.plan || 'unknown',
+            status: user.subscriptionStatus || 'active',
+            hasSubscription: user.subscription.isActive,
+            isActive: user.subscription.isActive,
+            currentPeriodStart: user.subscription.currentPeriodStart,
+            currentPeriodEnd: user.subscription.currentPeriodEnd,
+            amount: planPricing[user.subscription.plan?.toLowerCase()] || 0,
+            currency: 'usd',
+            billingEnvironment: user.billingEnvironment || 'test',
+            cancelAtPeriodEnd: user.cancelAtPeriodEnd || false,
+            source: 'user_record' // Indicates data came from user record, not Subscription document
+          }
+        });
+        return;
+      }
+      
       return res.json({
         success: true,
         data: {
@@ -493,7 +540,8 @@ router.get('/user/current', auth, async (req, res) => {
           stripeSubscriptionId: user.stripeSubscriptionId,
           currentPeriodStart: user.subscription.currentPeriodStart,
           currentPeriodEnd: user.subscription.currentPeriodEnd,
-          hasSubscription: user.subscription.isActive
+          hasSubscription: user.subscription.isActive,
+          isActive: user.subscription.isActive
         }
       });
     }
@@ -506,6 +554,8 @@ router.get('/user/current', auth, async (req, res) => {
         plan: subscription.plan,
         status: subscription.status,
         hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
+        // Include user-level isActive for frontend compatibility
+        isActive: user.subscription.isActive,
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,
