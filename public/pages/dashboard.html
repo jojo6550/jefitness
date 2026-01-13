@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="../styles/styles.css?v=1.0.0">
-    <link rel="stylesheet" href="../styles/chat.css?v=1.0.0">
 
     <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
@@ -59,6 +58,18 @@
                 }
             });
 
+            if (response.status === 403) {
+                // Clear invalid token
+                localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('userRole');
+                sessionStorage.removeItem('userRole');
+                statusElement.textContent = 'Not logged in';
+                statusElement.className = 'badge bg-warning text-dark small';
+                return;
+            }
             if (!response.ok) {
                 throw new Error('Failed to fetch subscription status');
             }
@@ -256,86 +267,12 @@
         </div>
     </div>
 
-    <!-- Chat Widget Toggle Button -->
-    <button id="chat-toggle-btn" class="chat-toggle-btn" aria-label="Open chat">
-      <span class="chat-icon">💬</span>
-      <span id="unread-badge" class="unread-badge" style="display: none;">0</span>
-    </button>
 
-    <!-- Chat Widget Container -->
-    <div id="chat-widget" class="chat-widget">
-      <!-- Chat Header -->
-      <div class="chat-header">
-        <div class="chat-title">Chat Support</div>
-        <button id="chat-minimize-btn" class="chat-minimize-btn" aria-label="Minimize chat">−</button>
-      </div>
-
-      <!-- Chat Body -->
-      <div class="chat-body">
-        <!-- Conversation Selection -->
-        <div id="chat-selection" class="chat-selection">
-          <p>How can we help you today?</p>
-          <div class="chat-options">
-            <button class="chat-option-btn" data-type="trainer">
-              <span class="option-icon">🏋️</span>
-              <div class="option-text">
-                <div>Chat with Trainer</div>
-                <small>Get personalized fitness advice</small>
-              </div>
-            </button>
-            <button class="chat-option-btn" data-type="admin">
-              <span class="option-icon">🛠️</span>
-              <div class="option-text">
-                <div>Technical Support</div>
-                <small>Report issues or get help</small>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Chat Conversation -->
-        <div id="chat-conversation" class="chat-conversation" style="display: none;">
-          <!-- Conversation Header -->
-          <div class="chat-conversation-header">
-            <button id="chat-back-btn" class="chat-back-btn" aria-label="Back to selection">←</button>
-            <div id="chat-partner-profile" class="chat-partner-profile">
-              <img id="chat-partner-image" class="chat-partner-image" src="../favicons/favicon-32x32.png" alt="Partner">
-              <div class="chat-partner-info">
-                <div id="chat-partner-name" class="chat-partner-name">Support</div>
-                <div id="chat-partner-role" class="chat-partner-role">Assistant</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Chat Messages -->
-          <div id="chat-messages" class="chat-messages">
-            <!-- Messages will be dynamically added here -->
-          </div>
-
-          <!-- Chat Input Area -->
-          <div class="chat-input-area">
-            <input
-              type="text"
-              id="chat-input"
-              placeholder="Type your message..."
-              maxlength="500"
-            />
-            <button id="chat-send-btn" class="chat-send-btn" disabled>Send</button>
-          </div>
-
-          <!-- Character Limit Warning -->
-          <div id="chat-limit-warning" class="chat-limit-warning" style="display: none;">
-            Message too long. Please keep it under 500 characters.
-          </div>
-        </div>
-      </div>
-    </div>
 
 </body>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.config.js"></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/logout.js" defer></script>
-    <script src="../js/websocket.js"></script>
-    <script src="../js/chat.js"></script>
+
 </html>

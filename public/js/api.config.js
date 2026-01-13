@@ -403,24 +403,7 @@ class API {
     })
   };
 
-  // ===== Chat Endpoints =====
-  static chat = {
-    getConversations: () => API.request('/api/chat/conversations'),
-
-    getHistory: (userId) => API.request(`/api/chat/history/${userId}`),
-
-    sendMessage: (data) => API.request('/api/chat/send', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-
-    markAsRead: (userId) => API.request(`/api/chat/mark-read/${userId}`, {
-      method: 'POST'
-    }),
-
-    getUnreadCount: () => API.request('/api/chat/unread-count')
-  };
-
+ 
   // ===== Cache Endpoints =====
   static cache = {
     getVersions: () => API.request('/api/cache-versions')

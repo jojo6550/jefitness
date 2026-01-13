@@ -1,19 +1,25 @@
-# Navbar Implementation TODO
+# Remove Chat Functionality TODO
 
-## Completed Tasks
-- [x] Create reusable navbar in public/pages/partials/navbar.html
-  - [x] Left side: "JEFITNESS" brand link to dashboard.html
-  - [x] Left side: Subscription status badge (loads dynamically)
-  - [x] Right side: Dashboard, Products, Subscription, Logout links
-- [x] Embed navbar directly in products.html and remove navbar-loader.js
-- [x] Embed navbar directly in dashboard.html and remove navbar-loader.js
-- [x] Embed navbar directly in subscriptions.html and remove navbar-loader.js
-- [x] Embed navbar directly in schedule.html (appointments) and remove navbar-loader.js
-- [x] Embed navbar directly in meet-your-trainer.html and remove navbar-loader.js
-- [x] Add Cart link to navbar between Products and Subscription
+## Backend Changes
+- [ ] Remove chat route registration from src/server.js
+- [ ] Remove WebSocket server setup from src/server.js
+- [ ] Remove WebSocket import from src/server.js
+- [ ] Delete src/routes/chat.js
+- [ ] Delete src/models/Chat.js
 
-## Notes
-- Products page already had login session checks
-- Cart functionality remains in products page (not moved to navbar)
-- Subscription status loads from API and displays appropriate badge colors
-- Navbar is now embedded directly in key pages instead of using navbar-loader.js
+## Frontend Changes
+- [ ] Delete public/js/chat.js
+- [ ] Delete public/js/websocket.js
+- [ ] Remove chat API methods from public/js/api.config.js
+- [ ] Delete public/styles/chat.css
+- [ ] Delete public/pages/partials/chat-widget.html
+- [ ] Remove chat widget from public/pages/dashboard.html
+- [ ] Remove chat widget from public/pages/subscriptions.html
+- [ ] Remove chat icon from public/pages/onboarding.html
+
+## Tests
+- [ ] Delete tests/routes/chat.test.js
+- [ ] Delete tests/websocket.test.js
+
+## Documentation
+- [ ] Update README.md to remove chat mentions
