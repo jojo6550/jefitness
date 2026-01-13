@@ -31,6 +31,164 @@ router.get('/admins', auth, async (req, res) => {
     }
 });
 
+// GET /api/users - Get all users (admin only)
+router.get('/', auth, async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser || currentUser.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. Admin role required.'
+            });
+        }
+
+        const users = await User.find().select('-password');
+        res.json({
+            success: true,
+            users
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
+// GET /api/users/:id - Get user by ID
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser) {
+            return res.status(401).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        if (currentUser.role !== 'admin' && req.params.id !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. You can only access your own profile.'
+            });
+        }
+
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            user
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
+// PUT /api/users/:id - Update user profile
+router.put('/:id', auth, [
+    body('firstName').optional().isLength({ min: 1 }).withMessage('First name is required'),
+    body('lastName').optional().isLength({ min: 1 }).withMessage('Last name is required'),
+    body('email').optional().isEmail().withMessage('Please include a valid email'),
+    body('goals').optional().isString().withMessage('Goals must be a string')
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                error: errors.array()[0].msg
+            });
+        }
+
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser) {
+            return res.status(401).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        if (currentUser.role !== 'admin' && req.params.id !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. You can only update your own profile.'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        const updateData = {};
+        if (req.body.firstName !== undefined) updateData.firstName = req.body.firstName;
+        if (req.body.lastName !== undefined) updateData.lastName = req.body.lastName;
+        if (req.body.email !== undefined) updateData.email = req.body.email;
+        if (req.body.goals !== undefined) updateData.goals = req.body.goals;
+
+        const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
+
+        res.json({
+            success: true,
+            user: updatedUser
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
+// DELETE /api/users/:id - Delete user (admin only)
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user.id);
+        if (!currentUser || currentUser.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. Admin role required.'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        await User.findByIdAndDelete(req.params.id);
+
+        res.json({
+            success: true,
+            message: 'User deleted successfully'
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
 // GDPR COMPLIANCE ENDPOINTS
 
 // GET /api/users/data-export - Export user data (GDPR Article 20)
