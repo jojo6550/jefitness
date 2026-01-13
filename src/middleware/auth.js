@@ -29,7 +29,8 @@ function auth(req, res, next) {
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
-        req.user.id = decoded.userId;
+        // Normalize user ID for consistency across routes
+        req.user.id = decoded.userId || decoded.id;
         next();
     } catch (err) {
         return res.status(401).json({
