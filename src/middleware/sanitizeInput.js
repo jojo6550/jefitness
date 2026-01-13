@@ -16,9 +16,13 @@ const sanitizeInput = (req, res, next) => {
       req.body = sanitizeObject(req.body);
     }
 
-    // Sanitize query parameters
+    // Sanitize query parameters (can't reassign req.query due to getters)
     if (req.query && typeof req.query === 'object') {
-      req.query = sanitizeObject(req.query);
+      for (const key in req.query) {
+        if (Object.prototype.hasOwnProperty.call(req.query, key)) {
+          req.query[key] = sanitizeObject(req.query[key]);
+        }
+      }
     }
 
     // Skip sanitizing URL parameters as they are typically safe and may contain IDs

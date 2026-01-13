@@ -656,7 +656,7 @@ router.delete('/:subscriptionId/cancel', auth, [
           cancelAtPeriodEnd,
           status: subscription.status
         },
-        message: 'Subscription update processed'
+        message: 'update processed'
       }
     });
 

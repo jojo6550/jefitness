@@ -33,6 +33,7 @@ const { sanitizeInput } = require('./middleware/sanitizeInput');
 const { requestLogger } = require('./middleware/requestLogger');
 const { errorHandler } = require('./middleware/errorHandler');
 const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
+const { requireActiveSubscription } = require('./middleware/subscriptionAuth');
 
 // -----------------------------
 // Enhanced Security Headers with Helmet

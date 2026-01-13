@@ -3,6 +3,7 @@ const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const { auth, blacklistToken } = require('../middleware/auth');
+const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 
 const { logger, logAdminAction, logUserAction } = require('../services/logger');
 
@@ -94,7 +95,7 @@ router.get('/dashboard', auth, async (req, res) => {
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/clients', auth, async (req, res) => {
+router.get('/clients', auth, requireActiveSubscription, async (req, res) => {
     try {
         if (req.user.role !== 'trainer') {
             return res.status(403).json({ msg: 'Access denied' });

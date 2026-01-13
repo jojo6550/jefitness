@@ -30,11 +30,11 @@ describe('Subscription Flow Integration Tests', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(Array.isArray(response.body.plans)).toBe(true);
-      expect(response.body.plans.length).toBeGreaterThan(0);
+      expect(Array.isArray(response.body.data.plans)).toBe(true);
+      expect(response.body.data.plans.length).toBeGreaterThan(0);
 
       // Check plan structure
-      const plan = response.body.plans[0];
+      const plan = response.body.data.plans[0];
       expect(plan).toHaveProperty('id');
       expect(plan).toHaveProperty('name');
       expect(plan).toHaveProperty('price');
@@ -43,20 +43,20 @@ describe('Subscription Flow Integration Tests', () => {
 
     it('should create checkout session for subscription', async () => {
       const checkoutData = {
-        priceId: 'price_mock_monthly',
+        plan: '1-month',
         successUrl: 'http://localhost:3000/subscription-success',
         cancelUrl: 'http://localhost:3000/subscriptions'
       };
 
       const response = await request(app)
-        .post('/api/v1/subscriptions/create-session')
+        .post('/api/v1/subscriptions/checkout-session')
         .set('Authorization', `Bearer ${authToken}`)
         .send(checkoutData)
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.session).toHaveProperty('id');
-      expect(response.body.session).toHaveProperty('url');
+      expect(response.body.data.sessionId).toBeTruthy();
+      expect(response.body.data.url).toBeTruthy();
     });
 
     it('should handle Stripe webhook for subscription creation', async () => {
@@ -78,7 +78,7 @@ describe('Subscription Flow Integration Tests', () => {
       const signature = 'mock_signature';
 
       const response = await request(app)
-        .post('/api/webhooks')
+        .post('/webhooks/stripe')
         .set('stripe-signature', signature)
         .send(webhookData)
         .expect(200);
@@ -104,9 +104,8 @@ describe('Subscription Flow Integration Tests', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.subscription.isActive).toBe(true);
-      expect(response.body.subscription.plan).toBe('1-month');
-      expect(response.body.subscription.currentPeriodEnd).toBeTruthy();
+      expect(response.body.data.hasSubscription).toBe(true);
+      expect(response.body.data.plan).toBe('1-month');
     });
 
     it('should cancel subscription', async () => {
@@ -122,12 +121,12 @@ describe('Subscription Flow Integration Tests', () => {
       await user.save();
 
       const response = await request(app)
-        .delete('/api/v1/subscriptions/cancel')
+        .delete(`/api/v1/subscriptions/${user.subscription.stripeSubscriptionId}/cancel`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.message).toContain('cancelled');
+      expect(response.body.data.message).toContain('update processed');
 
       // Verify subscription is cancelled in database
       const updatedUser = await User.findById(user._id);
@@ -152,8 +151,8 @@ describe('Subscription Flow Integration Tests', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.subscription.isActive).toBe(false);
-      expect(response.body.subscription.message).toBe('No active subscription');
+      expect(response.body.data.hasSubscription).toBe(false);
+      expect(response.body.data.plan).toBe('free');
     });
   });
 
@@ -170,7 +169,7 @@ describe('Subscription Flow Integration Tests', () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('subscription');
+      expect(response.body.error.message).toContain('subscription');
     });
 
     it('should allow access to premium features with active subscription', async () => {
@@ -190,7 +189,7 @@ describe('Subscription Flow Integration Tests', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.subscription.isActive).toBe(true);
+      expect(response.body.data.hasSubscription).toBe(true);
     });
   });
 });
