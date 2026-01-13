@@ -252,6 +252,7 @@ if (process.env.NODE_ENV !== 'production') {
 // Backward compatibility - redirect old routes to v1
 // Handle OPTIONS requests for CORS preflight before redirect
 app.options('/api/auth', cors(corsOptions));
+app.options('/api/v1/auth', cors(corsOptions));
 app.use('/api/auth', (req, res, next) => {
   res.redirect(307, '/api/v1/auth' + req.path);
 });

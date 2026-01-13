@@ -20,7 +20,7 @@ describe('Middleware Tests', () => {
       });
       await user.save();
 
-      token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+      token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     });
 
     it('should allow access with valid token', async () => {
