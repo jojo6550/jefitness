@@ -29,8 +29,8 @@
 - [x] Add cache clearing endpoints for development
 
 ### 6. Update Documentation
-- [ ] Update `CACHE_BUSTING_GUIDE.md` with new features
-- [ ] Add troubleshooting steps for dev vs prod differences
+- [x] Update `CACHE_BUSTING_GUIDE.md` with new features
+- [x] Add troubleshooting steps for dev vs prod differences
 
 ### 7. Testing and Verification
 - [ ] Test automatic cache invalidation in development

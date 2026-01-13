@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/User');
-const auth = require('../middleware/auth'); // Import the authentication middleware
+const { auth, blacklistToken } = require('../middleware/auth'); // Import the authentication middleware
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { requireDbConnection } = require('../middleware/dbConnection');
 
@@ -1325,6 +1325,39 @@ router.post('/verify-email', async (req, res) => {
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: Email verification | Email: ${email}`);
         res.status(500).json({ msg: 'Server error. Please try again.' });
+    }
+});
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout authenticated user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.post('/logout', auth, async (req, res) => {
+    try {
+        console.log(`Security event: logout | UserId: ${req.user.id} | Email: ${req.user.email}`);
+        res.json({ success: true, message: 'Logged out successfully' });
+    } catch (err) {
+        console.error(`Error: ${JSON.stringify(err)} | Context: User logout | UserId: ${req.user.id}`);
+        res.status(500).json({ msg: 'Server error' });
     }
 });
 
