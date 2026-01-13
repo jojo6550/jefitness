@@ -70,13 +70,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Get user token from localStorage
     userToken = localStorage.getItem('token');
+    console.log('🔐 User token present:', !!userToken);
+    if (userToken) {
+        console.log('🔐 Token preview:', userToken.substring(0, 20) + '...');
+    }
     
     // Load subscription plans
     await loadPlans();
     
     // Load user's subscriptions if logged in
     if (userToken) {
+        console.log('👤 User is logged in, loading subscriptions...');
         await loadUserSubscriptions();
+    } else {
+        console.log('👤 User NOT logged in, showing plans for purchase');
     }
     
     // Initialize Stripe Elements
@@ -443,7 +450,12 @@ async function handlePaymentSubmit(event) {
  */
 async function loadUserSubscriptions() {
     try {
-        if (!userToken) return;
+        if (!userToken) {
+            console.log('🔓 No user token found, user not logged in');
+            return;
+        }
+
+        console.log('📡 Fetching user subscription data...');
 
         // Fetch subscriptions using the current endpoint
         const subsResponse = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
@@ -454,11 +466,28 @@ async function loadUserSubscriptions() {
             }
         });
 
-        const subsData = await handleApiResponse(subsResponse);
+        console.log('📥 Response status:', subsResponse.status);
+
+        const subsData = await subsResponse.json();
+        console.log('📦 Full API response:', JSON.stringify(subsData, null, 2));
+
+        if (subsData.success && subsData.data) {
+            console.log('📊 Data object:', JSON.stringify(subsData.data, null, 2));
+            console.log('🔑 hasSubscription:', subsData.data.hasSubscription);
+            console.log('🔑 isActive:', subsData.data.isActive);
+            console.log('🔑 hasActiveSubscription:', subsData.data.hasActiveSubscription);
+            console.log('🔑 plan:', subsData.data.plan);
+            console.log('🔑 status:', subsData.data.status);
+            console.log('🔑 currentPeriodEnd:', subsData.data.currentPeriodEnd);
+            if (subsData.data.subscription) {
+                console.log('📋 subscription sub-document:', JSON.stringify(subsData.data.subscription, null, 2));
+            }
+        }
 
         if (subsData.success && subsData.data && !subsData.data.hasSubscription) {
             // User has no subscription, show free tier
             hasActiveSubscription = false;
+            console.log('❌ User has no active subscription');
             displayUserSubscriptions([]);
             userSubscriptionsSection.style.display = 'none';
             plansContainer.style.display = 'grid'; // Show plans for purchase
@@ -469,6 +498,7 @@ async function loadUserSubscriptions() {
         } else if (subsData.success && subsData.data) {
             // User has subscription, hide plans and only show subscription details
             hasActiveSubscription = true;
+            console.log('✅ User has active subscription, showing subscription card');
             displayUserSubscriptions([subsData.data]);
             userSubscriptionsSection.style.display = 'block';
             plansContainer.style.display = 'none'; // Hide plans completely
