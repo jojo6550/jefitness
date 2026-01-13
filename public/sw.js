@@ -4,6 +4,12 @@ const CACHE_NAME = `jefitness-v${CACHE_VERSION}`;
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
+// Development environment detection
+const IS_DEVELOPMENT = location.hostname === 'localhost' ||
+                      location.hostname === '127.0.0.1' ||
+                      location.hostname.includes('dev') ||
+                      location.port === '5501'; // browser-sync port
+
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/',

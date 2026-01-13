@@ -146,7 +146,7 @@ const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
 
 // Cache version utility
-const { getFileHash, invalidateCache } = require('./utils/cacheVersion');
+const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = require('./utils/cacheVersion');
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -204,6 +204,11 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
+
+// -----------------------------
+// Cache Management Routes
+// -----------------------------
+app.use('/api', require('./routes/cache'));
 
 // -----------------------------
 // Routes with API Versioning
@@ -411,7 +416,26 @@ setInterval(() => {
 
 // Only start server if this file is run directly (not required in tests)
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('Received SIGINT, shutting down gracefully...');
+    stopFileWatching();
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('Received SIGTERM, shutting down gracefully...');
+    stopFileWatching();
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  });
 }
 
 module.exports = app;

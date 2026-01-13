@@ -82,9 +82,57 @@ function invalidateCache() {
   hashCache.clear();
 }
 
+/**
+ * Start watching asset directories for changes (development only)
+ * @param {function} callback - Function to call when files change
+ */
+function startFileWatching(callback) {
+  // Only watch in development
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+
+  const publicDir = path.join(process.cwd(), 'public');
+  const assetDirs = ['js', 'styles'];
+
+  assetDirs.forEach(dir => {
+    const dirPath = path.join(publicDir, dir);
+
+    if (fs.existsSync(dirPath)) {
+      try {
+        const watcher = fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
+          if (filename && (filename.endsWith('.js') || filename.endsWith('.css'))) {
+            console.log(`[Cache] File changed: ${filename}, invalidating cache`);
+            invalidateCache();
+            if (callback) callback(filename);
+          }
+        });
+
+        watchers.set(dir, watcher);
+        console.log(`[Cache] Started watching ${dir} for changes`);
+      } catch (error) {
+        console.warn(`[Cache] Failed to watch ${dir}:`, error.message);
+      }
+    }
+  });
+}
+
+/**
+ * Stop file watching
+ */
+function stopFileWatching() {
+  watchers.forEach((watcher, dir) => {
+    watcher.close();
+    console.log(`[Cache] Stopped watching ${dir}`);
+  });
+  watchers.clear();
+}
+
 module.exports = {
   getFileHash,
   getVersionParam,
   versionedUrl,
-  invalidateCache
+  invalidateCache,
+  startFileWatching,
+  stopFileWatching
 };
