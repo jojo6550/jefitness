@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
     const checkoutForm = document.getElementById('checkout-form');
     const orderItems = document.getElementById('order-items');
     const summarySubtotal = document.getElementById('summary-subtotal');
@@ -21,7 +21,8 @@ const API_BASE = window.ApiConfig.getAPI_BASE();
     // Load cart summary
     async function loadCartSummary() {
         try {
-            const res = await fetch(`${API_BASE}/api/cart`, {
+            const res = await fetch(`${window.API_BASE}
+/api/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -142,7 +143,8 @@ const API_BASE = window.ApiConfig.getAPI_BASE();
             placeOrderBtn.disabled = true;
             placeOrderBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
-            const res = await fetch(`${API_BASE}/api/orders`, {
+            const res = await fetch(`${window.API_BASE}
+/api/orders`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

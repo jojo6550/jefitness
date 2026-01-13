@@ -1,5 +1,5 @@
 
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const programId = urlParams.get('id');
@@ -12,11 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        let endpoint = `${API_BASE}/api/programs/${programId}`;
+        let endpoint = `${window.API_BASE}
+/api/programs/${programId}`;
         let headers = {};
 
         if (isPreview || !token) {
-            endpoint = `${API_BASE}/api/programs/marketplace/${programId}`;
+            endpoint = `${window.API_BASE}
+/api/programs/marketplace/${programId}`;
         } else {
             headers = { 'Authorization': `Bearer ${token}` };
         }
@@ -263,7 +265,8 @@ function renderProgramDetails(program, hasFullAccess) {
                 }
 
                 try {
-                    const res = await fetch(`${API_BASE}/api/cart/add`, {
+                    const res = await fetch(`${window.API_BASE}
+/api/cart/add`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

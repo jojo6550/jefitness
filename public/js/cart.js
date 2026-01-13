@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
     const loadingSpinner = document.getElementById('loading-spinner');
     const emptyCart = document.getElementById('empty-cart');
     const cartContent = document.getElementById('cart-content');
@@ -24,7 +24,8 @@ const API_BASE = window.ApiConfig.getAPI_BASE();
             emptyCart.style.display = 'none';
             cartContent.style.display = 'none';
 
-            const res = await fetch(`${API_BASE}/api/cart`, {
+            const res = await fetch(`${window.API_BASE}
+/api/cart`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -115,7 +116,8 @@ function displayCart(cart) {
         }
 
         try {
-            const res = await fetch(`${API_BASE}/api/cart/update/${itemId}`, {
+            const res = await fetch(`${window.API_BASE}
+/api/cart/update/${itemId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -152,7 +154,8 @@ function displayCart(cart) {
         }
 
         try {
-            const res = await fetch(`${API_BASE}/api/cart/remove/${itemId}`, {
+            const res = await fetch(`${window.API_BASE}
+/api/cart/remove/${itemId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`

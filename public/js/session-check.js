@@ -2,7 +2,7 @@
 
 // Determine the base URL
 
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 // Function to check if user session is valid
 async function checkSession() {
     const token = localStorage.getItem('token');
@@ -14,7 +14,8 @@ async function checkSession() {
 
     try {
         // Verify token with server
-        const response = await fetch(`${API_BASE}/api/auth/me`, {
+        const response = await fetch(`${window.API_BASE}
+/api/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

@@ -221,7 +221,8 @@ async function deleteAppointment(appointmentId) {
     if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/appointments/${appointmentId}`, {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
         });

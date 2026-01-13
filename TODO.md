@@ -34,7 +34,7 @@ Replace:
 const API_BASE = window.ApiConfig.getAPI_BASE();```
 With:
 ```
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 ```
 
 And update any variable references from API_BASE/API_BASE to API_BASE.

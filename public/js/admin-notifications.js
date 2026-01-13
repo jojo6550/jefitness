@@ -1,7 +1,7 @@
 // Admin Notifications Management
 (function() {
     
-    const API_BASE = window.ApiConfig.getAPI_BASE();
+    window.API_BASE = window.ApiConfig.getAPI_BASE();
     document.addEventListener('DOMContentLoaded', function() {
     const sendNotificationBtn = document.getElementById('sendNotificationBtn');
     const notificationForm = document.querySelector('#notifications-section form');
@@ -43,7 +43,8 @@
         }
 
         try {
-            const response = await fetch(`${API_BASE}/api/notifications`, {
+            const response = await fetch(`${window.API_BASE}
+/api/notifications`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,7 +88,8 @@
     // Load users for selection
     async function loadUsersForSelection() {
         try {
-            const response = await fetch(`${API_BASE}/api/users`, {
+            const response = await fetch(`${window.API_BASE}
+/api/users`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -112,7 +114,8 @@
     // Load notifications history
     async function loadNotifications() {
         try {
-            const response = await fetch(`${API_BASE}/api/notifications/admin`, {
+            const response = await fetch(`${window.API_BASE}
+/api/notifications/admin`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }

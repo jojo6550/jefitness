@@ -1,4 +1,4 @@
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
 let currentPage = 1;
@@ -40,7 +40,8 @@ async function loadClients(page = 1, search = '', sortBy = 'firstName', sortOrde
             status
         });
 
-        const response = await fetch(`${API_BASE}/api/clients?${params}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/clients?${params}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -135,7 +136,8 @@ async function showUserDetails(userId) {
     content.innerHTML = '<div id="userDetailsLoading" class="text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600 font-medium">Loading client details...</p></div>';
 
     try {
-        const response = await fetch(`${API_BASE}/api/clients/${userId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/clients/${userId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -314,7 +316,8 @@ window.viewMedicalDoc = function(filename) {
         showErrorModal('No authentication token found. Please log in again.');
         return;
     }
-    const viewUrl = `${API_BASE}/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
+    const viewUrl = `${window.API_BASE}
+/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
     
     // Open in new tab and handle errors
     const newTab = window.open(viewUrl, '_blank');
@@ -342,7 +345,8 @@ window.closeErrorModal = function() {
 // Download medical document
 window.downloadMedicalDoc = function(filename) {
     const token = localStorage.getItem('token');
-    fetch(`${API_BASE}/api/medical-documents/download/${filename}`, {
+    fetch(`${window.API_BASE}
+/api/medical-documents/download/${filename}`, {
         headers: {
             'Authorization': 'Bearer ' + token
         }
@@ -465,7 +469,8 @@ function updatePagination(pagination) {
 // Update statistics from database
 async function updateStatistics() {
     try {
-        const response = await fetch(`${API_BASE}/api/clients/statistics`, {
+        const response = await fetch(`${window.API_BASE}
+/api/clients/statistics`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -639,7 +644,8 @@ function confirmDeleteClient(clientId) {
 // Delete client
 async function deleteClient(clientId) {
     try {
-        const response = await fetch(`${API_BASE}/api/clients/${clientId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/clients/${clientId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -670,7 +676,8 @@ async function loadAppointments(page = 1, search = '', sortBy = currentAppointme
             status
         });
 
-        const response = await fetch(`${API_BASE}/api/appointments?${params}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/appointments?${params}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -846,7 +853,8 @@ async function viewAppointment(appointmentId) {
     content.querySelectorAll(':not(#appointmentDetailsLoading)').forEach(el => el.remove());
 
     try {
-        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/appointments/${appointmentId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -894,7 +902,8 @@ function confirmDeleteAppointment(appointmentId) {
 // Delete appointment
 async function deleteAppointment(appointmentId) {
     try {
-        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/appointments/${appointmentId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -916,7 +925,8 @@ async function deleteAppointment(appointmentId) {
 // Export appointments to CSV
 function exportAppointments() {
     // Get all appointments for export
-    fetch(`${API_BASE}/api/appointments`, {
+    fetch(`${window.API_BASE}
+/api/appointments`, {
         headers: {
             'Authorization': 'Bearer ' + localStorage.getItem('token')
         }
@@ -973,7 +983,8 @@ async function loadOrders(page = 1, search = '', sortBy = currentOrdersSortBy, s
             sortOrder
         });
 
-        const response = await fetch(`${API_BASE}/api/orders/admin/all?${params}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/orders/admin/all?${params}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -1165,7 +1176,8 @@ function updateOrdersSortIndicators() {
 // Export orders to CSV
 function exportOrders() {
     // Get all orders for export
-    fetch(`${API_BASE}/api/orders/admin/all`, {
+    fetch(`${window.API_BASE}
+/api/orders/admin/all`, {
         headers: {
             'Authorization': 'Bearer ' + localStorage.getItem('token')
         }

@@ -99,7 +99,8 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${API_BASE}/api/logs?${params}`, {
+            const response = await fetch(`${window.API_BASE}
+/api/logs?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -122,7 +123,8 @@ class AdminLogsManager {
     async loadLogStats() {
         try {
             const params = new URLSearchParams(this.currentFilters);
-            const response = await fetch(`${API_BASE}/api/logs/stats?${params}`, {
+            const response = await fetch(`${window.API_BASE}
+/api/logs/stats?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -321,7 +323,8 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${API_BASE}/api/logs/export?${params}`, {
+            const response = await fetch(`${window.API_BASE}
+/api/logs/export?${params}`, {
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 }

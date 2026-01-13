@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadProgressBar = document.getElementById('uploadProgressBar');
     const uploadStatus = document.getElementById('uploadStatus');
 
-    const API_BASE = window.ApiConfig.getAPI_BASE();
+    window.API_BASE = window.ApiConfig.getAPI_BASE();
 
     let uploadedFiles = [];
 
@@ -109,7 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusText = fileItem.querySelector('.medical-file-status');
 
         // Upload to server
-        fetch(`${API_BASE}/api/medical-documents/upload`, {
+        fetch(`${window.API_BASE}
+/api/medical-documents/upload`, {
             method: 'POST',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -184,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileToRemove = uploadedFiles.find(f => f.fileId === fileId);
             if (fileToRemove) {
                 // Delete from server
-                fetch(`${API_BASE}/api/medical-documents/delete`, {
+                fetch(`${window.API_BASE}
+/api/medical-documents/delete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -228,7 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load existing medical documents and conditions on page load
     async function loadMedicalData() {
         try {
-            const response = await fetch(`${API_BASE}/api/medical-documents/get`, {
+            const response = await fetch(`${window.API_BASE}
+/api/medical-documents/get`, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -277,7 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         fileItem.querySelector('.delete-file-btn').addEventListener('click', (e) => {
                             e.preventDefault();
                             if (confirm('Are you sure you want to delete this document?')) {
-                                fetch(`${API_BASE}/api/medical-documents/delete`, {
+                                fetch(`${window.API_BASE}
+/api/medical-documents/delete`, {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -313,7 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Save medical data to server
         try {
             const token = localStorage.getItem('token');
-            await fetch(`${API_BASE}/api/medical-documents/save-info`, {
+            await fetch(`${window.API_BASE}
+/api/medical-documents/save-info`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

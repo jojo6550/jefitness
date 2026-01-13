@@ -672,7 +672,8 @@ class ApiConfig {
 class API {
   static async request(endpoint, options = {}) {
     const API_BASE = ApiConfig.getAPI_BASE();
-    const url = `${API_BASE}${endpoint}`;
+    const url = `${window.API_BASE}
+${endpoint}`;
     
     try {
       const response = await fetch(url, {

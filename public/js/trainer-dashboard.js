@@ -1,5 +1,5 @@
 
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
 window.initTrainerDashboard = async () => {
@@ -8,7 +8,8 @@ window.initTrainerDashboard = async () => {
 
     try {
         // Verify user is trainer
-        const userRes = await fetch(`${API_BASE}/api/auth/me`, {
+        const userRes = await fetch(`${window.API_BASE}
+/api/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -36,7 +37,8 @@ window.initTrainerDashboard = async () => {
 async function loadDashboardData(token) {
     try {
         // Fetch dashboard overview
-        const dashboardRes = await fetch(`${API_BASE}/api/trainer/dashboard`, {
+        const dashboardRes = await fetch(`${window.API_BASE}
+/api/trainer/dashboard`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -147,7 +149,8 @@ async function updateAppointmentStatus(appointmentId, status) {
     if (!token) return;
 
     try {
-        const response = await fetch(`${API_BASE}/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}
+/api/appointments/${appointmentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

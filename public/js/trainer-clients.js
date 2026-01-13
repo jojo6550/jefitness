@@ -1,4 +1,4 @@
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
 let currentPage = 1;
@@ -10,7 +10,8 @@ window.initTrainerClients = async () => {
 
     try {
         // Verify user is trainer
-        const userRes = await fetch(`${API_BASE}/api/auth/me`, {
+        const userRes = await fetch(`${window.API_BASE}
+/api/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -49,7 +50,8 @@ async function loadClients(token, page = 1, search = '') {
             ...(search && { search })
         });
 
-        const res = await fetch(`${API_BASE}/api/trainer/clients?${queryParams}`, {
+        const res = await fetch(`${window.API_BASE}
+/api/trainer/clients?${queryParams}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,

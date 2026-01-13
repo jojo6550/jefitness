@@ -83,9 +83,10 @@
             }
 
             
-            const API_BASE = window.ApiConfig.getAPI_BASE();
+            window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-            const response = await fetch(`${API_BASE}/api/v1/subscriptions/status`, {
+            const response = await fetch(`${window.API_BASE}
+/api/v1/subscriptions/status`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -527,7 +528,8 @@
         // Load products from Stripe API
         async function loadProductsFromStripe() {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_BASE}/api/v1/products`, {
+            const res = await fetch(`${window.API_BASE}
+/api/v1/products`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -641,7 +643,8 @@
         async function syncCartWithServer() {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch(`${API_BASE}/api/v1/cart`, {
+                const res = await fetch(`${window.API_BASE}
+/api/v1/cart`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -750,7 +753,8 @@
                 const item = cart.items.find(i => i.productId === productId);
                 if (!item) return;
 
-                await fetch(`${API_BASE}/api/v1/cart/products`, {
+                await fetch(`${window.API_BASE}
+/api/v1/cart/products`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

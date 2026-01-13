@@ -1,7 +1,7 @@
 // logout.js
 
 // Determine the base URL
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 // Function to handle the logout process
 async function logoutUser() {
@@ -10,7 +10,8 @@ async function logoutUser() {
     if (token) {
         try {
             // Call the logout API to invalidate the session on the server
-            const response = await fetch(`${API_BASE}/api/auth/logout`, {
+            const response = await fetch(`${window.API_BASE}
+/api/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -62,7 +63,7 @@ async function checkSessionAndRedirect() {
 
     try {
         // Try to access a protected endpoint to verify token
-        const response = await fetch(`${API_BASE}/api/auth/me`, {
+        const response = await fetch(`${window.API_BASE}/api/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

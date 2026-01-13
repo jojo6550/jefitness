@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetPasswordForm = document.getElementById('reset-password-form');
   const messageDiv = document.getElementById('message');
 
-  const API_BASE = window.ApiConfig.getAPI_BASE();
+  window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
   // LOGIN
@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(loginButton, true);
 
       try {
-        const res = await fetch(`${API_BASE}/api/auth/login`, {
+        const res = await fetch(`${window.API_BASE}
+/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -305,7 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(signupButton, true);
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/signup`, {
+        const response = await fetch(`${window.API_BASE}
+/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -347,7 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const otp = document.getElementById('inputOtp').value;
 
       try {
-        const response = await fetch(`${API_BASE}/api/auth/verify-email`, {
+        const response = await fetch(`${window.API_BASE}
+/api/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp })
@@ -379,7 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('inputPassword').value;
 
         try {
-          const response = await fetch(`${API_BASE}/api/auth/signup`, {
+          const response = await fetch(`${window.API_BASE}
+/api/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -417,7 +421,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(forgotButton, true);
 
       try {
-        const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+        const res = await fetch(`${window.API_BASE}
+/api/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -461,7 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
+        const res = await fetch(`${window.API_BASE}
+/api/auth/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, password })

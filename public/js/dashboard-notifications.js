@@ -21,9 +21,10 @@ async function loadNotifications() {
     if (!token) return;
 
     
-    const API_BASE = window.ApiConfig.getAPI_BASE();
+    window.API_BASE = window.ApiConfig.getAPI_BASE();
     try {
-        const response = await fetch(`${API_BASE}/api/notifications`, {
+        const response = await fetch(`${window.API_BASE}
+/api/notifications`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -105,7 +106,7 @@ async function registerPushNotifications() {
     }
 
     
-    const API_BASE = window.ApiConfig.getAPI_BASE();
+    window.API_BASE = window.ApiConfig.getAPI_BASE();
     try {
         const registration = await navigator.serviceWorker.ready;
 
@@ -124,7 +125,8 @@ async function registerPushNotifications() {
                 // Send subscription to server
                 const token = localStorage.getItem('token');
                 if (token && subscription) {
-                    await fetch(`${API_BASE}/api/notifications/subscribe`, {
+                    await fetch(`${window.API_BASE}
+/api/notifications/subscribe`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

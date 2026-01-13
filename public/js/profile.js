@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('userProfileForm');
     const formMessage = document.getElementById('formMessage');
 
-const API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig.getAPI_BASE();
 
     // Helper to show messages
     function showMessage(message, type = 'success') {
@@ -17,7 +17,8 @@ const API_BASE = window.ApiConfig.getAPI_BASE();
     // Fetch profile data and populate form
     async function loadProfile() {
         try {
-            const response = await fetch(`${API_BASE}/api/auth/me`, {
+            const response = await fetch(`${window.API_BASE}
+/api/auth/me`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -92,7 +93,8 @@ const API_BASE = window.ApiConfig.getAPI_BASE();
         };
 
         try {
-            const response = await fetch(`${API_BASE}/api/auth/profile`, {
+            const response = await fetch(`${window.API_BASE}
+/api/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
