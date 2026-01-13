@@ -510,7 +510,10 @@ router.get('/user/current', auth, async (req, res) => {
           '12-month': 279.99,
           'free': 0
         };
-        
+
+        // Double-check hasActiveSubscription using the model method
+        const userHasActiveSubscription = user.hasActiveSubscription();
+
         res.json({
           success: true,
           data: {
@@ -518,8 +521,9 @@ router.get('/user/current', auth, async (req, res) => {
             stripeSubscriptionId: user.stripeSubscriptionId,
             plan: user.subscription.plan || 'unknown',
             status: user.subscriptionStatus || 'active',
-            hasSubscription: user.subscription.isActive,
-            isActive: user.subscription.isActive,
+            hasSubscription: userHasActiveSubscription,
+            isActive: userHasActiveSubscription,
+            hasActiveSubscription: userHasActiveSubscription,
             currentPeriodStart: user.subscription.currentPeriodStart,
             currentPeriodEnd: user.subscription.currentPeriodEnd,
             amount: planPricing[user.subscription.plan?.toLowerCase()] || 0,
@@ -531,7 +535,7 @@ router.get('/user/current', auth, async (req, res) => {
         });
         return;
       }
-      
+
       return res.json({
         success: true,
         data: {
@@ -541,7 +545,8 @@ router.get('/user/current', auth, async (req, res) => {
           currentPeriodStart: user.subscription.currentPeriodStart,
           currentPeriodEnd: user.subscription.currentPeriodEnd,
           hasSubscription: user.subscription.isActive,
-          isActive: user.subscription.isActive
+          isActive: user.subscription.isActive,
+          hasActiveSubscription: user.hasActiveSubscription()
         }
       });
     }
@@ -556,6 +561,7 @@ router.get('/user/current', auth, async (req, res) => {
         hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
         // Include user-level isActive for frontend compatibility
         isActive: user.subscription.isActive,
+        hasActiveSubscription: user.hasActiveSubscription(),
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,

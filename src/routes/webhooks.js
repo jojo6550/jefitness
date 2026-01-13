@@ -391,12 +391,49 @@ async function handleCheckoutSessionCompleted(session) {
       const user = await User.findOne({ stripeCustomerId: session.customer });
 
       if (user) {
-        // Update user with subscription info
+        // Fetch the full subscription details from Stripe
+        let subscription;
+        try {
+          const stripe = getStripe();
+          if (stripe && session.subscription) {
+            subscription = await stripe.subscriptions.retrieve(session.subscription);
+          }
+        } catch (stripeErr) {
+          console.warn(`Could not fetch subscription from Stripe, using session data: ${stripeErr.message}`);
+        }
+
+        // Get plan from price ID (reusing existing planMap)
+        let plan = '1-month';
+        const priceId = subscription?.items?.data[0]?.price?.id || session.subscription?.items?.data[0]?.price?.id;
+
+        const planMap = {
+          [process.env.STRIPE_PRICE_1_MONTH || 'price_1NfYT7GBrdnKY4igWvWr9x7q']: '1-month',
+          [process.env.STRIPE_PRICE_3_MONTH || 'price_1NfYT7GBrdnKY4igX2Ks1a8r']: '3-month',
+          [process.env.STRIPE_PRICE_6_MONTH || 'price_1NfYT7GBrdnKY4igY3Lt2b9s']: '6-month',
+          [process.env.STRIPE_PRICE_12_MONTH || 'price_1NfYT7GBrdnKY4igZ4Mu3c0t']: '12-month'
+        };
+
+        if (planMap[priceId]) {
+          plan = planMap[priceId];
+        }
+
+        // Update user with FULL subscription info - setting all fields
         user.stripeSubscriptionId = session.subscription;
+        user.subscriptionStatus = 'active';
         user.subscription.isActive = true;
+        user.subscription.plan = plan;
+        user.subscription.stripePriceId = priceId;
+        user.subscription.stripeSubscriptionId = session.subscription;
+        user.subscription.currentPeriodStart = subscription?.current_period_start 
+          ? new Date(subscription.current_period_start * 1000) 
+          : (session.subscription?.current_period_start ? new Date(session.subscription.current_period_start * 1000) : new Date());
+        user.subscription.currentPeriodEnd = subscription?.current_period_end 
+          ? new Date(subscription.current_period_end * 1000) 
+          : (session.subscription?.current_period_end ? new Date(session.subscription.current_period_end * 1000) : null);
         user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+
         await user.save();
-        console.log(`✅ User subscription updated: ${user._id}`);
+        console.log(`✅ User subscription fully updated: ${user._id}, plan: ${plan}, isActive: true, hasActiveSubscription: true`);
       }
     }
 

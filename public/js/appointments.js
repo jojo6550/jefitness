@@ -25,32 +25,32 @@ async function checkSubscriptionStatus() {
 
         const subsData = await response.json();
 
-        // Check multiple conditions for active subscription
-        // 1. hasSubscription flag is true and status is active/trialing
-        // 2. Or the new isActive field is true
-        // 3. Also check user model hasActiveSubscription by verifying period hasn't ended
-        
         if (subsData.success && subsData.data) {
             const data = subsData.data;
-            
-            // Primary check: hasSubscription with active status
-            const hasActiveSubscription = 
-                (data.hasSubscription && (data.status === 'active' || data.status === 'trialing')) ||
-                data.isActive === true;
-            
-            // Additional check: if currentPeriodEnd exists, ensure it hasn't passed
-            if (data.currentPeriodEnd && new Date(data.currentPeriodEnd) < new Date()) {
-                userSubscriptionStatus = false;
-                return false;
+
+            // Check hasActiveSubscription from API (computed server-side from database fields)
+            // This is the authoritative check that reads directly from user model
+            const hasActiveSub = data.hasActiveSubscription === true ||
+                                 (data.hasSubscription === true && data.isActive === true);
+
+            // Also check if currentPeriodEnd exists and hasn't passed
+            let isPeriodValid = true;
+            if (data.currentPeriodEnd) {
+                const periodEnd = new Date(data.currentPeriodEnd);
+                isPeriodValid = periodEnd > new Date();
             }
-            
+
+            const hasActiveSubscription = hasActiveSub && isPeriodValid;
+
             console.log('Subscription check:', {
                 hasSubscription: data.hasSubscription,
                 status: data.status,
                 isActive: data.isActive,
-                hasActiveSubscription
+                hasActiveSubscription: data.hasActiveSubscription,
+                periodValid: isPeriodValid,
+                finalResult: hasActiveSubscription
             });
-            
+
             userSubscriptionStatus = hasActiveSubscription;
             return hasActiveSubscription;
         } else {
