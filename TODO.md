@@ -1,27 +1,21 @@
-# Stripe Subscription System Debug Plan
+# Subscription API Fix Plan
 
-## Immediate Fixes Needed
+## Information Gathered
+- **Root Cause**: Inconsistent use of `user.subscription.isActive` vs `user.hasActiveSubscription()` across endpoints
+- **Issue**: Paid users with expired subscriptions appear active because expiry isn't checked
+- **hasActiveSubscription() method**: Checks both `subscription.isActive` AND `currentPeriodEnd` date
+- **Affected Endpoints**:
+  - `/status`: Uses `hasActiveSubscription()` for initial check but `user.subscription.isActive` for response fields
+  - `/user/current`: Uses `hasActiveSubscription()` for `hasActiveSubscription` field but `user.subscription.isActive` for `isActive` field
 
-### 1. Fix Stripe Mocking
-- [ ] Complete the Stripe mock in `tests/mocks/stripe.js` to include all methods used by the service
-- [ ] Add missing methods: `prices.list`, `customers.list`, `products.list`, `paymentMethods.list`, `paymentMethods.detach`, `paymentIntents.create`, `invoices.list`, `checkout.sessions.retrieve`, `products.retrieve`
+## Plan
+1. **Refactor `/status` endpoint** - Use `hasActiveSubscription()` consistently for all boolean flags
+2. **Refactor `/user/current` endpoint** - Simplify logic, remove complex fallbacks, standardize response
+3. **Standardize Response Logic** - All endpoints should derive flags from `user.hasActiveSubscription()`
 
-### 2. Fix Security Logging Type Mismatch
-- [ ] Change 'unknown' to null in `src/middleware/errorHandler.js`
-- [ ] Change 'unknown' to null in `src/middleware/requestLogger.js`
+## Dependent Files to be edited
+- `src/routes/subscriptions.js` (main file with endpoints)
 
-### 3. Fix Subscription Cancellation Test
-- [ ] Ensure `user.stripeSubscriptionId` is set correctly in test setup in `tests/backend/integration/subscription-flow.test.js`
-
-### 4. Fix /me Endpoint Tests
-- [ ] Verify auth middleware mocking in unit tests
-
-### Code Changes
-- [ ] Modify `errorHandler.js` and `requestLogger.js` to use null instead of 'unknown'
-- [ ] Enhance Stripe mock in `tests/mocks/stripe.js`
-- [ ] Review and fix test setup in `subscription-flow.test.js`
-
-### Verification
-- [ ] Run tests to confirm all failures are resolved
-- [ ] Ensure no regressions in existing functionality
-- [ ] Validate that security logging works correctly with proper types
+## Followup steps
+- Test changes to verify paid users now get correct subscription data
+- Verify frontend correctly interprets the standardized response fields
