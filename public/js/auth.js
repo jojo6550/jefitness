@@ -5,12 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetPasswordForm = document.getElementById('reset-password-form');
   const messageDiv = document.getElementById('message');
 
-  // Determine the base URL
-  const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
-const baseUrl = isLocalhost
-    ? 'http://localhost:10000'
-    : 'https://jefitness.onrender.com'; // Replace with your real backend if deployed
+  const API_BASE = window.ApiConfig.getBaseURL();
 
 
   // LOGIN
@@ -84,7 +79,7 @@ const baseUrl = isLocalhost
       setLoadingState(loginButton, true);
 
       try {
-        const res = await fetch(`${baseUrl}/api/auth/login`, {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -310,7 +305,7 @@ const baseUrl = isLocalhost
       setLoadingState(signupButton, true);
 
       try {
-        const response = await fetch(`${baseUrl}/api/auth/signup`, {
+        const response = await fetch(`${API_BASE}/api/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -352,7 +347,7 @@ const baseUrl = isLocalhost
       const otp = document.getElementById('inputOtp').value;
 
       try {
-        const response = await fetch(`${baseUrl}/api/auth/verify-email`, {
+        const response = await fetch(`${API_BASE}/api/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp })
@@ -422,7 +417,7 @@ const baseUrl = isLocalhost
       setLoadingState(forgotButton, true);
 
       try {
-        const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+        const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -466,7 +461,7 @@ const baseUrl = isLocalhost
       }
 
       try {
-        const res = await fetch(`${baseUrl}/api/auth/reset-password`, {
+        const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, password })

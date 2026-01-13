@@ -1,39 +1,41 @@
-# Cache Busting Investigation and Fixes
+# TODO: Replace isLocalhost base URL logic with ApiConfig.getBaseURL()
 
-## Completed Tasks
-- [x] Analyze current cache busting implementation
-- [x] Identify missing /api/cache-versions endpoint registration
-- [x] Review service worker caching strategy
-- [x] Examine client-side versioning logic
+## Files to Update (27 total)
+- [ ] public/pages/subscriptions.html
+- [ ] public/pages/products.html
+- [ ] public/pages/partials/navbar.html
+- [ ] public/pages/checkout-success.html
+- [ ] public/js/auth.js
+- [ ] public/js/profile.js
+- [ ] public/js/subscriptions.js
+- [ ] public/js/trainer-appointments.js
+- [ ] public/js/view-statistics.js
+- [ ] public/js/trainer-dashboard.js
+- [ ] public/js/trainer-clients.js
+- [ ] public/js/sleep-tracker.js
+- [ ] public/js/session-check.js
+- [ ] public/js/role-guard.js
+- [ ] public/js/reports.js
+- [ ] public/js/program-details.js
+- [ ] public/js/product-cart.js
+- [ ] public/js/nutrition-logger.js
+- [ ] public/js/medical-documents.js
+- [ ] public/js/dashboard.js
+- [ ] public/js/dashboard-notifications.js
+- [ ] public/js/checkout.js
+- [ ] public/js/cart.js
+- [ ] public/js/admin-notifications.js
+- [ ] public/js/admin-dashboard.js
 
-## Pending Tasks
+## Plan
+Replace:
+```
+const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocalhost ? 'http://localhost:10000' : 'https://jefitness.onrender.com';
+```
+With:
+```
+const API_BASE = window.ApiConfig.getBaseURL();
+```
 
-### 1. Register Cache Route in Server
-- [ ] Add cache route registration to `src/server.js`
-- [ ] Test `/api/cache-versions` endpoint accessibility
-
-### 2. Improve Development Cache Control
-- [x] Modify `public/sw.js` to use network-first strategy in development
-- [ ] Update cache control middleware for better dev/prod differentiation
-
-### 3. Add Automatic Cache Invalidation
-- [x] Implement file watching in `src/utils/cacheVersion.js` for development
-- [x] Add cache invalidation on file changes in `src/server.js`
-
-### 4. Enhance Client-Side Versioning
-- [x] Improve fallback versioning in `public/js/cache-version.js`
-- [x] Add better error handling for API failures
-
-### 5. Create Diagnostic Tools
-- [x] Expand `/api/cache-diagnostics` endpoint in `src/routes/cache.js`
-- [x] Add cache clearing endpoints for development
-
-### 6. Update Documentation
-- [x] Update `CACHE_BUSTING_GUIDE.md` with new features
-- [x] Add troubleshooting steps for dev vs prod differences
-
-### 7. Testing and Verification
-- [ ] Test automatic cache invalidation in development
-- [ ] Verify service worker behavior across environments
-- [ ] Run comprehensive cache diagnostics
-- [x] Update package.json scripts if needed
+And update any variable references from API_BASE_URL/baseUrl to API_BASE.
