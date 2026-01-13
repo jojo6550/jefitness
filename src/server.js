@@ -117,6 +117,16 @@ app.use(sanitizeInput);
 // CORS with enhanced security
 app.use(cors(corsOptions));
 
+// Disable caching in development for all routes
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+  });
+}
+
 // Cache control middleware
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);

@@ -492,7 +492,7 @@ router.get('/user/current', auth, async (req, res) => {
         stripeSubscriptionId: subscription.stripeSubscriptionId,
         plan: subscription.plan,
         status: subscription.status,
-        hasSubscription: subscription.status === 'active',
+        hasSubscription: subscription.status === 'active' || subscription.status === 'trialing',
         currentPeriodStart: subscription.currentPeriodStart,
         currentPeriodEnd: subscription.currentPeriodEnd,
         amount: subscription.amount,

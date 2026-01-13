@@ -140,6 +140,7 @@ async function loadSubscriptionStatus() {
                 const subscriptionCard = document.getElementById('subscription-card');
                 if (subscriptionCard) {
                     subscriptionCard.style.display = 'none';
+                    console.log('Subscription card hidden for user with active/trialing subscription');
                 }
             } else {
                 // Show upgrade button for non-active subscriptions
@@ -151,6 +152,7 @@ async function loadSubscriptionStatus() {
                 const subscriptionCard = document.getElementById('subscription-card');
                 if (subscriptionCard) {
                     subscriptionCard.style.display = '';
+                    console.log('Subscription card shown for user without active subscription');
                 }
             }
         } else {
