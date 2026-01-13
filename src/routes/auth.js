@@ -178,7 +178,9 @@ router.post('/signup', requireDbConnection, [
             password: hashedPassword,
             role: 'user', // Default new signups to 'user' role
             emailVerificationToken: otp,
-            emailVerificationExpires: otpExpires
+            emailVerificationExpires: otpExpires,
+            dataProcessingConsent: req.body.dataProcessingConsent,
+            healthDataConsent: req.body.healthDataConsent
         });
 
         await newUser.save();
@@ -186,38 +188,40 @@ router.post('/signup', requireDbConnection, [
         // Create Stripe customer (non-blocking)
         await createStripeCustomerForUser(newUser);
 
-        // Send OTP email via Mailjet
-        const mailjetClient = getMailjetClient();
-        if (mailjetClient) {
-            const htmlPart = `<p>Hi <strong>${firstName}</strong>,</p>
-                                   <p>Your verification code is: <strong>${otp}</strong></p>
-                                   <p>This code will expire in 10 minutes.</p>
-                                   <p>Best regards,<br>JE Fitness Team</p>`;
-            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
-                Messages: [
-                    {
-                        From: {
-                            Email: 'josiah.johnson6550@gmail.com',
-                            Name: 'JE Fitness'
-                        },
-                        To: [
-                            {
-                                Email: email,
-                                Name: `${firstName} ${lastName}`
-                            }
-                        ],
-                        Subject: 'Verify Your Email - JE Fitness',
-                        TextPart: `Hi ${firstName},\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nBest,\nJE Fitness Team`,
-                        HTMLPart: htmlPart
-                    }
-                ]
-            });
-            try {
-                await request;
-                console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
-            } catch (emailErr) {
-                console.error(`Error: ${JSON.stringify(emailErr)} | Context: OTP email sending during signup | UserId: ${newUser._id}`);
-                // Do not stop signup because of email failure
+        // Send OTP email via Mailjet (skip in test environment)
+        if (process.env.NODE_ENV !== 'test') {
+            const mailjetClient = getMailjetClient();
+            if (mailjetClient) {
+                const htmlPart = `<p>Hi <strong>${firstName}</strong>,</p>
+                                       <p>Your verification code is: <strong>${otp}</strong></p>
+                                       <p>This code will expire in 10 minutes.</p>
+                                       <p>Best regards,<br>JE Fitness Team</p>`;
+                const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+                    Messages: [
+                        {
+                            From: {
+                                Email: 'josiah.johnson6550@gmail.com',
+                                Name: 'JE Fitness'
+                            },
+                            To: [
+                                {
+                                    Email: email,
+                                    Name: `${firstName} ${lastName}`
+                                }
+                            ],
+                            Subject: 'Verify Your Email - JE Fitness',
+                            TextPart: `Hi ${firstName},\n\nYour verification code is: ${otp}\n\nThis code will expire in 10 minutes.\n\nBest,\nJE Fitness Team`,
+                            HTMLPart: htmlPart
+                        }
+                    ]
+                });
+                try {
+                    await request;
+                    console.log(`User action: otp_email_sent | UserId: ${newUser._id} | Email: ${email}`);
+                } catch (emailErr) {
+                    console.error(`Error: ${JSON.stringify(emailErr)} | Context: OTP email sending during signup | UserId: ${newUser._id}`);
+                    // Do not stop signup because of email failure
+                }
             }
         }
 
@@ -317,7 +321,7 @@ router.post('/login', requireDbConnection, [
         const user = await User.findOne({ email });
         if (!user) {
             console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
-            return res.status(400).json({ msg: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
         // Check if account is locked
@@ -346,7 +350,7 @@ router.post('/login', requireDbConnection, [
 
             await user.save();
             console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Invalid password | Attempts: ${user.failedLoginAttempts}`);
-            return res.status(400).json({ msg: 'Invalid credentials' });
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
 
         // Reset failed attempts on successful login
@@ -1145,43 +1149,45 @@ router.post('/forgot-password', passwordResetLimiter, [
         user.resetExpires = resetExpires;
         await user.save();
 
-        // Send reset email via Mailjet
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
-        const mailjetClient = getMailjetClient();
-        if (mailjetClient) {
-            const htmlPart = `<p>Hi <strong>${user.firstName}</strong>,</p>
-                               <p>You requested a password reset. Click the link below to reset your password:</p>
-                               <p><a href="${resetUrl}">Reset Password</a></p>
-                               <p>This link will expire in 10 minutes.</p>
-                               <p>If you didn't request this, please ignore this email.</p>
-                               <p>Best regards,<br>JE Fitness Team</p>`;
-            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
-            Messages: [
-                {
-                    From: {
-                        Email: 'josiah.johnson6550@gmail.com',
-                        Name: 'JE Fitness'
-                    },
-                    To: [
-                        {
-                            Email: email,
-                            Name: `${user.firstName} ${user.lastName}`
-                        }
-                    ],
-                    Subject: 'Password Reset - JE Fitness',
-                    TextPart: `Hi ${user.firstName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nJE Fitness Team`,
-                    HTMLPart: htmlPart
-                }
-            ]
-        });
+        // Send reset email via Mailjet (skip in test environment)
+        if (process.env.NODE_ENV !== 'test') {
+            const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+            const mailjetClient = getMailjetClient();
+            if (mailjetClient) {
+                const htmlPart = `<p>Hi <strong>${user.firstName}</strong>,</p>
+                                   <p>You requested a password reset. Click the link below to reset your password:</p>
+                                   <p><a href="${resetUrl}">Reset Password</a></p>
+                                   <p>This link will expire in 10 minutes.</p>
+                                   <p>If you didn't request this, please ignore this email.</p>
+                                   <p>Best regards,<br>JE Fitness Team</p>`;
+                const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+                Messages: [
+                    {
+                        From: {
+                            Email: 'josiah.johnson6550@gmail.com',
+                            Name: 'JE Fitness'
+                        },
+                        To: [
+                            {
+                                Email: email,
+                                Name: `${user.firstName} ${user.lastName}`
+                            }
+                        ],
+                        Subject: 'Password Reset - JE Fitness',
+                        TextPart: `Hi ${user.firstName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nJE Fitness Team`,
+                        HTMLPart: htmlPart
+                    }
+                ]
+            });
 
-        try {
-            await request;
-            console.log(`Security event: reset_email_sent | UserId: ${user._id} | Email: ${email}`);
-        } catch (emailErr) {
-            console.error(`Error: ${JSON.stringify(emailErr)} | Context: Reset email sending | UserId: ${user._id}`);
-            return res.status(500).json({ msg: 'Error sending email. Please try again.' });
-        }
+            try {
+                await request;
+                console.log(`Security event: reset_email_sent | UserId: ${user._id} | Email: ${email}`);
+            } catch (emailErr) {
+                console.error(`Error: ${JSON.stringify(emailErr)} | Context: Reset email sending | UserId: ${user._id}`);
+                return res.status(500).json({ msg: 'Error sending email. Please try again.' });
+            }
+            }
         }
 
         res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
