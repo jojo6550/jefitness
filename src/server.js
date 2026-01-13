@@ -15,7 +15,7 @@ const swaggerSpec = require('./docs/swagger');
 
 dotenv.config();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT;
 
 const app = express();
 
