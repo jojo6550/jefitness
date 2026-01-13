@@ -148,7 +148,8 @@ router.post('/signup', requireDbConnection, [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+        const errorMessages = errors.array().map(err => err.msg);
+        return res.status(400).json({ success: false, error: errorMessages.join(', ') });
     }
 
     const { firstName, lastName, email, password } = req.body;

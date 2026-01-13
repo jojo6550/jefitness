@@ -42,7 +42,7 @@ describe('Auth Routes', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('valid email');
+      expect(response.body.error).toContain('Valid email is required');
     });
 
     it('should return 400 for duplicate email', async () => {
@@ -79,7 +79,7 @@ describe('Auth Routes', () => {
         firstName: 'Jane',
         lastName: 'Smith',
         email: 'jane.smith@example.com',
-        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // Pre-hashed password for 'Password123!'
+        password: '$2b$10$bsnT1HtPeTbNT4/MCsHmXeTUpkkYjqUvVhVTeXpmXtgM7B5r3p08i', // Pre-hashed password for 'Password123!'
         isEmailVerified: true,
         dataProcessingConsent: { given: true },
         healthDataConsent: { given: true }
