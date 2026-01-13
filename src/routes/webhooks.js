@@ -223,12 +223,11 @@ async function handleSubscriptionUpdated(subscription) {
     }
 
     // Update user subscription data
-    user.subscriptionStatus = subscription.status;
-    user.subscriptionType = plan;
-    user.stripePriceId = priceId;
-    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-    user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+    user.subscription.isActive = subscription.status === 'active';
+    user.subscription.plan = plan;
+    user.subscription.stripePriceId = priceId;
+    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
 
     await user.save();
     console.log(`✅ User subscription updated: ${user._id}`);
@@ -308,7 +307,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
       if (user) {
         // Update subscription status to active
-        user.subscriptionStatus = 'active';
+        user.subscription.isActive = true;
 
         await user.save();
         console.log(`✅ Payment recorded for user subscription: ${user._id}`);
@@ -386,7 +385,7 @@ async function handleCheckoutSessionCompleted(session) {
       if (user) {
         // Update user with subscription info
         user.stripeSubscriptionId = session.subscription;
-        user.subscriptionStatus = 'active';
+        user.subscription.isActive = true;
         user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
         await user.save();
         console.log(`✅ User subscription updated: ${user._id}`);

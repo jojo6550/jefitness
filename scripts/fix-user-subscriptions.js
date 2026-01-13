@@ -153,11 +153,11 @@ async function main() {
     }
 
     console.log(`👤 Found user: ${user.firstName} ${user.lastName} (${user.email})`);
-    console.log(`📊 Current plan: ${user.subscriptionType || 'free'}`);
-    console.log(`📅 Status: ${user.subscriptionStatus || 'none'}`);
+    console.log(`📊 Current plan: ${user.subscription.plan || 'free'}`);
+    console.log(`📅 Status: ${user.subscription.isActive ? 'active' : 'inactive'}`);
 
     // Check if user already has an active subscription
-    if (user.stripeSubscriptionId && user.subscriptionStatus === 'active') {
+    if (user.stripeSubscriptionId && user.subscription.isActive) {
       console.log('ℹ️  User already has an active subscription. Use change-user-plan.js instead.');
       process.exit(0);
     }

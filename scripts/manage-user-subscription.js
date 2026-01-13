@@ -102,12 +102,12 @@ async function createStripeSubscription(user, plan) {
 
     // Update user record with subscription info
     user.stripeSubscriptionId = subscription.id;
-    user.subscriptionStatus = subscription.status;
-    user.subscriptionType = plan;
-    user.stripePriceId = subscription.items.data[0]?.price.id;
-    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-    user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+    user.subscription.isActive = subscription.status === 'active';
+    user.subscription.plan = plan;
+    user.subscription.stripePriceId = subscription.items.data[0]?.price.id;
+    user.subscription.stripeSubscriptionId = subscription.id;
+    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
 
     await user.save();
 
@@ -162,13 +162,13 @@ async function changeUserPlan(user, selectedPlan) {
     }
 
     // Update user to free tier
-    user.subscriptionStatus = 'free';
-    user.subscriptionType = null;
+    user.subscription.isActive = false;
+    user.subscription.plan = null;
+    user.subscription.stripePriceId = null;
+    user.subscription.stripeSubscriptionId = null;
+    user.subscription.currentPeriodStart = null;
+    user.subscription.currentPeriodEnd = null;
     user.stripeSubscriptionId = null;
-    user.stripePriceId = null;
-    user.currentPeriodStart = null;
-    user.currentPeriodEnd = null;
-    user.cancelAtPeriodEnd = false;
 
     await user.save();
     console.log('✅ User updated to free tier');
@@ -223,7 +223,7 @@ async function changeUserPlan(user, selectedPlan) {
 
       // Still update database if Stripe fails (for consistency)
       console.log('🔄 Updating database only...');
-      user.subscriptionType = selectedPlan.key;
+      user.subscription.plan = selectedPlan.key;
       await user.save();
 
       console.log('✅ Database updated (Stripe update failed)');
@@ -281,7 +281,7 @@ async function main() {
       selectedPlan = { key: planArg, name: planArg === 'free' ? 'Free' : planArg.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) };
     } else {
       // Display interactive menu
-      const plans = await displayMenu(user.subscriptionType || 'free');
+      const plans = await displayMenu(user.subscription.plan || 'free');
 
       // Get user choice
       const choice = await question('Enter the number of the plan to switch to: ');
@@ -296,13 +296,13 @@ async function main() {
     }
 
     // Check if same plan
-    if (selectedPlan.key === (user.subscriptionType || 'free')) {
+    if (selectedPlan.key === (user.subscription.plan || 'free')) {
       console.log('ℹ️  User is already on this plan. No changes needed.');
       process.exit(0);
     }
 
     // Determine action based on current user state
-    const hasActiveSubscription = user.stripeSubscriptionId && user.subscriptionStatus === 'active';
+    const hasActiveSubscription = user.stripeSubscriptionId && user.subscription.isActive;
     const action = hasActiveSubscription ? 'change' : 'create';
 
     // Confirm action

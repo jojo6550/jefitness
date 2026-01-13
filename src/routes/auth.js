@@ -538,8 +538,7 @@ router.put('/account', auth, [
                 lastName: user.lastName,
                 email: user.email,
                 phone: user.phone,
-                subscriptionStatus: user.subscriptionStatus,
-                subscriptionPlan: user.subscriptionPlan
+                subscription: user.subscription
             }
         });
     } catch (err) {

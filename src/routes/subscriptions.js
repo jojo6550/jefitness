@@ -160,12 +160,12 @@ router.post('/create', auth, [
 
     // Update user's database record with subscription info
     user.stripeSubscriptionId = subscription.id;
-    user.subscriptionStatus = subscription.status;
-    user.subscriptionType = plan;
-    user.stripePriceId = subscription.items.data[0]?.price.id;
-    user.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-    user.cancelAtPeriodEnd = subscription.cancel_at_period_end || false;
+    user.subscription.isActive = subscription.status === 'active';
+    user.subscription.plan = plan;
+    user.subscription.stripePriceId = subscription.items.data[0]?.price.id;
+    user.subscription.stripeSubscriptionId = subscription.id;
+    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
+    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
     user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 
     await user.save();
@@ -210,7 +210,7 @@ router.get('/status', auth, async (req, res) => {
     }
 
     // If no subscription, return free tier info
-    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
+    if (!user.stripeSubscriptionId || !user.subscription.isActive) {
       return res.json({
         success: true,
         data: {
@@ -231,9 +231,9 @@ router.get('/status', auth, async (req, res) => {
       return res.json({
         success: true,
         data: {
-          plan: user.subscriptionType || 'free',
-          status: user.subscriptionStatus || 'none',
-          hasSubscription: user.subscriptionStatus === 'active'
+          plan: user.subscription.plan || 'free',
+          status: user.subscription.isActive ? 'active' : 'inactive',
+          hasSubscription: user.subscription.isActive
         }
       });
     }
@@ -456,7 +456,7 @@ router.get('/user/current', auth, async (req, res) => {
     }
 
     // If no subscription, return free tier info
-    if (!user.stripeSubscriptionId || user.subscriptionStatus === 'none' || user.subscriptionStatus === 'free') {
+    if (!user.stripeSubscriptionId || !user.subscription.isActive) {
       return res.json({
         success: true,
         data: {
@@ -478,12 +478,12 @@ router.get('/user/current', auth, async (req, res) => {
       return res.json({
         success: true,
         data: {
-          subscriptionType: user.subscriptionType || 'free',
-          subscriptionStatus: user.subscriptionStatus || 'active',
+          plan: user.subscription.plan || 'free',
+          status: user.subscription.isActive ? 'active' : 'inactive',
           stripeSubscriptionId: user.stripeSubscriptionId,
-          currentPeriodStart: user.currentPeriodStart,
-          currentPeriodEnd: user.currentPeriodEnd,
-          hasSubscription: user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing'
+          currentPeriodStart: user.subscription.currentPeriodStart,
+          currentPeriodEnd: user.subscription.currentPeriodEnd,
+          hasSubscription: user.subscription.isActive
         }
       });
     }
@@ -709,8 +709,8 @@ router.post('/:subscriptionId/resume', auth, [
 
     // Update user record
     const user = await User.findById(userId);
-    user.subscriptionStatus = 'active';
-    user.subscriptionId = subscriptionId;
+    user.subscription.isActive = true;
+    user.subscription.stripeSubscriptionId = subscriptionId;
     await user.save();
 
     res.json({

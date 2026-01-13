@@ -147,13 +147,13 @@ async function main() {
       }
 
       // Update user to free tier
-      user.subscriptionStatus = 'free';
-      user.subscriptionType = null;
+      user.subscription.isActive = false;
+      user.subscription.plan = null;
+      user.subscription.stripePriceId = null;
+      user.subscription.stripeSubscriptionId = null;
+      user.subscription.currentPeriodStart = null;
+      user.subscription.currentPeriodEnd = null;
       user.stripeSubscriptionId = null;
-      user.stripePriceId = null;
-      user.currentPeriodStart = null;
-      user.currentPeriodEnd = null;
-      user.cancelAtPeriodEnd = false;
 
       await user.save();
       console.log('✅ User updated to free tier');
@@ -175,12 +175,12 @@ async function main() {
         console.log('✅ Stripe subscription updated successfully');
 
         // Update user record
-        user.subscriptionType = selectedPlan.key;
-        user.subscriptionStatus = updatedSubscription.status;
-        user.stripePriceId = updatedSubscription.items.data[0]?.price.id;
-        user.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : null;
-        user.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : null;
-        user.cancelAtPeriodEnd = updatedSubscription.cancel_at_period_end || false;
+        user.subscription.plan = selectedPlan.key;
+        user.subscription.isActive = updatedSubscription.status === 'active';
+        user.subscription.stripePriceId = updatedSubscription.items.data[0]?.price.id;
+        user.subscription.stripeSubscriptionId = updatedSubscription.id;
+        user.subscription.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : null;
+        user.subscription.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : null;
 
         await user.save();
 
@@ -213,7 +213,7 @@ async function main() {
 
         // Still update database if Stripe fails (for consistency)
         console.log('🔄 Updating database only...');
-        user.subscriptionType = selectedPlan.key;
+        user.subscription.plan = selectedPlan.key;
         await user.save();
 
         console.log('✅ Database updated (Stripe update failed)');
