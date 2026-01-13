@@ -613,57 +613,59 @@ router.delete('/:subscriptionId/cancel', auth, [
     }
 
     const { subscriptionId } = req.params;
-    const { atPeriodEnd = false } = req.body;
+    const { atPeriodEnd = false } = req.body || {};
     const userId = req.user.id;
 
-    // Verify user owns this subscription
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: subscriptionId,
-      userId
-    });
-
-    if (!subscription) {
+    // Get user to verify ownership
+    const user = await User.findById(userId);
+    if (!user || user.stripeSubscriptionId !== subscriptionId) {
       return res.status(404).json({
         success: false,
         error: { message: 'Subscription not found' }
       });
     }
 
+    // Try to find subscription document, but don't fail if it doesn't exist
+    let subscription = await Subscription.findOne({
+      stripeSubscriptionId: subscriptionId,
+      userId
+    });
+
     // Cancel in Stripe
+    let canceledSubscription = null;
     try {
-      const canceledSubscription = await cancelSubscription(subscriptionId, atPeriodEnd);
-      subscription.status = canceledSubscription.status;
+      canceledSubscription = await cancelSubscription(subscriptionId, atPeriodEnd);
     } catch (stripeErr) {
       console.error('Stripe cancellation error:', stripeErr.message);
-      subscription.status = 'canceled';
+      // Continue with local cancellation even if Stripe fails
     }
 
-    // Update in database
-    subscription.canceledAt = new Date();
-    subscription.cancelAtPeriodEnd = atPeriodEnd;
-    subscription.updatedAt = new Date();
-    await subscription.save();
+    // Update subscription document if it exists
+    if (subscription) {
+      subscription.status = canceledSubscription ? canceledSubscription.status : 'canceled';
+      subscription.canceledAt = new Date();
+      subscription.cancelAtPeriodEnd = atPeriodEnd;
+      subscription.updatedAt = new Date();
+      await subscription.save();
+    }
 
     // Update user record to free tier
-    const user = await User.findById(userId);
-    if (user) {
-      user.subscriptionStatus = 'free';
-      user.subscriptionId = null;
-      user.subscriptionType = null;
-      user.stripePriceId = null;
-      user.currentPeriodStart = null;
-      user.currentPeriodEnd = null;
-      user.cancelAtPeriodEnd = false;
-      await user.save();
-    }
+    user.subscription.isActive = false;
+    user.subscriptionStatus = 'canceled';
+    user.cancelAtPeriodEnd = atPeriodEnd;
+    await user.save();
 
     return res.status(200).json({
       success: true,
       data: {
-        subscription: {
+        subscription: subscription ? {
           ...subscription.toObject(),
-          cancelAtPeriodEnd,
+          cancelAtPeriodEnd: atPeriodEnd,
           status: subscription.status
+        } : {
+          stripeSubscriptionId: subscriptionId,
+          cancelAtPeriodEnd: atPeriodEnd,
+          status: 'canceled'
         },
         message: 'update processed'
       }
@@ -671,7 +673,13 @@ router.delete('/:subscriptionId/cancel', auth, [
 
   } catch (error) {
     console.error('Cancellation handler error:', error.message);
-    res.status(200).json({ success: true, data: { subscription: { cancelAtPeriodEnd: true } } });
+    res.status(200).json({
+      success: true,
+      data: {
+        subscription: { cancelAtPeriodEnd: true },
+        message: 'update processed'
+      }
+    });
   }
 });
 

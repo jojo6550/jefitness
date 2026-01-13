@@ -1,11 +1,10 @@
-# Fix Failing Subscription Flow Integration Tests
-
-## Issues to Fix
-- [ ] Webhook test failing with 400 Bad Request due to body parsing mismatch
-- [ ] Cancel subscription test failing because Subscription document not found
+# Fix Subscription Flow Integration Tests
 
 ## Tasks
-- [ ] Modify webhook route to handle JSON bodies in test environment
-- [ ] Update cancel subscription test to create Subscription document
-- [ ] Run tests to verify fixes work
-- [ ] Clean up any temporary changes
+- [ ] Add Stripe mocking to the webhook test to bypass signature verification
+- [ ] Update the cancel subscription route to handle cases where no Subscription document exists
+- [ ] Run tests to verify fixes
+
+## Details
+- The webhook test fails because Stripe signature verification fails with mock signature
+- The cancel subscription test fails because the route expects a Subscription document but only user data exists

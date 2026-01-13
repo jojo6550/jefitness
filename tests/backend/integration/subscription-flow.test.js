@@ -4,6 +4,27 @@ const User = require('../../../src/models/User');
 const Subscription = require('../../../src/models/Subscription');
 const jwt = require('jsonwebtoken');
 
+// Mock Stripe for webhook tests
+jest.mock('stripe', () => {
+  return jest.fn().mockImplementation(() => ({
+    webhooks: {
+      constructEvent: jest.fn().mockReturnValue({
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_test_mock_session',
+            customer: 'cus_mock_customer',
+            subscription: 'sub_mock_subscription',
+            metadata: {
+              userId: 'mock_user_id'
+            }
+          }
+        }
+      })
+    }
+  }));
+});
+
 describe('Subscription Flow Integration Tests', () => {
   let user;
   let authToken;
