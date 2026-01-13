@@ -476,9 +476,27 @@ router.get('/user/current', auth, async (req, res) => {
       });
     }
 
+    // DEBUG: Log user subscription data for troubleshooting
+    console.log('========================================');
+    console.log('🔍 SUBSCRIPTION DEBUG - User Current Endpoint');
+    console.log('========================================');
+    console.log('User ID:', userId);
+    console.log('User Email:', user.email);
+    console.log('stripeSubscriptionId:', user.stripeSubscriptionId);
+    console.log('subscription.isActive:', user.subscription.isActive);
+    console.log('subscription.plan:', user.subscription.plan);
+    console.log('subscription.currentPeriodStart:', user.subscription.currentPeriodStart);
+    console.log('subscription.currentPeriodEnd:', user.subscription.currentPeriodEnd);
+    console.log('subscriptionStatus:', user.subscriptionStatus);
+    console.log('cancelAtPeriodEnd:', user.cancelAtPeriodEnd);
+    console.log('---');
+    console.log('hasActiveSubscription() result:', user.hasActiveSubscription());
+    console.log('========================================');
+
     // If no subscription, return free tier info
     const isUserActive = user.hasActiveSubscription();
     if (!user.stripeSubscriptionId || !isUserActive) {
+      console.log('⚠️ No active subscription found, returning free tier');
       return res.json({
         success: true,
         data: {
@@ -498,6 +516,8 @@ router.get('/user/current', auth, async (req, res) => {
       stripeSubscriptionId: user.stripeSubscriptionId
     });
 
+    console.log('📋 Subscription document found:', !!subscription);
+
     if (!subscription) {
       // Check if user has subscription data in their user record
       if (user.stripeSubscriptionId && user.subscription.isActive) {
@@ -514,6 +534,7 @@ router.get('/user/current', auth, async (req, res) => {
         // Double-check hasActiveSubscription using the model method
         const userHasActiveSubscription = user.hasActiveSubscription();
 
+        console.log('✅ Returning subscription data from user record');
         res.json({
           success: true,
           data: {
@@ -536,6 +557,7 @@ router.get('/user/current', auth, async (req, res) => {
         return;
       }
 
+      console.log('⚠️ No subscription document and no active user record, returning free tier');
       return res.json({
         success: true,
         data: {
@@ -551,6 +573,7 @@ router.get('/user/current', auth, async (req, res) => {
       });
     }
 
+    console.log('✅ Returning subscription data from Subscription document');
     res.json({
       success: true,
       data: {

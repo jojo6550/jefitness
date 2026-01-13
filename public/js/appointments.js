@@ -25,35 +25,57 @@ async function checkSubscriptionStatus() {
 
         const subsData = await response.json();
 
+        console.log('========================================');
+        console.log('🔍 SUBSCRIPTION DEBUG - Frontend (appointments.js)');
+        console.log('========================================');
+        console.log('Raw API Response:', JSON.stringify(subsData, null, 2));
+
         if (subsData.success && subsData.data) {
             const data = subsData.data;
+
+            console.log('--- Field Analysis ---');
+            console.log('data.hasSubscription:', data.hasSubscription);
+            console.log('data.status:', data.status);
+            console.log('data.isActive:', data.isActive);
+            console.log('data.hasActiveSubscription:', data.hasActiveSubscription);
+            console.log('data.currentPeriodEnd:', data.currentPeriodEnd);
+            console.log('data.plan:', data.plan);
+            if (data.source) console.log('data.source:', data.source);
 
             // Check hasActiveSubscription from API (computed server-side from database fields)
             // This is the authoritative check that reads directly from user model
             const hasActiveSub = data.hasActiveSubscription === true ||
                                  (data.hasSubscription === true && data.isActive === true);
 
+            console.log('--- Logic Calculation ---');
+            console.log('hasActiveSub (from API):', data.hasActiveSubscription);
+            console.log('hasSubscription && isActive:', data.hasSubscription === true && data.isActive === true);
+            console.log('Combined hasActiveSub:', hasActiveSub);
+
             // Also check if currentPeriodEnd exists and hasn't passed
             let isPeriodValid = true;
             if (data.currentPeriodEnd) {
                 const periodEnd = new Date(data.currentPeriodEnd);
-                isPeriodValid = periodEnd > new Date();
+                const now = new Date();
+                isPeriodValid = periodEnd > now;
+                console.log('periodEnd:', periodEnd.toISOString());
+                console.log('now:', now.toISOString());
+                console.log('isPeriodValid:', isPeriodValid);
+            } else {
+                console.log('No currentPeriodEnd, assuming valid');
             }
 
             const hasActiveSubscription = hasActiveSub && isPeriodValid;
 
-            console.log('Subscription check:', {
-                hasSubscription: data.hasSubscription,
-                status: data.status,
-                isActive: data.isActive,
-                hasActiveSubscription: data.hasActiveSubscription,
-                periodValid: isPeriodValid,
-                finalResult: hasActiveSubscription
-            });
+            console.log('--- Final Result ---');
+            console.log('hasActiveSub && isPeriodValid:', hasActiveSub, '&&', isPeriodValid, '=', hasActiveSubscription);
+            console.log('========================================');
 
             userSubscriptionStatus = hasActiveSubscription;
             return hasActiveSubscription;
         } else {
+            console.log('⚠️ No subscription data in response');
+            console.log('========================================');
             userSubscriptionStatus = false;
             return false;
         }

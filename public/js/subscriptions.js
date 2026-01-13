@@ -455,6 +455,9 @@ async function loadUserSubscriptions() {
             return;
         }
 
+        console.log('========================================');
+        console.log('🔍 SUBSCRIPTION DEBUG - Frontend (subscriptions.js)');
+        console.log('========================================');
         console.log('📡 Fetching user subscription data...');
 
         // Fetch subscriptions using the current endpoint
@@ -472,16 +475,35 @@ async function loadUserSubscriptions() {
         console.log('📦 Full API response:', JSON.stringify(subsData, null, 2));
 
         if (subsData.success && subsData.data) {
-            console.log('📊 Data object:', JSON.stringify(subsData.data, null, 2));
+            console.log('--- Field Analysis ---');
             console.log('🔑 hasSubscription:', subsData.data.hasSubscription);
             console.log('🔑 isActive:', subsData.data.isActive);
             console.log('🔑 hasActiveSubscription:', subsData.data.hasActiveSubscription);
             console.log('🔑 plan:', subsData.data.plan);
             console.log('🔑 status:', subsData.data.status);
             console.log('🔑 currentPeriodEnd:', subsData.data.currentPeriodEnd);
+            console.log('🔑 currentPeriodStart:', subsData.data.currentPeriodStart);
+            if (subsData.data.source) console.log('🔑 source:', subsData.data.source);
             if (subsData.data.subscription) {
                 console.log('📋 subscription sub-document:', JSON.stringify(subsData.data.subscription, null, 2));
             }
+
+            // Calculate final result on frontend
+            const hasActiveSub = subsData.data.hasActiveSubscription === true ||
+                                 (subsData.data.hasSubscription === true && subsData.data.isActive === true);
+
+            let isPeriodValid = true;
+            if (subsData.data.currentPeriodEnd) {
+                const periodEnd = new Date(subsData.data.currentPeriodEnd);
+                isPeriodValid = periodEnd > new Date();
+            }
+
+            const finalResult = hasActiveSub && isPeriodValid;
+            console.log('--- Frontend Calculation ---');
+            console.log('hasActiveSub:', hasActiveSub);
+            console.log('isPeriodValid:', isPeriodValid);
+            console.log('finalResult:', finalResult);
+            console.log('========================================');
         }
 
         if (subsData.success && subsData.data && !subsData.data.hasSubscription) {

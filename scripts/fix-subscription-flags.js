@@ -1,118 +1,251 @@
+#!/usr/bin/env node
+
 /**
- * Migration script to fix subscription.isActive flag for existing users
+ * Fix Subscription Flags Script
  * 
- * This script updates users who have subscription data but don't have
- * subscription.isActive set to true, ensuring frontend subscription checks work correctly.
+ * Fixes subscription mismatches where:
+ * - Database shows user has subscription but API returns hasSubscription: false
+ * - subscription.isActive is false but should be true
+ * - currentPeriodEnd is past but subscription hasn't been marked inactive
  * 
- * Run with: node scripts/fix-subscription-flags.js
+ * Usage:
+ *   node scripts/fix-subscription-flags.js              # Dry run (no changes)
+ *   node scripts/fix-subscription-flags.js --fix        # Actually make changes
+ *   node scripts/fix-subscription-flags.js --email=user@example.com  # Single user
+ *   node scripts/fix-subscription-flags.js --verbose    # More detailed output
  */
 
 const mongoose = require('mongoose');
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const path = require('path');
 
+// Load environment variables
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+// Import User model
 const User = require('../src/models/User');
 
-async function fixSubscriptionFlags() {
-  try {
-    // Connect to MongoDB
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
-    console.log(`Connecting to MongoDB at ${mongoUri}...`);
-    await mongoose.connect(mongoUri);
-    console.log('✅ Connected to MongoDB');
+// Command line arguments
+const DRY_RUN = !process.argv.includes('--fix');
+const VERBOSE = process.argv.includes('--verbose') || process.argv.includes('-v');
+const EMAIL_ARG = process.argv.find(arg => arg.includes('--email='))?.split('=')[1];
+const PLAN_FILTER = process.argv.find(arg => arg.includes('--plan='))?.split('=')[1];
 
-    // Find users who have stripeSubscriptionId but subscription.isActive is false or undefined
-    const usersToFix = await User.find({
-      $or: [
-        { 'subscription.isActive': { $exists: false } },
-        { 'subscription.isActive': false }
-      ],
-      stripeSubscriptionId: { $exists: true, $ne: null }
-    });
+// Statistics
+const stats = {
+    totalChecked: 0,
+    fixed: 0,
+    alreadyCorrect: 0,
+    noSubscription: 0,
+    errors: 0
+};
 
-    console.log(`\nFound ${usersToFix.length} users with subscriptions needing fixes`);
+async function connectDB() {
+    try {
+        const mongoUri =
+            process.env.MONGO_URI ||
+            process.env.MONGODB_URI ||
+            'mongodb://localhost:27017/jefitness';
 
-    let fixedCount = 0;
-    let alreadyActiveCount = 0;
+        await mongoose.connect(mongoUri, {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            maxPoolSize: 10,
+            family: 4
+        });
 
-    for (const user of usersToFix) {
-      const wasActive = user.subscription?.isActive;
-      
-      // Set subscription.isActive to true
-      if (!user.subscription) {
-        user.subscription = {};
-      }
-      user.subscription.isActive = true;
-      
-      // Also sync other subscription fields if they're missing
-      if (!user.subscription.stripeSubscriptionId) {
-        user.subscription.stripeSubscriptionId = user.stripeSubscriptionId;
-      }
-      if (!user.subscription.plan && user.subscriptionType) {
-        user.subscription.plan = user.subscriptionType;
-      }
-      if (!user.subscription.stripePriceId) {
-        user.subscription.stripePriceId = user.stripePriceId;
-      }
-      if (!user.subscription.currentPeriodStart && user.currentPeriodStart) {
-        user.subscription.currentPeriodStart = user.currentPeriodStart;
-      }
-      if (!user.subscription.currentPeriodEnd && user.currentPeriodEnd) {
-        user.subscription.currentPeriodEnd = user.currentPeriodEnd;
-      }
-
-      await user.save();
-      
-      if (wasActive === true) {
-        alreadyActiveCount++;
-      } else {
-        fixedCount++;
-        console.log(`  ✅ Fixed user: ${user.email} (${user._id})`);
-      }
+        console.log('✅ Connected to database\n');
+        return true;
+    } catch (error) {
+        console.error('❌ Database connection failed:', error.message);
+        return false;
     }
-
-    console.log(`\n📊 Summary:`);
-    console.log(`   - Users fixed: ${fixedCount}`);
-    console.log(`   - Users already active: ${alreadyActiveCount}`);
-    console.log(`   - Total processed: ${usersToFix.length}`);
-
-    // Also update users who have no subscription sub-document but have stripeSubscriptionId
-    const usersMissingSubDoc = await User.find({
-      subscription: { $exists: false },
-      stripeSubscriptionId: { $exists: true, $ne: null }
-    });
-
-    console.log(`\nFound ${usersMissingSubDoc.length} users missing subscription sub-document`);
-
-    for (const user of usersMissingSubDoc) {
-      user.subscription = {
-        isActive: true,
-        plan: user.subscriptionType || null,
-        stripePriceId: user.stripePriceId || null,
-        stripeSubscriptionId: user.stripeSubscriptionId,
-        currentPeriodStart: user.currentPeriodStart || null,
-        currentPeriodEnd: user.currentPeriodEnd || null
-      };
-      await user.save();
-      console.log(`  ✅ Added subscription sub-document for: ${user.email} (${user._id})`);
-    }
-
-    console.log('\n✅ Migration complete!');
-
-  } catch (error) {
-    console.error('❌ Migration failed:', error);
-    process.exit(1);
-  } finally {
-    await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
-  }
 }
 
-// Run if executed directly
-if (require.main === module) {
-  fixSubscriptionFlags()
-    .then(() => process.exit(0))
-    .catch(() => process.exit(1));
+function logVerbose(...args) {
+    if (VERBOSE) {
+        console.log('  [DEBUG]', ...args);
+    }
 }
 
-module.exports = fixSubscriptionFlags;
+function printUserInfo(user, label = 'User') {
+    console.log(`\n${label}:`);
+    console.log(`  Email: ${user.email}`);
+    console.log(`  stripeSubscriptionId: ${user.stripeSubscriptionId || 'N/A'}`);
+    console.log(`  subscription.isActive: ${user.subscription.isActive}`);
+    console.log(`  subscription.plan: ${user.subscription.plan || 'N/A'}`);
+    console.log(`  subscription.currentPeriodEnd: ${user.subscription.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd).toISOString() : 'N/A'}`);
+    console.log(`  subscriptionStatus: ${user.subscriptionStatus}`);
+    
+    const hasActive = user.hasActiveSubscription();
+    console.log(`  hasActiveSubscription(): ${hasActive}`);
+    
+    if (user.subscription.currentPeriodEnd) {
+        const daysLeft = Math.ceil((new Date(user.subscription.currentPeriodEnd) - new Date()) / (1000 * 60 * 60 * 24));
+        console.log(`  Days remaining: ${daysLeft}`);
+    }
+}
+
+async function fixUserSubscription(user) {
+    stats.totalChecked++;
+    
+    // Skip if no stripeSubscriptionId
+    if (!user.stripeSubscriptionId) {
+        stats.noSubscription++;
+        logVerbose(`No stripeSubscriptionId for ${user.email}`);
+        return;
+    }
+
+    const originalIsActive = user.subscription.isActive;
+    const hasActiveBefore = user.hasActiveSubscription();
+
+    // Check if subscription should be active
+    const shouldBeActive = user.subscription.isActive && 
+        (!user.subscription.currentPeriodEnd || new Date(user.subscription.currentPeriodEnd) > new Date());
+
+    // If shouldBeActive is true but hasActiveSubscription() returns false,
+    // the issue is likely with subscription.isActive being false
+    if (shouldBeActive && !hasActiveBefore) {
+        printUserInfo(user, '🔧 FIXING: subscription.isActive should be true');
+        
+        if (!DRY_RUN) {
+            user.subscription.isActive = true;
+            await user.save();
+            console.log('  ✅ Fixed: Set subscription.isActive = true');
+        } else {
+            console.log('  📝 Would fix: Set subscription.isActive = true');
+        }
+        
+        stats.fixed++;
+        return;
+    }
+
+    // If subscription has expired (currentPeriodEnd is in the past)
+    if (user.subscription.currentPeriodEnd && new Date(user.subscription.currentPeriodEnd) < new Date()) {
+        if (user.subscription.isActive) {
+            printUserInfo(user, '🔧 FIXING: Subscription has expired, should be inactive');
+            
+            if (!DRY_RUN) {
+                user.subscription.isActive = false;
+                user.subscriptionStatus = 'expired';
+                await user.save();
+                console.log('  ✅ Fixed: Set subscription.isActive = false and subscriptionStatus = expired');
+            } else {
+                console.log('  📝 Would fix: Set subscription.isActive = false and subscriptionStatus = expired');
+            }
+            
+            stats.fixed++;
+            return;
+        }
+    }
+
+    // If everything looks correct
+    if (hasActiveBefore === shouldBeActive) {
+        stats.alreadyCorrect++;
+        logVerbose(`${user.email}: Already correct`);
+        return;
+    }
+
+    // Edge case: subscription.isActive is true but no currentPeriodEnd
+    if (user.subscription.isActive && !user.subscription.currentPeriodEnd) {
+        printUserInfo(user, '⚠️ UNUSUAL: subscription.isActive is true but no currentPeriodEnd');
+        logVerbose(`${user.email}: Needs manual review`);
+        stats.errors++;
+        return;
+    }
+
+    stats.alreadyCorrect++;
+}
+
+async function fixAllSubscriptions() {
+    const query = {};
+    
+    if (EMAIL_ARG) {
+        query.email = EMAIL_ARG.toLowerCase();
+    }
+    
+    if (PLAN_FILTER) {
+        query['subscription.plan'] = PLAN_FILTER;
+    }
+
+    const users = await User.find(query).cursor();
+    
+    console.log(`\n🔍 Finding users with subscription data...`);
+    console.log(`Query: ${JSON.stringify(query)}`);
+    console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes will be made)' : 'FIX MODE (changes will be made)'}\n`);
+
+    let processed = 0;
+    for await (const user of users) {
+        processed++;
+        
+        if (processed % 50 === 0) {
+            process.stdout.write('.');
+        }
+        
+        await fixUserSubscription(user);
+    }
+    
+    console.log('\n');
+}
+
+function printSummary() {
+    console.log('\n' + '='.repeat(60));
+    console.log('📊 FIX SUMMARY');
+    console.log('='.repeat(60));
+    console.log(`Total users checked: ${stats.totalChecked}`);
+    console.log(`Already correct: ${stats.alreadyCorrect}`);
+    console.log(`Fixed: ${stats.fixed}`);
+    console.log(`No subscription: ${stats.noSubscription}`);
+    console.log(`Errors/Manual review: ${stats.errors}`);
+    console.log('='.repeat(60));
+    
+    if (stats.fixed > 0) {
+        console.log(`\n${DRY_RUN ? 'Would fix' : 'Fixed'} ${stats.fixed} user(s)`);
+    }
+    
+    if (DRY_RUN) {
+        console.log('\n⚠️  DRY RUN MODE - No changes were made');
+        console.log('To apply fixes, run: node scripts/fix-subscription-flags.js --fix\n');
+    } else {
+        console.log('\n✅ All fixes have been applied');
+    }
+}
+
+async function main() {
+    console.log('\n🔧 Fix Subscription Flags Script');
+    console.log('================================\n');
+    console.log('Options:');
+    console.log('  --fix      Apply fixes (default is dry run)');
+    console.log('  --email=   Fix specific user by email');
+    console.log('  --plan=    Filter by subscription plan');
+    console.log('  --verbose  Show detailed debug output\n');
+
+    const connected = await connectDB();
+    if (!connected) process.exit(1);
+
+    try {
+        await fixAllSubscriptions();
+        printSummary();
+        
+        if (stats.fixed > 0 && DRY_RUN) {
+            console.log('\n💡 To apply these fixes, run:');
+            console.log('  node scripts/fix-subscription-flags.js --fix\n');
+        }
+        
+    } catch (error) {
+        console.error('\n❌ Error:', error.message);
+        console.error(error.stack);
+        process.exit(1);
+    } finally {
+        await mongoose.connection.close();
+        console.log('🔒 Database connection closed');
+    }
+}
+
+process.on('SIGINT', async () => {
+    console.log('\n\n⚠️  Operation interrupted');
+    await mongoose.connection.close();
+    process.exit(0);
+});
+
+main();
 
