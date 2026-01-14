@@ -17,17 +17,31 @@ const mongoose = require('mongoose');
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 const User = require('../src/models/User');
+const { getPlanPricing } = require('../src/services/stripe');
 
-// Plan pricing (for reference)
-const PLAN_PRICING = {
-  'free': 0,
-  '1-month': 29.99,
-  '3-month': 79.99,
-  '6-month': 149.99,
-  '12-month': 279.99
-};
+// Function to get plan pricing from Stripe
+async function getPlanPricingData() {
+  try {
+    const pricing = await getPlanPricing();
+    const planPricing = { 'free': 0 };
+    Object.keys(pricing).forEach(plan => {
+      planPricing[plan] = pricing[plan].amount / 100; // Convert cents to dollars
+    });
+    return planPricing;
+  } catch (error) {
+    console.error('Failed to fetch pricing from Stripe, using fallback:', error.message);
+    // Fallback pricing if Stripe is unavailable
+    return {
+      'free': 0,
+      '1-month': 29.99,
+      '3-month': 79.99,
+      '6-month': 149.99,
+      '12-month': 279.99
+    };
+  }
+}
 
-const VALID_PLANS = Object.keys(PLAN_PRICING);
+const VALID_PLANS = ['free', '1-month', '3-month', '6-month', '12-month'];
 
 async function listUsers() {
   try {
@@ -53,7 +67,14 @@ async function listUsers() {
     }
 
     console.log(`\nTotal users shown: ${users.length}`);
+    const PLAN_PRICING = await getPlanPricingData();
     console.log(`\nValid plans: ${VALID_PLANS.join(', ')}`);
+    console.log('Plan pricing (from Stripe):');
+    Object.entries(PLAN_PRICING).forEach(([plan, price]) => {
+      if (plan !== 'free') {
+        console.log(`  ${plan}: $${price}`);
+      }
+    });
 
   } catch (error) {
     console.error('❌ Error listing users:', error);
@@ -87,7 +108,7 @@ async function assignPlan(email, plan, options = {}) {
 
     console.log(`Found user: ${user.firstName} ${user.lastName} (${user.email})`);
     console.log(`Current subscription: ${user.subscription?.plan || 'none'}, isActive: ${user.subscription?.isActive || false}`);
-    console.log(`\nAssigning to plan: ${plan}`);
+    console.log(`\nAssigning to plan: ${plan} ($${PLAN_PRICING[plan] || 'N/A'})`);
 
     // Calculate subscription period
     const now = new Date();

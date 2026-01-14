@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
-const { createOrRetrieveCustomer, createSubscription, cancelSubscription } = require('../services/stripe');
+const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing } = require('../services/stripe');
 
 const router = express.Router();
 
@@ -12,13 +12,20 @@ const router = express.Router();
 // ----------------------
 router.get('/plans', async (req, res) => {
   try {
-    // You can hardcode plans here or fetch from DB/Stripe
-    const plans = [
-      { id: '1-month', name: '1 Month', amount: 1000, displayPrice: '$10.00', savings: null },
-      { id: '3-month', name: '3 Months', amount: 2700, displayPrice: '$27.00', savings: 'Save 10%' },
-      { id: '6-month', name: '6 Months', amount: 5000, displayPrice: '$50.00', savings: 'Save 15%' },
-      { id: '12-month', name: '12 Months', amount: 9000, displayPrice: '$90.00', savings: 'Save 25%' }
-    ];
+    // Fetch dynamic pricing from Stripe
+    const pricing = await getPlanPricing();
+    
+    // Convert pricing object to array format for the response
+    const plans = Object.entries(pricing).map(([key, plan]) => ({
+      id: key,
+      name: plan.duration,
+      amount: plan.amount,
+      displayPrice: plan.displayPrice,
+      savings: plan.savings || null,
+      priceId: plan.priceId,
+      productId: plan.productId
+    }));
+
     res.json({ success: true, data: { plans } });
   } catch (err) {
     console.error('Failed to load plans:', err);
