@@ -17,6 +17,7 @@ async function authFetch(url, options = {}) {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
     };
+
     const res = await fetch(url, options);
     if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
     return res.json();
@@ -28,10 +29,23 @@ async function checkSubscriptionStatus() {
         const data = await authFetch(`${window.API_BASE}/api/v1/subscriptions/user/current`);
         const sub = data.data;
 
-        const hasActiveSub = sub?.hasActiveSubscription || (sub?.hasSubscription && sub?.isActive);
-        const isPeriodValid = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) > new Date() : true;
+        if (!sub) {
+            userSubscriptionStatus = false;
+            return false;
+        }
 
-        userSubscriptionStatus = hasActiveSub && isPeriodValid;
+        // Compute active status based on schema
+        const isActive = sub.status === 'active';
+        const isPeriodValid = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) > new Date() : false;
+
+        userSubscriptionStatus = isActive && isPeriodValid;
+
+        console.log('Subscription check:', {
+            status: sub.status,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            userSubscriptionStatus
+        });
+
         return userSubscriptionStatus;
     } catch (err) {
         console.error('Error checking subscription:', err);
@@ -246,7 +260,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load appointments & trainers if subscribed
     if (hasSubscription) {
-        await loadTrainersInto(document.getElementById('trainerSelect'));
+        const trainerSelect = document.getElementById('trainerSelect');
+        if (trainerSelect) await loadTrainersInto(trainerSelect);
         await loadAppointments();
     }
 
