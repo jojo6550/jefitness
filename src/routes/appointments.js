@@ -101,11 +101,20 @@ router.get('/', auth, async (req, res) => {
  * @route   GET /api/appointments/user
  * @desc    Get appointments for the authenticated user (as client or trainer)
  * @access  Private
- * @returns {Array} Array of user's appointments with populated client/trainer info
+ * @returns {Object} Object with success and appointments array
  * @throws  {500} Server error
  */
 router.get('/user', auth, async (req, res) => {
     try {
+        console.log(`Fetching appointments for user: ${req.user.id}`);
+
+        // Validate subscription dates safely
+        const validateDate = (date) => {
+            if (!date) return null;
+            const d = new Date(date);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
         const appointments = await Appointment.find({
             $or: [
                 { clientId: req.user.id },
@@ -114,12 +123,28 @@ router.get('/user', auth, async (req, res) => {
         })
             .populate('clientId', 'firstName lastName email')
             .populate('trainerId', 'firstName lastName email')
-            .sort({ date: 1, time: 1 });
+            .sort({ date: 1, time: 1 })
+            .lean();
 
-        res.json(appointments);
+        // Process appointments to handle any invalid dates
+        const processedAppointments = appointments.map(apt => {
+            // Ensure date is valid
+            if (apt.date) {
+                const validDate = validateDate(apt.date);
+                apt.date = validDate || new Date(); // Default to now if invalid
+            }
+            return apt;
+        });
+
+        console.log(`Found ${processedAppointments.length} appointments for user: ${req.user.id}`);
+
+        res.json({
+            success: true,
+            appointments: processedAppointments
+        });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('Error fetching user appointments:', err.message);
+        res.status(500).json({ error: 'Server error fetching appointments' });
     }
 });
 

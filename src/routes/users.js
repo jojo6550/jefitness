@@ -8,13 +8,19 @@ const { auth, blacklistToken } = require('../middleware/auth');
 // GET /api/users/trainers - Get all trainers
 router.get('/trainers', auth, async (req, res) => {
     try {
+        console.log(`Fetching trainers for user: ${req.user.id}`);
         const trainers = await User.find({
             role: 'trainer'
-        }).select('firstName lastName email _id');
-        res.json(trainers);
+        }).select('firstName lastName email _id').lean();
+
+        console.log(`Found ${trainers.length} trainers`);
+        res.json({
+            success: true,
+            trainers
+        });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('Error fetching trainers:', err.message);
+        res.status(500).json({ error: 'Server error fetching trainers' });
     }
 });
 
