@@ -394,6 +394,19 @@ cron.schedule('0 1 1 */6 *', async () => {
 });
 
 // -----------------------------
+// Canceled Subscriptions Cleanup Job
+// -----------------------------
+cron.schedule('0 2 * * 0', () => {
+  console.log('Starting weekly canceled subscriptions cleanup...');
+  const { exec } = require('child_process');
+  exec('node scripts/cleanup-canceled-subscriptions.js', (error, stdout, stderr) => {
+    if (error) console.error(`Canceled subscriptions cleanup failed: ${error.message}`);
+    if (stderr) console.error(`Cleanup stderr: ${stderr}`);
+    console.log(`Cleanup completed: ${stdout}`);
+  });
+});
+
+// -----------------------------
 // Memory Monitoring and Cleanup
 // -----------------------------
 const monitoringService = require('./services/monitoring');
