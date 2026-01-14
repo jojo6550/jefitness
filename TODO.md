@@ -1,20 +1,26 @@
-# TODO: Fix Subscription Pricing to be Dynamically Loaded
+# Subscription Pricing Fix - TODO
 
-## Problem
-The subscription pricing text like `'$29.99 billed monthly'` is hardcoded in `public/js/subscriptions.js` instead of being dynamically loaded from the API.
+## Task
+Fix incorrect price, totals, and savings display in subscriptions.js while preserving all existing logic, structure, and dynamic loading behavior.
 
-## Plan
-1. Modify `renderPlans()` function in `public/js/subscriptions.js`:
-   - Remove the hardcoded `planBenefits` object
-   - Dynamically generate billing text using `plan.amount` from API data
-   - Create benefits based on plan tier (more benefits for longer plans)
+## Steps Completed ✅
 
-## Steps
-- [x] 1. Create TODO.md file to track progress
-- [x] 2. Modify `renderPlans()` in `public/js/subscriptions.js` to dynamically generate billing text
-- [ ] 3. Test the changes by verifying the subscription page loads dynamic pricing
+### 1. Fix renderPlans() function
+- [x] Remove hardcoded savingsMessages object
+- [x] Calculate intervalCount from plan ID (1, 3, 6, 12)
+- [x] Calculate actualTotal = plan.amount / 100 (total billed amount)
+- [x] Calculate effectiveMonthly = actualTotal / intervalCount
+- [x] Calculate baselineTotal = 18000 × intervalCount (in dollars)
+- [x] Calculate savingsAmount = baselineTotal - actualTotal
+- [x] Calculate savingsPercent = Math.round((savingsAmount / baselineTotal) × 100)
+- [x] Update billingText to show actual total billed
+- [x] Update price display to show effective monthly price
+- [x] Update savings display with calculated values
+- [x] Handle 1-month plan: no savings, show baseline price
 
-## Status
-- [ ] In Progress
-- [x] Completed
+### 2. Testing
+- [ ] Verify 1-month plan shows $18,000/month with no savings
+- [ ] Verify 3-month plan shows correct effective monthly price and savings
+- [ ] Verify 6-month plan shows correct effective monthly price and savings
+- [ ] Verify 12-month plan shows correct effective monthly price and savings
 

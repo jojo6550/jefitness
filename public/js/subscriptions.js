@@ -87,6 +87,18 @@ function log(...args) {
   if (DEBUG) console.log(...args);
 }
 
+/**
+ * Format a number as currency with commas
+ * @param {number} amount - Amount in dollars
+ * @returns {string} Formatted currency string
+ */
+function formatCurrency(amount) {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return '$0.00';
+  }
+  return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 /* --------------------------------------------------
    Stripe Elements
 -------------------------------------------------- */
@@ -174,56 +186,57 @@ function renderPlans() {
     '12-month': ['Unlimited consultations', 'Premium analytics']
   };
 
-  // Savings messages based on plan duration
-  const savingsMessages = {
-    '1-month': null,
-    '3-month': 'Save $15 vs monthly',
-    '6-month': 'Save $60 vs monthly',
-    '12-month': 'Save $180 vs monthly'
-  };
+  // Monthly baseline price in cents
+  const MONTHLY_BASELINE_CENTS = 18000;
 
   availablePlans.forEach(plan => {
     const isCurrent = hasActiveSubscription(plan.id);
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
     const borderClass = planBorders[planId] || 'border-primary';
     
-    // Calculate price from API data (amount is in cents)
-    const monthlyAmount = plan.amount ? plan.amount / 100 : 0;
-    const price = plan.displayPrice || (monthlyAmount ? `$${monthlyAmount.toFixed(2)}` : 'N/A');
-    
-    // Calculate total based on plan duration
-    let duration, totalAmount, billingText;
+    // Derive intervalCount from plan ID
+    let intervalCount;
     switch (planId) {
-      case '1-month':
-        duration = 1;
-        totalAmount = monthlyAmount;
-        billingText = `${price} billed monthly`;
-        break;
-      case '3-month':
-        duration = 3;
-        totalAmount = monthlyAmount * 3;
-        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
-        break;
-      case '6-month':
-        duration = 6;
-        totalAmount = monthlyAmount * 6;
-        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
-        break;
-      case '12-month':
-        duration = 12;
-        totalAmount = monthlyAmount * 12;
-        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
-        break;
-      default:
-        duration = 1;
-        totalAmount = monthlyAmount;
-        billingText = `${price} billed monthly`;
+      case '1-month': intervalCount = 1; break;
+      case '3-month': intervalCount = 3; break;
+      case '6-month': intervalCount = 6; break;
+      case '12-month': intervalCount = 12; break;
+      default: intervalCount = 1;
     }
-
+    
+    // plan.amount is total amount (in cents) for the entire subscription period
+    const actualTotalCents = plan.amount || 0;
+    const actualTotal = actualTotalCents / 100;
+    
+    // Effective monthly price = total / intervalCount
+    const effectiveMonthly = actualTotal / intervalCount;
+    
+    // Baseline total = monthly baseline × intervalCount
+    const baselineTotal = (MONTHLY_BASELINE_CENTS / 100) * intervalCount;
+    
+    // Savings = baseline - actual
+    const savingsCents = baselineTotal * 100 - actualTotalCents;
+    const savingsAmount = savingsCents / 100;
+    
+    // Savings percentage
+    const savingsPercent = Math.round((savingsCents / (baselineTotal * 100)) * 100);
+    
+    // Format price for display (effective monthly)
+    const price = formatCurrency(effectiveMonthly);
+    const totalAmount = actualTotal;
+    
+    // Build billing text
+    let billingText;
+    if (intervalCount === 1) {
+      billingText = `${price} billed monthly`;
+    } else {
+      billingText = `${price}/month (${formatCurrency(totalAmount)} total for ${intervalCount} months)`;
+    }
+    
     // Build benefits list dynamically
     const benefits = [billingText, ...baseBenefits, ...(additionalBenefits[planId] || [])];
-    if (savingsMessages[planId]) {
-      benefits.splice(1, 0, savingsMessages[planId]);
+    if (savingsAmount > 0) {
+      benefits.splice(1, 0, `Save ${formatCurrency(savingsAmount)}`);
     }
 
     // Build benefits list HTML
@@ -231,22 +244,12 @@ function renderPlans() {
       `<li><i class="bi bi-check-circle-fill text-success"></i>${benefit}</li>`
     ).join('');
 
-    // Calculate savings percentage for display
-    let savingsPercent = null;
-    if (planId === '3-month') {
-      savingsPercent = '17%';
-    } else if (planId === '6-month') {
-      savingsPercent = '33%';
-    } else if (planId === '12-month') {
-      savingsPercent = '50%';
-    }
-
     const card = document.createElement('div');
     card.className = `plan-card ${borderClass} ${isCurrent ? 'disabled-plan' : ''}`;
     card.innerHTML = `
       <div class="card-header text-center">
         <h3 class="card-title mb-0">${plan.name || 'Plan'}</h3>
-        ${savingsPercent ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${savingsPercent}</div>` : ''}
+        ${savingsAmount > 0 ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${savingsPercent}%</div>` : ''}
       </div>
       <div class="card-body text-center">
         <div class="plan-price">
@@ -338,7 +341,7 @@ function renderUserSubscriptions() {
       <span class="subscription-status ${expired ? 'expired' : 'active'}">
         ${expired ? 'EXPIRED' : 'ACTIVE'}
       </span>
-      <div>Amount: $${sub.amount?.toFixed(2) || '0.00'}/month</div>
+      <div>Amount: ${formatCurrency(sub.amount)}/month</div>
       <div>Next Billing: ${end.toLocaleDateString()}</div>
       <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>
       <div class="subscription-actions">
