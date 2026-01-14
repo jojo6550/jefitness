@@ -3,9 +3,51 @@ const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
-const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices } = require('../services/stripe');
+const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices, getStripe } = require('../services/stripe');
 
 const router = express.Router();
+
+/**
+ * Calculate period end based on Stripe price recurring information
+ * @param {string} priceId - Stripe price ID
+ * @param {Date} startDate - Period start date
+ * @returns {Promise<Date>} Calculated period end date
+ */
+async function calculatePeriodEnd(priceId, startDate = new Date()) {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    const price = await stripe.prices.retrieve(priceId);
+    if (!price.recurring) {
+      throw new Error('Price is not recurring');
+    }
+
+    const { interval, interval_count } = price.recurring;
+
+    // Calculate days based on interval
+    let daysToAdd;
+    if (interval === 'month') {
+      daysToAdd = interval_count * 30; // Approximate months to days
+    } else if (interval === 'year') {
+      daysToAdd = interval_count * 365; // Years to days
+    } else if (interval === 'week') {
+      daysToAdd = interval_count * 7; // Weeks to days
+    } else if (interval === 'day') {
+      daysToAdd = interval_count; // Days
+    } else {
+      daysToAdd = 30; // Default fallback
+    }
+
+    return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  } catch (error) {
+    console.error('Error calculating period end:', error.message);
+    // Fallback to 30 days if price lookup fails
+    return new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  }
+}
 
 // ----------------------
 // 1. GET /plans

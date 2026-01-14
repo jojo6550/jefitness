@@ -238,8 +238,20 @@ function renderSubscriptionDetails() {
     return fallback;
   }
   
-  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 86400000));
-  const periodStart = parseDate(sub.currentPeriodStart, new Date(now.getTime() - 30 * 86400000));
+  // Calculate fallback period end based on plan duration
+  function calculateFallbackPeriodEnd(plan) {
+    const fallbackDays = {
+      '1-month': 30,
+      '3-month': 90,
+      '6-month': 180,
+      '12-month': 365
+    };
+    return fallbackDays[plan] || 30; // Default to 30 days
+  }
+
+  const fallbackDays = calculateFallbackPeriodEnd(sub.plan);
+  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + fallbackDays * 86400000));
+  const periodStart = parseDate(sub.currentPeriodStart, new Date(now.getTime() - fallbackDays * 86400000));
   
   // Calculate days remaining
   let daysLeft;
