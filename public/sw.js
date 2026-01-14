@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v11 - Fixed)
+// JEFitness Service Worker (v12)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '11';
+const CACHE_VERSION = '12';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -72,7 +72,7 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip external requests & APIs
+  // Skip APIs and external requests
   if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
 
   // Dev mode: always fetch fresh
@@ -81,31 +81,32 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network-first for HTML & JS
+  // HTML & JS - network first
   if (request.destination === 'document' || request.destination === 'script') {
     event.respondWith(
       fetch(request).then(networkResponse => {
         if (request.method === 'GET' && networkResponse.status === 200) {
-          // Clone only for cache
+          // Clone once for cache
           const cacheResponse = networkResponse.clone();
           caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, cacheResponse));
         }
-        // Return original response to browser
+        // Return original response directly
         return networkResponse;
       }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Cache-first for CSS, images, fonts, etc.
+  // CSS, images, fonts - cache first with update
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
 
       return fetch(request).then(networkResponse => {
         if (request.method === 'GET' && networkResponse.status === 200) {
-          // Clone only for cache
-          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, networkResponse.clone()));
+          // Clone once for cache
+          const cacheResponse = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, cacheResponse));
         }
         return networkResponse;
       }).catch(() => cached); // fallback to cache if network fails
