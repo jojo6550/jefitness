@@ -3,6 +3,8 @@ async function loadNavbarSubscriptionStatus() {
     const statusElement = document.getElementById('subscription-status-navbar');
     if (!statusElement) return;
 
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -13,8 +15,9 @@ async function loadNavbarSubscriptionStatus() {
 
         window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-        const response = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/status`, {
+        if (isDevelopment) console.log('Fetching subscription status from:', `${window.API_BASE}/api/v1/subscriptions/user/current`);
+
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -33,17 +36,22 @@ async function loadNavbarSubscriptionStatus() {
             return;
         }
         if (!response.ok) {
-            throw new Error('Failed to fetch subscription status');
+            throw new Error(`Failed to fetch subscription status: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
+
+        if (isDevelopment) console.log('Subscription data:', data);
 
         if (data.success && data.data) {
             const subscription = data.data;
             let statusText = 'Free';
             let statusClass = 'bg-secondary';
 
-            if (subscription.hasSubscription) {
+            // Check if user has an active subscription
+            const hasSubscription = subscription.hasSubscription || subscription.isActive || subscription.hasActiveSubscription;
+
+            if (hasSubscription) {
                 if (subscription.status === 'active' || subscription.status === 'trialing') {
                     statusText = `${subscription.plan} Plan`;
                     statusClass = 'bg-success';
@@ -66,9 +74,9 @@ async function loadNavbarSubscriptionStatus() {
             statusElement.className = 'badge bg-secondary text-white small';
         }
     } catch (error) {
-        console.error('Error loading navbar subscription status:', error);
-        statusElement.textContent = 'Error';
-        statusElement.className = 'badge bg-danger text-white small';
+        if (isDevelopment) console.error('Error loading navbar subscription status:', error);
+        statusElement.textContent = 'Subscription Required';
+        statusElement.className = 'badge bg-warning text-dark small';
     }
 }
 
