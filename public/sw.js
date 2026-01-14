@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v10)
+// JEFitness Service Worker (v11 - Fixed)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '10';
+const CACHE_VERSION = '11';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -40,8 +40,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
   console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(STATIC_CACHE).then(cache => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -73,7 +72,7 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip APIs and external requests
+  // Skip external requests & APIs
   if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
 
   // Dev mode: always fetch fresh
@@ -82,31 +81,34 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // HTML & JS - network first
+  // Network-first for HTML & JS
   if (request.destination === 'document' || request.destination === 'script') {
     event.respondWith(
       fetch(request).then(networkResponse => {
         if (request.method === 'GET' && networkResponse.status === 200) {
-          caches.open(DYNAMIC_CACHE)
-            .then(cache => cache.put(request.url, networkResponse.clone()));
+          // Clone only for cache
+          const cacheResponse = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, cacheResponse));
         }
-        return networkResponse.clone();
+        // Return original response to browser
+        return networkResponse;
       }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // CSS, images, fonts - cache first with update
+  // Cache-first for CSS, images, fonts, etc.
   event.respondWith(
     caches.match(request).then(cached => {
-      const fetchAndCache = fetch(request).then(networkResponse => {
+      if (cached) return cached;
+
+      return fetch(request).then(networkResponse => {
         if (request.method === 'GET' && networkResponse.status === 200) {
+          // Clone only for cache
           caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, networkResponse.clone()));
         }
         return networkResponse;
       }).catch(() => cached); // fallback to cache if network fails
-
-      return cached ? fetchAndCache : fetchAndCache;
     })
   );
 });
