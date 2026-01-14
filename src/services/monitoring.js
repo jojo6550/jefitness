@@ -1,5 +1,7 @@
 const winston = require('winston');
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Monitoring service for production error tracking, performance monitoring, and alerting

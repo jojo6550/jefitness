@@ -110,14 +110,22 @@ const requireHealthDataConsent = async (req, res, next) => {
         }
 
         // Log health data access
-        await logAuditEvent(user, 'health_data_accessed', {
-            consentType: 'health_data',
-            purpose: user.healthDataConsent.purpose,
-            endpoint: req.path,
-            method: req.method,
-            ipAddress: getClientIP(req),
-            userAgent: req.get('User-Agent')
-        });
+        try {
+            await logAuditEvent(user, 'health_data_accessed', {
+                consentType: 'health_data',
+                purpose: user.healthDataConsent.purpose,
+                endpoint: req.path,
+                method: req.method,
+                ipAddress: getClientIP(req),
+                userAgent: req.get('User-Agent')
+            });
+        } catch (logError) {
+            monitoringService.recordError(logError, {
+                context: 'health_data_access_logging',
+                userId: user._id,
+                endpoint: req.path
+            });
+        }
 
         next();
     } catch (error) {
