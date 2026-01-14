@@ -121,8 +121,8 @@ router.get('/user', auth, async (req, res) => {
                 { trainerId: req.user.id }
             ]
         })
-            .populate('clientId', 'firstName lastName email')
-            .populate('trainerId', 'firstName lastName email')
+            .populate({ path: 'clientId', select: 'firstName lastName email', options: { lean: true } })
+            .populate({ path: 'trainerId', select: 'firstName lastName email', options: { lean: true } })
             .sort({ date: 1, time: 1 })
             .lean();
 
@@ -143,7 +143,8 @@ router.get('/user', auth, async (req, res) => {
             appointments: processedAppointments
         });
     } catch (err) {
-        console.error('Error fetching user appointments:', err.message);
+        console.error('Error fetching user appointments:', err);
+        console.error('Stack trace:', err.stack);
         res.status(500).json({ error: 'Server error fetching appointments' });
     }
 });

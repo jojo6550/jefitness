@@ -19,7 +19,8 @@ router.get('/trainers', auth, async (req, res) => {
             trainers
         });
     } catch (err) {
-        console.error('Error fetching trainers:', err.message);
+        console.error('Error fetching trainers:', err);
+        console.error('Stack trace:', err.stack);
         res.status(500).json({ error: 'Server error fetching trainers' });
     }
 });
