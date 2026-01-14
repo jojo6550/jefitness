@@ -139,20 +139,50 @@ router.post('/delete', auth, async (req, res) => {
 // GET /api/medical-documents/get - Get user's medical documents and info
 router.get('/get', auth, async (req, res) => {
     try {
+        console.log('Get medical documents request for user:', req.user.id);
+
         const user = await User.findById(req.user.id).select('hasMedical medicalConditions medicalDocuments');
 
         if (!user) {
+            console.log('User not found for ID:', req.user.id);
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        res.json({
+        console.log('User found, hasMedical:', user.hasMedical, 'medicalDocuments length:', user.medicalDocuments?.length || 0);
+
+        // Handle potential decryption errors for medicalConditions
+        let medicalConditions = null;
+        try {
+            medicalConditions = user.medicalConditions;
+            console.log('medicalConditions decrypted successfully');
+        } catch (decryptErr) {
+            console.error('Decryption error for medicalConditions:', decryptErr.message);
+            medicalConditions = null;
+        }
+
+        // Validate medicalDocuments array
+        let documents = [];
+        try {
+            documents = user.medicalDocuments || [];
+            // Ensure all documents have required fields
+            documents = documents.filter(doc => doc && doc.filename);
+            console.log('Documents validated, count:', documents.length);
+        } catch (docErr) {
+            console.error('Error processing medicalDocuments:', docErr.message);
+            documents = [];
+        }
+
+        const responseData = {
             hasMedical: user.hasMedical || false,
-            medicalConditions: user.medicalConditions || null,
-            documents: user.medicalDocuments || []
-        });
+            medicalConditions: medicalConditions,
+            documents: documents
+        };
+
+        console.log('Sending response with documents count:', documents.length);
+        res.json(responseData);
     } catch (err) {
-        console.error('Get documents error:', err.message);
-        res.status(500).json({ msg: 'Error retrieving documents' });
+        console.error('Get documents error:', err.message, err.stack);
+        res.status(500).json({ msg: 'Error retrieving documents', error: err.message });
     }
 });
 
