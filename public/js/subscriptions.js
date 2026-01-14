@@ -151,34 +151,6 @@ function renderPlans() {
 
   plansContainer.innerHTML = '';
 
-  // Price point value benefits for each plan tier
-  const planBenefits = {
-    '1-month': [
-      '$29.99 billed monthly',
-      'Basic workout access',
-      'Cancel anytime',
-      'No commitment'
-    ],
-    '3-month': [
-      '$24.99/month ($75 total)',
-      'Save $15 vs monthly',
-      'Personalized plans',
-      'Priority support'
-    ],
-    '6-month': [
-      '$19.99/month ($120 total)',
-      'Save $60 vs monthly',
-      'Trainer consultations',
-      'Custom meal planning'
-    ],
-    '12-month': [
-      '$14.99/month ($180 total)',
-      'Save $180 vs monthly',
-      'Unlimited consultations',
-      'Premium analytics'
-    ]
-  };
-
   // Border class for each plan
   const planBorders = {
     '1-month': 'border-primary',
@@ -187,26 +159,94 @@ function renderPlans() {
     '12-month': 'border-warning'
   };
 
+  // Base benefits for all plans
+  const baseBenefits = [
+    'Basic workout access',
+    'Cancel anytime',
+    'No commitment'
+  ];
+
+  // Additional benefits based on plan duration
+  const additionalBenefits = {
+    '1-month': [],
+    '3-month': ['Personalized plans', 'Priority support'],
+    '6-month': ['Trainer consultations', 'Custom meal planning'],
+    '12-month': ['Unlimited consultations', 'Premium analytics']
+  };
+
+  // Savings messages based on plan duration
+  const savingsMessages = {
+    '1-month': null,
+    '3-month': 'Save $15 vs monthly',
+    '6-month': 'Save $60 vs monthly',
+    '12-month': 'Save $180 vs monthly'
+  };
+
   availablePlans.forEach(plan => {
     const isCurrent = hasActiveSubscription(plan.id);
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
     const borderClass = planBorders[planId] || 'border-primary';
-    const benefits = planBenefits[planId] || planBenefits['1-month'];
-    const price =
-      plan.displayPrice ||
-      (plan.amount ? `$${(plan.amount / 100).toFixed(2)}` : 'N/A');
+    
+    // Calculate price from API data (amount is in cents)
+    const monthlyAmount = plan.amount ? plan.amount / 100 : 0;
+    const price = plan.displayPrice || (monthlyAmount ? `$${monthlyAmount.toFixed(2)}` : 'N/A');
+    
+    // Calculate total based on plan duration
+    let duration, totalAmount, billingText;
+    switch (planId) {
+      case '1-month':
+        duration = 1;
+        totalAmount = monthlyAmount;
+        billingText = `${price} billed monthly`;
+        break;
+      case '3-month':
+        duration = 3;
+        totalAmount = monthlyAmount * 3;
+        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
+        break;
+      case '6-month':
+        duration = 6;
+        totalAmount = monthlyAmount * 6;
+        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
+        break;
+      case '12-month':
+        duration = 12;
+        totalAmount = monthlyAmount * 12;
+        billingText = `${price}/month ($${totalAmount.toFixed(2)} total)`;
+        break;
+      default:
+        duration = 1;
+        totalAmount = monthlyAmount;
+        billingText = `${price} billed monthly`;
+    }
+
+    // Build benefits list dynamically
+    const benefits = [billingText, ...baseBenefits, ...(additionalBenefits[planId] || [])];
+    if (savingsMessages[planId]) {
+      benefits.splice(1, 0, savingsMessages[planId]);
+    }
 
     // Build benefits list HTML
     const benefitsHtml = benefits.map(benefit =>
       `<li><i class="bi bi-check-circle-fill text-success"></i>${benefit}</li>`
     ).join('');
 
+    // Calculate savings percentage for display
+    let savingsPercent = null;
+    if (planId === '3-month') {
+      savingsPercent = '17%';
+    } else if (planId === '6-month') {
+      savingsPercent = '33%';
+    } else if (planId === '12-month') {
+      savingsPercent = '50%';
+    }
+
     const card = document.createElement('div');
     card.className = `plan-card ${borderClass} ${isCurrent ? 'disabled-plan' : ''}`;
     card.innerHTML = `
       <div class="card-header text-center">
         <h3 class="card-title mb-0">${plan.name || 'Plan'}</h3>
-        ${plan.savings ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${plan.savings}</div>` : ''}
+        ${savingsPercent ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${savingsPercent}</div>` : ''}
       </div>
       <div class="card-body text-center">
         <div class="plan-price">
