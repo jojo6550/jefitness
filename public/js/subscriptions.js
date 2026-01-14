@@ -18,7 +18,8 @@ const DEBUG = true;
 let selectedPlanId = null;
 let cardElement = null;
 let currentSubscriptionId = null;
-let userToken = localStorage.getItem('token');
+// Don't cache userToken at module load - get it fresh when needed
+// let userToken = localStorage.getItem('token');
 
 let availablePlans = [];
 let userSubscriptions = [];
@@ -283,34 +284,48 @@ function renderPlans() {
 
 function hasActiveSubscription(planId = null) {
   return userSubscriptions.some(
-    sub => sub.isActive && (!planId || sub.plan === planId)
+    sub => (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused') && (!planId || sub.plan === planId)
   );
 }
 
 async function loadUserSubscriptions() {
-  if (!userToken) return;
+  const userToken = localStorage.getItem('token');
+  log('loadUserSubscriptions - token:', userToken ? 'present' : 'missing');
+
+  if (!userToken) {
+    log('No user token found, showing plans');
+    return;
+  }
 
   try {
+    log('Fetching subscription data...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/user/current`,
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
 
+    log('Response status:', res.status);
     const data = await handleApiResponse(res);
+    log('Subscription data:', data);
 
     userSubscriptions = data?.data?.hasActiveSubscription
       ? [data.data]
       : [];
+
+    log('userSubscriptions after load:', userSubscriptions);
+    log('hasActiveSubscription:', hasActiveSubscription());
 
     renderUserSubscriptions();
     toggleViews();
 
     // Redirect to view-subscription page if user has an active subscription
     if (hasActiveSubscription()) {
+      log('Redirecting to view-subscription.html...');
       window.location.href = 'view-subscription.html';
     }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
+    log('Error loading subscriptions:', err.message);
   }
 }
 
@@ -501,6 +516,10 @@ async function handleConfirmCancel() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   log('Subscriptions page loaded');
+
+  // Get fresh token
+  const userToken = localStorage.getItem('token');
+  log('Initial token check:', userToken ? 'present' : 'missing');
 
   initializeStripe();
   paymentForm?.addEventListener('submit', handlePaymentSubmit);

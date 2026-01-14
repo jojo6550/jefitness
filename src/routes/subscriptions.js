@@ -38,9 +38,28 @@ router.get('/plans', async (req, res) => {
 // ----------------------
 router.get('/user/current', auth, async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({ userId: req.user.id, status: 'active' });
+    // Find subscription with active, past_due, or paused status
+    const subscription = await Subscription.findOne({ 
+      userId: req.user.id, 
+      status: { $in: ['active', 'past_due', 'paused'] }
+    });
+    
     if (!subscription) return res.json({ success: true, data: { hasActiveSubscription: false } });
-    res.json({ success: true, data: { hasActiveSubscription: true, ...subscription.toObject() } });
+    
+    // Calculate days remaining
+    const now = new Date();
+    const periodEnd = new Date(subscription.currentPeriodEnd);
+    const daysLeft = Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
+    
+    // Return subscription data with calculated fields
+    res.json({ 
+      success: true, 
+      data: { 
+        hasActiveSubscription: true, 
+        ...subscription.toObject(),
+        daysLeft: daysLeft > 0 ? daysLeft : 0
+      } 
+    });
   } catch (err) {
     console.error('Failed to fetch user subscription:', err);
     res.status(500).json({ success: false, error: { message: 'Failed to fetch subscription' } });

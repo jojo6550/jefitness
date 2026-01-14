@@ -6,7 +6,6 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-let userToken = localStorage.getItem('token');
 let currentSubscription = null;
 let currentSubscriptionId = null;
 
@@ -108,36 +107,45 @@ async function handleApiResponse(response) {
 -------------------------------------------------- */
 
 async function loadSubscription() {
+  const userToken = localStorage.getItem('token');
+  log('loadSubscription - token:', userToken ? 'present' : 'missing');
+
   if (!userToken) {
     showNoSubscriptionState();
     return;
   }
 
   try {
+    log('Fetching subscription data...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/user/current`,
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
 
+    log('Response status:', res.status);
     const data = await handleApiResponse(res);
+    log('Subscription data:', data);
 
     if (!data?.data?.hasActiveSubscription) {
+      log('No active subscription found');
       showNoSubscriptionState();
       return;
     }
 
     currentSubscription = data.data;
     currentSubscriptionId = data.data.stripeSubscriptionId;
+    log('Subscription loaded:', currentSubscription);
     
     // Fetch invoices as well
     await Promise.all([
       renderSubscriptionDetails(),
-      loadInvoices()
+      loadInvoices(userToken)
     ]);
 
     showSubscriptionDetails();
   } catch (err) {
     console.error('Load subscription failed:', err);
+    log('Error loading subscription:', err.message);
     showAlert('Failed to load subscription details', 'error');
   } finally {
     if (loadingState) loadingState.style.display = 'none';
@@ -250,22 +258,26 @@ function renderSubscriptionDetails() {
    Invoices
 -------------------------------------------------- */
 
-async function loadInvoices() {
+async function loadInvoices(userToken) {
   if (!currentSubscriptionId) {
     showNoInvoicesState();
     return;
   }
 
   try {
+    log('Fetching invoices...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/${currentSubscriptionId}/invoices`,
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
 
+    log('Invoices response status:', res.status);
     const data = await handleApiResponse(res);
+    log('Invoices data:', data);
     renderInvoices(data.data || []);
   } catch (err) {
     console.error('Load invoices failed:', err);
+    log('Error loading invoices:', err.message);
     showNoInvoicesState();
   } finally {
     if (invoicesLoading) invoicesLoading.style.display = 'none';
@@ -342,6 +354,8 @@ function openCancelModal() {
 }
 
 async function handleConfirmCancel() {
+  const userToken = localStorage.getItem('token');
+  
   if (!currentSubscriptionId) {
     showAlert('Subscription not found', 'error');
     return;
