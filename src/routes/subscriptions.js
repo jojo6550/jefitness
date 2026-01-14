@@ -4,6 +4,7 @@ const { auth } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices, getStripe } = require('../services/stripe');
+const { calculateSubscriptionEndDate } = require('../utils/dateUtils');
 
 const router = express.Router();
 
@@ -156,7 +157,13 @@ router.post(
       }
       if (!currentPeriodEnd || typeof currentPeriodEnd !== 'number') {
         // Use plan-specific fallback instead of always 30 days
-        const fallbackEndDate = calculateSubscriptionEndDate(plan, new Date(currentPeriodStart * 1000));
+        const startDate = new Date(currentPeriodStart * 1000);
+        let fallbackEndDate;
+        if (plan === '1-month') fallbackEndDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        else if (plan === '3-month') fallbackEndDate = new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+        else if (plan === '6-month') fallbackEndDate = new Date(startDate.getTime() + 180 * 24 * 60 * 60 * 1000);
+        else if (plan === '12-month') fallbackEndDate = new Date(startDate.getTime() + 365 * 24 * 60 * 60 * 1000);
+        else fallbackEndDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
         currentPeriodEnd = Math.floor(fallbackEndDate.getTime() / 1000);
       }
 

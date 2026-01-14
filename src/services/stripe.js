@@ -15,10 +15,10 @@ const getStripe = () => {
  * Each product should have at least one active recurring price
  */
 const PRODUCT_IDS = {
-  '1-month': process.env.STRIPE_PRODUCT_1_MONTH, // Updated to match actual product
-  '3-month': process.env.STRIPE_PRODUCT_3_MONTH,
-  '6-month': process.env.STRIPE_PRODUCT_6_MONTH,
-  '12-month': process.env.STRIPE_PRODUCT_12_MONTH
+  '1-month': process.env.STRIPE_PRODUCT_1_MONTH || 'prod_TlkNETGd6OFrRf',
+  '3-month': process.env.STRIPE_PRODUCT_3_MONTH || 'prod_TlkOMtyHdhvBXQ',
+  '6-month': process.env.STRIPE_PRODUCT_6_MONTH || 'prod_TlkQ5HrbgnHXA5',
+  '12-month': process.env.STRIPE_PRODUCT_12_MONTH || 'prod_TlkRUlSilrQIu0'
 };
 
 /**
@@ -185,19 +185,25 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
  */
 async function createSubscription(customerId, plan) {
   try {
+    console.log('createSubscription called with customerId:', customerId, 'plan:', plan);
+
     const productId = PRODUCT_IDS[plan];
+    console.log('productId for plan:', productId);
     if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);
     }
 
     const priceId = await getPriceIdForProduct(productId);
+    console.log('priceId found:', priceId);
     if (!priceId) {
       throw new Error(`No active recurring price found for plan: ${plan}`);
     }
 
     // Get customer to check default payment method
     const customer = await getStripe().customers.retrieve(customerId);
+    console.log('customer retrieved:', customer.id);
     const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
+    console.log('defaultPaymentMethod:', defaultPaymentMethod);
 
     const subscriptionData = {
       customer: customerId,
@@ -215,10 +221,13 @@ async function createSubscription(customerId, plan) {
       subscriptionData.default_payment_method = defaultPaymentMethod;
     }
 
+    console.log('Creating subscription with data:', JSON.stringify(subscriptionData, null, 2));
     const subscription = await getStripe().subscriptions.create(subscriptionData);
+    console.log('Subscription created successfully:', subscription.id, 'status:', subscription.status);
 
     return subscription;
   } catch (error) {
+    console.error('createSubscription error:', error);
     throw new Error(`Failed to create subscription: ${error.message}`);
   }
 }
