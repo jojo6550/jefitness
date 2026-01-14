@@ -11,7 +11,7 @@ router.get('/trainers', auth, async (req, res) => {
         console.log(`Fetching trainers for user: ${req.user.id}`);
         const trainers = await User.find({
             role: 'trainer'
-        }).select('firstName lastName email _id').lean();
+        }).select('firstName lastName email _id');
 
         console.log(`Found ${trainers.length} trainers`);
         res.json({

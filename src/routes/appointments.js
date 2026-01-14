@@ -121,10 +121,9 @@ router.get('/user', auth, async (req, res) => {
                 { trainerId: req.user.id }
             ]
         })
-            .populate({ path: 'clientId', select: 'firstName lastName email', options: { lean: true } })
-            .populate({ path: 'trainerId', select: 'firstName lastName email', options: { lean: true } })
-            .sort({ date: 1, time: 1 })
-            .lean();
+            .populate('clientId', 'firstName lastName email')
+            .populate('trainerId', 'firstName lastName email')
+            .sort({ date: 1, time: 1 });
 
         // Process appointments to handle any invalid dates
         const processedAppointments = appointments.map(apt => {

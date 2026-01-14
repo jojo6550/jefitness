@@ -31,6 +31,7 @@ const UserSchema = new mongoose.Schema({
   },
   password: { type: String, required: true, minlength: [8, 'Password must be at least 8 characters long'] },
   lastLoggedIn: { type: Date },
+  lastLogin: { type: Date },
   role: { type: String, enum: ['user', 'admin', 'trainer'], default: 'user' },
   dob: {
     type: Date,
@@ -39,11 +40,14 @@ const UserSchema = new mongoose.Schema({
       message: 'Date of birth must be in the past and after 1900'
     }
   },
+  dateOfBirth: { type: Date },
   gender: { type: String, enum: ['male', 'female'] },
   phone: { type: String, match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number'] },
   activityStatus: { type: String, enum: ['active', 'inactive', 'on-break'], default: 'active' },
   startWeight: { type: Number },
   currentWeight: { type: Number },
+  height: { type: Number },
+  weight: { type: Number },
   goals: { type: String },
   reason: { type: String },
   nutritionLogs: [NutritionLogSchema],
@@ -55,6 +59,7 @@ const UserSchema = new mongoose.Schema({
   isEmailVerified: { type: Boolean, default: false },
   emailVerificationToken: { type: String },
   emailVerificationExpires: { type: Date },
+  passwordResetToken: { type: String },
   resetToken: { type: String },
   resetExpires: { type: Date },
   failedLoginAttempts: { type: Number, default: 0 },
@@ -102,7 +107,34 @@ const UserSchema = new mongoose.Schema({
     ipAddress: { type: String },
     userAgent: { type: String },
     details: { type: mongoose.Schema.Types.Mixed }
-  }]
+  }],
+  dataSubjectRights: {
+    accessRequested: { type: Boolean, default: false },
+    accessRequestedAt: { type: Date },
+    accessProvidedAt: { type: Date },
+    rectificationRequested: { type: Boolean, default: false },
+    rectificationRequestedAt: { type: Date },
+    rectificationCompletedAt: { type: Date },
+    erasureRequested: { type: Boolean, default: false },
+    erasureRequestedAt: { type: Date },
+    erasureCompletedAt: { type: Date },
+    portabilityRequested: { type: Boolean, default: false },
+    portabilityRequestedAt: { type: Date },
+    portabilityCompletedAt: { type: Date },
+    objectionRequested: { type: Boolean, default: false },
+    objectionRequestedAt: { type: Date },
+    objectionCompletedAt: { type: Date },
+    restrictionRequested: { type: Boolean, default: false },
+    restrictionRequestedAt: { type: Date },
+    restrictionCompletedAt: { type: Date }
+  },
+  privacySettings: {
+    marketingEmails: { type: Boolean, default: false },
+    dataAnalytics: { type: Boolean, default: true },
+    thirdPartySharing: { type: Boolean, default: false }
+  },
+  dataDeletedAt: { type: Date },
+  deletionReason: { type: String }
 }, { timestamps: true });
 
 // Indexes
