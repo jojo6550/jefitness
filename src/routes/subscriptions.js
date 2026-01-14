@@ -9,6 +9,7 @@ const router = express.Router();
 
 /**
  * Calculate period end based on Stripe price recurring information
+ * Uses proper calendar arithmetic for accurate date calculations
  * @param {string} priceId - Stripe price ID
  * @param {Date} startDate - Period start date
  * @returns {Promise<Date>} Calculated period end date
@@ -27,21 +28,27 @@ async function calculatePeriodEnd(priceId, startDate = new Date()) {
 
     const { interval, interval_count } = price.recurring;
 
-    // Calculate days based on interval
-    let daysToAdd;
+    // Map Stripe interval to plan format
+    let plan;
     if (interval === 'month') {
-      daysToAdd = interval_count * 30; // Approximate months to days
+      plan = `${interval_count}-month`;
     } else if (interval === 'year') {
-      daysToAdd = interval_count * 365; // Years to days
-    } else if (interval === 'week') {
-      daysToAdd = interval_count * 7; // Weeks to days
-    } else if (interval === 'day') {
-      daysToAdd = interval_count; // Days
+      plan = `${interval_count * 12}-month`; // Convert years to months
     } else {
-      daysToAdd = 30; // Default fallback
+      // For week/day intervals, fall back to approximate calculation
+      let daysToAdd;
+      if (interval === 'week') {
+        daysToAdd = interval_count * 7;
+      } else if (interval === 'day') {
+        daysToAdd = interval_count;
+      } else {
+        daysToAdd = 30; // Default fallback
+      }
+      return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
     }
 
-    return new Date(startDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+    // Use proper calendar calculation
+    return calculateSubscriptionEndDate(plan, startDate);
   } catch (error) {
     console.error('Error calculating period end:', error.message);
     // Fallback to 30 days if price lookup fails
@@ -148,7 +155,9 @@ router.post(
         currentPeriodStart = Math.floor(Date.now() / 1000);
       }
       if (!currentPeriodEnd || typeof currentPeriodEnd !== 'number') {
-        currentPeriodEnd = Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000);
+        // Use plan-specific fallback instead of always 30 days
+        const fallbackEndDate = calculateSubscriptionEndDate(plan, new Date(currentPeriodStart * 1000));
+        currentPeriodEnd = Math.floor(fallbackEndDate.getTime() / 1000);
       }
 
       const subscription = await Subscription.create({
