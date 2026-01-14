@@ -36,7 +36,7 @@ async function checkSubscriptionStatus() {
 
         // Compute active status based on schema
         const isActive = sub.status === 'active';
-        const isPeriodValid = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) > new Date() : false;
+        const isPeriodValid = !sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > new Date();
 
         userSubscriptionStatus = isActive && isPeriodValid;
 
