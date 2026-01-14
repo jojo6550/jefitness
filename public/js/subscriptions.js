@@ -151,37 +151,31 @@ function renderPlans() {
 
   plansContainer.innerHTML = '';
 
-  // Benefits for each plan tier
+  // Price point value benefits for each plan tier
   const planBenefits = {
     '1-month': [
-      'Access to basic workouts',
-      'Progress tracking',
-      'Community support',
-      'Mobile app access'
+      '$29.99 billed monthly',
+      'Basic workout access',
+      'Cancel anytime',
+      'No commitment'
     ],
     '3-month': [
-      'Full access to all workouts',
-      'Personalized training plans',
-      'Advanced progress tracking',
-      'Priority community support',
-      'Mobile app access',
-      'Nutrition guidance'
+      '$24.99/month ($75 total)',
+      'Save $15 vs monthly',
+      'Personalized plans',
+      'Priority support'
     ],
     '6-month': [
-      'Everything in 3-month plan',
-      '1-on-1 trainer consultations',
-      'Custom meal planning',
-      'Advanced analytics',
-      'Priority support',
-      'Exclusive content access'
+      '$19.99/month ($120 total)',
+      'Save $60 vs monthly',
+      'Trainer consultations',
+      'Custom meal planning'
     ],
     '12-month': [
-      'Everything in 6-month plan',
-      'Unlimited trainer consultations',
-      'Advanced nutrition coaching',
-      'Premium analytics dashboard',
-      'VIP support',
-      'Exclusive premium content'
+      '$14.99/month ($180 total)',
+      'Save $180 vs monthly',
+      'Unlimited consultations',
+      'Premium analytics'
     ]
   };
 
