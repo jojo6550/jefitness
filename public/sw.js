@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v9)
+// JEFitness Service Worker (v10)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '9';
+const CACHE_VERSION = '10';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -15,7 +15,7 @@ const IS_DEVELOPMENT = location.hostname === 'localhost' ||
 
 // Files to cache immediately
 const STATIC_ASSETS = [
-  '/', '/index.html', '/pages/offline.html',
+  '/', '/index.html',
   '/styles/styles.css', '/manifest.json',
   '/favicons/android-chrome-192x192.png',
   '/favicons/android-chrome-512x512.png',
@@ -40,7 +40,8 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
   console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE).then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -66,49 +67,59 @@ self.addEventListener('activate', event => {
 });
 
 // ===============================
-// Fetch
+// Fetch - smart caching
 // ===============================
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip external requests & APIs
+  // Skip APIs and external requests
   if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
 
-  // Network-first for HTML & JS
+  // Dev mode: always fetch fresh
+  if (IS_DEVELOPMENT) {
+    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    return;
+  }
+
+  // HTML & JS - network first
   if (request.destination === 'document' || request.destination === 'script') {
     event.respondWith(
-      fetch(request)
-        .then(networkResponse => {
-          if (request.method === 'GET' && networkResponse.status === 200) {
-            const cacheResponse = networkResponse.clone(); // clone for cache
-            caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, cacheResponse));
-          }
-          return networkResponse.clone(); // clone to return safely
-        })
-        .catch(() => caches.match(request))
+      fetch(request).then(networkResponse => {
+        if (request.method === 'GET' && networkResponse.status === 200) {
+          caches.open(DYNAMIC_CACHE)
+            .then(cache => cache.put(request.url, networkResponse.clone()));
+        }
+        return networkResponse.clone();
+      }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Cache-first for CSS, images, fonts, etc.
+  // CSS, images, fonts - cache first with update
   event.respondWith(
     caches.match(request).then(cached => {
-      if (cached) return cached;
-
-      return fetch(request).then(networkResponse => {
+      const fetchAndCache = fetch(request).then(networkResponse => {
         if (request.method === 'GET' && networkResponse.status === 200) {
-          const cacheResponse = networkResponse.clone(); // clone for cache
-          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, cacheResponse));
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, networkResponse.clone()));
         }
-        return networkResponse.clone(); // clone to return safely
-      }).catch(() => {
-        if (request.headers.get('accept')?.includes('text/html')) {
-          return caches.match('/pages/offline.html') || caches.match('/index.html');
-        }
-      });
+        return networkResponse;
+      }).catch(() => cached); // fallback to cache if network fails
+
+      return cached ? fetchAndCache : fetchAndCache;
     })
   );
+});
+
+// ===============================
+// Force refresh
+// ===============================
+self.addEventListener('message', event => {
+  if (event.data?.type === 'FORCE_REFRESH') {
+    caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+    self.skipWaiting();
+    console.log('[SW] Force refresh: caches cleared');
+  }
 });
 
 // ===============================
@@ -122,7 +133,7 @@ self.addEventListener('sync', event => {
 
 async function doBackgroundSync() {
   console.log('[SW] Performing background sync...');
-  // Add offline data sync logic here
+  // Add offline sync logic here
 }
 
 // ===============================
@@ -147,16 +158,5 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action === 'explore') {
     event.waitUntil(clients.openWindow('/'));
-  }
-});
-
-// ===============================
-// Force refresh
-// ===============================
-self.addEventListener('message', event => {
-  if (event.data?.type === 'FORCE_REFRESH') {
-    caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
-    self.skipWaiting();
-    console.log('[SW] Force refresh: caches cleared');
   }
 });
