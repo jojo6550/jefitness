@@ -145,15 +145,53 @@ router.delete('/:id/cancel', auth, async (req, res) => {
     // Cancel via Stripe
     await cancelSubscription(subId, atPeriodEnd);
 
-    // Update DB
-    subscription.status = atPeriodEnd ? 'active' : 'canceled';
-    subscription.canceledAt = new Date();
+    // Update DB based on cancellation type
+    if (atPeriodEnd) {
+      // Cancel at period end - subscription remains active until end
+      subscription.cancelAtPeriodEnd = true;
+      subscription.status = 'active'; // Keep as active until period end
+    } else {
+      // Immediate cancellation
+      subscription.status = 'canceled';
+      subscription.canceledAt = new Date();
+      subscription.cancelAtPeriodEnd = false;
+    }
+
     await subscription.save();
 
-    res.json({ success: true, data: { message: atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled' } });
+    res.json({
+      success: true,
+      data: {
+        message: atPeriodEnd
+          ? 'Subscription will end at the current period end date'
+          : 'Subscription canceled successfully'
+      }
+    });
   } catch (err) {
     console.error('Cancel subscription failed:', err);
-    res.status(500).json({ success: false, error: { message: 'Failed to cancel subscription' } });
+
+    // Handle specific error cases
+    if (err.message.includes('already canceled') || err.message.includes('does not exist')) {
+      // If subscription is already canceled, update DB to reflect this
+      try {
+        const subId = req.params.id;
+        const subscription = await Subscription.findOne({ stripeSubscriptionId: subId, userId: req.user.id });
+        if (subscription) {
+          subscription.status = 'canceled';
+          subscription.canceledAt = new Date();
+          subscription.cancelAtPeriodEnd = false;
+          await subscription.save();
+        }
+        return res.json({
+          success: true,
+          data: { message: 'Subscription was already canceled' }
+        });
+      } catch (dbErr) {
+        console.error('Failed to update DB for already canceled subscription:', dbErr);
+      }
+    }
+
+    res.status(500).json({ success: false, error: { message: err.message || 'Failed to cancel subscription' } });
   }
 });
 

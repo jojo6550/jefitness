@@ -345,22 +345,24 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
     if (!stripe) {
       throw new Error('Stripe not initialized');
     }
-    const cancelData = atPeriodEnd 
-      ? { cancel_at_period_end: true } // Graceful cancellation
-      : {}; // Immediate cancellation
 
-    const canceledSubscription = await stripe.subscriptions.update(
-      subscriptionId,
-      cancelData
-    );
-
-    // If not at period end, actually delete the subscription
-    if (!atPeriodEnd) {
-      return await getStripe().subscriptions.del(subscriptionId);
+    if (atPeriodEnd) {
+      // Cancel at period end
+      const updatedSubscription = await stripe.subscriptions.update(
+        subscriptionId,
+        { cancel_at_period_end: true }
+      );
+      return updatedSubscription;
+    } else {
+      // Cancel immediately
+      const deletedSubscription = await stripe.subscriptions.del(subscriptionId);
+      return deletedSubscription;
     }
-
-    return canceledSubscription;
   } catch (error) {
+    // Handle specific Stripe errors
+    if (error.code === 'resource_missing' || error.message.includes('No such subscription')) {
+      throw new Error('Subscription is already canceled or does not exist');
+    }
     throw new Error(`Failed to cancel subscription: ${error.message}`);
   }
 }

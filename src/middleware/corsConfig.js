@@ -12,11 +12,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       'https://jefitness.onrender.com', // Same-origin for production
-      'http://localhost:3000',
-      'http://localhost:5500',
-      'http://localhost:5501',
-      'http://127.0.0.1:5500',
-      'http://127.0.0.1:5501',
+      'http://127.0.0.1:1000',
+      'http://localhost:1000',
       process.env.FRONTEND_URL,
       process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim())
     ].filter(Boolean).flat();
