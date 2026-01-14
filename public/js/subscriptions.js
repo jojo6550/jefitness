@@ -497,7 +497,6 @@ async function handlePaymentSubmit(e) {
     cardElement.clear();
 
     await loadUserSubscriptions();
-    window.location.href = 'dashboard.html';
   } catch (err) {
     console.error('Payment failed:', err);
     showAlert(err.message, 'error');
