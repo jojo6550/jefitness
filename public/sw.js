@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v8)
+// JEFitness Service Worker (v9)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '8';
+const CACHE_VERSION = '9';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -40,8 +40,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', event => {
   console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(STATIC_CACHE).then(cache => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -80,9 +79,12 @@ self.addEventListener('fetch', event => {
   if (request.destination === 'document' || request.destination === 'script') {
     event.respondWith(
       fetch(request)
-        .then(response => {
-          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, response.clone()));
-          return response;
+        .then(networkResponse => {
+          if (request.method === 'GET' && networkResponse.status === 200) {
+            const cacheResponse = networkResponse.clone(); // clone for cache
+            caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, cacheResponse));
+          }
+          return networkResponse.clone(); // clone to return safely
         })
         .catch(() => caches.match(request))
     );
@@ -92,11 +94,14 @@ self.addEventListener('fetch', event => {
   // Cache-first for CSS, images, fonts, etc.
   event.respondWith(
     caches.match(request).then(cached => {
-      return cached || fetch(request).then(response => {
-        if (request.method === 'GET' && response.status === 200) {
-          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, response.clone()));
+      if (cached) return cached;
+
+      return fetch(request).then(networkResponse => {
+        if (request.method === 'GET' && networkResponse.status === 200) {
+          const cacheResponse = networkResponse.clone(); // clone for cache
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, cacheResponse));
         }
-        return response;
+        return networkResponse.clone(); // clone to return safely
       }).catch(() => {
         if (request.headers.get('accept')?.includes('text/html')) {
           return caches.match('/pages/offline.html') || caches.match('/index.html');
