@@ -365,13 +365,17 @@ function renderUserSubscriptions() {
   userSubscriptions.forEach(sub => {
     const planName = (sub.plan || '').replace('-', ' ').toUpperCase();
 
-    const start = sub.currentPeriodStart
-      ? new Date(sub.currentPeriodStart)
-      : new Date();
-
-    const end = sub.currentPeriodEnd
-      ? new Date(sub.currentPeriodEnd)
-      : new Date(start.getTime() + 30 * 86400000);
+    // Handle both Date objects and timestamps (server converts to Date)
+    const start = sub.currentPeriodStart instanceof Date && !isNaN(sub.currentPeriodStart.getTime())
+      ? sub.currentPeriodStart
+      : (typeof sub.currentPeriodStart === 'number'
+          ? new Date(sub.currentPeriodStart > 10000000000 ? sub.currentPeriodStart : sub.currentPeriodStart * 1000)
+          : new Date());
+    const end = sub.currentPeriodEnd instanceof Date && !isNaN(sub.currentPeriodEnd.getTime())
+      ? sub.currentPeriodEnd
+      : (typeof sub.currentPeriodEnd === 'number'
+          ? new Date(sub.currentPeriodEnd > 10000000000 ? sub.currentPeriodEnd : sub.currentPeriodEnd * 1000)
+          : new Date(start.getTime() + 30 * 86400000));
 
     const daysLeft = Math.ceil((end - new Date()) / 86400000);
     const expired = daysLeft <= 0;

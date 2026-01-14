@@ -65,7 +65,10 @@ function formatCurrency(amount) {
 
 function formatDate(date) {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', {
+  // Handle both Date objects and ISO strings
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return '-';
+  return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -74,7 +77,16 @@ function formatDate(date) {
 
 function formatInvoiceDate(date) {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', {
+  // Handle both Date objects and timestamps (Stripe returns seconds, server may convert to Date)
+  let dateObj;
+  if (typeof date === 'number') {
+    // If it's a large number (seconds), convert to milliseconds
+    dateObj = date > 10000000000 ? new Date(date) : new Date(date * 1000);
+  } else {
+    dateObj = typeof date === 'string' ? new Date(date) : date;
+  }
+  if (isNaN(dateObj.getTime())) return '-';
+  return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
@@ -198,8 +210,17 @@ function renderSubscriptionDetails() {
 
   // Calculate dates and days
   const now = new Date();
-  const periodEnd = sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : new Date(now.getTime() + 30 * 86400000);
-  const periodStart = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : new Date(now.getTime() - 30 * 86400000);
+  // Handle both Date objects and timestamps (server converts to Date, but invoice API may return seconds)
+  const periodEnd = sub.currentPeriodEnd instanceof Date && !isNaN(sub.currentPeriodEnd.getTime()) 
+    ? sub.currentPeriodEnd 
+    : (typeof sub.currentPeriodEnd === 'number' 
+        ? new Date(sub.currentPeriodEnd > 10000000000 ? sub.currentPeriodEnd : sub.currentPeriodEnd * 1000)
+        : new Date(now.getTime() + 30 * 86400000));
+  const periodStart = sub.currentPeriodStart instanceof Date && !isNaN(sub.currentPeriodStart.getTime())
+    ? sub.currentPeriodStart
+    : (typeof sub.currentPeriodStart === 'number'
+        ? new Date(sub.currentPeriodStart > 10000000000 ? sub.currentPeriodStart : sub.currentPeriodStart * 1000)
+        : new Date(now.getTime() - 30 * 86400000));
   
   // Calculate days remaining
   let daysLeft;
