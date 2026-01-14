@@ -1,13 +1,13 @@
 /**
- * subscriptions.js - Refactored
- * Fully dynamic subscription management with Stripe
+ * subscriptions.js - Fully refactored
+ * Handles subscription management, Stripe Elements, and payment flow
  */
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 const STRIPE_PUBLIC_KEY = 'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 const stripe = Stripe(STRIPE_PUBLIC_KEY);
 
-// Debug mode for detailed logs
+// Debug mode
 const DEBUG = true;
 
 // Globals
@@ -27,9 +27,9 @@ const cardErrors = document.getElementById('cardErrors');
 const userSubscriptionsSection = document.getElementById('userSubscriptionsSection');
 const userSubscriptionsContainer = document.getElementById('userSubscriptionsContainer');
 
-// ----------------------------------------
-// Utility Functions
-// ----------------------------------------
+// -------------------------------
+// Utilities
+// -------------------------------
 async function handleApiResponse(response) {
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
@@ -59,9 +59,9 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
-// ----------------------------------------
+// -------------------------------
 // Stripe Elements
-// ----------------------------------------
+// -------------------------------
 function initializeStripeElements() {
     try {
         const elements = stripe.elements();
@@ -85,9 +85,9 @@ function initializeStripeElements() {
     }
 }
 
-// ----------------------------------------
+// -------------------------------
 // Event Listeners
-// ----------------------------------------
+// -------------------------------
 function setupEventListeners() {
     if (paymentForm) paymentForm.addEventListener('submit', handlePaymentSubmit);
     if (cardElement) cardElement.on('change', e => cardErrors.textContent = e.error?.message || '');
@@ -95,9 +95,9 @@ function setupEventListeners() {
     if (confirmCancelBtn) confirmCancelBtn.addEventListener('click', handleConfirmCancel);
 }
 
-// ----------------------------------------
-// Load and Display Plans
-// ----------------------------------------
+// -------------------------------
+// Load Plans
+// -------------------------------
 async function loadPlans() {
     try {
         const response = await fetch(`${API_BASE}/api/v1/subscriptions/plans`);
@@ -137,13 +137,13 @@ function displayPlans(plans) {
     if (plansLoading) plansLoading.style.display = 'none';
 }
 
-function hasActiveSubscription(planId) {
-    return userSubscriptions.some(sub => sub.isActive && sub.plan === planId);
+function hasActiveSubscription(planId = null) {
+    return userSubscriptions.some(sub => sub.isActive && (!planId || sub.plan === planId));
 }
 
-// ----------------------------------------
+// -------------------------------
 // Select Plan & Payment
-// ----------------------------------------
+// -------------------------------
 async function selectPlan(planId) {
     selectedPlan = planId;
     if (!userToken) {
@@ -151,6 +151,7 @@ async function selectPlan(planId) {
         setTimeout(() => window.location.href = `/pages/login.html?redirect=/subscriptions.html`, 1500);
         return;
     }
+    await loadUserSubscriptions(); // Always refresh subscriptions
     if (hasActiveSubscription(planId)) {
         showAlert('You already have this subscription', 'warning');
         return;
@@ -173,7 +174,11 @@ async function handlePaymentSubmit(e) {
     submitBtn.disabled = true; submitText.style.display = 'none'; submitSpinner.style.display = 'inline';
 
     try {
-        const { paymentMethod, error } = await stripe.createPaymentMethod({ type: 'card', card: cardElement, billing_details: { name, email } });
+        const { paymentMethod, error } = await stripe.createPaymentMethod({ 
+            type: 'card', 
+            card: cardElement, 
+            billing_details: { name, email } 
+        });
         if (error) throw new Error(error.message);
 
         const response = await fetch(`${API_BASE}/api/v1/subscriptions/create`, {
@@ -198,9 +203,9 @@ async function handlePaymentSubmit(e) {
     }
 }
 
-// ----------------------------------------
-// Load User Subscriptions
-// ----------------------------------------
+// -------------------------------
+// User Subscriptions
+// -------------------------------
 async function loadUserSubscriptions() {
     if (!userToken) return;
 
@@ -227,9 +232,6 @@ function togglePlansVisibility() {
     }
 }
 
-// ----------------------------------------
-// Display User Subscriptions
-// ----------------------------------------
 function displayUserSubscriptions(subs) {
     if (!userSubscriptionsContainer) return;
     userSubscriptionsContainer.innerHTML = '';
@@ -262,9 +264,9 @@ function displayUserSubscriptions(subs) {
     });
 }
 
-// ----------------------------------------
-// Cancel & Resume Subscriptions
-// ----------------------------------------
+// -------------------------------
+// Cancel Subscription
+// -------------------------------
 async function handleConfirmCancel() {
     if (!currentSubscriptionId) return showAlert('Subscription ID not found', 'error');
     const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
@@ -288,9 +290,9 @@ async function handleConfirmCancel() {
     }
 }
 
-// ----------------------------------------
+// -------------------------------
 // Init
-// ----------------------------------------
+// -------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
     if (DEBUG) console.log('🚀 Subscriptions page loaded');
     initializeStripeElements();
