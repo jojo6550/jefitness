@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 const router = express.Router();
 
-// Lazy initialization of Stripe to avoid issues in test environment
+// Lazy Stripe initialization
 let stripeInstance = null;
 const getStripe = () => {
   if (!stripeInstance && process.env.STRIPE_SECRET_KEY) {
@@ -14,74 +14,56 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-/**
- * Webhook signature verification
- * Stripe sends requests signed with your endpoint's secret
- * You can find this in: https://dashboard.stripe.com/webhooks
- */
+// Stripe webhook secret
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-/**
- * POST /webhooks/stripe
- * Receive and process Stripe webhook events
- * 
- * This endpoint handles the following events:
- * - customer.created: When a customer is created in Stripe
- * - customer.subscription.created: When a subscription is created
- * - customer.subscription.updated: When a subscription is updated
- * - customer.subscription.deleted: When a subscription is canceled/deleted
- * - invoice.created: When an invoice is created
- * - invoice.payment_succeeded: When an invoice payment succeeds
- * - invoice.payment_failed: When an invoice payment fails
- * - payment_intent.succeeded: When a payment intent succeeds
- * - payment_intent.payment_failed: When a payment intent fails
- */
-router.post('/stripe', process.env.NODE_ENV === 'test' ? express.json() : express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
+// ===== DYNAMIC PLAN MAP =====
+// Add new plans here only
+const PLAN_MAP = {
+  [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
+  [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
+  [process.env.STRIPE_PRICE_6_MONTH]: '6-month',
+  [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
+};
 
+// Middleware to parse Stripe webhook payload correctly
+const webhookMiddleware =
+  process.env.NODE_ENV === 'test'
+    ? express.json()
+    : express.raw({ type: 'application/json' });
+
+// ===== ROUTE =====
+router.post('/stripe', webhookMiddleware, async (req, res) => {
+  const sig = req.headers['stripe-signature'];
   let event;
 
   try {
-    // Verify the event came from Stripe
     const stripe = getStripe();
-    if (!stripe) {
-      throw new Error('Stripe not initialized');
-    }
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      webhookSecret
-    );
+    if (!stripe) throw new Error('Stripe not initialized');
+
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error(`⚠️ Webhook signature verification failed.`, err.message);
+    console.error('⚠️ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Log the event
   console.log(`📨 Received webhook event: ${event.type}`);
 
   try {
-    // Handle different event types
     switch (event.type) {
-      // ===== CUSTOMER EVENTS =====
       case 'customer.created':
         await handleCustomerCreated(event.data.object);
         break;
 
-      // ===== SUBSCRIPTION EVENTS =====
       case 'customer.subscription.created':
-        await handleSubscriptionCreated(event.data.object);
-        break;
-
       case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object);
+        await handleSubscriptionUpsert(event.data.object, event.type === 'customer.subscription.updated');
         break;
 
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object);
         break;
 
-      // ===== INVOICE EVENTS =====
       case 'invoice.created':
         await handleInvoiceCreated(event.data.object);
         break;
@@ -94,7 +76,6 @@ router.post('/stripe', process.env.NODE_ENV === 'test' ? express.json() : expres
         await handleInvoicePaymentFailed(event.data.object);
         break;
 
-      // ===== PAYMENT INTENT EVENTS =====
       case 'payment_intent.succeeded':
         await handlePaymentIntentSucceeded(event.data.object);
         break;
@@ -108,366 +89,167 @@ router.post('/stripe', process.env.NODE_ENV === 'test' ? express.json() : expres
         break;
 
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
 
-    // Return a response to acknowledge receipt of the event
     res.send('Webhook received');
   } catch (error) {
     console.error(`Error processing webhook event ${event.type}:`, error);
-    // Still return 200 to prevent Stripe from retrying
-    // Log this for manual review
-    res.json({ 
-      received: true,
-      error: error.message 
-    });
+    res.json({ received: true, error: error.message });
   }
 });
 
-// ===========================
-// EVENT HANDLER FUNCTIONS
-// ===========================
+// ===== HELPERS =====
 
-/**
- * Handle customer.created event
- * Called when a Stripe customer is created
- */
+// Get plan dynamically from price ID
+const getPlanFromPrice = (priceId) => PLAN_MAP[priceId] || 'unknown-plan';
+
 async function handleCustomerCreated(customer) {
   console.log(`✅ Customer created: ${customer.id}`);
-  
-  // Customer metadata already contains user info from creation
-  // Store additional info if needed
 }
 
-/**
- * Handle customer.subscription.created event
- * Called when a subscription is created in Stripe
- */
-async function handleSubscriptionCreated(subscription) {
-  console.log(`✅ Subscription created: ${subscription.id}`);
+async function handleSubscriptionUpsert(subscription, isUpdate = false) {
+  const user = await User.findOne({ stripeCustomerId: subscription.customer }) ||
+               await User.findOne({ stripeSubscriptionId: subscription.id });
 
-  try {
-    // Find user by Stripe customer ID
-    const user = await User.findOne({ stripeCustomerId: subscription.customer });
+  if (!user) {
+    console.warn(`User not found for subscription ${subscription.id}`);
+    return;
+  }
 
-    if (!user) {
-      console.warn(`User not found for customer ${subscription.customer}`);
-      return;
-    }
+  const priceId = subscription.items?.data[0]?.price?.id;
+  const plan = getPlanFromPrice(priceId);
 
-    // Get plan from price
-    let plan = '1-month';
-    const priceId = subscription.items.data[0]?.price.id;
-
-    // Match price ID to plan
-    const planMap = {
-      [process.env.STRIPE_PRICE_1_MONTH || 'price_1NfYT7GBrdnKY4igWvWr9x7q']: '1-month',
-      [process.env.STRIPE_PRICE_3_MONTH || 'price_1NfYT7GBrdnKY4igX2Ks1a8r']: '3-month',
-      [process.env.STRIPE_PRICE_6_MONTH || 'price_1NfYT7GBrdnKY4igY3Lt2b9s']: '6-month',
-      [process.env.STRIPE_PRICE_12_MONTH || 'price_1NfYT7GBrdnKY4igZ4Mu3c0t']: '12-month'
+  if (isUpdate) {
+    user.subscription = {
+      isActive: subscription.status === 'active',
+      plan,
+      stripePriceId: priceId,
+      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
+      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
     };
-
-    if (planMap[priceId]) {
-      plan = planMap[priceId];
-    }
-
-    // Create or update Subscription document
+    await user.save();
+    console.log(`✅ User subscription updated: ${user._id}, plan: ${plan}`);
+  } else {
     const subscriptionDoc = await Subscription.findOneAndUpdate(
       { stripeSubscriptionId: subscription.id },
       {
         userId: user._id,
         stripeCustomerId: subscription.customer,
         stripeSubscriptionId: subscription.id,
-        plan: plan,
+        plan,
         stripePriceId: priceId,
         currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
         currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
         status: subscription.status,
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
         billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
-        amount: subscription.items.data[0]?.price.unit_amount || 0,
-        currency: subscription.items.data[0]?.price.currency || 'usd',
-        lastWebhookEventAt: new Date()
+        amount: subscription.items?.data[0]?.price?.unit_amount || 0,
+        currency: subscription.items?.data[0]?.price?.currency || 'usd',
+        lastWebhookEventAt: new Date(),
       },
       { upsert: true, new: true }
     );
-
-    console.log(`✅ Subscription document created/updated: ${subscriptionDoc._id}, status: ${subscription.status}, plan: ${plan}`);
-
-  } catch (error) {
-    console.error(`Error handling subscription created event:`, error);
-    throw error;
+    console.log(`✅ Subscription created: ${subscriptionDoc._id}, plan: ${plan}`);
   }
 }
 
-/**
- * Handle customer.subscription.updated event
- * Called when a subscription is updated (plan changed, payment method updated, etc.)
- */
-async function handleSubscriptionUpdated(subscription) {
-  console.log(`✅ Subscription updated: ${subscription.id}`);
-
-  try {
-    // Find user by Stripe subscription ID
-    const user = await User.findOne({ stripeSubscriptionId: subscription.id });
-
-    if (!user) {
-      console.warn(`User not found for subscription ${subscription.id}`);
-      return;
-    }
-
-    // Get updated plan from price
-    let plan = user.subscriptionType || '1-month';
-    const priceId = subscription.items.data[0]?.price.id;
-
-    // Match price ID to plan
-    const planMap = {
-      [process.env.STRIPE_PRICE_1_MONTH || 'price_1NfYT7GBrdnKY4igWvWr9x7q']: '1-month',
-      [process.env.STRIPE_PRICE_3_MONTH || 'price_1NfYT7GBrdnKY4igX2Ks1a8r']: '3-month',
-      [process.env.STRIPE_PRICE_6_MONTH || 'price_1NfYT7GBrdnKY4igY3Lt2b9s']: '6-month',
-      [process.env.STRIPE_PRICE_12_MONTH || 'price_1NfYT7GBrdnKY4igZ4Mu3c0t']: '12-month'
-    };
-
-    if (planMap[priceId]) {
-      plan = planMap[priceId];
-    }
-
-    // Update user subscription data
-    user.subscription.isActive = subscription.status === 'active';
-    user.subscription.plan = plan;
-    user.subscription.stripePriceId = priceId;
-    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
-
-    await user.save();
-    console.log(`✅ User subscription updated: ${user._id}`);
-
-  } catch (error) {
-    console.error(`Error handling subscription updated event:`, error);
-    throw error;
-  }
-}
-
-/**
- * Handle customer.subscription.deleted event
- * Called when a subscription is canceled or deleted
- */
 async function handleSubscriptionDeleted(subscription) {
-  console.log(`✅ Subscription deleted: ${subscription.id}`);
+  const sub = await Subscription.findOneAndUpdate(
+    { stripeSubscriptionId: subscription.id },
+    { status: 'canceled', canceledAt: new Date(), lastWebhookEventAt: new Date() },
+    { new: true }
+  );
 
-  try {
-    // Update subscription status in database
-    const dbSubscription = await Subscription.findOneAndUpdate(
-      { stripeSubscriptionId: subscription.id },
-      {
-        status: 'canceled',
-        canceledAt: new Date(),
-        lastWebhookEventAt: new Date()
-      },
-      { new: true }
-    );
-
-    if (!dbSubscription) {
-      console.warn(`Subscription ${subscription.id} not found in database`);
-      return;
-    }
-
-    console.log(`✅ Subscription marked as canceled in database: ${subscription.id}`);
-
-  } catch (error) {
-    console.error(`Error handling subscription deleted event:`, error);
-    throw error;
-  }
+  if (!sub) console.warn(`Subscription ${subscription.id} not found`);
+  else console.log(`✅ Subscription canceled: ${subscription.id}`);
 }
 
-/**
- * Handle invoice.created event
- * Called when an invoice is created for a subscription
- */
 async function handleInvoiceCreated(invoice) {
   console.log(`✅ Invoice created: ${invoice.id}`);
-  // Could send notification here
 }
 
-/**
- * Handle invoice.payment_succeeded event
- * Called when an invoice payment is successful
- */
 async function handleInvoicePaymentSucceeded(invoice) {
   console.log(`✅ Invoice payment succeeded: ${invoice.id}`);
+  if (!invoice.subscription) return;
 
-  try {
-    if (invoice.subscription) {
-      // Update subscription status to active
-      const subscriptionDoc = await Subscription.findOneAndUpdate(
-        { stripeSubscriptionId: invoice.subscription },
-        {
-          status: 'active',
-          lastWebhookEventAt: new Date()
-        },
-        { new: true }
-      );
+  const sub = await Subscription.findOneAndUpdate(
+    { stripeSubscriptionId: invoice.subscription },
+    { status: 'active', lastWebhookEventAt: new Date() },
+    { new: true }
+  );
 
-      if (subscriptionDoc) {
-        console.log(`✅ Subscription status updated to active: ${subscriptionDoc._id}`);
-
-        // TODO: Send email confirmation to customer
-        // sendPaymentSuccessEmail(subscriptionDoc.userId, invoice);
-      }
-    }
-  } catch (error) {
-    console.error(`Error handling invoice payment succeeded event:`, error);
-    throw error;
-  }
+  if (sub) console.log(`✅ Subscription activated: ${sub._id}`);
 }
 
-/**
- * Handle invoice.payment_failed event
- * Called when an invoice payment fails
- */
 async function handleInvoicePaymentFailed(invoice) {
   console.log(`❌ Invoice payment failed: ${invoice.id}`);
+  if (!invoice.subscription) return;
 
-  try {
-    if (invoice.subscription) {
-      // Find user by Stripe subscription ID
-      const user = await User.findOne({ stripeSubscriptionId: invoice.subscription });
+  const user = await User.findOne({ stripeSubscriptionId: invoice.subscription });
+  if (!user) return;
 
-      if (user) {
-        // Update subscription status to past_due
-        user.subscriptionStatus = 'past_due';
-
-        await user.save();
-        console.log(`❌ User subscription marked as past_due: ${user._id}`);
-
-        // TODO: Send payment failure notification to customer
-        // sendPaymentFailureEmail(user._id, invoice);
-      }
-    }
-  } catch (error) {
-    console.error(`Error handling invoice payment failed event:`, error);
-    throw error;
-  }
+  user.subscriptionStatus = 'past_due';
+  await user.save();
+  console.log(`❌ User subscription marked past_due: ${user._id}`);
 }
 
-/**
- * Handle payment_intent.succeeded event
- * Called when a payment intent succeeds
- */
 async function handlePaymentIntentSucceeded(paymentIntent) {
   console.log(`✅ Payment intent succeeded: ${paymentIntent.id}`);
-  // Additional logic if needed
 }
 
-/**
- * Handle payment_intent.payment_failed event
- * Called when a payment intent fails
- */
 async function handlePaymentIntentFailed(paymentIntent) {
   console.log(`❌ Payment intent failed: ${paymentIntent.id}`);
-  // Additional logic if needed
 }
 
-/**
- * Handle checkout.session.completed event
- * Called when a checkout session is completed
- */
 async function handleCheckoutSessionCompleted(session) {
   console.log(`✅ Checkout session completed: ${session.id}`);
+  const user = await User.findOne({ stripeCustomerId: session.customer });
+  if (!user) return;
 
-  try {
-    // Handle subscription checkout completion
-    if (session.mode === 'subscription') {
-      // Find user by Stripe customer ID
-      const user = await User.findOne({ stripeCustomerId: session.customer });
+  const stripe = getStripe();
+  let subscription;
 
-      if (user) {
-        // Fetch the full subscription details from Stripe
-        let subscription;
-        try {
-          const stripe = getStripe();
-          if (stripe && session.subscription) {
-            subscription = await stripe.subscriptions.retrieve(session.subscription);
-          }
-        } catch (stripeErr) {
-          console.warn(`Could not fetch subscription from Stripe, using session data: ${stripeErr.message}`);
-        }
+  if (session.mode === 'subscription' && stripe && session.subscription) {
+    try { subscription = await stripe.subscriptions.retrieve(session.subscription); }
+    catch (err) { console.warn(`Could not fetch subscription from Stripe: ${err.message}`); }
 
-        // Get plan from price ID (reusing existing planMap)
-        let plan = '1-month';
-        const priceId = subscription?.items?.data[0]?.price?.id || session.subscription?.items?.data[0]?.price?.id;
+    const priceId = subscription?.items?.data[0]?.price?.id || session.subscription?.items?.data[0]?.price?.id;
+    const plan = getPlanFromPrice(priceId);
 
-        const planMap = {
-          [process.env.STRIPE_PRICE_1_MONTH || 'price_1NfYT7GBrdnKY4igWvWr9x7q']: '1-month',
-          [process.env.STRIPE_PRICE_3_MONTH || 'price_1NfYT7GBrdnKY4igX2Ks1a8r']: '3-month',
-          [process.env.STRIPE_PRICE_6_MONTH || 'price_1NfYT7GBrdnKY4igY3Lt2b9s']: '6-month',
-          [process.env.STRIPE_PRICE_12_MONTH || 'price_1NfYT7GBrdnKY4igZ4Mu3c0t']: '12-month'
-        };
+    await Subscription.findOneAndUpdate(
+      { stripeSubscriptionId: session.subscription },
+      {
+        userId: user._id,
+        stripeCustomerId: session.customer,
+        stripeSubscriptionId: session.subscription,
+        plan,
+        stripePriceId: priceId,
+        currentPeriodStart: subscription?.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
+        currentPeriodEnd: subscription?.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
+        status: subscription?.status || 'active',
+        cancelAtPeriodEnd: subscription?.cancel_at_period_end || false,
+        billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
+        amount: subscription?.items?.data[0]?.price?.unit_amount || 0,
+        currency: subscription?.items?.data[0]?.price?.currency || 'usd',
+        checkoutSessionId: session.id,
+        lastWebhookEventAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+    console.log(`✅ Subscription updated via checkout session, plan: ${plan}`);
+  }
 
-        if (planMap[priceId]) {
-          plan = planMap[priceId];
-        }
-
-        // Create or update Subscription document
-        const subscriptionDoc = await Subscription.findOneAndUpdate(
-          { stripeSubscriptionId: session.subscription },
-          {
-            userId: user._id,
-            stripeCustomerId: session.customer,
-            stripeSubscriptionId: session.subscription,
-            plan: plan,
-            stripePriceId: priceId,
-            currentPeriodStart: subscription?.current_period_start
-              ? new Date(subscription.current_period_start * 1000)
-              : null,
-            currentPeriodEnd: subscription?.current_period_end
-              ? new Date(subscription.current_period_end * 1000)
-              : null,
-            status: subscription?.status || 'active',
-            cancelAtPeriodEnd: subscription?.cancel_at_period_end || false,
-            billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
-            amount: subscription?.items?.data[0]?.price?.unit_amount || 0,
-            currency: subscription?.items?.data[0]?.price?.currency || 'usd',
-            checkoutSessionId: session.id,
-            lastWebhookEventAt: new Date()
-          },
-          { upsert: true, new: true }
-        );
-
-        console.log(`✅ Subscription document created/updated: ${subscriptionDoc._id}, plan: ${plan}, status: ${subscriptionDoc.status}`);
-      }
+  if (session.mode === 'payment' && session.metadata?.programId) {
+    const programId = session.metadata.programId;
+    const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
+    if (!alreadyAssigned) {
+      user.assignedPrograms.push({ programId, assignedAt: new Date() });
+      await user.save();
+      console.log(`✅ Program ${programId} assigned to user ${user._id}`);
+    } else {
+      console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
     }
-
-    // Handle one-time payment completion (program purchases)
-    if (session.mode === 'payment') {
-      // Check if this is a program purchase
-      if (session.metadata && session.metadata.programId) {
-        const programId = session.metadata.programId;
-        const user = await User.findOne({ stripeCustomerId: session.customer });
-
-        if (user) {
-          // Check if program is already assigned to prevent duplicates
-          const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
-
-          if (!alreadyAssigned) {
-            // Add program to user's assigned programs
-            user.assignedPrograms.push({
-              programId: programId,
-              assignedAt: new Date()
-            });
-
-            await user.save();
-            console.log(`✅ Program ${programId} assigned to user ${user._id}`);
-          } else {
-            console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
-          }
-        }
-      }
-    }
-
-  } catch (error) {
-    console.error(`Error handling checkout session completed event:`, error);
-    throw error;
   }
 }
 
