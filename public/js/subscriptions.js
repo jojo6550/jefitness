@@ -418,6 +418,7 @@ function renderUserSubscriptions() {
 async function selectPlan(planId) {
   selectedPlanId = planId;
 
+  const userToken = localStorage.getItem('token');
   if (!userToken) {
     showAlert('Please log in to subscribe', 'info');
     setTimeout(() => {
@@ -441,6 +442,12 @@ async function handlePaymentSubmit(e) {
 
   if (!selectedPlanId || !cardElement) {
     showAlert('Payment not ready', 'error');
+    return;
+  }
+
+  const userToken = localStorage.getItem('token');
+  if (!userToken) {
+    showAlert('Please log in to continue', 'error');
     return;
   }
 
@@ -508,6 +515,12 @@ async function handlePaymentSubmit(e) {
 async function handleConfirmCancel() {
   if (!currentSubscriptionId) {
     showAlert('Subscription not found', 'error');
+    return;
+  }
+
+  const userToken = localStorage.getItem('token');
+  if (!userToken) {
+    showAlert('Please log in to continue', 'error');
     return;
   }
 
