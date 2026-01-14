@@ -355,8 +355,8 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       return updatedSubscription;
     } else {
       // Cancel immediately
-      const deletedSubscription = await stripe.subscriptions.del(subscriptionId);
-      return deletedSubscription;
+      const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId);
+      return canceledSubscription;
     }
   } catch (error) {
     // Handle specific Stripe errors

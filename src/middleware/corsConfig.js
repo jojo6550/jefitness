@@ -13,7 +13,7 @@ const corsOptions = {
     const allowedOrigins = [
       'https://jefitness.onrender.com', // Same-origin for production
       'http://127.0.0.1:1000',
-      'http://localhost:1000',
+      'http://localhost:10000',
       process.env.FRONTEND_URL,
       process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim())
     ].filter(Boolean).flat();
