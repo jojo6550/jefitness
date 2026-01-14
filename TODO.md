@@ -1,26 +1,18 @@
-# Subscription Pricing Fix - TODO
+# TODO: View-Subscription Page Implementation
 
-## Task
-Fix incorrect price, totals, and savings display in subscriptions.js while preserving all existing logic, structure, and dynamic loading behavior.
+## Tasks
+- [x] 1. Create public/pages/view-subscription.html
+- [x] 2. Create public/js/view-subscription.js
+- [x] 3. Update src/routes/subscriptions.js - add invoice endpoint
+- [x] 4. Update public/js/router.js - add route for /view-subscription
+- [x] 5. Update public/js/subscriptions.js - redirect when user has subscription
 
-## Steps Completed ✅
-
-### 1. Fix renderPlans() function
-- [x] Remove hardcoded savingsMessages object
-- [x] Calculate intervalCount from plan ID (1, 3, 6, 12)
-- [x] Calculate actualTotal = plan.amount / 100 (total billed amount)
-- [x] Calculate effectiveMonthly = actualTotal / intervalCount
-- [x] Calculate baselineTotal = 18000 × intervalCount (in dollars)
-- [x] Calculate savingsAmount = baselineTotal - actualTotal
-- [x] Calculate savingsPercent = Math.round((savingsAmount / baselineTotal) × 100)
-- [x] Update billingText to show actual total billed
-- [x] Update price display to show effective monthly price
-- [x] Update savings display with calculated values
-- [x] Handle 1-month plan: no savings, show baseline price
-
-### 2. Testing
-- [ ] Verify 1-month plan shows $18,000/month with no savings
-- [ ] Verify 3-month plan shows correct effective monthly price and savings
-- [ ] Verify 6-month plan shows correct effective monthly price and savings
-- [ ] Verify 12-month plan shows correct effective monthly price and savings
+## Summary
+All tasks completed. Users with an active subscription are now automatically redirected from the subscriptions page to the view-subscription page where they can see:
+- Subscription type (1-month, 3-month, 6-month, 12-month)
+- Subscription status (Active, Canceled, Expired)
+- Days remaining with progress bar
+- Next billing date
+- Billing history with invoice downloads
+- Cancel subscription option
 

@@ -304,6 +304,11 @@ async function loadUserSubscriptions() {
 
     renderUserSubscriptions();
     toggleViews();
+
+    // Redirect to view-subscription page if user has an active subscription
+    if (hasActiveSubscription()) {
+      window.location.href = 'view-subscription.html';
+    }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
   }

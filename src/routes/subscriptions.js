@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
-const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing } = require('../services/stripe');
+const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices } = require('../services/stripe');
 
 const router = express.Router();
 
@@ -135,6 +135,41 @@ router.delete('/:id/cancel', auth, async (req, res) => {
   } catch (err) {
     console.error('Cancel subscription failed:', err);
     res.status(500).json({ success: false, error: { message: 'Failed to cancel subscription' } });
+  }
+});
+
+// ----------------------
+// 5. GET /:id/invoices
+// ----------------------
+router.get('/:id/invoices', auth, async (req, res) => {
+  try {
+    const subId = req.params.id;
+
+    // Verify subscription belongs to user
+    const subscription = await Subscription.findOne({ stripeSubscriptionId: subId, userId: req.user.id });
+    if (!subscription) return res.status(404).json({ success: false, error: { message: 'Subscription not found' } });
+
+    // Get invoices from Stripe
+    const invoices = await getSubscriptionInvoices(subId);
+
+    // Format invoices for frontend
+    const formattedInvoices = invoices.map(invoice => ({
+      id: invoice.id,
+      number: invoice.number,
+      status: invoice.status,
+      amount_paid: invoice.amount_paid,
+      total: invoice.total,
+      currency: invoice.currency,
+      created: invoice.created,
+      date: invoice.created ? new Date(invoice.created * 1000) : null,
+      invoice_pdf: invoice.invoice_pdf,
+      hosted_invoice_url: invoice.hosted_invoice_url
+    }));
+
+    res.json({ success: true, data: formattedInvoices });
+  } catch (err) {
+    console.error('Failed to fetch invoices:', err);
+    res.status(500).json({ success: false, error: { message: 'Failed to fetch invoices' } });
   }
 });
 

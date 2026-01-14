@@ -20,6 +20,8 @@ class Router {
       '/checkout': 'pages/checkout.html',
       '/clients': 'pages/trainer-clients.html',
       '/appointments': 'pages/trainer-appointments.html',
+      '/subscriptions': 'pages/subscriptions.html',
+      '/view-subscription': 'pages/view-subscription.html',
       ...routes
     };
     
