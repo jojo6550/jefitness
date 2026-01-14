@@ -65,8 +65,15 @@ function formatCurrency(amount) {
 
 function formatDate(date) {
   if (!date) return '-';
-  // Handle both Date objects and ISO strings
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Handle both Date objects and ISO strings from JSON
+  let dateObj;
+  if (typeof date === 'string') {
+    dateObj = new Date(date);
+  } else if (date instanceof Date) {
+    dateObj = date;
+  } else {
+    return '-';
+  }
   if (isNaN(dateObj.getTime())) return '-';
   return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -210,17 +217,29 @@ function renderSubscriptionDetails() {
 
   // Calculate dates and days
   const now = new Date();
-  // Handle both Date objects and timestamps (server converts to Date, but invoice API may return seconds)
-  const periodEnd = sub.currentPeriodEnd instanceof Date && !isNaN(sub.currentPeriodEnd.getTime()) 
-    ? sub.currentPeriodEnd 
-    : (typeof sub.currentPeriodEnd === 'number' 
-        ? new Date(sub.currentPeriodEnd > 10000000000 ? sub.currentPeriodEnd : sub.currentPeriodEnd * 1000)
-        : new Date(now.getTime() + 30 * 86400000));
-  const periodStart = sub.currentPeriodStart instanceof Date && !isNaN(sub.currentPeriodStart.getTime())
-    ? sub.currentPeriodStart
-    : (typeof sub.currentPeriodStart === 'number'
-        ? new Date(sub.currentPeriodStart > 10000000000 ? sub.currentPeriodStart : sub.currentPeriodStart * 1000)
-        : new Date(now.getTime() - 30 * 86400000));
+  
+  // Helper function to parse date values (handles strings from JSON, Date objects, and timestamps)
+  function parseDate(value, fallback) {
+    if (!value) return fallback;
+    // If it's a string (ISO format from JSON), try to parse it
+    if (typeof value === 'string') {
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? fallback : d;
+    }
+    // If it's a number (timestamp in seconds), convert to Date
+    if (typeof value === 'number') {
+      const timestamp = value > 10000000000 ? value : value * 1000;
+      return new Date(timestamp);
+    }
+    // If it's already a Date object
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      return value;
+    }
+    return fallback;
+  }
+  
+  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 86400000));
+  const periodStart = parseDate(sub.currentPeriodStart, new Date(now.getTime() - 30 * 86400000));
   
   // Calculate days remaining
   let daysLeft;
@@ -245,10 +264,10 @@ function renderSubscriptionDetails() {
   // Payment method (placeholder - would need to fetch from Stripe)
   document.getElementById('paymentMethod').textContent = 'Card ending in ••••';
 
-  // Progress bar
-  const totalDays = Math.ceil((periodEnd - periodStart) / 86400000);
-  const elapsedDays = Math.ceil((now - periodStart) / 86400000);
-  const progressPercent = Math.min(100, Math.max(0, (elapsedDays / totalDays) * 100));
+  // Progress bar - calculate based on exact time elapsed, not rounded days
+  const totalTime = periodEnd - periodStart;
+  const elapsedTime = now - periodStart;
+  const progressPercent = Math.min(100, Math.max(0, (elapsedTime / totalTime) * 100));
   
   const progressBar = document.getElementById('subscriptionProgress');
   progressBar.style.width = `${progressPercent}%`;
