@@ -62,7 +62,8 @@ async function loadAppointments() {
     }
 
     try {
-        const appointments = await authFetch(`${window.API_BASE}/api/appointments/user`);
+        const data = await authFetch(`${window.API_BASE}/api/appointments/user`);
+        const appointments = data.appointments;
         displayAppointments(appointments);
     } catch (err) {
         console.error('Error loading appointments:', err);
@@ -145,7 +146,8 @@ async function viewAppointment(id) {
 // ====== Load Trainers ======
 async function loadTrainersInto(selectElement, selectedId = '') {
     try {
-        const trainers = await authFetch(`${window.API_BASE}/api/users/trainers`);
+        const data = await authFetch(`${window.API_BASE}/api/users/trainers`);
+        const trainers = data.trainers;
         selectElement.innerHTML = '<option value="">Choose...</option>';
         trainers.forEach(trainer => {
             const option = document.createElement('option');
