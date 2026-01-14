@@ -74,14 +74,23 @@ router.post(
       if (!stripeSub.id || !item?.price?.id || !item.price.unit_amount)
         return res.status(500).json({ success: false, error: { message: 'Incomplete subscription data from Stripe' } });
 
+      let currentPeriodStart = stripeSub.current_period_start;
+      let currentPeriodEnd = stripeSub.current_period_end;
+      if (!currentPeriodStart || typeof currentPeriodStart !== 'number') {
+        currentPeriodStart = Math.floor(Date.now() / 1000);
+      }
+      if (!currentPeriodEnd || typeof currentPeriodEnd !== 'number') {
+        currentPeriodEnd = Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000);
+      }
+
       const subscription = await Subscription.create({
         userId: user._id,
         stripeCustomerId: customer.id,
         stripeSubscriptionId: stripeSub.id,
         plan,
         stripePriceId: item.price.id,
-        currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+        currentPeriodStart: new Date(currentPeriodStart * 1000),
+        currentPeriodEnd: new Date(currentPeriodEnd * 1000),
         status: stripeSub.status,
         amount: item.price.unit_amount / 100,
         currency: item.price.currency,
