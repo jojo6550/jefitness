@@ -1,6 +1,340 @@
-/* Subscription Cards Styling */
+/* ========================================
+   JE Fitness Subscription Cards Styling
+   Enhanced with beautiful designs & colors
+======================================== */
 
-/* Disabled Plan Cards (when user has active subscription) */
+/* --- Base Plan Card Container --- */
+.plans-container {
+    perspective: 1000px;
+    gap: 1.5rem !important;
+}
+
+/* --- Main Plan Card Styling --- */
+.plan-card {
+    position: relative;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    transition: var(--transition-base);
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* Card Hover Effect - Lift & Glow */
+.plan-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 
+        0 15px 30px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(0, 210, 255, 0.1),
+        inset 0 0 15px rgba(255, 255, 255, 0.03);
+    border-color: rgba(0, 210, 255, 0.3);
+}
+
+/* Inner glow effect */
+.plan-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.plan-card .card-body,
+.plan-card .card-header {
+    position: relative;
+    z-index: 1;
+}
+
+/* --- Card Header Styling --- */
+.plan-card .card-header {
+    padding: 1rem 0.75rem;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-secondary) !important;
+    border-bottom: 2px solid var(--border-color);
+}
+
+/* --- Header title styling */
+.plan-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtle pattern overlay on header */
+.plan-card .card-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05));
+    transform: skewX(-15deg) translateX(50%);
+}
+
+/* --- Price Display Enhancements --- */
+.plan-price {
+    position: relative;
+    padding: 1rem 1.25rem;
+    border-radius: var(--border-radius-md);
+    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+    display: inline-block;
+    min-width: 140px;
+    margin-bottom: 1rem !important;
+    box-shadow: 
+        inset 0 2px 4px rgba(255,255,255,0.05),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Price gradient text */
+.plan-price .price-amount {
+    background: linear-gradient(135deg, #fff 0%, var(--primary-accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 2.25rem;
+    font-weight: 800;
+    display: block;
+    line-height: 1.1;
+    animation: pricePulse 2s ease-in-out infinite;
+}
+
+@keyframes pricePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Currency symbol styling */
+.plan-price .currency {
+    font-size: 1.25rem;
+    font-weight: 600;
+    vertical-align: top;
+    margin-right: 2px;
+}
+
+/* Period text (e.g., /month) */
+.plan-price .period {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 0.25rem;
+    opacity: 0.8;
+}
+
+/* Price loading spinner container */
+.plan-price .spinner-border-sm {
+    --bs-spinner-width: 1.25rem;
+    --bs-spinner-height: 1.25rem;
+}
+
+/* --- Benefits List Styling --- */
+.plan-card .list-unstyled {
+    text-align: left;
+    padding: 0 0.25rem;
+    margin-bottom: 1rem !important;
+}
+
+.plan-card .list-unstyled li {
+    padding: 0.5rem 0.65rem;
+    margin-bottom: 0.35rem;
+    border-radius: var(--border-radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition-base);
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+/* Alternating background for better readability */
+.plan-card .list-unstyled li:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Hover effect on benefit items */
+.plan-card .list-unstyled li:hover {
+    background: rgba(0, 210, 255, 0.1);
+    border-color: rgba(0, 210, 255, 0.2);
+    transform: translateX(5px);
+}
+
+/* Check icon styling */
+.plan-card .list-unstyled li i {
+    font-size: 1.1rem;
+    margin-right: 0.75rem;
+    min-width: 24px;
+    text-align: center;
+    transition: var(--transition-base);
+}
+
+.plan-card .list-unstyled li:hover i {
+    transform: scale(1.2);
+}
+
+/* Different colors for different check icons */
+.plan-card .list-unstyled li i.bi-check-circle-fill.text-success {
+    color: #20c997 !important;
+    text-shadow: 0 0 10px rgba(32, 201, 151, 0.5);
+}
+
+/* --- Plan Button Styling --- */
+.plan-button {
+    position: relative;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 50px !important;
+    border: none !important;
+    overflow: hidden;
+    transition: var(--transition-base);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    font-size: 0.9rem;
+}
+
+/* Button hover effect */
+.plan-button:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* Button active effect */
+.plan-button:active {
+    transform: translateY(-1px) scale(0.98);
+}
+
+/* Button shine effect */
+.plan-button::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.plan-button:hover::after {
+    left: 100%;
+}
+
+/* --- Savings Badge Styling --- */
+.plan-savings {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: savingsPulse 2s ease-in-out infinite;
+}
+
+@keyframes savingsPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* --- Card Entrance Animations --- */
+.plan-card {
+    animation: cardFadeInUp 0.6s ease-out forwards;
+    opacity: 0;
+}
+
+.plan-card:nth-child(1) { animation-delay: 0.1s; }
+.plan-card:nth-child(2) { animation-delay: 0.2s; }
+.plan-card:nth-child(3) { animation-delay: 0.3s; }
+.plan-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes cardFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* --- Best Value / Popular Badge --- */
+.plan-card.featured {
+    position: relative;
+}
+
+.plan-card.featured::before {
+    content: '★ Best Value';
+    position: absolute;
+    top: 15px;
+    right: -30px;
+    background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+    color: #000;
+    padding: 0.35rem 2.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transform: rotate(45deg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* --- Card Border Accent --- */
+.plan-card .card-body {
+    border-top: 3px solid;
+}
+
+.plan-card.border-primary .card-body {
+    border-top-color: #0d6efd;
+}
+
+.plan-card.border-success .card-body {
+    border-top-color: #198754;
+}
+
+.plan-card.border-info .card-body {
+    border-top-color: #0dcaf0;
+}
+
+.plan-card.border-warning .card-body {
+    border-top-color: #ffc107;
+}
+
+/* Use Bootstrap button colors from JS classes */
+.plan-card .plan-button.btn-primary {
+    background: var(--bs-primary) !important;
+    border-color: var(--bs-primary) !important;
+}
+
+.plan-card .plan-button.btn-success {
+    background: var(--bs-success) !important;
+    border-color: var(--bs-success) !important;
+}
+
+.plan-card .plan-button.btn-info {
+    background: var(--bs-info) !important;
+    border-color: var(--bs-info) !important;
+    color: #000 !important;
+}
+
+.plan-card .plan-button.btn-warning {
+    background: var(--bs-warning) !important;
+    border-color: var(--bs-warning) !important;
+    color: #000 !important;
+}
+
+/* --- Disabled Plan Cards (when user has active subscription) --- */
 .disabled-plan {
     opacity: 0.6;
     position: relative;

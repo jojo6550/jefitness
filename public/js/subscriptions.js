@@ -151,21 +151,83 @@ function renderPlans() {
 
   plansContainer.innerHTML = '';
 
+  // Benefits for each plan tier
+  const planBenefits = {
+    '1-month': [
+      'Access to basic workouts',
+      'Progress tracking',
+      'Community support',
+      'Mobile app access'
+    ],
+    '3-month': [
+      'Full access to all workouts',
+      'Personalized training plans',
+      'Advanced progress tracking',
+      'Priority community support',
+      'Mobile app access',
+      'Nutrition guidance'
+    ],
+    '6-month': [
+      'Everything in 3-month plan',
+      '1-on-1 trainer consultations',
+      'Custom meal planning',
+      'Advanced analytics',
+      'Priority support',
+      'Exclusive content access'
+    ],
+    '12-month': [
+      'Everything in 6-month plan',
+      'Unlimited trainer consultations',
+      'Advanced nutrition coaching',
+      'Premium analytics dashboard',
+      'VIP support',
+      'Exclusive premium content'
+    ]
+  };
+
+  // Border class for each plan
+  const planBorders = {
+    '1-month': 'border-primary',
+    '3-month': 'border-success',
+    '6-month': 'border-info',
+    '12-month': 'border-warning'
+  };
+
   availablePlans.forEach(plan => {
     const isCurrent = hasActiveSubscription(plan.id);
+    const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
+    const borderClass = planBorders[planId] || 'border-primary';
+    const benefits = planBenefits[planId] || planBenefits['1-month'];
     const price =
       plan.displayPrice ||
       (plan.amount ? `$${(plan.amount / 100).toFixed(2)}` : 'N/A');
 
+    // Build benefits list HTML
+    const benefitsHtml = benefits.map(benefit =>
+      `<li><i class="bi bi-check-circle-fill text-success"></i>${benefit}</li>`
+    ).join('');
+
     const card = document.createElement('div');
-    card.className = `plan-card ${isCurrent ? 'disabled-plan' : ''}`;
+    card.className = `plan-card ${borderClass} ${isCurrent ? 'disabled-plan' : ''}`;
     card.innerHTML = `
-      <h5>${plan.name}</h5>
-      <div class="plan-price">${price}<span>/month</span></div>
-      ${plan.savings ? `<div class="plan-savings">Save ${plan.savings}</div>` : ''}
-      <button class="plan-button" ${isCurrent ? 'disabled' : ''}>
-        ${isCurrent ? 'Current Plan' : 'Select Plan'}
-      </button>
+      <div class="card-header text-center">
+        <h3 class="card-title mb-0">${plan.name || 'Plan'}</h3>
+        ${plan.savings ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${plan.savings}</div>` : ''}
+      </div>
+      <div class="card-body text-center">
+        <div class="plan-price">
+          <span class="price-amount">
+            <span class="currency">$</span>${price}
+          </span>
+          <span class="period">/month</span>
+        </div>
+        <ul class="list-unstyled mb-4">
+          ${benefitsHtml}
+        </ul>
+        <button class="btn plan-button ${isCurrent ? '' : borderClass}" ${isCurrent ? 'disabled' : ''}>
+          ${isCurrent ? 'Current Plan' : 'Select Plan'}
+        </button>
+      </div>
     `;
 
     if (!isCurrent) {
