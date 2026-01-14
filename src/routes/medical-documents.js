@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 
@@ -75,6 +76,10 @@ router.post('/delete', auth, async (req, res) => {
         const { filename } = req.body;
         if (!filename) return res.status(400).json({ msg: 'Filename is required' });
 
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
@@ -100,6 +105,10 @@ router.get('/get', auth, async (req, res) => {
     try {
         if (!req.user || !req.user.id) return res.status(401).json({ msg: 'Unauthorized' });
 
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const user = await User.findById(req.user.id)
             .select('hasMedical medicalConditions medicalDocuments');
 
@@ -122,6 +131,11 @@ router.get('/get', auth, async (req, res) => {
 router.post('/save-info', auth, async (req, res) => {
     try {
         const { hasMedical, medicalConditions } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const user = await User.findByIdAndUpdate(
             req.user.id,
             { hasMedical: !!hasMedical, medicalConditions: medicalConditions || null },
@@ -147,6 +161,10 @@ router.get('/view/:filename', async (req, res) => {
         let decoded;
         try { decoded = jwt.verify(token, process.env.JWT_SECRET); }
         catch { return res.status(401).json({ msg: 'Invalid or expired token' }); }
+
+        if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
 
         const currentUser = await User.findById(decoded.id);
         if (!currentUser) return res.status(404).json({ msg: 'User not found' });
@@ -181,6 +199,11 @@ router.get('/view/:filename', async (req, res) => {
 router.get('/download/:filename', auth, async (req, res) => {
     try {
         const { filename } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({ msg: 'Invalid user ID' });
+        }
+
         const currentUser = await User.findById(req.user.id);
         if (!currentUser) return res.status(404).json({ msg: 'User not found' });
 
