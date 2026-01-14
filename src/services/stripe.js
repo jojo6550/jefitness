@@ -15,10 +15,10 @@ const getStripe = () => {
  * Each product should have at least one active recurring price
  */
 const PRODUCT_IDS = {
-  '1-month': process.env.STRIPE_PRODUCT_1_MONTH || 'prod_1NfYT7GBrdnKY4igWvWr9x7q', // Replace with actual Product ID
-  '3-month': process.env.STRIPE_PRODUCT_3_MONTH || 'prod_1NfYT7GBrdnKY4igX2Ks1a8r',
-  '6-month': process.env.STRIPE_PRODUCT_6_MONTH || 'prod_1NfYT7GBrdnKY4igY3Lt2b9s',
-  '12-month': process.env.STRIPE_PRODUCT_12_MONTH || 'prod_1NfYT7GBrdnKY4igZ4Mu3c0t'
+  '1-month': process.env.STRIPE_PRODUCT_1_MONTH, // Updated to match actual product
+  '3-month': process.env.STRIPE_PRODUCT_3_MONTH,
+  '6-month': process.env.STRIPE_PRODUCT_6_MONTH,
+  '12-month': process.env.STRIPE_PRODUCT_12_MONTH
 };
 
 /**
