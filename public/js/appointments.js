@@ -1,126 +1,79 @@
+// public/js/appointments.js
+
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+// ====== State ======
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
-let userSubscriptionStatus = null;
+let userSubscriptionStatus = false;
 
-// ====== Check Subscription Status ======
-async function checkSubscriptionStatus() {
+// ====== Helper: Fetch with Auth ======
+async function authFetch(url, options = {}) {
     const token = localStorage.getItem('token');
-    if (!token) return false;
+    if (!token) throw new Error('No auth token found');
 
+    options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    };
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+    return res.json();
+}
+
+// ====== Subscription Check ======
+async function checkSubscriptionStatus() {
     try {
-        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const data = await authFetch(`${window.API_BASE}/api/v1/subscriptions/user/current`);
+        const sub = data.data;
 
-        if (!response.ok) {
-            console.warn('Could not check subscription status');
-            return false;
-        }
+        const hasActiveSub = sub?.hasActiveSubscription || (sub?.hasSubscription && sub?.isActive);
+        const isPeriodValid = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) > new Date() : true;
 
-        const subsData = await response.json();
-
-        console.log('========================================');
-        console.log('🔍 SUBSCRIPTION DEBUG - Frontend (appointments.js)');
-        console.log('========================================');
-        console.log('Raw API Response:', JSON.stringify(subsData, null, 2));
-
-        if (subsData.success && subsData.data) {
-            const data = subsData.data;
-
-            console.log('--- Field Analysis ---');
-            console.log('data.hasSubscription:', data.hasSubscription);
-            console.log('data.status:', data.status);
-            console.log('data.isActive:', data.isActive);
-            console.log('data.hasActiveSubscription:', data.hasActiveSubscription);
-            console.log('data.currentPeriodEnd:', data.currentPeriodEnd);
-            console.log('data.plan:', data.plan);
-            if (data.source) console.log('data.source:', data.source);
-
-            // Check hasActiveSubscription from API (computed server-side from database fields)
-            // This is the authoritative check that reads directly from user model
-            const hasActiveSub = data.hasActiveSubscription === true ||
-                                 (data.hasSubscription === true && data.isActive === true);
-
-            console.log('--- Logic Calculation ---');
-            console.log('hasActiveSub (from API):', data.hasActiveSubscription);
-            console.log('hasSubscription && isActive:', data.hasSubscription === true && data.isActive === true);
-            console.log('Combined hasActiveSub:', hasActiveSub);
-
-            // Also check if currentPeriodEnd exists and hasn't passed
-            let isPeriodValid = true;
-            if (data.currentPeriodEnd) {
-                const periodEnd = new Date(data.currentPeriodEnd);
-                const now = new Date();
-                isPeriodValid = periodEnd > now;
-                console.log('periodEnd:', periodEnd.toISOString());
-                console.log('now:', now.toISOString());
-                console.log('isPeriodValid:', isPeriodValid);
-            } else {
-                console.log('No currentPeriodEnd, assuming valid');
-            }
-
-            const hasActiveSubscription = hasActiveSub && isPeriodValid;
-
-            console.log('--- Final Result ---');
-            console.log('hasActiveSub && isPeriodValid:', hasActiveSub, '&&', isPeriodValid, '=', hasActiveSubscription);
-            console.log('========================================');
-
-            userSubscriptionStatus = hasActiveSubscription;
-            return hasActiveSubscription;
-        } else {
-            console.log('⚠️ No subscription data in response');
-            console.log('========================================');
-            userSubscriptionStatus = false;
-            return false;
-        }
-    } catch (error) {
-        console.error('Error checking subscription status:', error);
+        userSubscriptionStatus = hasActiveSub && isPeriodValid;
+        return userSubscriptionStatus;
+    } catch (err) {
+        console.error('Error checking subscription:', err);
+        userSubscriptionStatus = false;
         return false;
     }
 }
 
 // ====== Load Appointments ======
 async function loadAppointments() {
-    try {
-        const response = await fetch(`${window.API_BASE}/api/appointments/user`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
-        });
+    if (!userSubscriptionStatus) {
+        showError('You need an active subscription to view appointments.');
+        return;
+    }
 
-        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-        const appointments = await response.json();
+    try {
+        const appointments = await authFetch(`${window.API_BASE}/api/appointments/user`);
         displayAppointments(appointments);
-    } catch (error) {
-        console.error('Error loading appointments:', error);
+    } catch (err) {
+        console.error('Error loading appointments:', err);
         showError('Failed to load appointments. Please try again.');
     }
 }
 
+// ====== Display Appointments ======
 function displayAppointments(appointments) {
-    const activeAppointments = appointments.filter(app => app.status !== 'cancelled');
     const tbody = document.getElementById('appointmentsTableBody');
     tbody.innerHTML = '';
 
+    const activeAppointments = appointments.filter(app => app.status !== 'cancelled');
     if (activeAppointments.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No appointments found</td></tr>`;
         return;
     }
 
     activeAppointments.forEach(app => {
-        const row = document.createElement('tr');
         const date = new Date(app.date).toLocaleDateString();
         const statusClass = app.status === 'scheduled' ? 'text-success' :
                             app.status === 'cancelled' ? 'text-danger' : 'text-warning';
-        const trainerName = app.trainerId ? `${app.trainerId.firstName || 'N/A'} ${app.trainerId.lastName || ''}` : 'N/A';
+        const trainerName = app.trainerId?.firstName ? `${app.trainerId.firstName} ${app.trainerId.lastName || ''}` : 'N/A';
 
+        const row = document.createElement('tr');
         row.innerHTML = `
             <td>${date}</td>
             <td>${app.time}</td>
@@ -135,9 +88,9 @@ function displayAppointments(appointments) {
         tbody.appendChild(row);
     });
 
-    document.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', e => viewAppointment(e.target.dataset.id)));
-    document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => editAppointment(e.target.dataset.id)));
-    document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteAppointment(e.target.dataset.id)));
+    tbody.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', e => viewAppointment(e.target.dataset.id)));
+    tbody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => editAppointment(e.target.dataset.id)));
+    tbody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteAppointment(e.target.dataset.id)));
 }
 
 // ====== Show Error ======
@@ -152,18 +105,10 @@ function showError(message) {
 }
 
 // ====== View Appointment ======
-async function viewAppointment(appointmentId) {
+async function viewAppointment(id) {
     try {
-        currentViewAppointmentId = appointmentId;
-        const response = await fetch(`${window.API_BASE}/api/appointments/${appointmentId}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-        const appointment = await response.json();
+        currentViewAppointmentId = id;
+        const appointment = await authFetch(`${window.API_BASE}/api/appointments/${id}`);
 
         const detailsDiv = document.getElementById('appointmentDetails');
         detailsDiv.innerHTML = `
@@ -177,21 +122,16 @@ async function viewAppointment(appointmentId) {
             <p><strong>Updated At:</strong> ${new Date(appointment.updatedAt).toLocaleString()}</p>`;
 
         new bootstrap.Modal(document.getElementById('appointmentModal')).show();
-    } catch (error) {
-        console.error('Error viewing appointment:', error);
-        alert('Failed to load appointment details. Please try again.');
+    } catch (err) {
+        console.error('Error viewing appointment:', err);
+        alert('Failed to load appointment details.');
     }
 }
 
-// ====== Reusable: Load Trainers into any select ======
+// ====== Load Trainers ======
 async function loadTrainersInto(selectElement, selectedId = '') {
     try {
-        const resp = await fetch(`${window.API_BASE}/api/users/trainers`, {
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-        });
-        if (!resp.ok) throw new Error('Failed to fetch trainers');
-        const trainers = await resp.json();
-
+        const trainers = await authFetch(`${window.API_BASE}/api/users/trainers`);
         selectElement.innerHTML = '<option value="">Choose...</option>';
         trainers.forEach(trainer => {
             const option = document.createElement('option');
@@ -199,7 +139,6 @@ async function loadTrainersInto(selectElement, selectedId = '') {
             option.textContent = `${trainer.firstName} ${trainer.lastName}`;
             selectElement.appendChild(option);
         });
-
         if (selectedId) selectElement.value = selectedId;
     } catch (err) {
         console.error('Error loading trainers:', err);
@@ -207,157 +146,118 @@ async function loadTrainersInto(selectElement, selectedId = '') {
 }
 
 // ====== Edit Appointment ======
-const editModalElement = document.getElementById('editAppointmentModal');
-const editModal = new bootstrap.Modal(editModalElement);
+const editModal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+async function editAppointment(id) {
+    try {
+        currentEditAppointmentId = id;
+        const app = await authFetch(`${window.API_BASE}/api/appointments/${id}`);
 
-function editAppointment(appointmentId) {
-    currentEditAppointmentId = appointmentId;
+        document.getElementById('editAppointmentDate').value = new Date(app.date).toISOString().slice(0, 10);
+        document.getElementById('editAppointmentTime').value = app.time;
+        document.getElementById('editAppointmentNotes').value = app.notes || '';
+        await loadTrainersInto(document.getElementById('editTrainerSelect'), app.trainerId?._id);
 
-    fetch(`${window.API_BASE}/api/appointments/${appointmentId}`, {
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
-    })
-    .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-        return res.json();
-    })
-    .then(async appointment => {
-        document.getElementById('editAppointmentDate').value = new Date(appointment.date).toISOString().slice(0, 10);
-        document.getElementById('editAppointmentTime').value = appointment.time;
-        document.getElementById('editAppointmentNotes').value = appointment.notes || '';
-
-        await loadTrainersInto(document.getElementById('editTrainerSelect'), appointment.trainerId?._id);
         editModal.show();
-    })
-    .catch(err => {
-        console.error('Error fetching appointment for edit:', err);
-        alert('Failed to load appointment details for editing. Please try again.');
-    });
+    } catch (err) {
+        console.error('Error editing appointment:', err);
+        alert('Failed to load appointment for editing.');
+    }
 }
 
 // ====== Save Edited Appointment ======
 document.getElementById('editAppointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-    const date = document.getElementById('editAppointmentDate').value;
-    const time = document.getElementById('editAppointmentTime').value;
-    const notes = document.getElementById('editAppointmentNotes').value;
-    const trainerId = document.getElementById('editTrainerSelect').value;
-
-    if (!date || !time) { alert('Date and time are required.'); return; }
+    if (!currentEditAppointmentId) return;
 
     try {
-        const res = await fetch(`${window.API_BASE}/api/appointments/${currentEditAppointmentId}`, {
+        const payload = {
+            date: document.getElementById('editAppointmentDate').value,
+            time: document.getElementById('editAppointmentTime').value,
+            notes: document.getElementById('editAppointmentNotes').value,
+            trainerId: document.getElementById('editTrainerSelect').value
+        };
+        await authFetch(`${window.API_BASE}/api/appointments/${currentEditAppointmentId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-            body: JSON.stringify({ date, time, notes, trainerId })
+            body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
+
         editModal.hide();
         loadAppointments();
         alert('Appointment updated successfully.');
     } catch (err) {
         console.error('Error updating appointment:', err);
-        alert('Failed to update appointment. Please try again.');
+        alert('Failed to update appointment.');
     }
 });
 
 // ====== Delete Appointment ======
-async function deleteAppointment(appointmentId) {
-    if (!confirm('Are you sure you want to delete this appointment? This action cannot be undone.')) return;
-
+async function deleteAppointment(id) {
+    if (!confirm('Are you sure you want to delete this appointment?')) return;
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/appointments/${appointmentId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+        await authFetch(`${window.API_BASE}/api/appointments/${id}`, { method: 'DELETE' });
         loadAppointments();
-    } catch (error) {
-        console.error('Error deleting appointment:', error);
-        alert('Failed to delete appointment. Please try again.');
+    } catch (err) {
+        console.error('Error deleting appointment:', err);
+        alert('Failed to delete appointment.');
     }
 }
 
-// ====== Create New Appointment ======
+// ====== Create Appointment ======
 document.getElementById('appointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
+    if (!userSubscriptionStatus) { alert('You need an active subscription to book appointments.'); return; }
 
-    const date = document.getElementById('appointmentDate').value;
-    const time = document.getElementById('appointmentTime').value;
-    const notes = document.getElementById('appointmentNotes').value;
-    const trainerId = document.getElementById('trainerSelect').value;
-
-    if (!date || !time || !trainerId) { alert('Date, time, and trainer are required.'); return; }
-
-    let res;
     try {
-        res = await fetch(`${window.API_BASE}/api/appointments`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('token') },
-            body: JSON.stringify({ date, time, notes, trainerId })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
-        await res.json();
+        const payload = {
+            date: document.getElementById('appointmentDate').value,
+            time: document.getElementById('appointmentTime').value,
+            notes: document.getElementById('appointmentNotes').value,
+            trainerId: document.getElementById('trainerSelect').value
+        };
+        if (!payload.date || !payload.time || !payload.trainerId) return alert('Date, time, and trainer are required.');
+
+        await authFetch(`${window.API_BASE}/api/appointments`, { method: 'POST', body: JSON.stringify(payload) });
 
         e.target.reset();
         loadAppointments();
         alert('Appointment booked successfully!');
     } catch (err) {
         console.error('Error creating appointment:', err);
-        // Try to get the error message from the response
-        if (res && res.status === 400) {
-            try {
-                const errorData = await res.json();
-                console.error('Server error message:', errorData.msg);
-                alert(`Failed to create appointment: ${errorData.msg}`);
-            } catch (parseErr) {
-                console.error('Could not parse error response:', parseErr);
-                alert('Failed to create appointment. Please try again.');
-            }
-        } else {
-            alert('Failed to create appointment. Please try again.');
-        }
+        alert('Failed to create appointment.');
     }
 });
 
-// ====== Init ======
+// ====== Initialization ======
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check subscription status first
-    const hasActiveSubscription = await checkSubscriptionStatus();
+    const hasSubscription = await checkSubscriptionStatus();
 
-    // Show/hide subscription lock message
+    // Subscription lock
     const subscriptionLock = document.getElementById('subscriptionLock');
-    if (subscriptionLock) {
-        subscriptionLock.style.display = hasActiveSubscription ? 'none' : 'block';
+    if (subscriptionLock) subscriptionLock.style.display = hasSubscription ? 'none' : 'block';
+
+    // Book Now button
+    const bookBtn = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#bookingModal"]');
+    if (bookBtn) {
+        bookBtn.disabled = !hasSubscription;
+        bookBtn.textContent = hasSubscription ? 'Book Now' : 'Subscription Required';
+        bookBtn.classList.toggle('btn-success', hasSubscription);
+        bookBtn.classList.toggle('btn-secondary', !hasSubscription);
     }
 
-    // Disable booking functionality for non-subscribers
-    const bookNowBtn = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#bookingModal"]');
-    if (bookNowBtn && !hasActiveSubscription) {
-        bookNowBtn.disabled = true;
-        bookNowBtn.textContent = 'Subscription Required';
-        bookNowBtn.classList.remove('btn-success');
-        bookNowBtn.classList.add('btn-secondary');
+    // Load appointments & trainers if subscribed
+    if (hasSubscription) {
+        await loadTrainersInto(document.getElementById('trainerSelect'));
+        await loadAppointments();
     }
 
-    loadAppointments();
-
-    // Load trainers into booking form only if user has subscription
-    if (hasActiveSubscription) {
-        const newTrainerSelect = document.getElementById('trainerSelect');
-        if (newTrainerSelect) await loadTrainersInto(newTrainerSelect);
-    }
-
-    // Set minimum date to today for date inputs
+    // Set minimum dates
     const today = new Date().toISOString().split('T')[0];
-    const appointmentDateInput = document.getElementById('appointmentDate');
-    const editAppointmentDateInput = document.getElementById('editAppointmentDate');
-    if (appointmentDateInput) appointmentDateInput.min = today;
-    if (editAppointmentDateInput) editAppointmentDateInput.min = today;
+    ['appointmentDate', 'editAppointmentDate'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input) input.min = today;
+    });
 
+    // Refresh button
     document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
     document.getElementById('editAppointmentBtn')?.addEventListener('click', () => {
         if (currentViewAppointmentId) editAppointment(currentViewAppointmentId);
