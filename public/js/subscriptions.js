@@ -164,6 +164,23 @@ function renderPlans() {
 
   plansContainer.innerHTML = '';
 
+  // If user has active subscription, show message and hide plans
+  if (hasActiveSubscription()) {
+    plansContainer.innerHTML = `
+      <div class="col-12 text-center py-5">
+        <div class="mb-4">
+          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h3 class="mb-3">You Have an Active Subscription</h3>
+        <p class="text-muted mb-4">You cannot choose a different plan while you have an active subscription.</p>
+        <a href="view-subscription.html" class="btn btn-primary btn-lg">
+          <i class="bi bi-credit-card me-2"></i>View My Subscription
+        </a>
+      </div>
+    `;
+    return;
+  }
+
   // Border class for each plan
   const planBorders = {
     '1-month': 'border-primary',
@@ -315,14 +332,19 @@ async function loadUserSubscriptions() {
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
+    // User should not be able to choose a different plan - only cancel
+    // If user has active subscription, redirect to view-subscription page
+    if (hasActiveSubscription()) {
+      log('User has active subscription - redirecting to view-subscription.html...');
+      showAlert('You already have an active subscription. You can view or cancel it from the My Subscription page.', 'info');
+      setTimeout(() => {
+        window.location.href = 'view-subscription.html';
+      }, 2000);
+      return;
+    }
+
     renderUserSubscriptions();
     toggleViews();
-
-    // Redirect to view-subscription page if user has an active subscription
-    if (hasActiveSubscription()) {
-      log('Redirecting to view-subscription.html...');
-      window.location.href = 'view-subscription.html';
-    }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
     log('Error loading subscriptions:', err.message);
