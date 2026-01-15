@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
         products[key] = {
           ...product,
           price: 100.1,
-          currency: 'usd'
+          currency: 'jmd'
         };
       }
     }
@@ -40,7 +40,7 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: true,
       products: Object.keys(PRODUCT_MAP).reduce((acc, key) => {
-        acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'usd' };
+        acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'jmd' };
         return acc;
       }, {}),
       error: 'Failed to load products'
@@ -96,7 +96,7 @@ router.post('/checkout', auth, async (req, res) => {
         totalPrice: (PRODUCT_MAP[item.productKey]?.defaultPrice || 1599) * item.quantity
       })),
       totalAmount: items.reduce((sum, i) => sum + (PRODUCT_MAP[i.productKey]?.defaultPrice || 1599) * i.quantity, 0),
-      currency: 'usd',
+      currency: 'jmd',
       status: 'pending'
     });
 

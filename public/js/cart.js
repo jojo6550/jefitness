@@ -48,14 +48,14 @@ function render() {
   document.getElementById('summary-total').textContent = `$${subtotal.toFixed(2)}`;
 }
 
-function saveCart() {
-  localStorage.setItem('jefitness_cart', JSON.stringify(cart));
-}
-
 function removeItem(key) {
   cart = cart.filter(i => i.productKey !== key);
   saveCart();
-  render();
+}
+
+function clearCart() {
+  cart = [];
+  saveCart();
 }
 
 async function checkout() {
@@ -90,7 +90,6 @@ function initCartPage() {
     clearBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to clear the cart?')) {
         clearCart();
-        render();
       }
     });
   }

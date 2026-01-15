@@ -587,10 +587,10 @@ async function deletePaymentMethod(paymentMethodId) {
  * Create a payment intent for manual payment processing
  * @param {string} customerId - Stripe customer ID
  * @param {number} amount - Amount in cents
- * @param {string} currency - Currency code (e.g., 'usd')
+ * @param {string} currency - Currency code (e.g., 'jmd')
  * @returns {Promise<Object>} Payment intent object
  */
-async function createPaymentIntent(customerId, amount, currency = 'usd') {
+async function createPaymentIntent(customerId, amount, currency = 'jmd') {
   try {
     const stripe = getStripe();
     if (!stripe) {
@@ -969,7 +969,7 @@ function formatProductForFrontend(product) {
     formattedPrice: oneTimePrice?.amount 
       ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
       : 'N/A',
-    currency: oneTimePrice?.currency || 'usd',
+    currency: oneTimePrice?.currency || 'jmd',
     images: product.images,
     metadata: product.metadata
   };

@@ -20,7 +20,7 @@ async function loadPrices() {
     const fallbackKeys = ['seamoss-small', 'seamoss-large', 'coconut-water', 'coconut-jelly'];
     fallbackKeys.forEach(key => {
       productPrices[key] = 100.1;
-      productsData[key] = { name: key, price: 100.1, currency: 'usd' };
+      productsData[key] = { name: key, price: 100.1, currency: 'jmd' };
     });
     updateProductCards();
   }

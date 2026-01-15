@@ -72,7 +72,7 @@ const SubscriptionSchema = new mongoose.Schema(
 
     currency: {
       type: String,
-      default: 'usd'
+      default: 'jmd'
     },
 
     billingEnvironment: {

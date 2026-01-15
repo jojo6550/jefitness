@@ -115,10 +115,10 @@ async function createStripeSubscription(user, plan) {
     const currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : new Date();
     const currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
 
-    // Validate currency - default to 'usd' if not supported
-    const allowedCurrencies = ['usd', 'eur', 'gbp'];
-    const stripeCurrency = subscription.items.data[0]?.price.currency || 'usd';
-    const currency = allowedCurrencies.includes(stripeCurrency.toLowerCase()) ? stripeCurrency.toLowerCase() : 'usd';
+    // Validate currency - default to 'jmd' if not supported
+    const allowedCurrencies = ['jmd', 'eur', 'gbp'];
+    const stripeCurrency = subscription.items.data[0]?.price.currency || 'jmd';
+    const currency = allowedCurrencies.includes(stripeCurrency.toLowerCase()) ? stripeCurrency.toLowerCase() : 'jmd';
 
     const subscriptionRecord = new Subscription({
       userId: user._id,

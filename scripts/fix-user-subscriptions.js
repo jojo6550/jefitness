@@ -104,7 +104,7 @@ async function createStripeSubscription(user, plan) {
       status: subscription.status,
       cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       amount: subscription.items.data[0]?.price.unit_amount || 0, // Amount in cents
-      currency: subscription.items.data[0]?.price.currency || 'usd',
+      currency: subscription.items.data[0]?.price.currency || 'jmd',
       billingEnvironment: user.billingEnvironment
     });
 

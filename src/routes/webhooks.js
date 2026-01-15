@@ -145,7 +145,7 @@ async function handleSubscriptionUpsert(subscription, isUpdate = false) {
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
         billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
         amount: subscription.items?.data[0]?.price?.unit_amount || 0,
-        currency: subscription.items?.data[0]?.price?.currency || 'usd',
+        currency: subscription.items?.data[0]?.price?.currency || 'jmd',
         lastWebhookEventAt: new Date(),
       },
       { upsert: true, new: true }
@@ -231,7 +231,7 @@ async function handleCheckoutSessionCompleted(session) {
         cancelAtPeriodEnd: subscription?.cancel_at_period_end || false,
         billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
         amount: subscription?.items?.data[0]?.price?.unit_amount || 0,
-        currency: subscription?.items?.data[0]?.price?.currency || 'usd',
+        currency: subscription?.items?.data[0]?.price?.currency || 'jmd',
         checkoutSessionId: session.id,
         lastWebhookEventAt: new Date(),
       },
