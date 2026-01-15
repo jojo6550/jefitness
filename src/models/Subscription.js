@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { cancelSubscription } = require('../services/stripe');
 
 /**
  * Stripe-backed subscription ONLY
@@ -86,5 +87,36 @@ const SubscriptionSchema = new mongoose.Schema(
 
 // 🔎 Fast active lookup
 SubscriptionSchema.index({ userId: 1, status: 1, currentPeriodEnd: -1 });
+
+// Pre-save hook to ensure Stripe cancellation when status changes to 'canceled'
+SubscriptionSchema.pre('save', async function(next) {
+  try {
+    // Check if status is being changed to 'canceled'
+    if (this.isModified('status') && this.status === 'canceled' && this.stripeSubscriptionId) {
+      // Only cancel on Stripe if not already canceled
+      // We can't easily check Stripe status here without an API call,
+      // but the cancelSubscription function handles "already canceled" errors gracefully
+      console.log(`🔄 Canceling subscription ${this.stripeSubscriptionId} on Stripe due to DB status change`);
+
+      try {
+        // Cancel immediately (atPeriodEnd = false) when DB is set to canceled
+        await cancelSubscription(this.stripeSubscriptionId, false);
+        console.log(`✅ Successfully canceled subscription ${this.stripeSubscriptionId} on Stripe`);
+      } catch (stripeError) {
+        // If already canceled, that's fine - just log it
+        if (stripeError.message.includes('already canceled') || stripeError.message.includes('does not exist')) {
+          console.log(`ℹ️ Subscription ${this.stripeSubscriptionId} was already canceled on Stripe`);
+        } else {
+          // For other errors, log but don't fail the save
+          console.error(`❌ Failed to cancel subscription ${this.stripeSubscriptionId} on Stripe:`, stripeError.message);
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    console.error('Error in subscription pre-save hook:', error);
+    next(error);
+  }
+});
 
 module.exports = mongoose.model('Subscription', SubscriptionSchema);

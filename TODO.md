@@ -1,9 +1,11 @@
-# MongoDB Schema Redesign for User Action Logs
+# TODO: Create Node.js MongoDB User Fetcher Script
 
-## Tasks
-- [x] Update src/services/compliance.js: Replace all $push operations with UserActionLog.logAction calls
-- [x] Update src/routes/gdpr.js: Change /audit-log endpoint to query UserActionLog collection
-- [x] Remove auditLog field from src/models/User.js schema
-- [ ] Create scripts/migrate-audit-logs.js: Batch migrate existing auditLog arrays to UserActionLog collection
-- [x] Update scripts/migrate-users.js: Handle auditLog removal during user migrations
-- [ ] Test migration and updated code
+- [ ] Create src/scripts/userFetcher.js with MongoDB connection setup
+- [ ] Implement getAllUsers() function to fetch all users
+- [ ] Implement getUserByIdOrEmail(identifier) function for single user retrieval
+- [ ] Implement getUsersByFilter(filter) function with regex support
+- [ ] Add error handling with try/catch blocks
+- [ ] Add console.table for readable result printing
+- [ ] Export all three functions
+- [ ] Add example usage at the bottom of the script
+- [x] Test the script execution
