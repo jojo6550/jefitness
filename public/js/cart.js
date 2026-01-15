@@ -1,3 +1,11 @@
+// Reusable helper to hide the page loading overlay
+function hidePageLoader() {
+  const loading = document.getElementById('page-loading');
+  if (loading) {
+    loading.style.display = 'none';
+  }
+}
+
 let cart = JSON.parse(localStorage.getItem('jefitness_cart') || '[]');
 
 function saveCart() {
@@ -10,14 +18,18 @@ function render() {
   const emptyCart = document.getElementById('empty-cart');
   const cartItemsContainer = document.getElementById('cart-items-container');
 
+  // Defensive checks: ensure elements exist before manipulating
   if (!container || !emptyCart || !cartItemsContainer) return;
 
   if (cart.length === 0) {
     emptyCart.style.display = 'block';
     cartItemsContainer.style.display = 'none';
-    document.getElementById('summary-item-count').textContent = '0';
-    document.getElementById('summary-subtotal').textContent = '$0.00';
-    document.getElementById('summary-total').textContent = '$0.00';
+    const itemCountEl = document.getElementById('summary-item-count');
+    const subtotalEl = document.getElementById('summary-subtotal');
+    const totalEl = document.getElementById('summary-total');
+    if (itemCountEl) itemCountEl.textContent = '0';
+    if (subtotalEl) subtotalEl.textContent = '$0.00';
+    if (totalEl) totalEl.textContent = '$0.00';
     return;
   }
 
@@ -43,9 +55,12 @@ function render() {
       </div>`;
   });
 
-  document.getElementById('summary-item-count').textContent = itemCount;
-  document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
-  document.getElementById('summary-total').textContent = `$${subtotal.toFixed(2)}`;
+  const itemCountEl = document.getElementById('summary-item-count');
+  const subtotalEl = document.getElementById('summary-subtotal');
+  const totalEl = document.getElementById('summary-total');
+  if (itemCountEl) itemCountEl.textContent = itemCount;
+  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  if (totalEl) totalEl.textContent = `$${subtotal.toFixed(2)}`;
 }
 
 function removeItem(key) {
@@ -62,17 +77,23 @@ async function checkout() {
   const token = localStorage.getItem('token');
   if (!token) return location.href = 'login.html';
 
-  const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ items: cart })
-  });
+  try {
+    const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ items: cart })
+    });
 
-  const data = await res.json();
-  if (data.success) location.href = data.checkoutUrl;
+    const data = await res.json();
+    if (data.success) location.href = data.checkoutUrl;
+    else throw new Error(data.error || 'Checkout failed');
+  } catch (err) {
+    console.error('Checkout failed:', err);
+    alert(err.message);
+  }
 }
 
 // Check for successful purchase and clear cart
@@ -90,7 +111,7 @@ function checkCheckoutStatus() {
 // Load and display order history
 async function loadOrderHistory() {
   const token = localStorage.getItem('token');
-  if (!token) return;
+  if (!token) return; // Skip if not authenticated, no error
 
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/purchases`, {
@@ -100,9 +121,14 @@ async function loadOrderHistory() {
     const data = await res.json();
     if (data.success) {
       renderOrderHistory(data.purchases);
+    } else {
+      // API succeeded but no data, render empty
+      renderOrderHistory([]);
     }
   } catch (err) {
     console.error('Failed to load order history:', err);
+    // On failure, render empty to avoid blocking
+    renderOrderHistory([]);
   }
 }
 
@@ -161,18 +187,25 @@ function showToast(message) {
   }
 }
 
-function initCartPage() {
+async function initCartPage() {
+  // Render cart synchronously
   render();
   checkCheckoutStatus();
-  loadOrderHistory();
 
-  // Hide loading, show main content
-  const loading = document.getElementById('page-loading');
+  // Await order history load (async, may be skipped if no token)
+  await loadOrderHistory();
+
+  // Hide loading overlay after data is loaded
+  hidePageLoader();
+
+  // Fallback timeout to ensure loader hides even if async hangs (though unlikely)
+  setTimeout(hidePageLoader, 5000);
+
+  // Show main content (already in HTML, but ensure)
   const mainContent = document.getElementById('main-content');
-  if (loading) loading.style.display = 'none';
   if (mainContent) mainContent.style.display = 'block';
 
-  // Clear cart button
+  // Attach event listeners
   const clearBtn = document.getElementById('clear-cart-btn');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
@@ -182,7 +215,6 @@ function initCartPage() {
     });
   }
 
-  // Checkout button
   const checkoutBtn = document.getElementById('checkout-btn');
   if (checkoutBtn) {
     checkoutBtn.addEventListener('click', checkout);
