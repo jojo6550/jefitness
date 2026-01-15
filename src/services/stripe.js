@@ -36,6 +36,16 @@ const PRODUCT_MAP = {
     productId: process.env.STRIPE_PRODUCT_SEAMOSS_LARGE,
     priceId: process.env.STRIPE_PRICE_SEAMOSS_LARGE,
     name: 'Seamoss - Large Size'
+  },
+  'coconut-water': {
+    productId: process.env.STRIPE_PRODUCT_COCONUT_WATER,
+    priceId: process.env.STRIPE_PRICE_COCONUT_WATER,
+    name: 'Coconut Water'
+  },
+  'coconut-jelly': {
+    productId: process.env.STRIPE_PRODUCT_COCONUT_JELLY,
+    priceId: process.env.STRIPE_PRICE_COCONUT_JELLY,
+    name: 'Coconut Jelly'
   }
 };
 

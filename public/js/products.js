@@ -325,31 +325,34 @@ async function checkAuth() {
 // Initialize page
 async function initializePage() {
   const loadingEl = document.getElementById('page-loading');
-  
+
   try {
     // Check authentication
     const isAuthenticated = await checkAuth();
-    
+
     if (!isAuthenticated) {
       return;
     }
-    
+
+    // Load product prices from API
+    await loadProductPrices();
+
     // Load cart from localStorage
     loadCart();
-    
+
     // Check checkout status (success/canceled)
     checkCheckoutStatus();
-    
+
     // Initialize UI controls
     initializeQuantityControls();
     initializeAddToCartButtons();
-    
+
     // Initialize checkout button if exists
     const checkoutBtn = document.getElementById('checkout-btn');
     if (checkoutBtn) {
       checkoutBtn.addEventListener('click', handleCheckout);
     }
-    
+
   } catch (error) {
     console.error('Page initialization error:', error);
     showToast('Failed to initialize page', 'danger');

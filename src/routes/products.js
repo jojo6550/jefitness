@@ -6,6 +6,61 @@ const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../ser
 
 const router = express.Router();
 
+// GET /api/v1/products
+// Get product prices dynamically from Stripe
+router.get('/', async (req, res) => {
+  try {
+    const stripe = getStripe();
+    if (!stripe) {
+      // Fallback to static prices if Stripe not available
+      return res.json({
+        success: true,
+        products: {
+          'seamoss-small': { price: 100.1, currency: 'usd' },
+          'seamoss-large': { price: 100.1, currency: 'usd' },
+          'coconut-water': { price: 100.1, currency: 'usd' },
+          'coconut-jelly': { price: 100.1, currency: 'usd' }
+        }
+      });
+    }
+
+    const products = {};
+
+    // Fetch prices for each product in PRODUCT_MAP
+    for (const [productKey, productInfo] of Object.entries(PRODUCT_MAP)) {
+      try {
+        if (productInfo.priceId) {
+          // Fetch price from Stripe
+          const price = await stripe.prices.retrieve(productInfo.priceId);
+          products[productKey] = {
+            price: price.unit_amount / 100, // Convert cents to dollars
+            currency: price.currency
+          };
+        } else {
+          // Fallback price
+          products[productKey] = { price: 100.1, currency: 'usd' };
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch price for ${productKey}:`, error.message);
+        // Fallback price
+        products[productKey] = { price: 100.1, currency: 'usd' };
+      }
+    }
+
+    res.json({
+      success: true,
+      products
+    });
+
+  } catch (error) {
+    console.error('Products fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch products'
+    });
+  }
+});
+
 // POST /api/v1/products/checkout
 // Create a checkout session for product purchases
 router.post('/checkout', auth, async (req, res) => {
