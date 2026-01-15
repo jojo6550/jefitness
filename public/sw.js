@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v34)
+// JEFitness Service Worker (v35)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '34';
+const CACHE_VERSION = '35';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -15,23 +15,32 @@ const IS_DEVELOPMENT = location.hostname === 'localhost' ||
 
 // Files to cache immediately
 const STATIC_ASSETS = [
-  '/', '/index.html',
-  '/styles/styles.css', '/manifest.json',
-  '/favicons/android-chrome-192x192.png',
-  '/favicons/android-chrome-512x512.png',
-  '/favicons/favicon-32x32.png', '/favicons/favicon-16x16.png',
-  '/favicons/favicon.ico', '/images/hero.jpg', '/images/logo.jpg',
-  '/js/app.js', '/js/navbar-loader.js', '/js/auth.js',
-  '/js/dashboard.js', '/js/profile.js', '/js/bmi.js',
-  '/js/timer.js', '/js/sleep-tracker.js', '/js/nutrition-logger.js',
-  '/js/view-statistics.js', '/js/schedule.js', '/js/appointments.js',
-  '/js/reports.js', '/js/admin-dashboard.js', '/js/admin-logs.js',
-  '/js/role-guard.js', '/js/logout.js',
-  '/pages/dashboard.html', '/pages/profile.html', '/pages/login.html',
-  '/pages/signup.html', '/pages/sleep-tracker.html', '/pages/timer.html',
-  '/pages/schedule.html', '/pages/view-statistics.html', '/pages/workout-programs.html',
-  '/pages/nutrition-logger.html', '/pages/services.html', '/pages/meet-your-trainer.html',
-  '/pages/admin-dashboard.html', '/pages/partials/navbar.html'
+  '/', '/index.html', '/manifest.json',
+  '/styles/styles.css', '/styles/bootstrap.min.css', '/styles/chat.css',
+  '/styles/onboarding.css', '/styles/subscription-cards.css', '/styles/tailwind.css',
+  '/styles/trainer-dashboard.css', '/styles/user-details-cards.css',
+  '/favicons/android-chrome-192x192.png', '/favicons/android-chrome-512x512.png',
+  '/favicons/apple-touch-icon.png', '/favicons/favicon-16x16.png',
+  '/favicons/favicon-32x32.png', '/favicons/favicon.ico', '/favicons/site.webmanifest',
+  '/images/hero.jpg', '/images/logo.jpg',
+  '/js/admin-dashboard.js', '/js/admin-logs.js', '/js/admin-notifications.js',
+  '/js/api.config.js', '/js/app.js', '/js/appointments.js', '/js/auth.js',
+  '/js/bmi.js', '/js/cache-version.js', '/js/cart.js', '/js/checkout.js',
+  '/js/coming-soon.js', '/js/cookie-consent.js', '/js/dashboard-notifications.js',
+  '/js/dashboard.js', '/js/logout.js', '/js/medical-documents.js',
+  '/js/navbar-subscription.js', '/js/navbar-loader.js', '/js/product-cart.js',
+  '/js/products.js', '/js/profile.js', '/js/program-details.js',
+  '/js/role-guard.js', '/js/router.js', '/js/session-check.js',
+  '/js/subscriptions.js', '/js/tailwind.js', '/js/trainer-appointments.js',
+  '/js/trainer-clients.js', '/js/trainer-dashboard.js', '/js/view-subscription.js',
+  '/pages/admin-dashboard.html', '/pages/cart.html', '/pages/checkout-success.html',
+  '/pages/checkout.html', '/pages/dashboard.html', '/pages/disclaimer.html',
+  '/pages/forgot-password.html', '/pages/login.html', '/pages/meet-your-trainer.html',
+  '/pages/privacy-policy.html', '/pages/products.html', '/pages/profile.html',
+  '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
+  '/pages/terms-of-service.html', '/pages/trainer-appointments.html',
+  '/pages/trainer-clients.html', '/pages/trainer-dashboard.html',
+  '/pages/view-subscription.html', '/pages/partials/chat-widget.html'
 ];
 
 // ===============================
