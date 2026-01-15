@@ -6,7 +6,8 @@ function saveCart() {
 }
 
 function render() {
-  const container = document.getElementById('cart-items');
+  const container = document.getElementById('cart-items-list');
+  if (!container) return;
   container.innerHTML = '';
 
   let total = 0;
@@ -20,7 +21,7 @@ function render() {
       </div>`;
   });
 
-  document.getElementById('cart-total').textContent = total;
+  document.getElementById('summary-item-count').textContent = total;
 }
 
 function removeItem(key) {
@@ -32,7 +33,7 @@ async function checkout() {
   const token = localStorage.getItem('token');
   if (!token) return location.href = 'login.html';
 
-  const res = await fetch(`${ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
+  const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

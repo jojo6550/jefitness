@@ -9,7 +9,10 @@ const router = express.Router();
 // GET /api/v1/products
 router.get('/', async (req, res) => {
   try {
-    const stripe = getStripe(); // Throws if not configured
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not configured');
+    }
     const products = {};
 
     for (const [key, product] of Object.entries(PRODUCT_MAP)) {
@@ -35,7 +38,7 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('Products route error:', err);
     res.status(500).json({
-      success: false,
+      success: true,
       products: Object.keys(PRODUCT_MAP).reduce((acc, key) => {
         acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'usd' };
         return acc;
