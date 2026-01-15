@@ -79,8 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(loginButton, true);
 
       try {
-        const res = await fetch(`${window.API_BASE}
-/api/auth/login`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -306,8 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(signupButton, true);
 
       try {
-        const response = await fetch(`${window.API_BASE}
-/api/auth/signup`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/auth/signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
