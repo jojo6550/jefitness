@@ -7,13 +7,30 @@ function saveCart() {
 
 function render() {
   const container = document.getElementById('cart-items-list');
-  if (!container) return;
+  const emptyCart = document.getElementById('empty-cart');
+  const cartItemsContainer = document.getElementById('cart-items-container');
+
+  if (!container || !emptyCart || !cartItemsContainer) return;
+
+  if (cart.length === 0) {
+    emptyCart.style.display = 'block';
+    cartItemsContainer.style.display = 'none';
+    document.getElementById('summary-item-count').textContent = '0';
+    document.getElementById('summary-subtotal').textContent = '$0.00';
+    document.getElementById('summary-total').textContent = '$0.00';
+    return;
+  }
+
+  emptyCart.style.display = 'none';
+  cartItemsContainer.style.display = 'block';
   container.innerHTML = '';
 
-  let total = 0;
+  let itemCount = 0;
+  let subtotal = 0;
 
   cart.forEach(item => {
-    total += item.quantity;
+    itemCount += item.quantity;
+    subtotal += item.quantity * item.price;
     container.innerHTML += `
       <div class="d-flex justify-content-between align-items-center border-bottom py-2">
         <div>
@@ -26,7 +43,9 @@ function render() {
       </div>`;
   });
 
-  document.getElementById('summary-item-count').textContent = total;
+  document.getElementById('summary-item-count').textContent = itemCount;
+  document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+  document.getElementById('summary-total').textContent = `$${subtotal.toFixed(2)}`;
 }
 
 function saveCart() {
