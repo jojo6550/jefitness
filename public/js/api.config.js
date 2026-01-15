@@ -98,8 +98,7 @@ class ApiConfig {
 class API {
   static async request(endpoint, options = {}) {
     const API_BASE = ApiConfig.getAPI_BASE();
-    const url = `${window.API_BASE}
-${endpoint}`;
+    const url = `${API_BASE}${endpoint}`;
 
     const defaultHeaders = {
       'Content-Type': 'application/json'
@@ -147,8 +146,7 @@ ${endpoint}`;
   static async checkBackendHealth() {
     try {
       const API_BASE = ApiConfig.getAPI_BASE();
-      const response = await fetch(`${window.API_BASE}
-/api/health`, {
+      const response = await fetch(`${API_BASE}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(5000) // 5 second timeout
