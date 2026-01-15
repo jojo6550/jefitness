@@ -987,6 +987,7 @@ function formatProductsForFrontend(products) {
 }
 
 module.exports = {
+  getStripe,
   createOrRetrieveCustomer,
   createSubscription,
   getCustomerSubscriptions,
