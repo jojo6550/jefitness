@@ -18,56 +18,30 @@ const Program = require('./models/Program');
 // Sample programs data
 const samplePrograms = [
     {
-        title: 'Complete Weight Loss Program',
-        slug: 'weight_loss',
-        author: 'JE Fitness Team',
-        goals: 'Lose weight sustainably through structured workouts and nutrition guidance',
-        description: 'A comprehensive 12-week program designed to help you achieve your weight loss goals through evidence-based training methods and nutritional strategies.',
-        tags: ['weight-loss', 'nutrition', 'beginner-friendly', 'cardio'],
-        difficulty: 'beginner',
-        duration: '12 weeks',
-        features: [
-            'Customized meal plans',
-            'Progressive workout routines',
-            'Weekly check-ins and progress tracking',
-            'Access to private community',
-            'Lifetime access to program materials'
-        ]
-    },
-    {
-        title: 'Muscle Building Mastery',
-        slug: 'muscle_building',
-        author: 'JE Fitness Team',
-        goals: 'Build lean muscle mass and increase strength with proven hypertrophy training',
-        description: 'An advanced 16-week muscle building program focusing on compound movements and progressive overload principles.',
-        tags: ['muscle-building', 'strength', 'advanced', 'hypertrophy'],
-        difficulty: 'advanced',
-        duration: '16 weeks',
-        features: [
-            'Detailed exercise demonstrations',
-            'Progressive overload tracking',
-            'Supplement recommendations',
-            'Recovery protocols',
-            'Nutrition timing strategies'
-        ]
-    },
-    {
-        title: 'Athletic Performance Enhancement',
-        slug: 'athletic_performance',
-        author: 'JE Fitness Team',
-        goals: 'Improve overall athletic performance, speed, agility, and power',
-        description: 'A sport-specific training program designed for athletes looking to enhance their performance across multiple fitness domains.',
-        tags: ['athletic-performance', 'speed', 'agility', 'power', 'intermediate'],
+        title: '9-Week Phased Strength Program',
+        slug: '9_week_phased_strength_jamin_johnson',
+        author: 'Jamin Johnson',
+        goals: 'Increase hypertrophy, strength, and power with a phased approach for main lifts and accessories',
+        description: `
+A 9-week structured program with progressive phases for hypertrophy, strength, and power.
+Includes Squat, Bench, Deadlift (SBD) focus, full accessory and core work, and mini-deloads for recovery.
+RPE-based progression and autoregulation are built in for optimal performance.
+        `,
+        tags: ['strength', 'hypertrophy', 'power', 'SBD', 'accessory', 'core', '9-weeks'],
         difficulty: 'intermediate',
-        duration: '10 weeks',
+        duration: '9 weeks',
         features: [
-            'Sport-specific drills',
-            'Plyometric training',
-            'Speed and agility work',
-            'Flexibility and mobility routines',
-            'Performance testing protocols'
+            'Phase 1: Hypertrophy (Weeks 1–3) – 6–8 reps, moderate load, focused accessory & core',
+            'Phase 2: Strength (Weeks 4–6) – 2–5 reps on main lifts, back-offs, heavier accessory work',
+            'Phase 3: Power (Weeks 7–9) – Explosive lifts, speed work, peak exposure on main lifts',
+            'Autoregulated progression with RPE tracking',
+            'Mini-deloads after each phase to manage fatigue',
+            'Core systematically included daily',
+            'Posterior chain emphasized for balanced development'
         ]
     }
+
+
 ];
 
 async function seedPrograms() {
