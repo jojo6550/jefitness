@@ -1,171 +1,247 @@
-# JE Fitness API Documentation
+# JE Fitness Platform
+
+A comprehensive fitness management platform built with Node.js, Express, MongoDB, and Stripe integration. Version 1.1.0 introduces enhanced Payment and Products features.
 
 ## Overview
-JE Fitness is a comprehensive fitness management platform that provides APIs for user authentication, nutrition tracking, appointment scheduling, and more.
 
-## Getting Started
+JE Fitness is a full-stack web application designed for fitness centers and personal trainers to manage clients, appointments, subscriptions, and product sales. The platform includes role-based access control for admins, trainers, and clients, with robust security, compliance, and payment processing capabilities.
+
+## Features
+
+### 🔐 User Authentication & Authorization
+- User registration and login with email verification
+- JWT-based authentication with secure token management
+- Role-based access control (Admin, Trainer, Client)
+- Password reset functionality
+- Secure logout with token blacklisting
+
+### 💳 Subscription Management
+- Flexible subscription plans (1-month, 3-month, 6-month, 12-month)
+- Stripe-powered payment processing
+- Automatic billing and invoice generation
+- Subscription cancellation (immediate or end-of-period)
+- Real-time subscription status tracking
+- Billing history and invoice downloads
+
+### 🛒 Product Sales & E-commerce
+- Product catalog with dynamic pricing from Stripe
+- Secure checkout sessions with Stripe
+- Purchase history tracking
+- Inventory management (via Stripe products)
+- Automated order fulfillment
+
+### 📅 Appointment Booking System
+- Online appointment scheduling with trainers
+- Time slot management (5:00 AM - 1:00 PM, hourly slots)
+- Capacity limits (max 6 clients per time slot)
+- One appointment per day per client restriction
+- Appointment status management (scheduled, completed, cancelled, no_show, late)
+- Real-time availability checking
+
+### 📋 Medical Document Management
+- Secure upload and storage of medical documents
+- HIPAA-compliant data handling
+- Document access control and sharing
+- File type validation and size limits
+
+### 🛡️ GDPR & Compliance
+- Data processing consent management
+- Health data consent tracking
+- Automated data retention policies
+- User data export and deletion requests
+- Comprehensive audit logging
+- Bi-annual compliance cleanup jobs
+
+### 👨‍💼 Admin Dashboard
+- User management (view, edit, deactivate accounts)
+- Appointment oversight and management
+- System logs and audit trails
+- Notification management
+- Compliance monitoring
+- System health monitoring
+
+### 🏋️‍♂️ Trainer Dashboard
+- Client management and profiles
+- Appointment scheduling and management
+- Client progress tracking
+- Communication tools
+
+### 👤 Client Dashboard
+- Personal profile management
+- Subscription and billing overview
+- Appointment booking and history
+- Product purchase history
+- Medical document access
+
+### 📱 Mobile Support
+- Capacitor-based mobile app support (Android/iOS)
+- Responsive web design with Tailwind CSS
+- Progressive Web App (PWA) capabilities
+
+### 🔧 System Features
+- **Security**: Helmet headers, rate limiting, CORS, input sanitization, encryption
+- **Caching**: In-memory caching with version control and invalidation
+- **Monitoring**: Memory usage monitoring, performance logging
+- **Notifications**: Push notifications and email alerts
+- **API Documentation**: Swagger UI and Redoc integration
+- **Testing**: Comprehensive unit, integration, and frontend test suites
+- **Maintenance**: Automated cleanup jobs, backups, and migrations
+
+### 📚 Fitness Programs
+- Pre-built program templates (8-week EDS safe strength, 9-week phased program, etc.)
+- Program pages with detailed instructions
+- Static content management
+
+## Installation
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- MongoDB
-- npm or yarn
+- Node.js 16+
+- MongoDB 4.4+
+- Stripe account for payment processing
+- Mailjet account for email services
 
-### Installation
+### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/jojo6550/jojo6550.github.io.git
+   cd jojo6550.github.io
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   Configure the following variables:
+   - `MONGO_URI`: MongoDB connection string
+   - `JWT_SECRET`: JWT signing secret
+   - `STRIPE_SECRET_KEY`: Stripe secret key
+   - `STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
+   - `MAILJET_API_KEY`: Mailjet API key
+   - `MAILJET_SECRET_KEY`: Mailjet secret key
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. For full development (backend + frontend):
+   ```bash
+   npm run dev:full
+   ```
+
+## Usage
+
+### Development
+- Backend API: `http://localhost:3000` (default port)
+- Frontend: `http://localhost:5501` (BrowserSync)
+- API Documentation: `http://localhost:3000/api-docs`
+
+### Production
 ```bash
-npm install
-```
-
-### Environment Setup
-Create a `.env` file in the root directory with the following variables:
-```
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-MAILJET_API_KEY=your_mailjet_api_key
-MAILJET_SECRET_KEY=your_mailjet_secret_key
-FRONTEND_URL=your_frontend_url
-NODE_ENV=development
-```
-
-### Running the Application
-```bash
-# Development mode
-npm run dev
-
-# Production mode
 npm start
 ```
 
-## API Documentation
-
-The API documentation is available through multiple interfaces when running in development mode (`NODE_ENV !== 'production'`).
-
-### Accessing API Documentation
-
-#### 1. Swagger UI (Interactive Documentation)
-- **URL**: `http://localhost:5000/api-docs`
-- **Features**:
-  - Interactive API testing
-  - Request/response examples
-  - Authentication support
-  - Real-time request duration
-
-#### 2. Redoc (Clean Documentation)
-- **URL**: `http://localhost:5000/redoc`
-- **Features**:
-  - Mobile-friendly interface
-  - Clean, professional layout
-  - JE Fitness branded theme
-  - Easy navigation
-
-#### 3. OpenAPI JSON Specification
-- **URL**: `http://localhost:5000/api-docs.json`
-- **Features**:
-  - Raw OpenAPI 3.0 specification
-  - Machine-readable format
-  - Can be imported into other tools
-
-### API Versions
-All endpoints are versioned under `/api/v1/`. Legacy routes under `/api/` are automatically redirected to v1.
-
-### Authentication
-Most endpoints require JWT authentication. Include the token in the Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-### Rate Limiting
-API endpoints are protected with rate limiting to prevent abuse.
-
-## Available Endpoints
-
-### Authentication
-- `POST /api/v1/auth/signup` - User registration
-- `POST /api/v1/auth/login` - User login
-- `GET /api/v1/auth/me` - Get user profile
-- `PUT /api/v1/auth/profile` - Update user profile
-- `POST /api/v1/auth/verify-email` - Email verification
-- `POST /api/v1/auth/forgot-password` - Password reset request
-- `POST /api/v1/auth/reset-password` - Password reset
-
-### Nutrition Tracking
-- `GET /api/v1/auth/nutrition` - Get nutrition logs
-- `POST /api/v1/auth/nutrition` - Add nutrition log
-- `DELETE /api/v1/auth/nutrition/:id` - Delete nutrition log
-
-### Appointments
-- `GET /api/v1/appointments` - Get appointments
-- `POST /api/v1/appointments` - Create appointment
-- `PUT /api/v1/appointments/:id` - Update appointment
-- `DELETE /api/v1/appointments/:id` - Delete appointment
-
-### Programs
-- `GET /api/v1/programs` - Get fitness programs
-- `POST /api/v1/programs` - Create program (Admin only)
-- `PUT /api/v1/programs/:id` - Update program (Admin only)
-- `DELETE /api/v1/programs/:id` - Delete program (Admin only)
-
-### Chat
-- `GET /api/v1/chat/messages` - Get chat messages
-- `POST /api/v1/chat/messages` - Send message
-- `PUT /api/v1/chat/messages/:id/read` - Mark message as read
-
-### And more...
-
-## JSDoc Documentation
-
-Generate comprehensive code documentation using JSDoc:
-
-```bash
-npm run docs:jsdoc
-```
-
-This will generate HTML documentation in the `docs/` directory based on JSDoc comments in the source code.
-
-## Testing
-
+### Testing
 ```bash
 # Run all tests
 npm test
 
-# Run tests with coverage
+# Run with coverage
 npm run test:coverage
 
 # Run specific test suites
 npm run test:unit
 npm run test:integration
+npm run test:frontend
 ```
 
-## Development Scripts
+### Scripts
+- `npm run cache:bust`: Clear application cache
+- `npm run docs:jsdoc`: Generate JSDoc documentation
+- `npm run build:css`: Build Tailwind CSS
 
-- `npm run dev` - Start development server with auto-reload
-- `npm run dev:frontend` - Start frontend development server
-- `npm run dev:full` - Start both backend and frontend servers
-- `npm run build:css` - Build Tailwind CSS
-- `npm run seed:programs` - Seed database with sample programs
+## API Documentation
 
-## Security Features
+The API is fully documented with Swagger and Redoc:
 
-- JWT authentication
-- Rate limiting
-- Input sanitization
-- CORS protection
-- Helmet security headers
-- GDPR/HIPAA compliance
-- Data encryption
-- Account lockout protection
+- **Swagger UI**: `/api-docs`
+- **Redoc**: `/redoc`
+- **OpenAPI JSON**: `/api-docs.json`
+
+### Key Endpoints
+
+#### Authentication
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/verify-email` - Email verification
+- `POST /api/v1/auth/forgot-password` - Password reset request
+
+#### Subscriptions
+- `GET /api/v1/subscriptions/plans` - Get available plans
+- `POST /api/v1/subscriptions/create` - Create subscription
+- `DELETE /api/v1/subscriptions/:id/cancel` - Cancel subscription
+- `GET /api/v1/subscriptions/user/current` - Get user's subscription
+
+#### Products
+- `GET /api/v1/products` - Get product catalog
+- `POST /api/v1/products/checkout` - Create checkout session
+- `GET /api/v1/products/purchases` - Get purchase history
+
+#### Appointments
+- `GET /api/v1/appointments/user` - Get user's appointments
+- `POST /api/v1/appointments` - Book appointment
+- `PUT /api/v1/appointments/:id` - Update appointment
+- `DELETE /api/v1/appointments/:id` - Cancel appointment
+
+## Deployment
+
+### Environment Variables
+Configure the following for production:
+- `NODE_ENV=production`
+- `PORT=3000`
+- Database and Stripe credentials
+- Email service credentials
+- Security secrets
+
+### Docker Support
+The application includes Docker support for containerized deployment.
+
+### Mobile App
+Build mobile apps using Capacitor:
+```bash
+npx cap add android
+npx cap add ios
+npx cap sync
+```
+
+## Security
+
+- **Data Encryption**: Sensitive data encrypted using mongoose-encryption
+- **Rate Limiting**: API rate limiting to prevent abuse
+- **Input Validation**: Comprehensive input sanitization and validation
+- **CORS**: Configured cross-origin resource sharing
+- **Helmet**: Security headers for XSS protection and content security policy
+- **Audit Logging**: All user actions and admin activities logged
 
 ## Compliance
 
-The application implements GDPR and HIPAA compliance features including:
-- Data retention policies
-- User consent management
-- Data anonymization
-- Audit logging
-- Secure data handling
+- **GDPR**: Full compliance with data protection regulations
+- **HIPAA**: Health data handling compliant with healthcare privacy laws
+- **Data Retention**: Automated cleanup of expired data
+- **Consent Management**: Explicit user consent tracking for data processing
 
-## WebSocket Support
+## Testing
 
-Real-time chat functionality is available via WebSocket connections for user-trainer and user-admin communications.
+The platform includes comprehensive testing:
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: API endpoint testing
+- **Frontend Tests**: UI component testing with JSDOM
+- **Coverage Reports**: Detailed test coverage analysis
 
 ## Contributing
 
@@ -178,4 +254,38 @@ Real-time chat functionality is available via WebSocket connections for user-tra
 
 ## License
 
-This project is licensed under the ISC License.
+ISC License - see LICENSE file for details.
+
+## Version
+
+**Current Version: 1.1.0**
+
+### Changelog
+- **1.1.0**: Enhanced Payment and Products features
+  - Improved Stripe integration for subscriptions and products
+  - Enhanced product catalog management
+  - Streamlined checkout process
+  - Better purchase history tracking
+
+- **1.0.1**: Initial release with core features
+
+## Roadmap
+
+### Coming Soon: Program Marketplace 🏪
+- **Third-party Program Integration**: Allow external trainers and programs to be listed
+- **Program Purchases**: Buy and access premium fitness programs
+- **Trainer Marketplace**: Connect with certified trainers worldwide
+- **Revenue Sharing**: Commission-based model for marketplace transactions
+- **Program Reviews**: User ratings and feedback system
+- **Advanced Filtering**: Search and filter programs by category, difficulty, duration
+
+### Future Enhancements
+- Advanced analytics and reporting
+- Mobile app enhancements
+- AI-powered workout recommendations
+- Social features and community building
+- Integration with fitness wearables
+
+---
+
+For more information, visit the [API Documentation](/api-docs) or contact the development team.
