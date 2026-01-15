@@ -32,6 +32,26 @@ const PROGRAM_PRODUCT_IDS = {
 };
 
 /**
+ * PRODUCT MAP CONFIGURATION
+ * One-time product purchases configuration
+ * Maps product keys to their Stripe product IDs and expected prices
+ */
+const PRODUCT_MAP = {
+  'seamoss-small': {
+    productId: process.env.STRIPE_PRODUCT_SEAMOSS_SMALL,
+    name: 'Seamoss - Small Size',
+    price: 1599, // $15.99 in cents
+    currency: 'usd'
+  },
+  'seamoss-large': {
+    productId: process.env.STRIPE_PRODUCT_SEAMOSS_LARGE,
+    name: 'Seamoss - Large Size',
+    price: 2599, // $25.99 in cents
+    currency: 'usd'
+  }
+};
+
+/**
  * Get the active recurring price ID for a product
  * @param {string} productId - Stripe product ID
  * @returns {Promise<string|null>} Price ID or null if not found
@@ -990,5 +1010,6 @@ module.exports = {
   formatProductForFrontend,
   formatProductsForFrontend,
   PRODUCT_IDS,
-  PROGRAM_PRODUCT_IDS
+  PROGRAM_PRODUCT_IDS,
+  PRODUCT_MAP
 };

@@ -17,7 +17,7 @@ const IS_DEVELOPMENT = location.hostname === 'localhost' ||
 const STATIC_ASSETS = [
   '/', '/index.html', '/manifest.json',
   '/styles/styles.css', '/styles/bootstrap.min.css', '/styles/chat.css',
-  '/styles/onboarding.css', '/styles/subscription-cards.css', '/styles/tailwind.css',
+  '/styles/subscription-cards.css', '/styles/tailwind.css',
   '/styles/trainer-dashboard.css', '/styles/user-details-cards.css',
   '/favicons/android-chrome-192x192.png', '/favicons/android-chrome-512x512.png',
   '/favicons/apple-touch-icon.png', '/favicons/favicon-16x16.png',
@@ -40,7 +40,7 @@ const STATIC_ASSETS = [
   '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
   '/pages/terms-of-service.html', '/pages/trainer-appointments.html',
   '/pages/trainer-clients.html', '/pages/trainer-dashboard.html',
-  '/pages/view-subscription.html', '/pages/partials/chat-widget.html'
+  '/pages/view-subscription.html', 
 ];
 
 // ===============================
