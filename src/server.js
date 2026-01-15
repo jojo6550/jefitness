@@ -226,7 +226,7 @@ app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, require
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
 app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
-app.use('/api/v1/products', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/products'));
+app.use('/api/v1/products', versioning, require('./routes/products'));
 app.use('/webhooks', require('./routes/webhooks'));
 
 // API Documentation routes (only in development)

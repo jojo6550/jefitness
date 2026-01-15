@@ -7,7 +7,7 @@ const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../ser
 const router = express.Router();
 
 // GET /api/v1/products
-// Get product prices dynamically from Stripe
+// Get product prices dynamically from Stripe (public endpoint - no auth required)
 router.get('/', async (req, res) => {
   try {
     const stripe = getStripe();
