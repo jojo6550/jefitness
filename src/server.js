@@ -222,14 +222,10 @@ app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestrict
 app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
 app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
 app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/users'));
-app.use('/api/v1/notifications', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/notifications'));
 app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
 app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
-app.use('/api/v1/cart', auth, apiLimiter, versioning, require('./routes/cart'));
-app.use('/api/v1/checkout', auth, apiLimiter, versioning, require('./routes/checkout'));
-app.use('/api/v1/products', auth, apiLimiter, versioning, require('./routes/products'));
 app.use('/webhooks', require('./routes/webhooks'));
 
 // API Documentation routes (only in development)
