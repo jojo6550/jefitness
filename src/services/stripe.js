@@ -660,7 +660,7 @@ async function getAllActivePrices() {
 /**
  * Create a checkout session for product purchases (one-time payment with quantity)
  * @param {string} customerId - Stripe customer ID
- * @param {Array} items - Array of { productId, name, price, quantity }
+ * @param {Array} items - Array of { productKey, name, quantity }
  * @param {string} successUrl - URL to redirect on successful payment
  * @param {string} cancelUrl - URL to redirect if payment is canceled
  * @returns {Promise<Object>} Checkout session object
@@ -677,24 +677,38 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
       throw new Error('No items provided for checkout');
     }
 
-    // Build line items for Stripe
-    const lineItems = items.map(item => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-          description: `Product ID: ${item.productId}`,
-          metadata: {
-            productId: item.productId
-          }
-        },
-        unit_amount: item.price, // Price in cents
-      },
-      quantity: item.quantity
-    }));
+    // Validate product keys and build line items
+    const lineItems = [];
+    const validatedItems = [];
 
-    // Calculate total for metadata
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    for (const item of items) {
+      if (!item.productKey || !item.quantity || item.quantity < 1) {
+        throw new Error(`Invalid item: ${JSON.stringify(item)}`);
+      }
+
+      const productInfo = PRODUCT_MAP[item.productKey];
+      if (!productInfo) {
+        throw new Error(`Invalid product key: ${item.productKey}`);
+      }
+
+      lineItems.push({
+        price: productInfo.priceId,
+        quantity: item.quantity
+      });
+
+      validatedItems.push({
+        productKey: item.productKey,
+        name: productInfo.name,
+        quantity: item.quantity
+      });
+    }
+
+    // Get user info for metadata
+    const User = require('../models/User');
+    const user = await User.findOne({ stripeCustomerId: customerId });
+    if (!user) {
+      throw new Error('User not found for customer ID');
+    }
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -705,32 +719,18 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
       success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
-      phone_number_collection: {
-        enabled: true
-      },
       metadata: {
+        userId: user._id.toString(),
         type: 'product_purchase',
-        itemCount: items.length.toString(),
-        totalAmount: totalAmount.toString(),
-        // Store item details as JSON string
-        items: JSON.stringify(items.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          totalPrice: item.price * item.quantity
-        })))
-      },
-      // Enable additional payment method types if needed
-      payment_method_options: {
-        card: {
-          request_three_d_secure: 'automatic'
-        }
+        itemCount: validatedItems.length.toString(),
+        // Store cart items as JSON string
+        items: JSON.stringify(validatedItems),
+        environment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production'
       }
     });
 
     console.log(`✅ Product checkout session created: ${session.id} for customer: ${customerId}`);
-    console.log(`📦 Items: ${items.length}, Total: $${(totalAmount / 100).toFixed(2)}`);
+    console.log(`📦 Items: ${validatedItems.length}`);
 
     return session;
   } catch (error) {

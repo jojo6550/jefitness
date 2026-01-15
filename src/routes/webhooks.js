@@ -240,15 +240,32 @@ async function handleCheckoutSessionCompleted(session) {
     console.log(`✅ Subscription updated via checkout session, plan: ${plan}`);
   }
 
-  if (session.mode === 'payment' && session.metadata?.programId) {
-    const programId = session.metadata.programId;
-    const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
-    if (!alreadyAssigned) {
-      user.assignedPrograms.push({ programId, assignedAt: new Date() });
-      await user.save();
-      console.log(`✅ Program ${programId} assigned to user ${user._id}`);
-    } else {
-      console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
+  if (session.mode === 'payment') {
+    if (session.metadata?.programId) {
+      // Handle program purchases
+      const programId = session.metadata.programId;
+      const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
+      if (!alreadyAssigned) {
+        user.assignedPrograms.push({ programId, assignedAt: new Date() });
+        await user.save();
+        console.log(`✅ Program ${programId} assigned to user ${user._id}`);
+      } else {
+        console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
+      }
+    } else if (session.metadata?.type === 'product_purchase') {
+      // Handle product purchases
+      const Purchase = require('../models/Purchase');
+      const purchase = await Purchase.findOne({ stripeCheckoutSessionId: session.id });
+
+      if (purchase && purchase.status === 'pending') {
+        // Update purchase record with payment details
+        purchase.stripePaymentIntentId = session.payment_intent;
+        purchase.status = 'completed';
+        await purchase.save();
+        console.log(`✅ Product purchase ${purchase._id} completed for user ${user._id}`);
+      } else {
+        console.warn(`Purchase record not found or already processed for session ${session.id}`);
+      }
     }
   }
 }
