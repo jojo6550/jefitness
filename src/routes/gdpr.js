@@ -398,26 +398,21 @@ router.get('/audit-log', auth, async (req, res) => {
         const userId = req.user.id || req.user.user.id;
         const { limit = 50, offset = 0 } = req.query;
 
-        const user = await require('../models/User').findById(userId)
-            .select('auditLog')
+        // Get total count for pagination
+        const total = await UserActionLog.countDocuments({ userId });
+
+        // Get paginated logs from UserActionLog collection
+        const auditLog = await UserActionLog.find({ userId })
+            .sort({ timestamp: -1 })
+            .limit(parseInt(limit))
+            .skip(parseInt(offset))
             .lean();
-
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: 'User not found'
-            });
-        }
-
-        const auditLog = user.auditLog
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            .slice(parseInt(offset), parseInt(offset) + parseInt(limit));
 
         res.json({
             success: true,
             data: {
                 auditLog,
-                total: user.auditLog.length,
+                total,
                 limit: parseInt(limit),
                 offset: parseInt(offset)
             }

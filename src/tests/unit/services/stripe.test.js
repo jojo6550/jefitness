@@ -4,9 +4,7 @@
  * Mocks Stripe API calls to prevent real transactions
  */
 
-const stripeService = require('../../../services/stripe');
-
-// Mock Stripe
+// Mock Stripe first
 jest.mock('stripe', () => {
   return jest.fn(() => ({
     customers: {
@@ -50,16 +48,52 @@ jest.mock('stripe', () => {
 const stripe = require('stripe');
 const mockStripe = stripe();
 
+// Mock the stripe service module
+jest.mock('../../../services/stripe', () => {
+  const originalModule = jest.requireActual('../../../services/stripe');
+  return {
+    ...originalModule,
+    getStripe: jest.fn(() => mockStripe),
+    PRODUCT_MAP: {
+      'seamoss-small': {
+        productId: 'prod_seamoss_small',
+        priceId: 'price_seamoss_small',
+        name: 'Seamoss - Small Size'
+      },
+      'seamoss-large': {
+        productId: 'prod_seamoss_large',
+        priceId: 'price_seamoss_large',
+        name: 'Seamoss - Large Size'
+      },
+      'coconut-water': {
+        productId: 'prod_coconut_water',
+        priceId: 'price_coconut_water',
+        name: 'Coconut Water'
+      },
+      'coconut-jelly': {
+        productId: 'prod_coconut_jelly',
+        priceId: 'price_coconut_jelly',
+        name: 'Coconut Jelly'
+      }
+    }
+  };
+});
+
+// Import the service after mocking
+const stripeService = require('../../../services/stripe');
+
 describe('Stripe Service - Unit Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set up environment variable for Stripe
+    process.env.STRIPE_SECRET_KEY = 'sk_test_mock';
   });
 
   describe('createOrRetrieveCustomer', () => {
     it('should create new customer when email does not exist', async () => {
       // Mock: No existing customers
       mockStripe.customers.list.mockResolvedValue({ data: [] });
-      
+
       // Mock: Create customer
       const mockCustomer = {
         id: 'cus_test123',
@@ -83,7 +117,7 @@ describe('Stripe Service - Unit Tests', () => {
         id: 'cus_existing123',
         email: 'existing@example.com',
       };
-      
+
       mockStripe.customers.list.mockResolvedValue({ data: [existingCustomer] });
 
       const result = await stripeService.createOrRetrieveCustomer('existing@example.com');
@@ -119,9 +153,12 @@ describe('Stripe Service - Unit Tests', () => {
 
   describe('createSubscription', () => {
     it('should create subscription with valid plan', async () => {
-      // Mock price retrieval
-      mockStripe.prices.list.mockResolvedValue({
-        data: [{ id: 'price_test123' }],
+      // Mock price retrieval - make it return data when called with product filter
+      mockStripe.prices.list.mockImplementation((params) => {
+        if (params.product === 'prod_TlkNETGd6OFrRf') {
+          return Promise.resolve({ data: [{ id: 'price_test123' }] });
+        }
+        return Promise.resolve({ data: [] });
       });
 
       // Mock customer retrieval
@@ -198,10 +235,11 @@ describe('Stripe Service - Unit Tests', () => {
 
   describe('cancelSubscription', () => {
     it('should cancel subscription immediately when atPeriodEnd is false', async () => {
-      mockStripe.subscriptions.cancel.mockResolvedValue({
+      const mockCanceledSubscription = {
         id: 'sub_test123',
         status: 'canceled',
-      });
+      };
+      mockStripe.subscriptions.cancel.mockResolvedValue(mockCanceledSubscription);
 
       const result = await stripeService.cancelSubscription('sub_test123', false);
 
@@ -210,10 +248,11 @@ describe('Stripe Service - Unit Tests', () => {
     });
 
     it('should schedule cancellation at period end when atPeriodEnd is true', async () => {
-      mockStripe.subscriptions.update.mockResolvedValue({
+      const mockUpdatedSubscription = {
         id: 'sub_test123',
         cancel_at_period_end: true,
-      });
+      };
+      mockStripe.subscriptions.update.mockResolvedValue(mockUpdatedSubscription);
 
       const result = await stripeService.cancelSubscription('sub_test123', true);
 
@@ -232,6 +271,15 @@ describe('Stripe Service - Unit Tests', () => {
       await expect(
         stripeService.cancelSubscription('sub_invalid', false)
       ).rejects.toThrow('Subscription is already canceled or does not exist');
+    });
+
+    it('should handle other subscription errors', async () => {
+      const error = new Error('Some other error');
+      mockStripe.subscriptions.cancel.mockRejectedValue(error);
+
+      await expect(
+        stripeService.cancelSubscription('sub_invalid', false)
+      ).rejects.toThrow('Failed to cancel subscription');
     });
   });
 

@@ -239,19 +239,7 @@ const checkDataRestriction = async (req, res, next) => {
  */
 const logAuditEvent = async (user, action, details) => {
     try {
-        user.auditLog.push({
-            action,
-            ipAddress: details.ipAddress,
-            userAgent: details.userAgent,
-            details
-        });
-
-        // Keep only last 1000 audit entries to prevent unbounded growth
-        if (user.auditLog.length > 1000) {
-            user.auditLog = user.auditLog.slice(-1000);
-        }
-
-        await user.save();
+        await UserActionLog.logAction(user._id, action, details.ipAddress, details.userAgent, details);
     } catch (error) {
         monitoringService.recordError(error, {
             context: 'audit_logging',

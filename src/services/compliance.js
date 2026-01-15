@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const UserActionLog = require('../models/UserActionLog');
 const monitoringService = require('./monitoring');
 
 /**
@@ -46,16 +47,7 @@ class ComplianceService {
         'dataProcessingConsent.given': true,
         'dataProcessingConsent.givenAt': new Date(),
         'dataProcessingConsent.ipAddress': ipAddress,
-        'dataProcessingConsent.userAgent': userAgent,
-        $push: {
-          auditLog: {
-            action: 'data_processing_consent_granted',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { consentType: 'data_processing' }
-          }
-        }
+        'dataProcessingConsent.userAgent': userAgent
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -63,6 +55,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'data_processing_consent_granted', ipAddress, userAgent, {
+        consentType: 'data_processing'
+      });
 
       this.logger.info('Data processing consent granted', { userId, ipAddress });
 
@@ -87,16 +84,7 @@ class ComplianceService {
         'healthDataConsent.givenAt': new Date(),
         'healthDataConsent.purpose': purpose,
         'healthDataConsent.ipAddress': ipAddress,
-        'healthDataConsent.userAgent': userAgent,
-        $push: {
-          auditLog: {
-            action: 'health_data_consent_granted',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { consentType: 'health_data', purpose }
-          }
-        }
+        'healthDataConsent.userAgent': userAgent
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -104,6 +92,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'health_data_consent_granted', ipAddress, userAgent, {
+        consentType: 'health_data', purpose
+      });
 
       this.logger.info('Health data consent granted', { userId, purpose, ipAddress });
 
@@ -128,16 +121,7 @@ class ComplianceService {
         'marketingConsent.givenAt': new Date(),
         'marketingConsent.withdrawnAt': null, // Clear any previous withdrawal
         'marketingConsent.ipAddress': ipAddress,
-        'marketingConsent.userAgent': userAgent,
-        $push: {
-          auditLog: {
-            action: 'marketing_consent_granted',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { consentType: 'marketing' }
-          }
-        }
+        'marketingConsent.userAgent': userAgent
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -145,6 +129,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'marketing_consent_granted', ipAddress, userAgent, {
+        consentType: 'marketing'
+      });
 
       this.logger.info('Marketing consent granted', { userId, ipAddress });
 
@@ -166,16 +155,7 @@ class ComplianceService {
     try {
       const updateData = {
         'marketingConsent.given': false,
-        'marketingConsent.withdrawnAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'marketing_consent_withdrawn',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { consentType: 'marketing' }
-          }
-        }
+        'marketingConsent.withdrawnAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -183,6 +163,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'marketing_consent_withdrawn', ipAddress, userAgent, {
+        consentType: 'marketing'
+      });
 
       this.logger.info('Marketing consent withdrawn', { userId, ipAddress });
 
@@ -201,17 +186,7 @@ class ComplianceService {
    */
   async withdrawConsent(userId, consentType, ipAddress, userAgent) {
     try {
-      let updateData = {
-        $push: {
-          auditLog: {
-            action: 'consent_withdrawn',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { consentType }
-          }
-        }
-      };
+      let updateData = {};
 
       switch (consentType) {
         case 'data_processing':
@@ -234,6 +209,11 @@ class ComplianceService {
         throw new Error('User not found');
       }
 
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'consent_withdrawn', ipAddress, userAgent, {
+        consentType
+      });
+
       this.logger.info('Consent withdrawn', { userId, consentType, ipAddress });
 
       return {
@@ -253,16 +233,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.accessRequested': true,
-        'dataSubjectRights.accessRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'data_access_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'access' }
-          }
-        }
+        'dataSubjectRights.accessRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -270,6 +241,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'data_access_requested', ipAddress, userAgent, {
+        right: 'access'
+      });
 
       // In a real implementation, this would trigger a process to collect and provide user data
       // For now, we'll mark it as provided immediately for demo purposes
@@ -297,16 +273,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.rectificationRequested': true,
-        'dataSubjectRights.rectificationRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'data_rectification_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'rectification', rectificationData }
-          }
-        }
+        'dataSubjectRights.rectificationRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -314,6 +281,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'data_rectification_requested', ipAddress, userAgent, {
+        right: 'rectification', rectificationData
+      });
 
       // In a real implementation, this would trigger a manual review process
       this.logger.info('Data rectification requested', { userId, rectificationData, ipAddress });
@@ -336,16 +308,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.erasureRequested': true,
-        'dataSubjectRights.erasureRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'data_erasure_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'erasure', reason }
-          }
-        }
+        'dataSubjectRights.erasureRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -353,6 +316,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'data_erasure_requested', ipAddress, userAgent, {
+        right: 'erasure', reason
+      });
 
       // In a real implementation, this would trigger a data anonymization/deletion process
       // For demo purposes, we'll simulate completion
@@ -384,16 +352,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.portabilityRequested': true,
-        'dataSubjectRights.portabilityRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'data_portability_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'portability' }
-          }
-        }
+        'dataSubjectRights.portabilityRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -401,6 +360,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'data_portability_requested', ipAddress, userAgent, {
+        right: 'portability'
+      });
 
       // In a real implementation, this would generate and provide a data export
       // For demo purposes, we'll mark it as completed
@@ -428,16 +392,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.objectionRequested': true,
-        'dataSubjectRights.objectionRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'processing_objection_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'objection', reason }
-          }
-        }
+        'dataSubjectRights.objectionRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -445,6 +400,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'processing_objection_requested', ipAddress, userAgent, {
+        right: 'objection', reason
+      });
 
       this.logger.info('Processing objection requested', { userId, reason, ipAddress });
 
@@ -466,16 +426,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.restrictionRequested': true,
-        'dataSubjectRights.restrictionRequestedAt': new Date(),
-        $push: {
-          auditLog: {
-            action: 'processing_restriction_requested',
-            timestamp: new Date(),
-            ipAddress,
-            userAgent,
-            details: { right: 'restriction', reason }
-          }
-        }
+        'dataSubjectRights.restrictionRequestedAt': new Date()
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -483,6 +434,11 @@ class ComplianceService {
       if (!user) {
         throw new Error('User not found');
       }
+
+      // Log the action in UserActionLog collection
+      await UserActionLog.logAction(userId, 'processing_restriction_requested', ipAddress, userAgent, {
+        right: 'restriction', reason
+      });
 
       this.logger.info('Processing restriction requested', { userId, reason, ipAddress });
 
@@ -576,20 +532,16 @@ class ComplianceService {
 
       // If this affects users in the system, log it in their audit trails
       if (details.affectedUserIds && details.affectedUserIds.length > 0) {
-        const auditEntry = {
-          action: 'data_breach_affected',
-          timestamp: new Date(),
-          details: {
+        // Log the breach action for each affected user in UserActionLog collection
+        const logPromises = details.affectedUserIds.map(userId =>
+          UserActionLog.logAction(userId, 'data_breach_affected', null, null, {
             breachId,
             event,
             affected: true
-          }
-        };
-
-        await User.updateMany(
-          { _id: { $in: details.affectedUserIds } },
-          { $push: { auditLog: auditEntry } }
+          })
         );
+
+        await Promise.all(logPromises);
       }
 
       return {
