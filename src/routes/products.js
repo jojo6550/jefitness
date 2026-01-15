@@ -7,34 +7,26 @@ const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../ser
 const router = express.Router();
 
 // GET /api/v1/products
-// Fetch product prices dynamically from Stripe (public endpoint)
 router.get('/', async (req, res) => {
   try {
-    let stripe = null;
-    try {
-      stripe = getStripe();
-    } catch (err) {
-      console.warn('Stripe not initialized:', err.message);
-    }
-
+    const stripe = getStripe(); // Throws if not configured
     const products = {};
 
     for (const [key, product] of Object.entries(PRODUCT_MAP)) {
       try {
-        if (!stripe || !product.priceId) {
-          // fallback price if Stripe unavailable or priceId missing
-          products[key] = { price: 100.1, currency: 'usd' };
-          continue;
-        }
-
-        const price = await stripe.prices.retrieve(product.priceId);
+        const priceObj = await stripe.prices.retrieve(product.priceId);
         products[key] = {
-          price: price.unit_amount / 100, // cents to dollars
-          currency: price.currency
+          ...product,
+          price: priceObj.unit_amount / 100,
+          currency: priceObj.currency
         };
       } catch (err) {
-        console.warn(`Failed to fetch price for ${key}:`, err.message);
-        products[key] = { price: 100.1, currency: 'usd' };
+        console.warn(`Failed to fetch price for ${key}, using default:`, err.message);
+        products[key] = {
+          ...product,
+          price: 100.1,
+          currency: 'usd'
+        };
       }
     }
 
@@ -44,7 +36,10 @@ router.get('/', async (req, res) => {
     console.error('Products route error:', err);
     res.status(500).json({
       success: false,
-      products: {},
+      products: Object.keys(PRODUCT_MAP).reduce((acc, key) => {
+        acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'usd' };
+        return acc;
+      }, {}),
       error: 'Failed to load products'
     });
   }
@@ -54,24 +49,8 @@ router.get('/', async (req, res) => {
 router.post('/checkout', auth, async (req, res) => {
   try {
     const { items } = req.body;
-
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'Items array is required' });
-    }
-
-    for (const item of items) {
-      if (!item.productKey || !item.quantity || item.quantity < 1) {
-        return res.status(400).json({
-          success: false,
-          error: 'Each item must have productKey and quantity >= 1'
-        });
-      }
-      if (!PRODUCT_MAP[item.productKey]) {
-        return res.status(400).json({
-          success: false,
-          error: `Invalid product key: ${item.productKey}`
-        });
-      }
     }
 
     const user = await User.findById(req.user.id);
@@ -94,32 +73,28 @@ router.post('/checkout', auth, async (req, res) => {
       customerId,
       items.map(item => ({
         productKey: item.productKey,
-        name: PRODUCT_MAP[item.productKey].name,
         quantity: item.quantity,
         price: null,
-        productId: PRODUCT_MAP[item.productKey].productId
+        productId: PRODUCT_MAP[item.productKey]?.productId
       })),
       `${req.protocol}://${req.get('host')}/pages/products.html?success=true`,
       `${req.protocol}://${req.get('host')}/pages/products.html?canceled=true`
     );
 
-    // Save pending purchase record
-    const totalAmount = items.reduce((sum, item) => sum + item.quantity * 1599, 0);
     const purchase = new Purchase({
       userId: user._id,
       stripeCustomerId: customerId,
       stripeCheckoutSessionId: session.id,
       items: items.map(item => ({
         productKey: item.productKey,
-        name: PRODUCT_MAP[item.productKey].name,
+        name: PRODUCT_MAP[item.productKey]?.name || 'Unknown',
         quantity: item.quantity,
-        unitPrice: 1599,
-        totalPrice: item.quantity * 1599
+        unitPrice: PRODUCT_MAP[item.productKey]?.defaultPrice || 1599,
+        totalPrice: (PRODUCT_MAP[item.productKey]?.defaultPrice || 1599) * item.quantity
       })),
-      totalAmount,
+      totalAmount: items.reduce((sum, i) => sum + (PRODUCT_MAP[i.productKey]?.defaultPrice || 1599) * i.quantity, 0),
       currency: 'usd',
-      status: 'pending',
-      billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production'
+      status: 'pending'
     });
 
     await purchase.save();
@@ -129,21 +104,6 @@ router.post('/checkout', auth, async (req, res) => {
   } catch (err) {
     console.error('Checkout error:', err);
     res.status(500).json({ success: false, error: 'Failed to create checkout session' });
-  }
-});
-
-// GET /api/v1/products/orders
-router.get('/orders', auth, async (req, res) => {
-  try {
-    const purchases = await Purchase.find({ userId: req.user.id })
-      .sort({ createdAt: -1 })
-      .populate('userId', 'name email');
-
-    res.json({ success: true, purchases });
-
-  } catch (err) {
-    console.error('Orders fetch error:', err);
-    res.status(500).json({ success: false, error: 'Failed to fetch orders' });
   }
 });
 

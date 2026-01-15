@@ -1,72 +1,55 @@
-// Cart and Products Page
-
 let cart = [];
 let productPrices = {};
+let productsData = {}; // full product info from backend
 
-// Update prices in DOM
-function updateProductPrices() {
-  Object.entries(productPrices || {}).forEach(([key, price]) => {
-    const productCard = document.querySelector(`[data-product-id="${key}"]`);
-    if (!productCard) return;
-
-    const priceEl = productCard.querySelector('.product-price');
-    const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
-
-    if (priceEl) priceEl.textContent = `$${price.toFixed(2)}`;
-    if (addToCartBtn) addToCartBtn.setAttribute('data-price', price.toFixed(2));
-  });
-}
-
-// Load product prices from backend
 async function loadPrices() {
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products`);
     const data = await res.json();
 
-    if (!data.success || !data.products) {
-      console.warn('No products returned from API, using fallback prices');
-      productPrices = {
-        'seamoss-small': 100.1,
-        'seamoss-large': 100.1,
-        'coconut-water': 100.1,
-        'coconut-jelly': 100.1
-      };
-    } else {
-      Object.entries(data.products).forEach(([key, p]) => {
-        productPrices[key] = p.price || 100.1;
-      });
-    }
+    if (!data.success || !data.products) throw new Error('Products not found');
 
-    updateProductPrices();
+    productsData = data.products;
+    productPrices = Object.fromEntries(Object.entries(productsData).map(([k, v]) => [k, v.price]));
+
+    updateProductCards();
 
   } catch (err) {
-    console.error('Failed to load product prices:', err);
-    productPrices = {
-      'seamoss-small': 100.1,
-      'seamoss-large': 100.1,
-      'coconut-water': 100.1,
-      'coconut-jelly': 100.1
-    };
-    updateProductPrices();
+    console.error('Failed to load products, using defaults:', err);
+    // fallback
+    const fallbackKeys = ['seamoss-small', 'seamoss-large', 'coconut-water', 'coconut-jelly'];
+    fallbackKeys.forEach(key => {
+      productPrices[key] = 100.1;
+      productsData[key] = { name: key, price: 100.1, currency: 'usd' };
+    });
+    updateProductCards();
   }
 }
 
-// Cart management
+function updateProductCards() {
+  Object.entries(productsData).forEach(([key, product]) => {
+    const card = document.querySelector(`[data-product-id="${key}"]`);
+    if (!card) return;
+    card.querySelector('.product-price').textContent = `$${product.price.toFixed(2)}`;
+    const btn = card.querySelector('.add-to-cart-btn');
+    if (btn) btn.setAttribute('data-price', product.price);
+  });
+}
+
+// Cart functions
 function loadCart() {
   const saved = localStorage.getItem('jefitness_cart');
-  if (saved) {
-    try { cart = JSON.parse(saved); } catch { cart = []; }
-  }
+  if (saved) cart = JSON.parse(saved);
 }
 
 function saveCart() {
   localStorage.setItem('jefitness_cart', JSON.stringify(cart));
 }
 
-function addToCart(productKey, quantity = 1) {
-  const existing = cart.find(i => i.productKey === productKey);
-  if (existing) existing.quantity += quantity;
-  else cart.push({ productKey, quantity, price: productPrices[productKey] || 100.1 });
+function addToCart(key, qty = 1) {
+  const item = cart.find(i => i.productKey === key);
+  if (item) item.quantity += qty;
+  else cart.push({ productKey: key, quantity: qty, price: productPrices[key] });
   saveCart();
 }
 
@@ -75,32 +58,30 @@ function clearCart() {
   localStorage.removeItem('jefitness_cart');
 }
 
-// Create checkout session
+// Checkout
 async function handleCheckout() {
   if (!cart.length) return alert('Cart empty');
-
   const token = localStorage.getItem('token');
   if (!token) return window.location.href = 'login.html';
 
   try {
-    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
+    const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ items: cart.map(i => ({ productKey: i.productKey, quantity: i.quantity })) })
     });
-
-    const data = await response.json();
-    if (response.ok && data.success) window.location.href = data.checkoutUrl;
-    else throw new Error(data.error || 'Failed to checkout');
+    const data = await res.json();
+    if (res.ok && data.success) window.location.href = data.checkoutUrl;
+    else throw new Error(data.error || 'Checkout failed');
   } catch (err) {
     console.error(err);
     alert(err.message);
   }
 }
 
-// Initialize page
-async function initializePage() {
-  await loadPrices();
+// Init
+function initProductsPage() {
+  loadPrices();
   loadCart();
 
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
@@ -116,8 +97,4 @@ async function initializePage() {
   if (checkoutBtn) checkoutBtn.addEventListener('click', handleCheckout);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializePage);
-} else {
-  initializePage();
-}
+document.addEventListener('DOMContentLoaded', initProductsPage);
