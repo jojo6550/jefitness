@@ -22,32 +22,20 @@ const PRODUCT_IDS = {
 };
 
 /**
- * PROGRAM PRODUCT IDS CONFIGURATION
- * Product IDs for program purchases (one-time payments)
- */
-const PROGRAM_PRODUCT_IDS = {
-  // Add your program product IDs here, mapped by program slug or ID
-  // Example: 'program-slug': process.env.STRIPE_PROGRAM_SLUG || 'prod_program_slug'
-  // You can add specific ones as needed
-};
-
-/**
  * PRODUCT MAP CONFIGURATION
  * One-time product purchases configuration
- * Maps product keys to their Stripe product IDs and expected prices
+ * Maps product keys to their Stripe product IDs and price IDs
  */
 const PRODUCT_MAP = {
   'seamoss-small': {
     productId: process.env.STRIPE_PRODUCT_SEAMOSS_SMALL,
-    name: 'Seamoss - Small Size',
-    price: 1599, // $15.99 in cents
-    currency: 'usd'
+    priceId: process.env.STRIPE_PRICE_SEAMOSS_SMALL,
+    name: 'Seamoss - Small Size'
   },
   'seamoss-large': {
     productId: process.env.STRIPE_PRODUCT_SEAMOSS_LARGE,
-    name: 'Seamoss - Large Size',
-    price: 2599, // $25.99 in cents
-    currency: 'usd'
+    priceId: process.env.STRIPE_PRICE_SEAMOSS_LARGE,
+    name: 'Seamoss - Large Size'
   }
 };
 
@@ -1010,6 +998,5 @@ module.exports = {
   formatProductForFrontend,
   formatProductsForFrontend,
   PRODUCT_IDS,
-  PROGRAM_PRODUCT_IDS,
   PRODUCT_MAP
 };
