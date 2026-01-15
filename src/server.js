@@ -220,6 +220,7 @@ const versioning = require('./middleware/versioning');
 // Public routes (no auth, no rate limiting)
 app.use('/api/v1/products', versioning, require('./routes/products'));
 app.use('/api/v1/subscriptions', versioning, require('./routes/subscriptions'));
+app.use('/api/v1/programs', versioning, require('./routes/programs'));
 app.use('/webhooks', require('./routes/webhooks'));
 
 // Auth routes
@@ -272,6 +273,8 @@ if (process.env.NODE_ENV !== 'production') {
 // Handle OPTIONS requests for CORS preflight before redirect
 app.options('/api/auth', cors(corsOptions));
 app.options('/api/v1/auth', cors(corsOptions));
+// Apply CORS to /api/auth route
+app.use('/api/auth', cors(corsOptions));
 app.use('/api/auth', (req, res, next) => {
   // Manually set CORS headers for cross-origin redirects
   res.header('Access-Control-Allow-Origin', req.headers.origin || '*');

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Programs - JE Fitness</title>
+    <link rel="icon" type="image/jpg" href="../images/logo.jpg">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="../dist/styles.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            min-height: 100vh;
+        }
+        
+        .my-programs-header {
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .program-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            height: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        
+        .program-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .program-image {
+            height: 180px;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+        }
+        
+        .badge-tag {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .purchased-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        .loading-spinner {
+            min-height: 400px;
+        }
+        
+        .empty-state {
+            min-height: 400px;
+        }
+        
+        .success-message {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <img src="../images/logo.jpg" alt="JE Fitness" height="40" class="d-inline-block align-text-top rounded">
+                JE Fitness
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="program-marketplace.html">Program Marketplace</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="my-programs.html">My Programs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutBtn">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Success Message -->
+    <div id="successAlert" class="alert alert-success alert-dismissible fade success-message d-none" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        <strong>Success!</strong> <span id="successMessage"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <!-- Header -->
+    <div class="my-programs-header">
+        <div class="container">
+            <h1 class="display-4 fw-bold text-center mb-3">
+                <i class="bi bi-bookmark-check"></i> My Programs
+            </h1>
+            <p class="lead text-center">Access all your purchased fitness programs</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Stats Summary -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-collection-fill text-primary display-4"></i>
+                        <h3 class="mt-2 mb-0" id="totalProgramsCount">0</h3>
+                        <p class="text-muted mb-0">Total Programs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="bi bi-calendar-check text-success display-4"></i>
+                        <h3 class="mt-2 mb-0" id="recentPurchaseDate">-</h3>
+                        <p class="text-muted mb-0">Most Recent Purchase</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <a href="program-marketplace.html" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle"></i> Browse More Programs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Programs Container -->
+        <div id="programsContainer">
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center loading-spinner d-flex align-items-center justify-content-center">
+                <div>
+                    <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading your programs...</p>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center empty-state d-none align-items-center justify-content-center flex-column">
+                <div>
+                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">No programs yet</h3>
+                    <p class="text-muted mb-4">You haven't purchased any programs yet</p>
+                    <a href="program-marketplace.html" class="btn btn-primary btn-lg">
+                        <i class="bi bi-shop"></i> Browse Marketplace
+                    </a>
+                </div>
+            </div>
+
+            <!-- Programs Grid -->
+            <div id="programsGrid" class="row g-4">
+                <!-- Program cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Program Details Modal -->
+    <div class="modal fade" id="programDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProgramTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle-fill"></i> <strong>Purchased Program</strong>
+                        <small class="d-block text-muted mt-1" id="modalPurchaseDate"></small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-2">Author</h6>
+                            <p id="modalProgramAuthor" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Goals</h6>
+                            <p id="modalProgramGoals" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Description</h6>
+                            <p id="modalProgramDescription" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Features</h6>
+                            <ul id="modalProgramFeatures" class="list-unstyled mb-3">
+                                <!-- Features will be populated -->
+                            </ul>
+                            
+                            <div class="d-flex gap-2 flex-wrap mb-3">
+                                <span class="badge bg-secondary" id="modalProgramDifficulty"></span>
+                                <span class="badge bg-info" id="modalProgramDuration"></span>
+                            </div>
+                            
+                            <div id="modalProgramTags" class="d-flex gap-2 flex-wrap">
+                                <!-- Tags will be populated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" class="btn btn-primary" id="viewProgramBtn">
+                        <i class="bi bi-eye"></i> View Program Content
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="../js/logout.js"></script>
+    <script src="../js/my-programs.js"></script>
+</body>
+</html>

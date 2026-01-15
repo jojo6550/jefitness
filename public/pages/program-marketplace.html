@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Marketplace - JE Fitness</title>
+    <link rel="icon" type="image/jpg" href="../images/logo.jpg">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="../dist/styles.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            min-height: 100vh;
+        }
+        
+        .marketplace-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .program-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            height: 100%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .program-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .program-image {
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--info-color) 100%);
+        }
+        
+        .badge-tag {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+            margin-right: 0.25rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .price-badge {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--success-color);
+        }
+        
+        .difficulty-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+        }
+        
+        .loading-spinner {
+            min-height: 400px;
+        }
+        
+        .empty-state {
+            min-height: 400px;
+        }
+        
+        .filter-chip {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-chip:hover {
+            transform: scale(1.05);
+        }
+        
+        .filter-chip.active {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="../index.html">
+                <img src="../images/logo.jpg" alt="JE Fitness" height="40" class="d-inline-block align-text-top rounded">
+                JE Fitness
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="dashboard.html">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="program-marketplace.html">Program Marketplace</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="my-programs.html">My Programs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutBtn">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <div class="marketplace-header">
+        <div class="container">
+            <h1 class="display-4 fw-bold text-center mb-3">
+                <i class="bi bi-shop"></i> Program Marketplace
+            </h1>
+            <p class="lead text-center mb-4">Discover and purchase premium fitness programs</p>
+            
+            <!-- Search and Filter -->
+            <div class="search-container">
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-white">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search programs by title, author, or tags...">
+                    <button class="btn btn-light" type="button" id="clearSearchBtn">
+                        <i class="bi bi-x-circle"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mb-5">
+        <!-- Filter Tags -->
+        <div class="mb-4">
+            <h5 class="mb-3"><i class="bi bi-funnel"></i> Filter by Tags</h5>
+            <div id="tagFilters" class="d-flex flex-wrap gap-2">
+                <!-- Tags will be populated dynamically -->
+            </div>
+        </div>
+
+        <!-- Programs Grid -->
+        <div id="programsContainer">
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center loading-spinner d-flex align-items-center justify-content-center">
+                <div>
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading programs...</p>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center empty-state d-none align-items-center justify-content-center">
+                <div>
+                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                    <h3 class="text-muted">No programs found</h3>
+                    <p class="text-muted">Try adjusting your search or filters</p>
+                </div>
+            </div>
+
+            <!-- Programs Grid -->
+            <div id="programsGrid" class="row g-4">
+                <!-- Program cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Program Preview Modal -->
+    <div class="modal fade" id="programPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalProgramTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6 class="text-muted mb-2">Author</h6>
+                            <p id="modalProgramAuthor" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Goals</h6>
+                            <p id="modalProgramGoals" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Description</h6>
+                            <p id="modalProgramDescription" class="mb-3"></p>
+                            
+                            <h6 class="text-muted mb-2">Features</h6>
+                            <ul id="modalProgramFeatures" class="list-unstyled">
+                                <!-- Features will be populated -->
+                            </ul>
+                            
+                            <div class="mt-3">
+                                <span class="badge bg-secondary me-2" id="modalProgramDifficulty"></span>
+                                <span class="badge bg-info" id="modalProgramDuration"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Price</h6>
+                                    <p class="price-badge mb-3" id="modalProgramPrice">Loading...</p>
+                                    <button class="btn btn-primary btn-lg w-100" id="buyNowBtn">
+                                        <i class="bi bi-cart-plus"></i> Buy Now
+                                    </button>
+                                    <p class="text-muted small mt-2 mb-0">One-time payment</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="../js/logout.js"></script>
+    <script src="../js/program-marketplace.js"></script>
+</body>
+</html>

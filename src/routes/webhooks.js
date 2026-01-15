@@ -241,8 +241,30 @@ async function handleCheckoutSessionCompleted(session) {
   }
 
   if (session.mode === 'payment') {
-    if (session.metadata?.programId) {
-      // Handle program purchases
+    if (session.metadata?.programId && session.metadata?.type === 'program_purchase') {
+      // Handle program marketplace purchases
+      const programId = session.metadata.programId;
+      const alreadyPurchased = user.purchasedPrograms.some(p => p.programId.toString() === programId);
+      
+      if (!alreadyPurchased) {
+        // Get program details to store price info
+        const Program = require('../models/Program');
+        const program = await Program.findById(programId);
+        
+        user.purchasedPrograms.push({
+          programId,
+          purchasedAt: new Date(),
+          stripeCheckoutSessionId: session.id,
+          stripePriceId: program?.stripePriceId,
+          amountPaid: session.amount_total
+        });
+        await user.save();
+        console.log(`✅ Program ${programId} purchased by user ${user._id}`);
+      } else {
+        console.log(`ℹ️ Program ${programId} already purchased by user ${user._id}`);
+      }
+    } else if (session.metadata?.programId) {
+      // Handle legacy program assignments (trainer assigned programs)
       const programId = session.metadata.programId;
       const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
       if (!alreadyAssigned) {

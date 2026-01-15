@@ -65,6 +65,13 @@ const UserSchema = new mongoose.Schema({
   failedLoginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date },
   assignedPrograms: [{ programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' }, assignedAt: { type: Date, default: Date.now } }],
+  purchasedPrograms: [{
+    programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
+    purchasedAt: { type: Date, default: Date.now },
+    stripeCheckoutSessionId: { type: String },
+    stripePriceId: { type: String },
+    amountPaid: { type: Number }
+  }],
   pushSubscription: { type: Object },
   hasMedical: { type: Boolean, default: false },
   medicalConditions: { type: String, default: null },
@@ -142,6 +149,7 @@ UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 }, { sparse: true });
+UserSchema.index({ 'purchasedPrograms.programId': 1 }, { sparse: true });
 
 // --------------------
 // Subscription Methods
