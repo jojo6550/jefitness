@@ -1,38 +1,6 @@
 // Cart Page - Comprehensive Cart Management and Checkout
 // Handles cart display, quantity updates, and Stripe checkout
 
-// Product catalog with pricing
-const PRODUCT_CATALOG = {
-  'seamoss-small': {
-    name: 'Seamoss - Small Size',
-    price: 15.99,
-    description: 'Rich in minerals and vitamins',
-    icon: 'bi-droplet-fill',
-    iconColor: 'text-primary'
-  },
-  'seamoss-large': {
-    name: 'Seamoss - Large Size',
-    price: 25.99,
-    description: 'Larger quantity for extended use',
-    icon: 'bi-droplet-fill',
-    iconColor: 'text-primary'
-  },
-  'coconut-water': {
-    name: 'Coconut Water',
-    price: 8.99,
-    description: 'Naturally rich in electrolytes',
-    icon: 'bi-cup-straw',
-    iconColor: 'text-success'
-  },
-  'coconut-jelly': {
-    name: 'Coconut Jelly',
-    price: 12.99,
-    description: 'Delicious and nutritious snack',
-    icon: 'bi-egg-fried',
-    iconColor: 'text-warning'
-  }
-};
-
 // Cart state
 let cart = [];
 let orderHistory = [];
@@ -43,6 +11,23 @@ function loadCart() {
   if (savedCart) {
     try {
       cart = JSON.parse(savedCart);
+      
+      // Filter out items that don't have required product information
+      // This handles migration from old cart format
+      const validItems = cart.filter(item => {
+        const isValid = item.productKey && item.name && item.price && item.quantity;
+        if (!isValid) {
+          console.warn('Removing invalid cart item:', item);
+        }
+        return isValid;
+      });
+      
+      if (validItems.length !== cart.length) {
+        console.log('Cleaned up cart from', cart.length, 'to', validItems.length, 'items');
+        cart = validItems;
+        saveCart(); // Save cleaned cart
+      }
+      
       console.log('Cart loaded:', cart);
     } catch (e) {
       console.error('Failed to load cart:', e);
@@ -78,10 +63,10 @@ function clearCart() {
 function removeFromCart(productKey) {
   const itemIndex = cart.findIndex(item => item.productKey === productKey);
   if (itemIndex !== -1) {
-    const productInfo = PRODUCT_CATALOG[productKey];
+    const item = cart[itemIndex];
     cart.splice(itemIndex, 1);
     saveCart();
-    showToast(`${productInfo?.name || 'Item'} removed from cart`, 'info');
+    showToast(`${item.name || 'Item'} removed from cart`, 'info');
   }
 }
 
@@ -101,10 +86,9 @@ function calculateTotals() {
   let subtotal = 0;
 
   cart.forEach(item => {
-    const productInfo = PRODUCT_CATALOG[item.productKey];
-    if (productInfo) {
+    if (item.price && item.quantity) {
       itemCount += item.quantity;
-      subtotal += productInfo.price * item.quantity;
+      subtotal += item.price * item.quantity;
     }
   });
 
@@ -157,22 +141,25 @@ function renderCartItems() {
 
   // Render each cart item
   cart.forEach(item => {
-    const productInfo = PRODUCT_CATALOG[item.productKey];
-    if (!productInfo) return;
+    // Skip items without required product information
+    if (!item.productKey || !item.name || !item.price) {
+      console.warn('Skipping item with missing information:', item);
+      return;
+    }
 
-    const itemTotal = productInfo.price * item.quantity;
+    const itemTotal = item.price * item.quantity;
 
     const cartItemHtml = `
       <div class="card mb-3 shadow-sm cart-item" data-product-key="${item.productKey}">
         <div class="card-body">
           <div class="row align-items-center">
             <div class="col-md-2 text-center mb-3 mb-md-0">
-              <i class="bi ${productInfo.icon} ${productInfo.iconColor} display-4"></i>
+              <i class="bi ${item.icon || 'bi-box'} ${item.iconColor || 'text-primary'} display-4"></i>
             </div>
             <div class="col-md-4 mb-3 mb-md-0">
-              <h5 class="mb-1">${productInfo.name}</h5>
-              <p class="text-muted small mb-0">${productInfo.description}</p>
-              <p class="text-primary fw-bold mb-0">$${productInfo.price.toFixed(2)} each</p>
+              <h5 class="mb-1">${item.name}</h5>
+              <p class="text-muted small mb-0">${item.description || ''}</p>
+              <p class="text-primary fw-bold mb-0">$${item.price.toFixed(2)} each</p>
             </div>
             <div class="col-md-3 mb-3 mb-md-0">
               <label class="form-label small text-muted mb-1">Quantity</label>
@@ -329,6 +316,12 @@ async function handleCheckout() {
       showToast('Note: Only Seamoss products will be included in checkout', 'info');
     }
 
+    // Send only productKey and quantity to backend (backend validates and prices)
+    const itemsPayload = checkoutItems.map(item => ({
+      productKey: item.productKey,
+      quantity: item.quantity
+    }));
+
     // Make API call to create checkout session
     const response = await fetch(`${API_BASE_URL}/products/checkout`, {
       method: 'POST',
@@ -336,7 +329,7 @@ async function handleCheckout() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ items: checkoutItems })
+      body: JSON.stringify({ items: itemsPayload })
     });
 
     const data = await response.json();

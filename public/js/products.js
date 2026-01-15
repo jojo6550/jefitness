@@ -31,8 +31,31 @@ function clearCart() {
   updateCartUI();
 }
 
-// Add item to cart
+// Add item to cart with full product information
 function addToCart(productKey, quantity = 1) {
+  // Get product information from the DOM
+  const productCard = document.querySelector(`[data-product-id="${productKey}"]`);
+  if (!productCard) {
+    console.error('Product card not found for:', productKey);
+    showToast('Failed to add item to cart', 'danger');
+    return;
+  }
+
+  // Extract product information from the card
+  const nameEl = productCard.querySelector('.card-title');
+  const descEl = productCard.querySelector('.card-text');
+  const priceEl = productCard.querySelector('.product-price');
+  const iconEl = productCard.querySelector('.bi');
+
+  const productInfo = {
+    productKey,
+    name: nameEl ? nameEl.textContent.trim() : productKey,
+    description: descEl ? descEl.textContent.trim() : '',
+    price: priceEl ? parseFloat(priceEl.textContent) : 0,
+    icon: iconEl ? iconEl.className : 'bi bi-box',
+    iconColor: iconEl ? (iconEl.className.includes('text-') ? iconEl.className.match(/text-\w+/)[0] : 'text-primary') : 'text-primary'
+  };
+
   // Check if item already exists in cart
   const existingItem = cart.find(item => item.productKey === productKey);
   
@@ -40,13 +63,13 @@ function addToCart(productKey, quantity = 1) {
     existingItem.quantity += quantity;
   } else {
     cart.push({
-      productKey,
+      ...productInfo,
       quantity
     });
   }
   
   saveCart();
-  showToast(`Added to cart!`, 'success');
+  showToast(`${productInfo.name} added to cart!`, 'success');
 }
 
 // Remove item from cart
