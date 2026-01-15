@@ -252,7 +252,7 @@ async function checkAuth() {
   
   try {
     // Verify token is still valid
-    const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
