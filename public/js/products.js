@@ -40,6 +40,20 @@ function updateProductCards() {
 function loadCart() {
   const saved = localStorage.getItem('jefitness_cart');
   if (saved) cart = JSON.parse(saved);
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const badge = document.getElementById('cart-badge');
+  if (badge) {
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (totalItems > 0) {
+      badge.textContent = totalItems;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
 }
 
 function saveCart() {
@@ -79,10 +93,41 @@ async function handleCheckout() {
   }
 }
 
+// Toast notification
+function showToast(message) {
+  const toast = document.getElementById('cartToast');
+  const toastMessage = document.getElementById('toastMessage');
+  if (toast && toastMessage) {
+    toastMessage.textContent = message;
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+  }
+}
+
+// Quantity stepper functionality
+function initQuantitySteppers() {
+  document.querySelectorAll('.quantity-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const action = btn.getAttribute('data-action');
+      const input = btn.closest('.quantity-selector').querySelector('.quantity-input');
+      let value = parseInt(input.value) || 1;
+
+      if (action === 'increase' && value < 99) {
+        value++;
+      } else if (action === 'decrease' && value > 1) {
+        value--;
+      }
+
+      input.value = value;
+    });
+  });
+}
+
 // Init
 function initProductsPage() {
   loadPrices();
   loadCart();
+  initQuantitySteppers();
 
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -90,6 +135,7 @@ function initProductsPage() {
       const qtyInput = btn.closest('.product-card')?.querySelector('.quantity-input');
       const qty = parseInt(qtyInput?.value) || 1;
       addToCart(key, qty);
+      showToast('Item added to cart!');
     });
   });
 
