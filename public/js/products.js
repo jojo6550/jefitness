@@ -124,11 +124,30 @@ function initQuantitySteppers() {
   });
 }
 
+// Check for successful purchase and clear cart
+function checkCheckoutStatus() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('success') === 'true') {
+    clearCart();
+    updateCartBadge();
+    showToast('Purchase successful! Your cart has been cleared.');
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
 // Init
-function initProductsPage() {
-  loadPrices();
+async function initProductsPage() {
+  await loadPrices();
   loadCart();
   initQuantitySteppers();
+  checkCheckoutStatus();
+
+  // Hide loading, show main content
+  const loading = document.getElementById('page-loading');
+  const mainContent = document.getElementById('products');
+  if (loading) loading.style.display = 'none';
+  if (mainContent) mainContent.style.display = 'block';
 
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', () => {

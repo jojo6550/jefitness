@@ -110,4 +110,19 @@ router.post('/checkout', auth, async (req, res) => {
   }
 });
 
+// GET /api/v1/products/purchases - Get user's purchase history
+router.get('/purchases', auth, async (req, res) => {
+  try {
+    const purchases = await Purchase.find({
+      userId: req.user.id,
+      status: 'completed'
+    }).sort({ createdAt: -1 });
+
+    res.json({ success: true, purchases });
+  } catch (err) {
+    console.error('Purchase history error:', err);
+    res.status(500).json({ success: false, error: 'Failed to load purchase history' });
+  }
+});
+
 module.exports = router;
