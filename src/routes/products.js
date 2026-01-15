@@ -2,7 +2,7 @@ const express = require('express');
 const { auth } = require('../middleware/auth');
 const Purchase = require('../models/Purchase');
 const User = require('../models/User');
-const { createProductCheckoutSession, PRODUCT_MAP } = require('../services/stripe');
+const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../services/stripe');
 
 const router = express.Router();
 

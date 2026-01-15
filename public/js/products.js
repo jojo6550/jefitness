@@ -4,6 +4,29 @@
 // Cart state management
 let cart = [];
 
+// Product prices cache
+let productPrices = {};
+
+// Update product prices in the DOM
+function updateProductPrices() {
+  Object.keys(productPrices).forEach(productKey => {
+    const productCard = document.querySelector(`[data-product-id="${productKey}"]`);
+    if (productCard) {
+      const priceEl = productCard.querySelector('.product-price');
+      const addToCartBtn = productCard.querySelector('.add-to-cart-btn');
+
+      if (priceEl) {
+        priceEl.textContent = productPrices[productKey].toFixed(2);
+      }
+
+      if (addToCartBtn) {
+        // Update data-price attribute for cart functionality
+        addToCartBtn.setAttribute('data-price', productPrices[productKey].toFixed(2));
+      }
+    }
+  });
+}
+
 // Load cart from localStorage on page load
 function loadCart() {
   const savedCart = localStorage.getItem('jefitness_cart');
@@ -44,14 +67,16 @@ function addToCart(productKey, quantity = 1) {
   // Extract product information from the card
   const nameEl = productCard.querySelector('.card-title');
   const descEl = productCard.querySelector('.card-text');
-  const priceEl = productCard.querySelector('.product-price');
   const iconEl = productCard.querySelector('.bi');
+
+  // Use cached price or fallback
+  const price = productPrices[productKey] || 100.1;
 
   const productInfo = {
     productKey,
     name: nameEl ? nameEl.textContent.trim() : productKey,
     description: descEl ? descEl.textContent.trim() : '',
-    price: priceEl ? parseFloat(priceEl.textContent) : 0,
+    price: price,
     icon: iconEl ? iconEl.className : 'bi bi-box',
     iconColor: iconEl ? (iconEl.className.includes('text-') ? iconEl.className.match(/text-\w+/)[0] : 'text-primary') : 'text-primary'
   };
