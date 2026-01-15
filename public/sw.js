@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v69)
+//JEFitness Service Worker (v71)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '69';
+const CACHE_VERSION = '71';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -30,14 +30,14 @@ const STATIC_ASSETS = [
   '/js/navbar-subscription.js', '/js/products.js', '/js/profile.js',
   '/js/role-guard.js', '/js/subscriptions.js', '/js/tailwind.js',
   '/js/trainer-appointments.js', '/js/trainer-clients.js', '/js/trainer-dashboard.js',
-  '/js/view-subscription.js',
+  '/js/view-subscription.js', '/js/auth-fixed.js', '/js/my-programs.js', '/js/program-marketplace.js',
   '/pages/admin-dashboard.html', '/pages/cart.html', '/pages/dashboard.html', '/pages/disclaimer.html',
   '/pages/forgot-password.html', '/pages/login.html', '/pages/meet-your-trainer.html',
   '/pages/privacy-policy.html', '/pages/products.html', '/pages/profile.html',
   '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
   '/pages/terms-of-service.html', '/pages/trainer-appointments.html',
   '/pages/trainer-clients.html', '/pages/trainer-dashboard.html',
-  '/pages/view-subscription.html',
+  '/pages/view-subscription.html', '/pages/my-programs.html', '/pages/program-marketplace.html',
   '/pages/programs/8-week-eds-safe-strength-fat-loss-program.html',
   '/pages/programs/9-week-phased-strength-program.html',
   '/pages/programs/full-body-mobility.html',

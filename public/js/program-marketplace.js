@@ -48,7 +48,7 @@ async function loadPrograms() {
     try {
         showLoading();
 
-        const response = await fetch(`${window.API_BASE}/programs`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/programs`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -245,7 +245,7 @@ async function handleBuyNow() {
         buyBtn.disabled = true;
         buyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
-        const response = await fetch(`${window.API_BASE}/programs/checkout`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/programs/checkout`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

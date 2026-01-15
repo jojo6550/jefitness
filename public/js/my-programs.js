@@ -35,7 +35,7 @@ async function loadMyPrograms() {
     try {
         showLoading();
 
-        const response = await fetch(`${window.API_BASE}/programs/user/my-programs`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/programs/user/my-programs`, {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
