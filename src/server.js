@@ -217,7 +217,15 @@ app.use('/api', require('./routes/cache'));
 const { auth } = require('./middleware/auth');
 const versioning = require('./middleware/versioning');
 
+// Public routes (no auth, no rate limiting)
+app.use('/api/v1/products', versioning, require('./routes/products'));
+app.use('/api/v1/subscriptions', versioning, require('./routes/subscriptions'));
+app.use('/webhooks', require('./routes/webhooks'));
+
+// Auth routes
 app.use('/api/v1/auth', versioning, require('./routes/auth'));
+
+// Protected routes (with auth and rate limiting)
 app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/clients'));
 app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
 app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
@@ -225,9 +233,6 @@ app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestrictio
 app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
-app.use('/api/v1/subscriptions', apiLimiter, versioning, require('./routes/subscriptions'));
-app.use('/api/v1/products', versioning, require('./routes/products'));
-app.use('/webhooks', require('./routes/webhooks'));
 
 // API Documentation routes (only in development)
 if (process.env.NODE_ENV !== 'production') {

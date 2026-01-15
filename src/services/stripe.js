@@ -701,6 +701,10 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
         throw new Error(`Invalid product key: ${item.productKey}`);
       }
 
+      if (!productInfo.priceId) {
+        throw new Error(`Product ${item.productKey} has no configured price ID`);
+      }
+
       lineItems.push({
         price: productInfo.priceId,
         quantity: item.quantity

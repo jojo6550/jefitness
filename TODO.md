@@ -1,13 +1,9 @@
-# Dynamic Product Pricing Implementation
+# Fix Public Route 401 and Stripe Bugs
 
 ## Tasks
-- [ ] Add `/api/v1/products/prices` endpoint to fetch dynamic prices from Stripe
-- [ ] Update `public/js/products.js` to load prices dynamically on page initialization
-- [ ] Update `public/pages/products.html` to support dynamic price loading
-- [ ] Test dynamic price loading for seamoss products
-- [ ] Verify fallback behavior (100.1) when Stripe is unavailable
-
-## Files to Modify
-- `src/routes/products.js` - Add prices endpoint
-- `public/js/products.js` - Add price loading logic
-- `public/pages/products.html` - Update to support dynamic prices
+- [ ] Move public routes to top in server.js to avoid auth interference
+- [ ] Remove apiLimiter from public routes (/api/v1/products, /api/v1/subscriptions)
+- [ ] Add null priceId checks in createProductCheckoutSession
+- [ ] Export getStripe from stripe.js
+- [ ] Update products.js to check for STRIPE_SECRET_KEY before calling Stripe
+- [ ] Filter out products with null priceId in GET /products
