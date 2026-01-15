@@ -15,18 +15,28 @@ function render() {
   cart.forEach(item => {
     total += item.quantity;
     container.innerHTML += `
-      <div>
-        ${item.productKey} × ${item.quantity}
-        <button onclick="removeItem('${item.productKey}')">X</button>
+      <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+          <strong>${item.name}</strong> × ${item.quantity}
+          <small class="text-muted">$${item.price.toFixed(2)} each</small>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item.productKey}')">
+          <i class="bi bi-trash"></i>
+        </button>
       </div>`;
   });
 
   document.getElementById('summary-item-count').textContent = total;
 }
 
+function saveCart() {
+  localStorage.setItem('jefitness_cart', JSON.stringify(cart));
+}
+
 function removeItem(key) {
   cart = cart.filter(i => i.productKey !== key);
   saveCart();
+  render();
 }
 
 async function checkout() {
@@ -46,4 +56,31 @@ async function checkout() {
   if (data.success) location.href = data.checkoutUrl;
 }
 
-document.addEventListener('DOMContentLoaded', render);
+function initCartPage() {
+  render();
+  
+  // Hide loading, show main content
+  const loading = document.getElementById('page-loading');
+  const mainContent = document.getElementById('main-content');
+  if (loading) loading.style.display = 'none';
+  if (mainContent) mainContent.style.display = 'block';
+  
+  // Clear cart button
+  const clearBtn = document.getElementById('clear-cart-btn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the cart?')) {
+        clearCart();
+        render();
+      }
+    });
+  }
+  
+  // Checkout button
+  const checkoutBtn = document.getElementById('checkout-btn');
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener('click', checkout);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initCartPage);

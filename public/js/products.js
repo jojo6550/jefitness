@@ -63,8 +63,9 @@ function saveCart() {
 function addToCart(key, qty = 1) {
   const item = cart.find(i => i.productKey === key);
   if (item) item.quantity += qty;
-  else cart.push({ productKey: key, quantity: qty, price: productPrices[key] });
+  else cart.push({ productKey: key, quantity: qty, price: productPrices[key], name: productsData[key]?.name || key });
   saveCart();
+  updateCartBadge();
 }
 
 function clearCart() {
