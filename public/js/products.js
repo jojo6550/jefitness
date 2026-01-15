@@ -322,6 +322,44 @@ async function checkAuth() {
   }
 }
 
+// Load product prices from API
+async function loadProductPrices() {
+  try {
+    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products`);
+    const data = await response.json();
+
+    if (data.success && data.products) {
+      // Update productPrices cache
+      Object.keys(data.products).forEach(productKey => {
+        productPrices[productKey] = data.products[productKey].price;
+      });
+
+      // Update DOM with new prices
+      updateProductPrices();
+    } else {
+      console.warn('Failed to load product prices from API, using fallback');
+      // Fallback to static prices
+      productPrices = {
+        'seamoss-small': 100.1,
+        'seamoss-large': 100.1,
+        'coconut-water': 100.1,
+        'coconut-jelly': 100.1
+      };
+      updateProductPrices();
+    }
+  } catch (error) {
+    console.error('Error loading product prices:', error);
+    // Fallback to static prices
+    productPrices = {
+      'seamoss-small': 100.1,
+      'seamoss-large': 100.1,
+      'coconut-water': 100.1,
+      'coconut-jelly': 100.1
+    };
+    updateProductPrices();
+  }
+}
+
 // Initialize page
 async function initializePage() {
   const loadingEl = document.getElementById('page-loading');
