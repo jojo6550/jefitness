@@ -258,17 +258,17 @@ router.post('/checkout', auth, async (req, res) => {
 router.get('/user/my-programs', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate('purchasedPrograms.programId');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
-    
+
     // Filter out any null program references (in case program was deleted)
     const validPrograms = user.purchasedPrograms.filter(p => p.programId);
-    
+
     const programs = validPrograms.map(p => ({
       _id: p.programId._id,
       title: p.programId.title,
@@ -284,7 +284,7 @@ router.get('/user/my-programs', auth, async (req, res) => {
       purchasedAt: p.purchasedAt,
       amountPaid: p.amountPaid
     }));
-    
+
     res.json({
       success: true,
       programs
@@ -294,6 +294,41 @@ router.get('/user/my-programs', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch your programs'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/programs/user/access/:slug
+ * Check if authenticated user has access to a specific program by slug
+ */
+router.get('/user/access/:slug', auth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const user = await User.findById(req.user.id).populate('purchasedPrograms.programId');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Check if user has purchased this program
+    const hasAccess = user.purchasedPrograms.some(p =>
+      p.programId && p.programId.slug === slug
+    );
+
+    res.json({
+      success: true,
+      hasAccess,
+      slug
+    });
+  } catch (error) {
+    console.error('Error checking program access:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check program access'
     });
   }
 });

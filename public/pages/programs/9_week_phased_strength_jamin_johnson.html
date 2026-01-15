@@ -15,7 +15,26 @@
 </head>
 
 <body class="dashboard-page">
-    <div id="navbar-placeholder-programme"></div>
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand fw-bold me-3" href="../dashboard.html" id="brand-link">JEFITNESS</a>
+                <span id="subscription-status-navbar" class="badge bg-secondary text-white small">Loading...</span>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" href="../dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../products.html">Products</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../subscriptions.html">Subscription</a></li>
+                    <li class="nav-item"><a class="nav-link" href="../my-programs.html">My Programs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <main class="container my-5">
         <div class="text-center mb-5">
@@ -188,7 +207,9 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../js/navbar-loader.js" defer></script>
+    <script src="../../js/api.config.js"></script>
+    <script src="../../js/navbar-subscription.js" defer></script>
     <script src="../../js/logout.js" defer></script>
+    <script src="../../js/program-access.js"></script>
 </body>
 </html>

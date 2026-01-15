@@ -1,5 +1,3 @@
-// My Programs JavaScript
-window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 let myPrograms = [];
 let currentProgram = null;
@@ -168,8 +166,8 @@ function showProgramDetails(programId) {
             tagsContainer.innerHTML = '';
         }
 
-        // View program button
-        document.getElementById('viewProgramBtn').href = `#program-content-${currentProgram._id}`;
+        // View program button - link to the actual program page
+        document.getElementById('viewProgramBtn').href = `programs/${currentProgram.slug}.html`;
 
         programModal.show();
     } catch (error) {

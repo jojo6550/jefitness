@@ -164,6 +164,11 @@ async function migrateUser(user) {
     updated = true;
   }
 
+  if (!user.purchasedPrograms) {
+    user.purchasedPrograms = [];
+    updated = true;
+  }
+
   if (!user.medicalDocuments) {
     user.medicalDocuments = [];
     updated = true;
