@@ -147,7 +147,7 @@ async function createCheckoutSession(cartItems) {
     }
 
     // Make API call to create checkout session
-    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/products/checkout`, {
+    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ async function checkAuth() {
   
   try {
     // Verify token is still valid
-    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/auth/me`, {
+    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

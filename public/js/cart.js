@@ -323,7 +323,7 @@ async function handleCheckout() {
     }));
 
     // Make API call to create checkout session
-    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/products/checkout`, {
+    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -361,7 +361,7 @@ async function loadOrderHistory() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/products/orders`, {
+    const response = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/orders`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
