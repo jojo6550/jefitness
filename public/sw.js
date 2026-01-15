@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v38)
+// JEFitness Service Worker (v39)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '38';
+const CACHE_VERSION = '39';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -25,13 +25,13 @@ const STATIC_ASSETS = [
   '/images/hero.jpg', '/images/logo.jpg',
   '/js/admin-dashboard.js', '/js/admin-logs.js', '/js/admin-notifications.js',
   '/js/api.config.js', '/js/app.js', '/js/appointments.js', '/js/auth.js',
-  '/js/bmi.js', '/js/cache-version.js', '/js/coming-soon.js', '/js/cookie-consent.js',
+  '/js/bmi.js', '/js/cache-version.js', '/js/cart.js', '/js/coming-soon.js', '/js/cookie-consent.js',
   '/js/dashboard.js', '/js/logout.js', '/js/medical-documents.js',
   '/js/navbar-subscription.js', '/js/products.js', '/js/profile.js',
   '/js/role-guard.js', '/js/subscriptions.js', '/js/tailwind.js',
   '/js/trainer-appointments.js', '/js/trainer-clients.js', '/js/trainer-dashboard.js',
   '/js/view-subscription.js',
-  '/pages/admin-dashboard.html', '/pages/dashboard.html', '/pages/disclaimer.html',
+  '/pages/admin-dashboard.html', '/pages/cart.html', '/pages/dashboard.html', '/pages/disclaimer.html',
   '/pages/forgot-password.html', '/pages/login.html', '/pages/meet-your-trainer.html',
   '/pages/privacy-policy.html', '/pages/products.html', '/pages/profile.html',
   '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
