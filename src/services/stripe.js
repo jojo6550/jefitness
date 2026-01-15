@@ -733,6 +733,7 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
       success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
+      locale: 'en', // Set locale to English to avoid module loading issues
       metadata: {
         userId: user._id.toString(),
         type: 'product_purchase',

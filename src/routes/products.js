@@ -80,7 +80,7 @@ router.post('/checkout', auth, async (req, res) => {
         price: null,
         productId: PRODUCT_MAP[item.productKey]?.productId
       })),
-      `${req.protocol}://${req.get('host')}/pages/products.html?success=true`,
+      `${req.protocol}://${req.get('host')}/pages/cart.html?success=true`,
       `${req.protocol}://${req.get('host')}/pages/products.html?canceled=true`
     );
 
