@@ -1,9 +1,9 @@
 // ===============================
-// JEFitness Service Worker (v33)
+// JEFitness Service Worker (v34)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '33';
+const CACHE_VERSION = '34';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 

@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.initDashboard) {
                     window.initDashboard();
                 }
+                // Replace product/cart links with coming soon if enabled
+                if (window.enableComingSoonMode && window.replaceProductCartLinks) {
+                    window.replaceProductCartLinks(true);
+                }
             })
             .catch(error => console.error('Error loading navbar:', error));
     } else if (navbarPlaceholderPrograme) {
@@ -33,6 +37,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Initialize dashboard if function exists
                 if (window.initDashboard) {
                     window.initDashboard();
+                }
+                // Replace product/cart links with coming soon if enabled
+                if (window.enableComingSoonMode && window.replaceProductCartLinks) {
+                    window.replaceProductCartLinks(true);
                 }
             })
             .catch(error => console.error('Error loading navbar:', error));

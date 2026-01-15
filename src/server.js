@@ -271,6 +271,12 @@ if (process.env.NODE_ENV !== 'production') {
 app.options('/api/auth', cors(corsOptions));
 app.options('/api/v1/auth', cors(corsOptions));
 app.use('/api/auth', (req, res, next) => {
+  // Manually set CORS headers for cross-origin redirects
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
   res.redirect(307, '/api/v1/auth' + req.path);
 });
 
