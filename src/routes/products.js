@@ -10,17 +10,6 @@ const router = express.Router();
 // Get product prices dynamically from Stripe (public endpoint - no auth required)
 router.get('/', async (req, res) => {
   try {
-    // Always use fallback prices for now to avoid Stripe issues
-    return res.json({
-      success: true,
-      products: {
-        'seamoss-small': { price: 100.1, currency: 'jmd' },
-        'seamoss-large': { price: 100.1, currency: 'jmd' },
-        'coconut-water': { price: 100.1, currency: 'jmd' },
-        'coconut-jelly': { price: 100.1, currency: 'jmd' }
-      }
-    });
-
     const stripe = getStripe();
     if (!stripe) {
       // Fallback to static prices if Stripe not available
