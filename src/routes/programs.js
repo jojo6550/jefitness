@@ -215,8 +215,8 @@ router.post('/checkout', auth, async (req, res) => {
     }
     
     // Create checkout session
-    const successUrl = `${process.env.CLIENT_URL || 'http://localhost:5500'}/pages/my-programs.html?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${process.env.CLIENT_URL || 'http://localhost:5500'}/pages/program-marketplace.html`;
+    const successUrl = `${process.env.FRONTEND_URL || 'http://localhost:5500'}/pages/my-programs.html?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5500'}/pages/program-marketplace.html`;
     
     const session = await stripeService.getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
