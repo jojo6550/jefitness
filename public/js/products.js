@@ -1,3 +1,12 @@
+// Reusable helper to hide the page loading overlay
+function hidePageLoader() {
+  const loading = document.getElementById('page-loading');
+  if (loading) {
+    loading.style.display = 'none';
+  }
+}
+
+// Product data and prices
 let cart = [];
 let productPrices = {};
 let productsData = {}; // full product info from backend
@@ -16,7 +25,7 @@ async function loadPrices() {
 
   } catch (err) {
     console.error('Failed to load products, using defaults:', err);
-    // fallback
+    // fallback to static data if API fails or returns empty
     const fallbackKeys = ['seamoss-small', 'seamoss-large', 'coconut-water', 'coconut-jelly'];
     fallbackKeys.forEach(key => {
       productPrices[key] = 100.1;
@@ -27,10 +36,14 @@ async function loadPrices() {
 }
 
 function updateProductCards() {
+  // Defensive check: ensure productsData is not empty before updating
+  if (!productsData || Object.keys(productsData).length === 0) return;
+
   Object.entries(productsData).forEach(([key, product]) => {
     const card = document.querySelector(`[data-product-id="${key}"]`);
-    if (!card) return;
-    card.querySelector('.product-price').textContent = `$${product.price.toFixed(2)}`;
+    if (!card) return; // skip if card not found
+    const priceSpan = card.querySelector('.product-price');
+    if (priceSpan) priceSpan.textContent = `$${product.price.toFixed(2)}`;
     const btn = card.querySelector('.add-to-cart-btn');
     if (btn) btn.setAttribute('data-price', product.price);
   });
@@ -138,17 +151,23 @@ function checkCheckoutStatus() {
 
 // Init
 async function initProductsPage() {
-  await loadPrices();
-  loadCart();
-  initQuantitySteppers();
-  checkCheckoutStatus();
+  // Load data asynchronously
+  await loadPrices(); // awaits API or fallback
+  loadCart(); // sync
+  initQuantitySteppers(); // sync
+  checkCheckoutStatus(); // sync
 
-  // Hide loading, show main content
-  const loading = document.getElementById('page-loading');
+  // Hide loading overlay after data is loaded
+  hidePageLoader();
+
+  // Fallback timeout to ensure loader hides even if async hangs (though unlikely)
+  setTimeout(hidePageLoader, 5000);
+
+  // Show main content (already in HTML, but ensure)
   const mainContent = document.getElementById('products');
-  if (loading) loading.style.display = 'none';
   if (mainContent) mainContent.style.display = 'block';
 
+  // Attach event listeners
   document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-product-id');
