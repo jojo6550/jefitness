@@ -37,8 +37,7 @@ window.initTrainerDashboard = async () => {
 async function loadDashboardData(token) {
     try {
         // Fetch dashboard overview
-        const dashboardRes = await fetch(`${window.API_BASE}
-/api/trainer/dashboard`, {
+        const dashboardRes = await fetch(`${window.API_BASE}/api/v1/trainer/dashboard`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -149,8 +148,7 @@ async function updateAppointmentStatus(appointmentId, status) {
     if (!token) return;
 
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
