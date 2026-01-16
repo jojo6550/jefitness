@@ -1,11 +1,7 @@
-# TODO: Create Node.js MongoDB User Fetcher Script
-
-- [ ] Create src/scripts/userFetcher.js with MongoDB connection setup
-- [ ] Implement getAllUsers() function to fetch all users
-- [ ] Implement getUserByIdOrEmail(identifier) function for single user retrieval
-- [ ] Implement getUsersByFilter(filter) function with regex support
-- [ ] Add error handling with try/catch blocks
-- [ ] Add console.table for readable result printing
-- [ ] Export all three functions
-- [ ] Add example usage at the bottom of the script
-- [x] Test the script execution
+- [x] Create requireAdmin middleware in src/middleware/auth.js
+- [x] Create src/routes/admin.js with protected route for admin-dashboard.html
+- [x] Update src/server.js to include admin routes before static serving
+- [x] Remove admin dashboard check from public/js/role-guard.js
+- [ ] Test that non-admin users are denied access to admin dashboard
+- [ ] Test that admin users can access admin dashboard
+- [ ] Verify frontend navigation still works

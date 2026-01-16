@@ -50,4 +50,14 @@ function blacklistToken(token) {
     }, 60 * 60 * 1000); // 1 hour
 }
 
-module.exports = { auth, blacklistToken };
+function requireAdmin(req, res, next) {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            error: 'Access denied. Admin privileges required.'
+        });
+    }
+    next();
+}
+
+module.exports = { auth, blacklistToken, requireAdmin };

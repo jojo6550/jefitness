@@ -6,27 +6,19 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Define protected routes and their required roles
   const protectedRoutes = {
-    'admin-dashboard.html': 'admin',
     'dashboard.html': 'user' // Both admin and user can access user dashboard
   };
-  
+
   // Check if current page is protected
   if (protectedRoutes[currentPage]) {
     const requiredRole = protectedRoutes[currentPage];
-    
+
     // If no token, redirect to login
     if (!token) {
       window.location.href = '../pages/login.html';
       return;
     }
-    
-    // If accessing admin dashboard without admin role
-    if (currentPage === 'admin-dashboard.html' && userRole !== 'admin') {
-      alert('Access denied. Admin privileges required.');
-      window.location.href = '../pages/dashboard.html';
-      return;
-    }
-    
+
     // Optional: Verify token validity with backend
     verifyToken(token);
   }
