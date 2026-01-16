@@ -65,7 +65,6 @@ const ProgramSchema = new mongoose.Schema({
 
 // Indexes for search and filtering
 ProgramSchema.index({ title: 'text', tags: 'text', author: 'text' });
-ProgramSchema.index({ slug: 1 });
 ProgramSchema.index({ isActive: 1 });
 ProgramSchema.index({ tags: 1 });
 
