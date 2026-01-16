@@ -185,6 +185,7 @@ router.delete('/:id', auth, requireAdmin, validateObjectId('id'), async (req, re
 // GDPR COMPLIANCE ENDPOINTS
 
 // SECURITY: GET /api/users/data-export - Export user data (GDPR Article 20)
+// FIX: Removed allowOnlyFields middleware - GET requests have no body to validate
 router.get('/data-export', auth, async (req, res) => {
     try {
         // SECURITY: Exclude sensitive tokens from export
@@ -201,7 +202,7 @@ router.get('/data-export', auth, async (req, res) => {
                 lastName: user.lastName,
                 email: user.email,
                 phone: user.phone,
-                dateOfBirth: user.dateOfBirth,
+                dob: user.dob,
                 gender: user.gender,
                 role: user.role,
                 isEmailVerified: user.isEmailVerified,
@@ -218,7 +219,7 @@ router.get('/data-export', auth, async (req, res) => {
             accountData: {
                 lastLogin: user.lastLogin,
                 emailVerificationToken: user.emailVerificationToken ? 'Present' : 'Not present',
-                passwordResetToken: user.passwordResetToken ? 'Present' : 'Not present'
+                resetToken: user.resetToken ? 'Present' : 'Not present'
             }
         };
 
@@ -235,7 +236,7 @@ router.get('/data-export', auth, async (req, res) => {
 });
 
 // DELETE /api/users/data-delete - Delete user data (GDPR Right to Erasure)
-router.delete('/data-delete', auth, allowOnlyFields(['confirmation', 'reason'], true), [
+router.delete('/data-delete', auth, [
     body('confirmation', 'Confirmation text is required').equals('DELETE ALL MY DATA'),
     body('reason', 'Deletion reason is required').isIn(['withdraw_consent', 'no_longer_needed', 'other'])
 ], async (req, res) => {
@@ -269,7 +270,7 @@ router.delete('/data-delete', auth, allowOnlyFields(['confirmation', 'reason'], 
             dietaryRestrictions: null,
             isEmailVerified: false,
             emailVerificationToken: null,
-            passwordResetToken: null,
+            resetToken: null,
             lastLogin: null,
             dataDeletedAt: new Date(),
             deletionReason: req.body.reason
@@ -287,6 +288,7 @@ router.delete('/data-delete', auth, allowOnlyFields(['confirmation', 'reason'], 
 });
 
 // GET /api/users/privacy-settings - Get current privacy settings
+// FIX: Removed allowOnlyFields middleware - GET requests have no body to validate
 router.get('/privacy-settings', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('privacySettings dataDeletedAt deletionReason');
