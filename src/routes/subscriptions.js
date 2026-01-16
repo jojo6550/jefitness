@@ -1,12 +1,17 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
+const { preventNoSQLInjection, stripDangerousFields, handleValidationErrors } = require('../middleware/inputValidator');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices, getStripe } = require('../services/stripe');
 const { calculateSubscriptionEndDate } = require('../utils/dateUtils');
 
 const router = express.Router();
+
+// SECURITY: Apply input validation to all subscription routes
+router.use(preventNoSQLInjection);
+router.use(stripDangerousFields);
 
 /**
  * Calculate period end based on Stripe price recurring information
@@ -84,13 +89,13 @@ router.get('/plans', async (req, res) => {
 });
 
 // ----------------------
-// 2. GET /user/current
+// 2. GET /user/current (IDOR Protected)
 // ----------------------
 router.get('/user/current', auth, async (req, res) => {
   try {
-    // Find subscription with active, past_due, or paused status
+    // SECURITY: Only return subscription for authenticated user (IDOR protection)
     const subscription = await Subscription.findOne({ 
-      userId: req.user.id, 
+      userId: req.user.id, // IDOR protection
       status: { $in: ['active', 'past_due', 'paused'] }
     });
     
@@ -123,23 +128,34 @@ router.post(
   '/create',
   auth,
   [
-    body('email').isEmail().withMessage('Valid email is required'),
-    body('paymentMethodId').isString().notEmpty().withMessage('Payment method ID is required'),
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('paymentMethodId').isString().trim().notEmpty().withMessage('Payment method ID is required'),
     body('plan').isIn(['1-month', '3-month', '6-month', '12-month']).withMessage('Invalid plan selected')
   ],
+  handleValidationErrors,
   async (req, res) => {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
-
-      const { email, paymentMethodId, plan } = req.body;
+      // SECURITY: Verify email matches authenticated user
       const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ success: false, error: { message: 'User not found' } });
+      if (!user) {
+        return res.status(404).json({ success: false, error: { message: 'User not found' } });
+      }
+      
+      if (req.body.email.toLowerCase() !== user.email.toLowerCase()) {
+        return res.status(403).json({ success: false, error: { message: 'Email mismatch' } });
+      }
 
-      const existing = await Subscription.exists({ userId: user._id, status: 'active' });
+      const { paymentMethodId, plan } = req.body;
+
+      // SECURITY: Check for existing active subscription
+      const existing = await Subscription.exists({ 
+        userId: user._id, 
+        status: 'active' 
+      });
       if (existing) return res.status(400).json({ success: false, error: { message: 'Active subscription already exists' } });
 
-      const customer = await createOrRetrieveCustomer(email, paymentMethodId, {
+      // SECURITY: Use verified email from database, not from request
+      const customer = await createOrRetrieveCustomer(user.email, paymentMethodId, {
         userId: user._id.toString(),
         firstName: user.firstName,
         lastName: user.lastName
@@ -190,14 +206,18 @@ router.post(
 );
 
 // ----------------------
-// 4. DELETE /:id/cancel
+// 4. DELETE /:id/cancel (IDOR Protected)
 // ----------------------
 router.delete('/:id/cancel', auth, async (req, res) => {
   try {
     const subId = req.params.id;
     const { atPeriodEnd = false } = req.body;
 
-    const subscription = await Subscription.findOne({ stripeSubscriptionId: subId, userId: req.user.id });
+    // SECURITY: Verify subscription belongs to authenticated user (IDOR protection)
+    const subscription = await Subscription.findOne({ 
+      stripeSubscriptionId: subId, 
+      userId: req.user.id // IDOR protection
+    });
     if (!subscription) return res.status(404).json({ success: false, error: { message: 'Subscription not found' } });
 
     // Cancel via Stripe
@@ -254,14 +274,17 @@ router.delete('/:id/cancel', auth, async (req, res) => {
 });
 
 // ----------------------
-// 5. GET /:id/invoices
+// 5. GET /:id/invoices (IDOR Protected)
 // ----------------------
 router.get('/:id/invoices', auth, async (req, res) => {
   try {
     const subId = req.params.id;
 
-    // Verify subscription belongs to user
-    const subscription = await Subscription.findOne({ stripeSubscriptionId: subId, userId: req.user.id });
+    // SECURITY: Verify subscription belongs to authenticated user (IDOR protection)
+    const subscription = await Subscription.findOne({ 
+      stripeSubscriptionId: subId, 
+      userId: req.user.id // IDOR protection
+    });
     if (!subscription) return res.status(404).json({ success: false, error: { message: 'Subscription not found' } });
 
     // Get invoices from Stripe

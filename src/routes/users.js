@@ -2,8 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { auth, blacklistToken } = require('../middleware/auth');
+const { auth, requireAdmin } = require('../middleware/auth');
+const { validateObjectId, stripDangerousFields, preventNoSQLInjection } = require('../middleware/inputValidator');
 
+// SECURITY: Apply input validation to all user routes
+router.use(preventNoSQLInjection);
+router.use(stripDangerousFields);
 
 // GET /api/users/trainers - Get all trainers
 router.get('/trainers', auth, async (req, res) => {
@@ -25,31 +29,24 @@ router.get('/trainers', auth, async (req, res) => {
     }
 });
 
-// GET /api/users/admins - Get all admins
-router.get('/admins', auth, async (req, res) => {
+// SECURITY: GET /api/users/admins - Get all admins (admin only)
+router.get('/admins', auth, requireAdmin, async (req, res) => {
     try {
         const admins = await User.find({
             role: 'admin'
         }).select('firstName lastName email _id');
-        res.json(admins);
+        res.json({ success: true, admins });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
 
-// GET /api/users - Get all users (admin only)
-router.get('/', auth, async (req, res) => {
+// SECURITY: GET /api/users - Get all users (admin only)
+router.get('/', auth, requireAdmin, async (req, res) => {
     try {
-        const currentUser = await User.findById(req.user.id);
-        if (!currentUser || currentUser.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                error: 'Access denied. Admin role required.'
-            });
-        }
-
-        const users = await User.find().select('-password');
+        // SECURITY: Exclude sensitive fields from response
+        const users = await User.find().select('-password -emailVerificationToken -resetToken -pushSubscription');
         res.json({
             success: true,
             users
@@ -63,25 +60,19 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// GET /api/users/:id - Get user by ID
-router.get('/:id', auth, async (req, res) => {
+// SECURITY: GET /api/users/:id - Get user by ID (with IDOR protection)
+router.get('/:id', auth, validateObjectId('id'), async (req, res) => {
     try {
-        const currentUser = await User.findById(req.user.id);
-        if (!currentUser) {
-            return res.status(401).json({
-                success: false,
-                error: 'User not found'
-            });
-        }
-
-        if (currentUser.role !== 'admin' && req.params.id !== req.user.id) {
+        // SECURITY: IDOR Prevention - Users can only access their own data unless admin
+        if (req.user.role !== 'admin' && req.params.id !== req.user.id.toString()) {
             return res.status(403).json({
                 success: false,
                 error: 'Access denied. You can only access your own profile.'
             });
         }
 
-        const user = await User.findById(req.params.id).select('-password');
+        // SECURITY: Exclude sensitive fields
+        const user = await User.findById(req.params.id).select('-password -emailVerificationToken -resetToken -pushSubscription');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -102,8 +93,8 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
-// PUT /api/users/:id - Update user profile
-router.put('/:id', auth, [
+// SECURITY: PUT /api/users/:id - Update user profile (with IDOR protection)
+router.put('/:id', auth, validateObjectId('id'), [
     body('firstName').optional().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').optional().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').optional().isEmail().withMessage('Please include a valid email'),
@@ -118,15 +109,8 @@ router.put('/:id', auth, [
             });
         }
 
-        const currentUser = await User.findById(req.user.id);
-        if (!currentUser) {
-            return res.status(401).json({
-                success: false,
-                error: 'User not found'
-            });
-        }
-
-        if (currentUser.role !== 'admin' && req.params.id !== req.user.id) {
+        // SECURITY: IDOR Prevention - Users can only update their own profile unless admin
+        if (req.user.role !== 'admin' && req.params.id !== req.user.id.toString()) {
             return res.status(403).json({
                 success: false,
                 error: 'Access denied. You can only update your own profile.'
@@ -141,13 +125,22 @@ router.put('/:id', auth, [
             });
         }
 
+        // SECURITY: Only allow specific fields to be updated (whitelist approach)
+        const allowedFields = ['firstName', 'lastName', 'email', 'goals', 'phone', 'gender', 'dob'];
         const updateData = {};
-        if (req.body.firstName !== undefined) updateData.firstName = req.body.firstName;
-        if (req.body.lastName !== undefined) updateData.lastName = req.body.lastName;
-        if (req.body.email !== undefined) updateData.email = req.body.email;
-        if (req.body.goals !== undefined) updateData.goals = req.body.goals;
+        
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        });
 
-        const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
+        // SECURITY: Exclude sensitive fields from response
+        const updatedUser = await User.findByIdAndUpdate(
+            req.params.id, 
+            updateData, 
+            { new: true, runValidators: true }
+        ).select('-password -emailVerificationToken -resetToken -pushSubscription');
 
         res.json({
             success: true,
@@ -162,16 +155,9 @@ router.put('/:id', auth, [
     }
 });
 
-// DELETE /api/users/:id - Delete user (admin only)
-router.delete('/:id', auth, async (req, res) => {
+// SECURITY: DELETE /api/users/:id - Delete user (admin only)
+router.delete('/:id', auth, requireAdmin, validateObjectId('id'), async (req, res) => {
     try {
-        const currentUser = await User.findById(req.user.id);
-        if (!currentUser || currentUser.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                error: 'Access denied. Admin role required.'
-            });
-        }
 
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -198,10 +184,11 @@ router.delete('/:id', auth, async (req, res) => {
 
 // GDPR COMPLIANCE ENDPOINTS
 
-// GET /api/users/data-export - Export user data (GDPR Article 20)
+// SECURITY: GET /api/users/data-export - Export user data (GDPR Article 20)
 router.get('/data-export', auth, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password -__v');
+        // SECURITY: Exclude sensitive tokens from export
+        const user = await User.findById(req.user.id).select('-password -__v -emailVerificationToken -resetToken -pushSubscription');
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }

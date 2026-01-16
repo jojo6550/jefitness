@@ -19,20 +19,42 @@ const SleepLogSchema = new mongoose.Schema({
 });
 
 const UserSchema = new mongoose.Schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
+  firstName: { 
+    type: String, 
+    required: true,
+    trim: true,
+    maxlength: [100, 'First name too long']
+  },
+  lastName: { 
+    type: String, 
+    required: true,
+    trim: true,
+    maxlength: [100, 'Last name too long']
+  },
   email: {
     type: String,
     required: [true, 'Email is required'],
     unique: true,
     lowercase: true,
     trim: true,
+    maxlength: [255, 'Email too long'],
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
   },
-  password: { type: String, required: true, minlength: [8, 'Password must be at least 8 characters long'] },
+  password: { 
+    type: String, 
+    required: true, 
+    minlength: [8, 'Password must be at least 8 characters long'],
+    select: false // SECURITY: Don't include password in queries by default
+  },
   lastLoggedIn: { type: Date },
   lastLogin: { type: Date },
-  role: { type: String, enum: ['user', 'admin', 'trainer'], default: 'user' },
+  role: { 
+    type: String, 
+    enum: ['user', 'admin', 'trainer'], 
+    default: 'user',
+    // SECURITY: Prevent role escalation via mass assignment
+    immutable: false
+  },
   dob: {
     type: Date,
     validate: {

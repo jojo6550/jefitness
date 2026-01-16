@@ -6,8 +6,9 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/User');
-const { auth, blacklistToken } = require('../middleware/auth'); // Import the authentication middleware
+const { auth, blacklistToken, incrementUserTokenVersion, getUserTokenVersion } = require('../middleware/auth');
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
+const { stripDangerousFields, preventNoSQLInjection } = require('../middleware/inputValidator');
 const { requireDbConnection } = require('../middleware/dbConnection');
 
 // Lazy initialization of Stripe to avoid issues in test environment
@@ -138,7 +139,11 @@ const validatePasswordStrength = (password) => {
  *       500:
  *         description: Server error
  */
-router.post('/signup', requireDbConnection, [
+// SECURITY: Apply NoSQL injection prevention and dangerous field stripping to all auth routes
+router.use(preventNoSQLInjection);
+router.use(stripDangerousFields);
+
+router.post('/signup', requireDbConnection, authLimiter, [
     body('firstName').trim().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').trim().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
@@ -307,7 +312,7 @@ router.post('/signup', requireDbConnection, [
  *       500:
  *         description: Server error
  */
-router.post('/login', requireDbConnection, [
+router.post('/login', requireDbConnection, authLimiter, [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {
@@ -367,8 +372,14 @@ router.post('/login', requireDbConnection, [
 
         await user.save();
 
-        // Include role in JWT payload
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // SECURITY: Include role and token version in JWT payload
+        const tokenVersion = getUserTokenVersion(user._id);
+        const token = jwt.sign({ 
+            id: user._id, 
+            userId: user._id,
+            role: user.role,
+            tokenVersion 
+        }, process.env.JWT_SECRET, { expiresIn: '1h' });
         console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
 
         res.json({
@@ -499,9 +510,12 @@ router.put('/account', auth, [
                 return res.status(400).json({ msg: passwordError });
             }
 
-            // Hash and update password
+            // SECURITY: Hash and update password
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(newPassword, salt);
+            
+            // SECURITY: Invalidate all existing tokens when password changes
+            incrementUserTokenVersion(user._id);
             console.log(`Security event: password_changed | UserId: ${user._id}`);
         }
 
@@ -1220,6 +1234,12 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ msg: 'Invalid or expired reset token.' });
         }
 
+        // SECURITY: Validate password strength before resetting
+        const passwordError = validatePasswordStrength(password);
+        if (passwordError) {
+            return res.status(400).json({ msg: passwordError });
+        }
+
         // Hash new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -1228,6 +1248,9 @@ router.post('/reset-password', async (req, res) => {
         user.password = hashedPassword;
         user.resetToken = undefined;
         user.resetExpires = undefined;
+        
+        // SECURITY: Invalidate all existing tokens when password is reset
+        incrementUserTokenVersion(user._id);
         await user.save();
 
         console.log(`Security event: password_reset_success | UserId: ${user._id} | Email: ${user.email}`);
@@ -1273,8 +1296,14 @@ router.post('/verify-email', async (req, res) => {
         user.emailVerificationExpires = undefined;
         await user.save();
 
-        // Issue JWT token
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // SECURITY: Issue JWT token with token version
+        const tokenVersion = getUserTokenVersion(user._id);
+        const token = jwt.sign({ 
+            id: user._id, 
+            userId: user._id,
+            role: user.role,
+            tokenVersion 
+        }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         // Send confirmation email via Mailjet
         const mailjetClient = getMailjetClient();

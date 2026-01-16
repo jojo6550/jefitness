@@ -37,10 +37,23 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
+  // SECURITY: Verify webhook signature is present
+  if (!sig) {
+    console.error('⚠️ Webhook signature missing');
+    return res.status(400).send('Webhook signature missing');
+  }
+
+  // SECURITY: Verify webhook secret is configured
+  if (!webhookSecret) {
+    console.error('⚠️ Webhook secret not configured');
+    return res.status(500).send('Webhook secret not configured');
+  }
+
   try {
     const stripe = getStripe();
     if (!stripe) throw new Error('Stripe not initialized');
 
+    // SECURITY: Verify webhook signature to prevent spoofing
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.error('⚠️ Webhook signature verification failed:', err.message);
@@ -204,8 +217,18 @@ async function handlePaymentIntentFailed(paymentIntent) {
 
 async function handleCheckoutSessionCompleted(session) {
   console.log(`✅ Checkout session completed: ${session.id}`);
+  
+  // SECURITY: Verify customer exists before processing
+  if (!session.customer) {
+    console.warn(`⚠️ Checkout session ${session.id} has no customer ID`);
+    return;
+  }
+  
   const user = await User.findOne({ stripeCustomerId: session.customer });
-  if (!user) return;
+  if (!user) {
+    console.warn(`⚠️ User not found for Stripe customer ${session.customer}`);
+    return;
+  }
 
   const stripe = getStripe();
   let subscription;
@@ -242,8 +265,12 @@ async function handleCheckoutSessionCompleted(session) {
 
   if (session.mode === 'payment') {
     if (session.metadata?.programId && session.metadata?.type === 'program_purchase') {
-      // Handle program marketplace purchases
+      // SECURITY: Validate programId format before processing
       const programId = session.metadata.programId;
+      if (!/^[0-9a-fA-F]{24}$/.test(programId)) {
+        console.error(`⚠️ Invalid program ID format: ${programId}`);
+        return;
+      }
       const alreadyPurchased = user.purchasedPrograms.some(p => p.programId.toString() === programId);
       
       if (!alreadyPurchased) {
@@ -251,12 +278,13 @@ async function handleCheckoutSessionCompleted(session) {
         const Program = require('../models/Program');
         const program = await Program.findById(programId);
         
+        // SECURITY: Store amount from Stripe, not from metadata
         user.purchasedPrograms.push({
           programId,
           purchasedAt: new Date(),
           stripeCheckoutSessionId: session.id,
           stripePriceId: program?.stripePriceId,
-          amountPaid: session.amount_total
+          amountPaid: session.amount_total // Server-side price from Stripe
         });
         await user.save();
         console.log(`✅ Program ${programId} purchased by user ${user._id}`);

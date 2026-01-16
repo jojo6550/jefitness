@@ -1,10 +1,15 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
+const { preventNoSQLInjection, stripDangerousFields } = require('../middleware/inputValidator');
 const Purchase = require('../models/Purchase');
 const User = require('../models/User');
 const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../services/stripe');
 
 const router = express.Router();
+
+// SECURITY: Apply input validation to all product routes
+router.use(preventNoSQLInjection);
+router.use(stripDangerousFields);
 
 // GET /api/v1/products
 router.get('/', async (req, res) => {
@@ -48,12 +53,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/v1/products/checkout
+// SECURITY: POST /api/v1/products/checkout
 router.post('/checkout', auth, async (req, res) => {
   try {
     const { items } = req.body;
+    
+    // SECURITY: Validate items array
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'Items array is required' });
+    }
+    
+    // SECURITY: Limit number of items to prevent abuse
+    if (items.length > 50) {
+      return res.status(400).json({ success: false, error: 'Too many items in cart' });
+    }
+    
+    // SECURITY: Validate each item
+    for (const item of items) {
+      if (!item.productKey || !PRODUCT_MAP[item.productKey]) {
+        return res.status(400).json({ success: false, error: 'Invalid product' });
+      }
+      if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100) {
+        return res.status(400).json({ success: false, error: 'Invalid quantity' });
+      }
     }
 
     const user = await User.findById(req.user.id);
@@ -72,12 +94,13 @@ router.post('/checkout', auth, async (req, res) => {
       await user.save();
     }
 
+    // SECURITY: Calculate prices server-side only, never trust client
     const session = await createProductCheckoutSession(
       customerId,
       items.map(item => ({
         productKey: item.productKey,
         quantity: item.quantity,
-        price: null,
+        price: null, // Price will be fetched from Stripe on server
         productId: PRODUCT_MAP[item.productKey]?.productId
       })),
       `${req.protocol}://${req.get('host')}/pages/cart.html?success=true`,
@@ -110,11 +133,12 @@ router.post('/checkout', auth, async (req, res) => {
   }
 });
 
-// GET /api/v1/products/purchases - Get user's purchase history
+// SECURITY: GET /api/v1/products/purchases - Get user's purchase history (IDOR protected)
 router.get('/purchases', auth, async (req, res) => {
   try {
+    // SECURITY: Only return purchases for the authenticated user
     const purchases = await Purchase.find({
-      userId: req.user.id,
+      userId: req.user.id, // IDOR protection
       status: 'completed'
     }).sort({ createdAt: -1 });
 

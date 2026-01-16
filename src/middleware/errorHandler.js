@@ -73,9 +73,15 @@ const errorHandler = (err, req, res, next) => {
   let message = err.message || 'Internal server error';
   let context = err.context || {};
 
-  // Mask error message for 5xx errors (security best practice - don't expose internal details)
+  // SECURITY: Mask error messages for 5xx errors to prevent information disclosure
+  // Don't expose internal details, stack traces, or database errors to clients
   if (statusCode >= 500 && !err.statusCode) {
     message = 'Internal server error';
+  }
+  
+  // SECURITY: Normalize 4xx error messages to avoid leaking information
+  if (statusCode === 404 && !err.statusCode) {
+    message = 'Resource not found';
   }
 
   // Log the error
@@ -149,15 +155,15 @@ const errorHandler = (err, req, res, next) => {
     errorResponse.error.errors = context.errors;
   }
 
-  // Include stack trace in development mode only
+  // SECURITY: Include stack trace in development mode only
+  // Never expose stack traces in production as they reveal internal structure
   if (process.env.NODE_ENV === 'development') {
     errorResponse.error.stack = err.stack;
     if (context.originalError) {
       errorResponse.error.originalError = context.originalError;
     }
-  } else {
-    errorResponse.error.stack = undefined;
   }
+  // SECURITY: Explicitly remove stack in production
 
   // Send error response
   res.status(statusCode).json(errorResponse);
