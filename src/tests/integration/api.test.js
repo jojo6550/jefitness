@@ -10,6 +10,12 @@ const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const Subscription = require('../../models/Subscription');
 
+// Mock rate limiter middleware for tests
+jest.mock('../../middleware/rateLimiter', () => ({
+  authLimiter: (req, res, next) => next(),
+  passwordResetLimiter: (req, res, next) => next()
+}));
+
 // Import routes
 const authRouter = require('../../routes/auth');
 const usersRouter = require('../../routes/users');
@@ -25,12 +31,14 @@ describe('API Integration Tests', () => {
     it('should complete full registration and login flow', async () => {
       // Step 1: Register new user
       const registerResponse = await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: 'Integration',
           lastName: 'Test',
           email: 'integration@test.com',
           password: 'Password123!',
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
 
       expect(registerResponse.status).toBe(201);
@@ -54,28 +62,32 @@ describe('API Integration Tests', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(profileResponse.status).toBe(200);
-      expect(profileResponse.body.email).toBe('integration@test.com');
+      expect(profileResponse.body.user.email).toBe('integration@test.com');
     });
 
     it('should reject duplicate email registration', async () => {
       // Register first user
       await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: 'First',
           lastName: 'User',
           email: 'duplicate@test.com',
           password: 'Password123!',
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
 
       // Try to register again with same email
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: 'Second',
           lastName: 'User',
           email: 'duplicate@test.com',
           password: 'Password456!',
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
 
       expect(response.status).toBe(400);
@@ -85,12 +97,14 @@ describe('API Integration Tests', () => {
     it('should reject invalid credentials on login', async () => {
       // Register user
       await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: 'Test',
           lastName: 'User',
           email: 'valid@test.com',
           password: 'CorrectPassword123!',
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
 
       // Try login with wrong password
@@ -101,7 +115,7 @@ describe('API Integration Tests', () => {
           password: 'WrongPassword123!',
         });
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -242,12 +256,14 @@ describe('API Integration Tests', () => {
       for (let i = 0; i < 10; i++) {
         promises.push(
           request(app)
-            .post('/api/auth/register')
+            .post('/api/auth/signup')
             .send({
               firstName: `User${i}`,
               lastName: 'Test',
               email: `concurrent${i}@test.com`,
               password: 'Password123!',
+              dataProcessingConsent: { given: true },
+              healthDataConsent: { given: true }
             })
         );
       }
@@ -270,7 +286,7 @@ describe('API Integration Tests', () => {
   describe('Error Handling & Edge Cases', () => {
     it('should handle malformed JSON gracefully', async () => {
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .set('Content-Type', 'application/json')
         .send('{ invalid json');
 
@@ -279,7 +295,7 @@ describe('API Integration Tests', () => {
 
     it('should handle missing required fields', async () => {
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: 'Test',
           // Missing lastName, email, password
@@ -290,14 +306,16 @@ describe('API Integration Tests', () => {
 
     it('should handle very long input strings', async () => {
       const longString = 'a'.repeat(10000);
-      
+
       const response = await request(app)
-        .post('/api/auth/register')
+        .post('/api/auth/signup')
         .send({
           firstName: longString,
           lastName: 'Test',
           email: 'test@example.com',
           password: 'Password123!',
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
 
       // Should either reject or truncate

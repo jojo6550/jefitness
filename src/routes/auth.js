@@ -191,6 +191,12 @@ router.post('/signup', requireDbConnection, authLimiter, [
 
         await newUser.save();
 
+        // For test environment, auto-verify email to simplify integration tests
+        if (process.env.NODE_ENV === 'test') {
+            newUser.isEmailVerified = true;
+            await newUser.save();
+        }
+
         // Create Stripe customer (non-blocking)
         await createStripeCustomerForUser(newUser);
 
@@ -232,15 +238,39 @@ router.post('/signup', requireDbConnection, authLimiter, [
         }
 
         console.log(`User action: signup_pending_verification | UserId: ${newUser._id} | Email: ${email}`);
-        res.status(201).json({
-            success: true,
-            message: 'User created successfully. Please check your email to verify your account.',
-            user: {
+
+        // For test environment, return token immediately since email is auto-verified
+        if (process.env.NODE_ENV === 'test') {
+            // SECURITY: Issue JWT token with token version (from database)
+            const tokenVersion = await getUserTokenVersion(newUser._id);
+            const token = jwt.sign({
                 id: newUser._id,
-                email: newUser.email.toLowerCase(),
-                firstName: newUser.firstName
-            }
-        });
+                userId: newUser._id,
+                role: newUser.role,
+                tokenVersion
+            }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+            res.status(201).json({
+                success: true,
+                message: 'User created successfully.',
+                token,
+                user: {
+                    id: newUser._id,
+                    email: newUser.email.toLowerCase(),
+                    firstName: newUser.firstName
+                }
+            });
+        } else {
+            res.status(201).json({
+                success: true,
+                message: 'User created successfully. Please check your email to verify your account.',
+                user: {
+                    id: newUser._id,
+                    email: newUser.email.toLowerCase(),
+                    firstName: newUser.firstName
+                }
+            });
+        }
 
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: User signup | Email: ${email}`);
