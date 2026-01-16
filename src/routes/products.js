@@ -1,6 +1,6 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
-const { preventNoSQLInjection, stripDangerousFields } = require('../middleware/inputValidator');
+const { preventNoSQLInjection, stripDangerousFields, allowOnlyFields } = require('../middleware/inputValidator');
 const Purchase = require('../models/Purchase');
 const User = require('../models/User');
 const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../services/stripe');
