@@ -495,6 +495,7 @@ async function handlePaymentSubmit(e) {
         Authorization: `Bearer ${userToken}`
       },
       body: JSON.stringify({
+        email,
         plan: selectedPlanId,
         paymentMethodId: paymentMethod.id
       })
