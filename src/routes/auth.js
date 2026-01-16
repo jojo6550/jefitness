@@ -327,7 +327,7 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
     try {
         let user;
         try {
-            user = await User.findOne({ email });
+            user = await User.findOne({ email }).select('+password');
         } catch (dbErr) {
             console.error(`Database error finding user ${email}: ${dbErr.message}`);
             return res.status(500).json({ msg: 'Server error' });

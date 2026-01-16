@@ -3,7 +3,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { auth, requireAdmin } = require('../middleware/auth');
-const { validateObjectId, stripDangerousFields, preventNoSQLInjection } = require('../middleware/inputValidator');
+const { validateObjectId, stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require('../middleware/inputValidator');
 
 // SECURITY: Apply input validation to all user routes
 router.use(preventNoSQLInjection);
@@ -235,7 +235,7 @@ router.get('/data-export', auth, async (req, res) => {
 });
 
 // DELETE /api/users/data-delete - Delete user data (GDPR Right to Erasure)
-router.delete('/data-delete', auth, [
+router.delete('/data-delete', auth, allowOnlyFields(['confirmation', 'reason'], true), [
     body('confirmation', 'Confirmation text is required').equals('DELETE ALL MY DATA'),
     body('reason', 'Deletion reason is required').isIn(['withdraw_consent', 'no_longer_needed', 'other'])
 ], async (req, res) => {
@@ -311,7 +311,7 @@ router.get('/privacy-settings', auth, async (req, res) => {
 });
 
 // PUT /api/users/privacy-settings - Update privacy settings
-router.put('/privacy-settings', auth, async (req, res) => {
+router.put('/privacy-settings', auth, allowOnlyFields(['marketingEmails', 'dataAnalytics', 'thirdPartySharing'], true), async (req, res) => {
     try {
         const { marketingEmails, dataAnalytics, thirdPartySharing } = req.body;
 
