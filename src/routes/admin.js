@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const { auth, requireAdmin } = require('../middleware/auth');
+const { allowOnlyFields } = require('../middleware/inputValidator');
 
 // GET /admin-dashboard.html - Serve admin dashboard page (protected)
 router.get('/admin-dashboard.html', auth, requireAdmin, (req, res) => {

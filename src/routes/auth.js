@@ -8,7 +8,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { auth, incrementUserTokenVersion, getUserTokenVersion } = require('../middleware/auth');
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
-const { stripDangerousFields, preventNoSQLInjection } = require('../middleware/inputValidator');
+const { stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require('../middleware/inputValidator');
 const { requireDbConnection } = require('../middleware/dbConnection');
 
 // Lazy initialization of Stripe to avoid issues in test environment
@@ -312,7 +312,7 @@ router.post('/signup', requireDbConnection, authLimiter, [
  *       500:
  *         description: Server error
  */
-router.post('/login', requireDbConnection, authLimiter, [
+router.post('/login', requireDbConnection, authLimiter, allowOnlyFields(['email', 'password'], true), [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {
@@ -751,7 +751,7 @@ router.get('/me', auth, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.put('/profile', auth, async (req, res) => {
+router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'phone'], true), async (req, res) => {
     const {
         firstName,
         lastName,

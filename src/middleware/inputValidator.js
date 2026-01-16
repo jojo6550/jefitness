@@ -71,14 +71,14 @@ const allowOnlyFields = (allowedFields = [], strict = false) => {
 
         if (disallowedFields.length > 0) {
             if (strict) {
-                console.warn(`Security event: disallowed_fields_rejected | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | Path: ${req.path}`);
+                console.warn(`Security event: disallowed_fields_rejected | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip} | Path: ${req.path}`);
                 return res.status(400).json({
                     success: false,
                     error: 'Request contains disallowed fields',
                     disallowedFields
                 });
             } else {
-                console.warn(`Security event: disallowed_fields_stripped | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | Path: ${req.path}`);
+                console.warn(`Security event: disallowed_fields_stripped | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip} | Path: ${req.path}`);
                 disallowedFields.forEach(field => delete req.body[field]);
             }
         }
