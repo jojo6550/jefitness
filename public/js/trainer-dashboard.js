@@ -8,8 +8,7 @@ window.initTrainerDashboard = async () => {
 
     try {
         // Verify user is trainer
-        const userRes = await fetch(`${window.API_BASE}
-/api/auth/me`, {
+        const userRes = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
