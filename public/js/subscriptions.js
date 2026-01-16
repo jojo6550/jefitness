@@ -471,7 +471,13 @@ async function handlePaymentSubmit(e) {
     const { paymentMethod, error } = await stripe.createPaymentMethod({
       type: 'card',
       card: cardElement,
-      billing_details: { name, email }
+      billing_details: {
+        name,
+        email,
+        address: {
+          postal_code: '00000' // Default postal code to satisfy Stripe requirements
+        }
+      }
     });
 
     if (error) throw new Error(error.message);
