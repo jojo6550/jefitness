@@ -119,7 +119,9 @@ function initializeStripe() {
           color: '#fa755a',
           iconColor: '#fa755a'
         }
-      }
+      },
+      // Enable postal code collection within the card element
+      hidePostalCode: false
     });
 
     const modal = document.getElementById('paymentModal');
@@ -480,10 +482,7 @@ async function handlePaymentSubmit(e) {
       card: cardElement,
       billing_details: {
         name,
-        email,
-        address: {
-          postal_code: postalCode
-        }
+        email
       }
     });
 
