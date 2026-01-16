@@ -11,7 +11,26 @@
     <link rel="stylesheet" href="../styles/trainer-dashboard.css">
 </head>
 <body>
-    <!-- Navigation will be injected here -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand fw-bold me-3" href="trainer-dashboard.html" id="brand-link">JEFITNESS</a>
+                <span id="subscription-status-navbar" class="badge bg-secondary text-white small">Trainer</span>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link active" href="trainer-dashboard.html">Trainer Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="window.location.href='meet-your-trainer.html'">Clients</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" onclick="window.location.href='meet-your-trainer.html'">Appointments</a></li>
+                    <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logout-link">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <main class="container-fluid py-5">
         <!-- Page Header -->
@@ -139,6 +158,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.config.js"></script>
     <script src="../js/app.js"></script>
+    <script src="../js/logout.js" defer></script>
     <script src="../js/trainer-dashboard.js"></script>
 </body>
 </html>
