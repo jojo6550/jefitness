@@ -128,21 +128,16 @@ router.post(
   '/create',
   auth,
   [
-    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
     body('paymentMethodId').isString().trim().notEmpty().withMessage('Payment method ID is required'),
     body('plan').isIn(['1-month', '3-month', '6-month', '12-month']).withMessage('Invalid plan selected')
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
-      // SECURITY: Verify email matches authenticated user
+      // SECURITY: Get authenticated user
       const user = await User.findById(req.user.id);
       if (!user) {
         return res.status(404).json({ success: false, error: { message: 'User not found' } });
-      }
-      
-      if (req.body.email.toLowerCase() !== user.email.toLowerCase()) {
-        return res.status(403).json({ success: false, error: { message: 'Email mismatch' } });
       }
 
       const { paymentMethodId, plan } = req.body;

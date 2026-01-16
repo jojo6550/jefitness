@@ -453,10 +453,9 @@ async function handlePaymentSubmit(e) {
     return;
   }
 
-  const email = document.getElementById('paymentEmail').value.trim();
   const name = document.getElementById('cardholderName').value.trim();
 
-  if (!email || !name) {
+  if (!name) {
     showAlert('Please fill in all fields', 'error');
     return;
   }
@@ -474,8 +473,7 @@ async function handlePaymentSubmit(e) {
       type: 'card',
       card: cardElement,
       billing_details: {
-        name,
-        email
+        name
       }
     });
 
@@ -488,7 +486,6 @@ async function handlePaymentSubmit(e) {
         Authorization: `Bearer ${userToken}`
       },
       body: JSON.stringify({
-        email,
         plan: selectedPlanId,
         paymentMethodId: paymentMethod.id
       })

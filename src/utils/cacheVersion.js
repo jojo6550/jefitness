@@ -10,6 +10,9 @@ const crypto = require('crypto');
 // Cache for computed hashes to avoid recomputation
 const hashCache = new Map();
 
+// Map to store file watchers
+const watchers = new Map();
+
 /**
  * Get file hash for cache busting
  * @param {string} filePath - Relative path from public folder
