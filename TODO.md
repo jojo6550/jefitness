@@ -1,7 +1,1 @@
-- [x] Create requireAdmin middleware in src/middleware/auth.js
-- [x] Create src/routes/admin.js with protected route for admin-dashboard.html
-- [x] Update src/server.js to include admin routes before static serving
-- [x] Remove admin dashboard check from public/js/role-guard.js
-- [ ] Test that non-admin users are denied access to admin dashboard
-- [ ] Test that admin users can access admin dashboard
-- [ ] Verify frontend navigation still works
+- [x] Update package.json version to 1.1.1 and description to "Enhanced Security Update"
