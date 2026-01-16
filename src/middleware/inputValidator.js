@@ -62,28 +62,36 @@ const stripDangerousFields = (req, res, next) => {
  */
 const allowOnlyFields = (allowedFields = [], strict = false) => {
     return (req, res, next) => {
-        if (!req.body || typeof req.body !== 'object') {
-            return next();
-        }
-
-        const receivedFields = Object.keys(req.body);
-        const disallowedFields = receivedFields.filter(field => !allowedFields.includes(field));
-
-        if (disallowedFields.length > 0) {
-            if (strict) {
-                console.warn(`Security event: disallowed_fields_rejected | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip} | Path: ${req.path}`);
-                return res.status(400).json({
-                    success: false,
-                    error: 'Request contains disallowed fields',
-                    disallowedFields
-                });
-            } else {
-                console.warn(`Security event: disallowed_fields_stripped | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip} | Path: ${req.path}`);
-                disallowedFields.forEach(field => delete req.body[field]);
+        try {
+            if (!req.body || typeof req.body !== 'object') {
+                return next();
             }
-        }
 
-        next();
+            const receivedFields = Object.keys(req.body);
+            const disallowedFields = receivedFields.filter(field => !allowedFields.includes(field));
+
+            if (disallowedFields.length > 0) {
+                if (strict) {
+                    console.warn(`Security event: disallowed_fields_rejected | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip || req.connection?.remoteAddress || 'unknown'} | Path: ${req.path}`);
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Request contains disallowed fields',
+                        disallowedFields
+                    });
+                } else {
+                    console.warn(`Security event: disallowed_fields_stripped | Fields: ${disallowedFields.join(', ')} | UserId: ${req.user?.id || 'anonymous'} | IP: ${req.ip || req.connection?.remoteAddress || 'unknown'} | Path: ${req.path}`);
+                    disallowedFields.forEach(field => delete req.body[field]);
+                }
+            }
+
+            next();
+        } catch (err) {
+            console.error(`Security middleware error in allowOnlyFields: ${err.message}`);
+            return res.status(500).json({
+                success: false,
+                error: 'Internal server error during field validation'
+            });
+        }
     };
 };
 
