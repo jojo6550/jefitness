@@ -1,22 +1,24 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 
 /**
  * SECURITY: Identity-aware rate limit key generator
  * Prefers userId > email > IP for better protection against distributed attacks
+ * Uses ipKeyGenerator helper for proper IPv6 support
  */
 const identityAwareKeyGenerator = (req) => {
     // SECURITY: Prefer authenticated user ID (most specific)
     if (req.user && req.user.id) {
         return `user:${req.user.id}`;
     }
-    
+
     // SECURITY: For auth routes, use email if provided (prevents username enumeration via IP rotation)
     if (req.body && req.body.email) {
         return `email:${req.body.email.toLowerCase()}`;
     }
-    
-    // SECURITY: Fallback to IP address
-    return `ip:${req.ip}`;
+
+    // SECURITY: Fallback to IP address with proper IPv6 support
+    return `ip:${ipKeyGenerator(req)}`;
 };
 
 /**
@@ -79,7 +81,7 @@ const checkoutLimiter = rateLimit({
     skipSuccessfulRequests: false,
     handler: (req, res, next, options) => {
         const identifier = identityAwareKeyGenerator(req);
-        console.warn(`Security event: checkout_rate_limit_exceeded | Identifier: ${identifier} | IP: ${req.ip}`);
+        console.warn(`Security event: checkout_rate_limit_exceeded | Identifier: ${identifier} | IP: ${ipKeyGenerator(req)} | Path: ${req.path}`);
         res.status(options.statusCode).json(options.message);
     }
 });
@@ -116,7 +118,7 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
     handler: (req, res, next, options) => {
         const identifier = identityAwareKeyGenerator(req);
-        console.warn(`Security event: admin_rate_limit_exceeded | Identifier: ${identifier} | IP: ${req.ip} | Path: ${req.path}`);
+        console.warn(`Security event: admin_rate_limit_exceeded | Identifier: ${identifier} | IP: ${ipKeyGenerator(req)} | Path: ${req.path}`);
         res.status(options.statusCode).json(options.message);
     }
 });
