@@ -782,7 +782,7 @@ router.get('/me', auth, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'phone'], true), async (req, res) => {
+router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'gender', 'phone', 'activityStatus', 'startWeight', 'currentWeight', 'goals', 'reason'], true), async (req, res) => {
     const {
         firstName,
         lastName,
