@@ -1,6 +1,7 @@
 const express = require('express');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
+const { isWebhookEventProcessed, markWebhookEventProcessed } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -14,8 +15,23 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-// Stripe webhook secret
+// SECURITY: Stripe webhook secret (critical for preventing webhook spoofing)
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+// SECURITY: Whitelist of allowed Stripe events
+// Only process events we explicitly handle to prevent unexpected behavior
+const ALLOWED_WEBHOOK_EVENTS = new Set([
+  'customer.created',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.created',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+  'payment_intent.succeeded',
+  'payment_intent.payment_failed',
+  'checkout.session.completed'
+]);
 
 // ===== DYNAMIC PLAN MAP =====
 // Add new plans here only
@@ -39,28 +55,55 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
 
   // SECURITY: Verify webhook signature is present
   if (!sig) {
-    console.error('⚠️ Webhook signature missing');
+    console.error('⚠️ Security event: webhook_signature_missing | IP: ' + (req.ip || 'unknown'));
     return res.status(400).send('Webhook signature missing');
   }
 
   // SECURITY: Verify webhook secret is configured
   if (!webhookSecret) {
-    console.error('⚠️ Webhook secret not configured');
+    console.error('⚠️ Security event: webhook_secret_not_configured');
     return res.status(500).send('Webhook secret not configured');
   }
 
   try {
     const stripe = getStripe();
-    if (!stripe) throw new Error('Stripe not initialized');
+    if (!stripe) {
+      console.error('⚠️ Stripe not initialized');
+      return res.status(500).send('Stripe not configured');
+    }
 
-    // SECURITY: Verify webhook signature to prevent spoofing
+    // SECURITY: Verify webhook signature using Stripe's official verification
+    // This is the ONLY way to ensure the webhook came from Stripe
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error('⚠️ Webhook signature verification failed:', err.message);
+    console.error(`⚠️ Security event: webhook_signature_verification_failed | Error: ${err.message} | IP: ${req.ip}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log(`📨 Received webhook event: ${event.type}`);
+  // SECURITY: Validate event structure
+  if (!event || !event.id || !event.type || !event.data || !event.data.object) {
+    console.error('⚠️ Security event: invalid_webhook_event_structure | EventId: ' + (event?.id || 'unknown'));
+    return res.status(400).send('Invalid event structure');
+  }
+
+  console.log(`📨 Webhook event received: ${event.type} | EventId: ${event.id}`);
+
+  // SECURITY: Check if event is in whitelist
+  if (!ALLOWED_WEBHOOK_EVENTS.has(event.type)) {
+    console.warn(`⚠️ Security event: webhook_event_not_allowed | EventType: ${event.type} | EventId: ${event.id}`);
+    // Return 200 to prevent Stripe from retrying, but don't process
+    return res.status(200).json({ received: true, processed: false, reason: 'Event type not handled' });
+  }
+
+  // SECURITY: Replay protection - check if event was already processed
+  if (isWebhookEventProcessed(event.id)) {
+    console.warn(`⚠️ Security event: webhook_replay_attempt | EventId: ${event.id} | EventType: ${event.type}`);
+    // Return 200 to acknowledge but skip processing
+    return res.status(200).json({ received: true, processed: false, reason: 'Event already processed' });
+  }
+
+  // SECURITY: Mark event as processed before handling (prevents race conditions)
+  markWebhookEventProcessed(event.id);
 
   try {
     switch (event.type) {

@@ -46,6 +46,13 @@ const UserSchema = new mongoose.Schema({
     minlength: [8, 'Password must be at least 8 characters long'],
     select: false // SECURITY: Don't include password in queries by default
   },
+  // SECURITY: Token versioning for invalidating all user tokens on password change or security events
+  // Increment this value to invalidate all existing JWTs for this user
+  tokenVersion: {
+    type: Number,
+    default: 0,
+    select: false // SECURITY: Don't expose token version in regular queries
+  },
   lastLoggedIn: { type: Date },
   lastLogin: { type: Date },
   role: { 

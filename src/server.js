@@ -38,22 +38,26 @@ const { requireActiveSubscription } = require('./middleware/subscriptionAuth');
 // -----------------------------
 // Enhanced Security Headers with Helmet
 // -----------------------------
+// SECURITY: Content Security Policy - Defense-in-depth against XSS
+// While we sanitize input, CSP provides browser-level protection
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
+      // SECURITY: scriptSrc - Allow only self and trusted CDNs
+      // 'unsafe-inline' required for static HTML app (future: migrate to nonces)
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'",
+        "'unsafe-inline'", // TODO: Replace with nonce-based CSP
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
         "https://unpkg.com",
         "https://js.stripe.com"
       ],
-      scriptSrcAttr: ["'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"], // For inline event handlers (future: remove)
       styleSrc: [
         "'self'",
-        "'unsafe-inline'",
+        "'unsafe-inline'", // Required for style attributes
         "https://cdn.jsdelivr.net",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com"
@@ -71,28 +75,37 @@ app.use(helmet({
       ],
       frameSrc: [
         "'self'",
-        "https://js.stripe.com"
+        "https://js.stripe.com" // Required for Stripe payment forms
       ],
       imgSrc: [
         "'self'",
-        "data:",
+        "data:", // Required for base64 encoded images
         "https://via.placeholder.com",
-        "https://cdn.jsdelivr.net"
+        "https://cdn.jsdelivr.net",
+        "https://*.stripe.com" // Stripe images
       ],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-      blockAllMixedContent: []
+      objectSrc: ["'none'"], // SECURITY: Block plugins (Flash, Java, etc.)
+      baseUri: ["'self'"], // SECURITY: Prevent base tag injection
+      formAction: ["'self'"], // SECURITY: Restrict form submissions
+      upgradeInsecureRequests: [], // SECURITY: Upgrade HTTP to HTTPS
+      blockAllMixedContent: [] // SECURITY: Block mixed content
     }
   },
+  // SECURITY: HTTP Strict Transport Security - Force HTTPS
   hsts: {
-    maxAge: 31536000,
+    maxAge: 31536000, // 1 year
     includeSubDomains: true,
     preload: true
   },
+  // SECURITY: Prevent MIME type sniffing
   noSniff: true,
+  // SECURITY: Enable XSS filter in older browsers
   xssFilter: true,
+  // SECURITY: Control referrer information
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  // SECURITY: Prevent clickjacking
   frameguard: { action: "deny" },
+  // SECURITY: Restrict Adobe Flash and PDF
   permittedCrossDomainPolicies: { permittedPolicies: "none" }
 }));
 
@@ -118,15 +131,31 @@ app.use(sanitizeInput);
 // CORS with enhanced security
 app.use(cors(corsOptions));
 
-// Global OPTIONS handler for preflight requests
+// SECURITY: Global OPTIONS handler for preflight requests
+// This is handled by CORS middleware, but kept for explicit control
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    res.sendStatus(200);
+    // SECURITY: Never use wildcard for credentials-enabled CORS
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'https://jefitness.onrender.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (process.env.NODE_ENV !== 'production') {
+      allowedOrigins.push('http://127.0.0.1:10000', 'http://127.0.0.1:5501', 'http://localhost:10000', 'http://localhost:5501');
+    }
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Max-Age', '86400');
+      res.sendStatus(204);
+    } else {
+      res.sendStatus(403);
+    }
     return;
   }
   next();

@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 const User = require('../models/User');
-const { auth, blacklistToken, incrementUserTokenVersion, getUserTokenVersion } = require('../middleware/auth');
+const { auth, incrementUserTokenVersion, getUserTokenVersion } = require('../middleware/auth');
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { stripDangerousFields, preventNoSQLInjection } = require('../middleware/inputValidator');
 const { requireDbConnection } = require('../middleware/dbConnection');
@@ -372,8 +372,8 @@ router.post('/login', requireDbConnection, authLimiter, [
 
         await user.save();
 
-        // SECURITY: Include role and token version in JWT payload
-        const tokenVersion = getUserTokenVersion(user._id);
+        // SECURITY: Include role and token version in JWT payload (from database)
+        const tokenVersion = await getUserTokenVersion(user._id);
         const token = jwt.sign({ 
             id: user._id, 
             userId: user._id,
@@ -514,8 +514,8 @@ router.put('/account', auth, [
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(newPassword, salt);
             
-            // SECURITY: Invalidate all existing tokens when password changes
-            incrementUserTokenVersion(user._id);
+            // SECURITY: Invalidate all existing tokens when password changes (database-backed)
+            await incrementUserTokenVersion(user._id);
             console.log(`Security event: password_changed | UserId: ${user._id}`);
         }
 
@@ -1249,8 +1249,8 @@ router.post('/reset-password', async (req, res) => {
         user.resetToken = undefined;
         user.resetExpires = undefined;
         
-        // SECURITY: Invalidate all existing tokens when password is reset
-        incrementUserTokenVersion(user._id);
+        // SECURITY: Invalidate all existing tokens when password is reset (database-backed)
+        await incrementUserTokenVersion(user._id);
         await user.save();
 
         console.log(`Security event: password_reset_success | UserId: ${user._id} | Email: ${user.email}`);
@@ -1296,8 +1296,8 @@ router.post('/verify-email', async (req, res) => {
         user.emailVerificationExpires = undefined;
         await user.save();
 
-        // SECURITY: Issue JWT token with token version
-        const tokenVersion = getUserTokenVersion(user._id);
+        // SECURITY: Issue JWT token with token version (from database)
+        const tokenVersion = await getUserTokenVersion(user._id);
         const token = jwt.sign({ 
             id: user._id, 
             userId: user._id,
@@ -1382,19 +1382,11 @@ router.post('/verify-email', async (req, res) => {
  */
 router.post('/logout', auth, async (req, res) => {
     try {
-        // Extract token from Authorization header
-        const authHeader = req.header('Authorization');
-        let token;
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.replace('Bearer ', '').trim();
-        }
+        // SECURITY: Increment token version to invalidate current and all user's tokens
+        // This is restart-safe as it's stored in the database
+        await incrementUserTokenVersion(req.user.id);
 
-        // Blacklist the token to invalidate it
-        if (token) {
-            blacklistToken(token);
-        }
-
-        console.log(`Security event: logout | UserId: ${req.user.id} | Email: ${req.user.email}`);
+        console.log(`Security event: logout | UserId: ${req.user.id}`);
         res.json({ success: true, message: 'Logged out successfully' });
     } catch (err) {
         console.error(`Error: ${JSON.stringify(err)} | Context: User logout | UserId: ${req.user.id}`);

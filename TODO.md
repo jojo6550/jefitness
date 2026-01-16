@@ -1,1 +1,2 @@
 - [x] Update package.json version to 1.1.1 and description to "Enhanced Security Update"
+- [x] Update service worker cache version to 1.1.1
