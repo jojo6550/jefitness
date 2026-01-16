@@ -453,9 +453,16 @@ async function handlePaymentSubmit(e) {
 
   const email = document.getElementById('paymentEmail').value.trim();
   const name = document.getElementById('cardholderName').value.trim();
+  const postalCode = document.getElementById('postalCode').value.trim();
 
-  if (!email || !name) {
+  if (!email || !name || !postalCode) {
     showAlert('Please fill in all fields', 'error');
+    return;
+  }
+
+  // Basic postal code validation (at least 3 characters, alphanumeric)
+  if (postalCode.length < 3 || !/^[a-zA-Z0-9\s-]+$/.test(postalCode)) {
+    showAlert('Please enter a valid postal code', 'error');
     return;
   }
 
@@ -475,7 +482,7 @@ async function handlePaymentSubmit(e) {
         name,
         email,
         address: {
-          postal_code: '00000' // Default postal code to satisfy Stripe requirements
+          postal_code: postalCode
         }
       }
     });
