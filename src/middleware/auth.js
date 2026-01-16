@@ -134,7 +134,7 @@ async function requireAdmin(req, res, next) {
     try {
         // SECURITY: Fetch current role from database for authoritative check
         const user = await User.findById(req.user.id).select('role');
-        
+
         if (!user) {
             console.warn(`Security event: admin_access_denied | Reason: user_not_found | UserId: ${req.user.id}`);
             return res.status(401).json({
@@ -142,7 +142,7 @@ async function requireAdmin(req, res, next) {
                 error: 'User not found'
             });
         }
-        
+
         // SECURITY: Verify role from database, not from potentially stale JWT
         if (user.role !== 'admin') {
             console.warn(`Security event: admin_access_denied | UserId: ${req.user.id} | Role: ${user.role}`);
@@ -151,7 +151,7 @@ async function requireAdmin(req, res, next) {
                 error: 'Access denied. Admin privileges required.'
             });
         }
-        
+
         // Update req.user with fresh role from database
         req.user.role = user.role;
         next();
@@ -160,6 +160,45 @@ async function requireAdmin(req, res, next) {
         return res.status(500).json({
             success: false,
             error: 'Failed to verify admin status'
+        });
+    }
+}
+
+/**
+ * SECURITY: Trainer role verification middleware
+ * CRITICAL: Always verify role from database, NEVER trust JWT claims alone
+ * JWT claims can be stale if role was changed after token issuance
+ */
+async function requireTrainer(req, res, next) {
+    try {
+        // SECURITY: Fetch current role from database for authoritative check
+        const user = await User.findById(req.user.id).select('role');
+
+        if (!user) {
+            console.warn(`Security event: trainer_access_denied | Reason: user_not_found | UserId: ${req.user.id}`);
+            return res.status(401).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        // SECURITY: Verify role from database, not from potentially stale JWT
+        if (user.role !== 'trainer') {
+            console.warn(`Security event: trainer_access_denied | UserId: ${req.user.id} | Role: ${user.role}`);
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. Trainer privileges required.'
+            });
+        }
+
+        // Update req.user with fresh role from database
+        req.user.role = user.role;
+        next();
+    } catch (err) {
+        console.error('Trainer verification error:', err.message);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to verify trainer status'
         });
     }
 }
@@ -184,9 +223,10 @@ function markWebhookEventProcessed(eventId) {
     }, 24 * 60 * 60 * 1000);
 }
 
-module.exports = { 
-    auth, 
+module.exports = {
+    auth,
     requireAdmin,
+    requireTrainer,
     incrementUserTokenVersion,
     getUserTokenVersion,
     isWebhookEventProcessed,

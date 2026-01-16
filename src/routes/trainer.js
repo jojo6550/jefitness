@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const { auth, blacklistToken } = require('../middleware/auth');
+const { auth, requireTrainer } = require('../middleware/auth');
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 
 const { logger, logAdminAction, logUserAction } = require('../services/logger');
@@ -15,12 +15,8 @@ const { logger, logAdminAction, logUserAction } = require('../services/logger');
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/dashboard', auth, async (req, res) => {
+router.get('/dashboard', auth, requireTrainer, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const trainerId = req.user.id;
 
         // Get all appointments for this trainer
@@ -95,12 +91,8 @@ router.get('/dashboard', auth, async (req, res) => {
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/clients', auth, requireActiveSubscription, async (req, res) => {
+router.get('/clients', auth, requireTrainer, requireActiveSubscription, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const trainerId = req.user.id;
         const {
             search = '',
@@ -247,12 +239,8 @@ router.get('/appointments', auth, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.get('/appointments/:id', auth, async (req, res) => {
+router.get('/appointments/:id', auth, requireTrainer, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const appointment = await Appointment.findById(req.params.id)
             .populate('clientId')
             .populate('trainerId', 'firstName lastName email');
@@ -285,12 +273,8 @@ router.get('/appointments/:id', auth, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.put('/appointments/:id', auth, async (req, res) => {
+router.put('/appointments/:id', auth, requireTrainer, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const appointment = await Appointment.findById(req.params.id);
 
         if (!appointment) {
@@ -331,12 +315,8 @@ router.put('/appointments/:id', auth, async (req, res) => {
  * @throws  {404} Client not found
  * @throws  {500} Server error
  */
-router.get('/client/:clientId', auth, async (req, res) => {
+router.get('/client/:clientId', auth, requireTrainer, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const trainerId = req.user.id;
         const { clientId } = req.params;
 
