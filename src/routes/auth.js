@@ -312,7 +312,7 @@ router.post('/signup', requireDbConnection, authLimiter, [
  *       500:
  *         description: Server error
  */
-router.post('/login', requireDbConnection, authLimiter, allowOnlyFields(['email', 'password'], true), [
+router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, allowOnlyFields(['email', 'password'], true), [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
 ], async (req, res) => {

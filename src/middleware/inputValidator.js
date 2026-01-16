@@ -28,7 +28,7 @@ const dangerousFields = [
     'failedLoginAttempts',
     'lockoutUntil',
     'tokenVersion', // SECURITY: Prevent manipulation of token version
-    'password', // SECURITY: Password changes must go through dedicated endpoints
+    // 'password' removed - handled by allowOnlyFields for specific routes
     'auditLog', // SECURITY: Audit logs cannot be modified by users
     'dataSubjectRights' // SECURITY: GDPR rights must be processed through dedicated endpoints
 ];
