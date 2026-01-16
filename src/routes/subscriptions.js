@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { auth } = require('../middleware/auth');
-const { preventNoSQLInjection, stripDangerousFields, handleValidationErrors } = require('../middleware/inputValidator');
+const { preventNoSQLInjection, stripDangerousFields, handleValidationErrors, allowOnlyFields } = require('../middleware/inputValidator');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices, getStripe } = require('../services/stripe');
@@ -208,7 +208,7 @@ router.post(
 // ----------------------
 // 4. DELETE /:id/cancel (IDOR Protected)
 // ----------------------
-router.delete('/:id/cancel', auth, async (req, res) => {
+router.delete('/:id/cancel', auth, allowOnlyFields(['atPeriodEnd'], false), async (req, res) => {
   try {
     const subId = req.params.id;
     const { atPeriodEnd = false } = req.body;

@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { auth, blacklistToken } = require('../middleware/auth');
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
+const { allowOnlyFields } = require('../middleware/inputValidator');
 
 /**
  * @route   GET /api/appointments
@@ -316,7 +317,7 @@ router.post('/', auth, requireActiveSubscription, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, allowOnlyFields(['trainerId', 'date', 'time', 'status', 'notes'], true), async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);
 

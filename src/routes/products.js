@@ -54,7 +54,7 @@ router.get('/', async (req, res) => {
 });
 
 // SECURITY: POST /api/v1/products/checkout
-router.post('/checkout', auth, async (req, res) => {
+router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res) => {
   try {
     const { items } = req.body;
     
