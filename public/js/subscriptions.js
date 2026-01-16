@@ -484,7 +484,6 @@ async function handlePaymentSubmit(e) {
       },
       body: JSON.stringify({
         plan: selectedPlanId,
-        email,
         paymentMethodId: paymentMethod.id
       })
     });
