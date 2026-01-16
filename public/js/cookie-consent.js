@@ -1,263 +1,146 @@
 /**
  * Cookie Consent Management
- * Handles the display and functionality of the cookie consent banner
- * Integrates with backend GDPR APIs for authenticated users
  */
 
-class CookieConsentManager {
-    constructor() {
-        this.banner = document.getElementById('cookie-consent-banner');
-        this.acceptAllBtn = document.getElementById('accept-cookies');
-        this.acceptSelectedBtn = document.getElementById('accept-selected');
-        this.declineBtn = document.getElementById('decline-cookies');
+const COOKIE_CONSENT_KEY = 'jefitness_cookie_consent';
 
-        // Consent checkboxes
-        this.dataProcessingCheckbox = document.getElementById('data-processing-consent');
-        this.marketingCheckbox = document.getElementById('marketing-consent');
-        this.healthDataCheckbox = document.getElementById('health-data-consent');
-        this.healthConsentCategory = document.getElementById('health-consent-category');
-
-        // API configuration
-        this.apiBase = window.API_CONFIG ? window.API_CONFIG.API_BASE : '';
-        this.isLoggedIn = false;
-        this.userToken = null;
-
-        this.init();
-    }
-
-    async init() {
-        // Check authentication status
-        this.checkAuthStatus();
-
-        // Check existing consent
-        const existingConsent = this.getStoredConsent();
-
-        if (!existingConsent || existingConsent.needsUpdate) {
-            this.showBanner();
-            this.populateCheckboxes(existingConsent);
-        }
-
-        // Show health consent for logged-in users
-        if (this.isLoggedIn) {
-            this.healthConsentCategory.style.display = 'block';
-        }
-
-        this.bindEvents();
-    }
-
-    checkAuthStatus() {
-        this.userToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-        this.isLoggedIn = !!this.userToken;
-    }
-
-    getStoredConsent() {
-        const consent = {
-            essential: true, // Always true
-            dataProcessing: localStorage.getItem('data-processing-consent') === 'true',
-            marketing: localStorage.getItem('marketing-consent') === 'true',
-            healthData: localStorage.getItem('health-data-consent') === 'true',
-            timestamp: localStorage.getItem('consent-timestamp'),
-            version: localStorage.getItem('consent-version') || '1.0'
-        };
-
-        // Check if consent needs update (version mismatch)
-        const currentVersion = '1.1'; // Update this when consent text changes
-        consent.needsUpdate = consent.version !== currentVersion;
-
-        return consent;
-    }
-
-    populateCheckboxes(consent) {
-        if (consent.dataProcessing) {
-            this.dataProcessingCheckbox.checked = true;
-        }
-        if (consent.marketing) {
-            this.marketingCheckbox.checked = true;
-        }
-        if (consent.healthData && this.isLoggedIn) {
-            this.healthDataCheckbox.checked = true;
-        }
-    }
-
-    showBanner() {
-        this.banner.classList.remove('hidden-state');
-    }
-
-    hideBanner() {
-        this.banner.classList.add('hidden-state');
-    }
-
-    bindEvents() {
-        this.acceptAllBtn.addEventListener('click', () => this.handleAcceptAll());
-        this.acceptSelectedBtn.addEventListener('click', () => this.handleAcceptSelected());
-        this.declineBtn.addEventListener('click', () => this.handleDecline());
-    }
-
-    async handleAcceptAll() {
-        const consents = {
-            dataProcessing: true,
-            marketing: true,
-            healthData: this.isLoggedIn ? true : false
-        };
-
-        await this.saveConsents(consents);
-        this.hideBanner();
-        this.triggerConsentEvent('accepted', consents);
-    }
-
-    async handleAcceptSelected() {
-        const consents = {
-            dataProcessing: this.dataProcessingCheckbox.checked,
-            marketing: this.marketingCheckbox.checked,
-            healthData: this.isLoggedIn ? this.healthDataCheckbox.checked : false
-        };
-
-        await this.saveConsents(consents);
-        this.hideBanner();
-        this.triggerConsentEvent('accepted', consents);
-    }
-
-    async handleDecline() {
-        const consents = {
-            dataProcessing: false,
-            marketing: false,
-            healthData: false
-        };
-
-        await this.saveConsents(consents);
-        this.hideBanner();
-        this.triggerConsentEvent('declined', consents);
-    }
-
-    async saveConsents(consents) {
-        // Store locally
-        localStorage.setItem('data-processing-consent', consents.dataProcessing.toString());
-        localStorage.setItem('marketing-consent', consents.marketing.toString());
-        localStorage.setItem('health-data-consent', consents.healthData.toString());
-        localStorage.setItem('consent-timestamp', new Date().toISOString());
-        localStorage.setItem('consent-version', '1.1');
-
-        // If user is logged in, sync with backend
-        if (this.isLoggedIn && this.userToken) {
-            try {
-                await this.syncWithBackend(consents);
-            } catch (error) {
-                console.error('Failed to sync consent with backend:', error);
-                // Continue with local storage even if backend sync fails
-            }
-        }
-    }
-
-    async syncWithBackend(consents) {
-        const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.userToken}`
-        };
-
-        const promises = [];
-
-        // Grant data processing consent if checked
-        if (consents.dataProcessing) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/data-processing`, {
-                    method: 'POST',
-                    headers
-                })
-            );
-        }
-
-        // Grant marketing consent if checked
-        if (consents.marketing) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/marketing`, {
-                    method: 'POST',
-                    headers
-                })
-            );
-        }
-
-        // Grant health data consent if checked and user is logged in
-        if (consents.healthData && this.isLoggedIn) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/health-data`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ purpose: 'fitness_tracking' })
-                })
-            );
-        }
-
-        await Promise.all(promises);
-    }
-
-    triggerConsentEvent(action, consents) {
-        const event = new CustomEvent('cookieConsentChanged', {
-            detail: { action, consents }
-        });
-        window.dispatchEvent(event);
-
-        console.log(`Cookie consent ${action}:`, consents);
-    }
-
-    // Public API methods
-    getConsentStatus() {
-        return this.getStoredConsent();
-    }
-
-    async updateConsent(type, granted) {
-        const consents = this.getStoredConsent();
-        consents[type] = granted;
-
-        // Update checkbox if visible
-        const checkbox = this.getCheckboxForType(type);
-        if (checkbox) {
-            checkbox.checked = granted;
-        }
-
-        await this.saveConsents(consents);
-        this.triggerConsentEvent('updated', consents);
-    }
-
-    getCheckboxForType(type) {
-        switch (type) {
-            case 'dataProcessing': return this.dataProcessingCheckbox;
-            case 'marketing': return this.marketingCheckbox;
-            case 'healthData': return this.healthDataCheckbox;
-            default: return null;
-        }
-    }
-
-    resetConsent() {
-        localStorage.removeItem('data-processing-consent');
-        localStorage.removeItem('marketing-consent');
-        localStorage.removeItem('health-data-consent');
-        localStorage.removeItem('consent-timestamp');
-        localStorage.removeItem('consent-version');
-
-        // Reset checkboxes
-        if (this.dataProcessingCheckbox) this.dataProcessingCheckbox.checked = false;
-        if (this.marketingCheckbox) this.marketingCheckbox.checked = false;
-        if (this.healthDataCheckbox) this.healthDataCheckbox.checked = false;
-
-        this.showBanner();
+/**
+ * Get stored consent
+ */
+function getConsent() {
+    try {
+        const stored = localStorage.getItem(COOKIE_CONSENT_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (err) {
+        return null;
     }
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    window.cookieConsentManager = new CookieConsentManager();
+/**
+ * Save consent
+ */
+function saveConsent(consent) {
+    const consentData = {
+        ...consent,
+        timestamp: new Date().toISOString()
+    };
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentData));
+    
+    // Sync with backend if user is logged in
+    syncConsentWithBackend(consentData);
+    
+    return consentData;
+}
+
+/**
+ * Sync consent with backend
+ */
+async function syncConsentWithBackend(consent) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${window.API_BASE}/api/gdpr/consent`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(consent)
+        });
+
+        if (response.ok) {
+            logger.info('Consent synced with backend', { action: consent.action });
+        }
+    } catch (err) {
+        logger.warn('Failed to sync consent with backend', { error: err?.message });
+        // Continue with local storage even if backend sync fails
+    }
+}
+
+/**
+ * Check if consent is required
+ */
+function isConsentRequired() {
+    return !getConsent();
+}
+
+/**
+ * Show consent banner
+ */
+function showConsentBanner() {
+    if (!isConsentRequired()) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'cookie-consent-banner position-fixed bottom-0 start-0 w-100 p-3 bg-dark text-white';
+    banner.innerHTML = `
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <p class="mb-0">We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.
+            <a href="pages/privacy-policy.html" class="text-light">Learn more</a></p>
+            <div class="btn-group mt-2 mt-md-0">
+                <button class="btn btn-outline-light" id="rejectCookies">Reject</button>
+                <button class="btn btn-primary" id="acceptCookies">Accept</button>
+            </div>
+    `;
+    document.body.appendChild(banner);
+
+    document.getElementById('acceptCookies').addEventListener('click', () => {
+        const consent = saveConsent({ essential: true, analytics: true, marketing: true, action: 'accept_all' });
+        banner.remove();
+        onConsentGiven(consent);
+    });
+
+    document.getElementById('rejectCookies').addEventListener('click', () => {
+        const consent = saveConsent({ essential: true, analytics: false, marketing: false, action: 'reject_all' });
+        banner.remove();
+        onConsentGiven(consent);
+    });
+}
+
+/**
+ * Handle consent given
+ */
+function onConsentGiven(consent) {
+    // Enable/disable analytics based on consent
+    if (consent.analytics) {
+        enableAnalytics();
+    } else {
+        disableAnalytics();
+    }
+}
+
+/**
+ * Enable analytics
+ */
+function enableAnalytics() {
+    // Initialize analytics scripts here
+    logger.info('Analytics enabled');
+}
+
+/**
+ * Disable analytics
+ */
+function disableAnalytics() {
+    // Disable/remove analytics scripts here
+    logger.info('Analytics disabled');
+}
+
+/**
+ * Update specific consent category
+ */
+function updateConsent(category, value) {
+    const current = getConsent() || { essential: true };
+    current[category] = value;
+    current.action = 'update';
+    saveConsent(current);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    showConsentBanner();
 });
 
-// Global API for backward compatibility
-window.getCookieConsent = function() {
-    if (window.cookieConsentManager) {
-        return window.cookieConsentManager.getConsentStatus();
-    }
-    return null;
-};
-
-window.resetCookieConsent = function() {
-    if (window.cookieConsentManager) {
-        window.cookieConsentManager.resetConsent();
-    }
-};
+// Export globally
+window.getConsent = getConsent;
+window.saveConsent = saveConsent;
+window.updateConsent = updateConsent;

@@ -3,10 +3,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('../sw.js')
       .then(registration => {
-        console.log('SW registered: ', registration);
+        logger.debug('SW registered', { scope: 'service-worker' });
       })
       .catch(registrationError => {
-        console.log('SW registration failed: ', registrationError);
+        logger.warn('SW registration failed', { error: registrationError?.message });
       });
   });
 }
@@ -37,9 +37,9 @@ function showInstallPromotion() {
     // Wait for the user to respond to the prompt
     deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === 'accepted') {
-        console.log('User accepted the install prompt');
+        logger.info('User accepted PWA install prompt');
       } else {
-        console.log('User dismissed the install prompt');
+        logger.info('User dismissed PWA install prompt');
       }
       deferredPrompt = null;
     });
@@ -56,7 +56,7 @@ function showInstallPromotion() {
 
 // Handle app installed event
 window.addEventListener('appinstalled', (evt) => {
-  console.log('App was installed.');
+  logger.info('PWA was installed');
 });
 
 // Mobile-specific enhancements
@@ -71,7 +71,7 @@ window.addEventListener('offline', updateOnlineStatus);
 
 function updateOnlineStatus() {
   const status = navigator.onLine ? 'online' : 'offline';
-  console.log(`App is now ${status}`);
+  logger.info(`App is now ${status}`);
 
   // You can show/hide offline indicators here
   // For example, show a banner when offline
@@ -108,12 +108,12 @@ if ('performance' in window && 'PerformanceObserver' in window) {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.entryType === 'largest-contentful-paint') {
-          console.log('LCP:', entry.startTime);
+          logger.debug('LCP', { lcp: entry.startTime });
         }
       }
     });
     observer.observe({ entryTypes: ['largest-contentful-paint'] });
   } catch (e) {
-    console.log('Performance observer not supported');
+    logger.debug('Performance observer not supported');
   }
 }

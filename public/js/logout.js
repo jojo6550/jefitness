@@ -10,8 +10,7 @@ async function logoutUser() {
     if (token) {
         try {
             // Call the logout API to invalidate the session on the server
-            const response = await fetch(`${window.API_BASE}
-/api/auth/logout`, {
+            const response = await fetch(`${window.API_BASE}/api/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -20,12 +19,12 @@ async function logoutUser() {
             });
 
             if (response.ok) {
-                console.log('Logout: Server-side logout successful.');
+                logger.info('Server-side logout successful');
             } else {
-                console.warn('Logout: Server-side logout failed, but proceeding with client-side cleanup.');
+                logger.warn('Server-side logout failed, proceeding with client-side cleanup');
             }
         } catch (error) {
-            console.error('Logout: Error calling logout API:', error);
+            logger.error('Error calling logout API', { error: error?.message });
             // Continue with client-side logout even if API call fails
         }
     }
@@ -33,7 +32,7 @@ async function logoutUser() {
     // Remove the JWT token from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
-    console.log('Logout: Token and user data removed from localStorage.');
+    logger.info('Token and user data removed from localStorage');
 
     // Redirect the user to the index page after logout
     // Use replace to prevent back button from showing cached page
@@ -71,11 +70,11 @@ async function checkSessionAndRedirect() {
 
         if (!response.ok) {
             // Token invalid, logout and redirect
-            console.warn('Session check failed, logging out.');
+            logger.warn('Session check failed, logging out');
             logoutUser();
         }
     } catch (error) {
-        console.error('Session check error:', error);
+        logger.error('Session check error', { error: error?.message });
         // On error, assume invalid and logout
         logoutUser();
     }
@@ -89,3 +88,4 @@ window.logoutUser = logoutUser;
 // You might also want to call logoutUser() if a certain API call returns 401/403
 // For example, in your fetchClients or profile fetch functions, if a 401 status
 // is received, you could programmatically call logoutUser().
+

@@ -76,7 +76,7 @@ class ApiConfig {
 
   static setDeviceServerIP(ip) {
     localStorage.setItem('device_server_ip', ip);
-    console.log(`Device server IP set to: ${ip}`);
+    logger.info('Device server IP set', { ip });
   }
 
   static getDebugInfo() {
@@ -135,9 +135,9 @@ class API {
     } catch (error) {
       // Don't spam logs for connection errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        console.warn(`Backend connection failed [${endpoint}]: Service may be unavailable`);
+        logger.warn('Backend connection failed', { endpoint });
       } else {
-        console.error(`API Error [${endpoint}]:`, error);
+        logger.error('API request failed', { endpoint, error: error?.message });
       }
       throw error;
     }

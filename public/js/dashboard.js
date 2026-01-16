@@ -1,233 +1,187 @@
-
+/**
+ * Dashboard
+ * Main user dashboard functionality
+ */
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-window.initDashboard = async () => {
+/**
+ * Initialize dashboard
+ */
+async function initDashboard() {
     const token = localStorage.getItem('token');
-    if (!token) return; // not logged in
+    if (!token) {
+        window.location.href = 'pages/login.html';
+        return;
+    }
 
     try {
-      const res = await fetch(`${window.API_BASE}
-/api/auth/me`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        console.warn('User data fetch failed');
-        const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
-        if (adminLink) adminLink.style.display = 'none';
-        return;
-      }
-
-      const user = await res.json();
-
-      // Hide Admin Dashboard link if not admin
-      if (user.role !== 'admin') {
-        const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
-        if (adminLink) adminLink.style.display = 'none';
-      }
-
-      // Load subscription status
-      await loadSubscriptionStatus();
-
+        // Load user data
+        await loadUserData();
+        
+        // Check for admin link visibility
+        const userRole = localStorage.getItem('userRole');
+        if (userRole === 'admin') {
+            const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
+            if (adminLink) adminLink.style.display = '';
+        }
     } catch (err) {
-      console.error('Error verifying admin status:', err);
-      const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
-      if (adminLink) adminLink.style.display = 'none';
+        logger.error('Dashboard initialization failed', { error: err?.message });
     }
-  };
+}
 
-// Load cart count for dashboard
-async function loadCartCount() {
+/**
+ * Load user data
+ */
+async function loadUserData() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-        const res = await fetch(`${window.API_BASE}
-/api/cart`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const response = await fetch(`${window.API_BASE}/api/v1/users/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (res.ok) {
-            const cart = await res.json();
-            const count = cart.items ? cart.items.length : 0;
-
-            const dashboardCartCount = document.getElementById('dashboard-cart-count');
-            if (dashboardCartCount) {
-                dashboardCartCount.textContent = count;
-            }
-
-            // Update navbar badge
-            const navbarBadge = document.querySelector('.cart-badge');
-            if (navbarBadge) {
-                navbarBadge.textContent = count;
-                navbarBadge.style.display = count > 0 ? 'inline-block' : 'none';
-            }
+        if (!response.ok) {
+            logger.warn('User data fetch failed');
+            return;
         }
+
+        const user = await response.json();
+        renderUserData(user);
     } catch (err) {
-        console.error('Error loading cart count:', err);
+        logger.error('Failed to load user data', { error: err?.message });
     }
 }
 
-// Load subscription status for dashboard
+/**
+ * Render user data
+ */
+function renderUserData(user) {
+    const nameElement = document.getElementById('userName');
+    const emailElement = document.getElementById('userEmail');
+
+    if (nameElement) nameElement.textContent = `${user.firstName} ${user.lastName}`;
+    if (emailElement) emailElement.textContent = user.email;
+}
+
+/**
+ * Load subscription status
+ */
 async function loadSubscriptionStatus() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const statusElement = document.getElementById('subscription-status');
-    const actionsElement = document.getElementById('subscription-actions');
-    const upgradeBtn = document.getElementById('upgrade-subscription-btn');
-
-    if (!statusElement || !actionsElement || !upgradeBtn) {
-        console.warn('Subscription status elements not found');
-        return;
-    }
-
     try {
-        const res = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/user/current`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
+            headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (res.ok) {
-            const data = await res.json();
-            const subscription = data.data;
+        if (!response.ok) {
+            throw new Error('Failed to load subscription');
+        }
 
-            console.log('Subscription data:', subscription); // Debug log
+        const data = await response.json();
+        const subscription = data.data;
 
-            // Update status display
-            let statusText = '';
-            let statusClass = '';
+        const statusElement = document.getElementById('subscriptionStatus');
+        const actionsElement = document.getElementById('subscriptionActions');
+        const upgradeBtn = document.getElementById('upgradeSubscriptionBtn');
+        const subscriptionCard = document.getElementById('subscriptionInfoCard');
 
-            if (subscription.hasSubscription && subscription.status === 'active') {
-                // Display "Active Plan: X Months"
-                const planDisplay = subscription.plan.replace('-', ' ').toUpperCase();
-                statusText = `Active Plan: ${planDisplay}`;
-                statusClass = 'text-success';
-            } else if (subscription.status === 'canceled' || subscription.status === 'cancel_pending') {
-                statusText = `Canceled: ${subscription.plan}`;
-                statusClass = 'text-warning';
-            } else {
-                statusText = 'Free Tier';
-                statusClass = 'text-muted';
+        if (!statusElement || !actionsElement) {
+            logger.warn('Subscription status elements not found');
+            return;
+        }
+
+        if (subscription?.hasActiveSubscription) {
+            logger.debug('User has active subscription', { status: subscription.status });
+            
+            // Show cancel button for active subscriptions
+            const cancelBtn = document.getElementById('cancel-subscription-btn');
+            if (cancelBtn) {
+                logger.debug('Showing cancel button');
+                cancelBtn.classList.remove('d-none');
             }
 
-            statusElement.innerHTML = `<div class="text-center"><small class="${statusClass}">${statusText}</small></div>`;
-
-            // Show actions
-            actionsElement.classList.remove('d-none');
-
-            // Show appropriate buttons based on subscription status
-            console.log('Checking button visibility:', {
-                hasSubscription: subscription.hasSubscription,
-                status: subscription.status,
-                condition: subscription.hasSubscription && subscription.status === 'active'
-            }); // Debug log
-
-            if (subscription.hasSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
-                // Show cancel button for active subscriptions
-                console.log('Showing cancel button'); // Debug log
-                document.getElementById('cancel-subscription-btn').classList.remove('d-none');
-                upgradeBtn.classList.add('d-none');
-
-                // Hide subscription card for users with active subscription
-                const subscriptionCard = document.getElementById('subscription-card');
-                if (subscriptionCard) {
-                    subscriptionCard.style.display = 'none';
-                    console.log('Subscription card hidden for user with active/trialing subscription');
-                }
-            } else {
-                // Show upgrade button for non-active subscriptions
-                console.log('Showing upgrade button'); // Debug log
-                document.getElementById('cancel-subscription-btn').classList.add('d-none');
-                upgradeBtn.classList.remove('d-none');
-
-                // Show subscription card for users without active subscription
-                const subscriptionCard = document.getElementById('subscription-card');
-                if (subscriptionCard) {
-                    subscriptionCard.style.display = '';
-                    console.log('Subscription card shown for user without active subscription');
-                }
+            // Hide subscription card for users with active subscription (they already have one)
+            if (subscriptionCard) {
+                logger.debug('Subscription card hidden for user with active subscription');
+                subscriptionCard.style.display = 'none';
             }
         } else {
-            statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
+            // Show upgrade button for non-active subscriptions
+            logger.debug('Showing upgrade button');
+            const cancelBtn = document.getElementById('cancel-subscription-btn');
+            if (cancelBtn) {
+                cancelBtn.classList.add('d-none');
+            }
+
+            if (subscriptionCard) {
+                logger.debug('Subscription card shown for user without active subscription');
+                subscriptionCard.style.display = '';
+            }
         }
     } catch (err) {
-        console.error('Error loading subscription status:', err);
-        statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Error loading</small></div>';
+        logger.error('Failed to load subscription status', { error: err?.message });
+        if (statusElement) {
+            statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Error loading</small></div>';
+        }
     }
 }
 
-// Event listener for upgrade subscription button
-document.getElementById('upgrade-subscription-btn').addEventListener('click', () => {
-    window.location.href = '../subscriptions.html';
-});
-
-// Event listener for cancel subscription button
-document.getElementById('cancel-subscription-btn').addEventListener('click', async () => {
-    if (!confirm('Are you sure you want to cancel your subscription? You will be moved to the free tier.')) {
-        return;
-    }
-
+/**
+ * Cancel subscription
+ */
+async function cancelSubscription() {
     const token = localStorage.getItem('token');
-    if (!token) {
-        alert('Please log in to cancel your subscription.');
-        return;
-    }
+    if (!token) return;
+
+    const confirmCancel = confirm('Are you sure you want to cancel your subscription?');
+    if (!confirmCancel) return;
 
     try {
-        // Get current subscription to find the subscription ID
-        const currentRes = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/user/current`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current/cancel`, {
+            method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
-        if (!currentRes.ok) {
-            throw new Error('Failed to get current subscription');
-        }
-
-        const currentData = await currentRes.json();
-        const subscription = currentData.data;
-
-        if (!subscription || !subscription.id) {
-            throw new Error('No active subscription found');
-        }
-
-        // Cancel the subscription
-        const cancelRes = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                atPeriodEnd: false // Immediate cancellation
-            })
-        });
-
-        const cancelData = await cancelRes.json();
-
-        if (cancelData.success) {
-            alert('✅ Subscription has been canceled immediately. You are now on the free tier.');
-            // Reload subscription status
+        if (response.ok) {
+            showToast('Subscription canceled successfully', 'success');
             await loadSubscriptionStatus();
         } else {
-            throw new Error(cancelData.error?.message || 'Failed to cancel subscription');
+            const data = await response.json();
+            throw new Error(data.message || 'Cancel failed');
         }
-
-    } catch (error) {
-        console.error('❌ Error canceling subscription:', error);
-        alert(`Failed to cancel subscription: ${error.message}`);
+    } catch (err) {
+        logger.error('Failed to cancel subscription', { error: err?.message });
+        alert(`Failed to cancel subscription: ${err.message}`);
     }
-});
+}
 
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${type} border-0`;
+    toast.innerHTML = `<div class="toast-body">${message}</div>`;
+    container.appendChild(toast);
+    new bootstrap.Toast(toast).show();
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Export functions
+window.cancelSubscription = cancelSubscription;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboard();
+    loadSubscriptionStatus();
+    updateCartCount();
+});

@@ -1,62 +1,95 @@
-// role-guard.js - Frontend role-based access control
-document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('token');
-  const userRole = localStorage.getItem('userRole');
-  const currentPage = window.location.pathname.split('/').pop();
-  
-  // Define protected routes and their required roles
-  const protectedRoutes = {
-    'dashboard.html': 'user' // Both admin and user can access user dashboard
-  };
+/**
+ * Role Guard
+ * Protects routes by verifying user roles
+ */
 
-  // Check if current page is protected
-  if (protectedRoutes[currentPage]) {
-    const requiredRole = protectedRoutes[currentPage];
-
-    // If no token, redirect to login
-    if (!token) {
-      window.location.href = '../pages/login.html';
-      return;
-    }
-
-    // Optional: Verify token validity with backend
-    verifyToken(token);
-  }
-  
-  async function verifyToken(token) {
-    try {
-      const API_BASE = window.ApiConfig.getAPI_BASE();      
-      const response = await fetch(`${window.API_BASE}
-/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+const roleGuard = {
+    /**
+     * Check if user has required role
+     * @param {string[]} allowedRoles - Array of allowed roles
+     * @returns {boolean} - True if user has allowed role
+     */
+    hasRole: (allowedRoles) => {
+        const userRole = localStorage.getItem('userRole');
+        
+        if (!userRole) {
+            logger.warn('No user role found');
+            return false;
         }
-      });
-      
-      if (!response.ok) {
-        // Token is invalid or expired
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        window.location.href = '../pages/login.html';
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      window.location.href = '../pages/login.html';
+        
+        return allowedRoles.includes(userRole);
+    },
+
+    /**
+     * Protect route - redirect if not authorized
+     * @param {string[]} allowedRoles - Array of allowed roles
+     * @param {string} redirectUrl - URL to redirect to if not authorized
+     */
+    protectRoute: (allowedRoles, redirectUrl = '/') => {
+        const userRole = localStorage.getItem('userRole');
+        
+        if (!userRole) {
+            logger.info('No user role, redirecting to login');
+            window.location.href = redirectUrl;
+            return false;
+        }
+        
+        if (!allowedRoles.includes(userRole)) {
+            logger.warn('User role not authorized', { userRole, requiredRoles: allowedRoles });
+            window.location.href = redirectUrl;
+            return false;
+        }
+        
+        return true;
+    },
+
+    /**
+     * Initialize role-based UI elements
+     */
+    init: () => {
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            // No token, hide protected elements
+            document.querySelectorAll('.role-protected').forEach(el => {
+                el.style.display = 'none';
+            });
+            return;
+        }
+
+        try {
+            // Verify token and get user role
+            const userRole = localStorage.getItem('userRole');
+            
+            if (!userRole) {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Show/hide elements based on role
+            document.querySelectorAll('[data-role]').forEach(el => {
+                const allowedRoles = el.dataset.role.split(',');
+                if (allowedRoles.includes(userRole)) {
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        } catch (error) {
+            logger.error('Role guard initialization failed', { error: error?.message });
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
     }
-  }
-});
+};
 
-// Utility function to check if user has required role
-function hasRole(requiredRole) {
-  const userRole = localStorage.getItem('userRole');
-  return userRole === requiredRole;
-}
+// Make available globally
+window.roleGuard = roleGuard;
 
-// Utility function to logout
-function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('userRole');
-  window.location.href = '../pages/login.html';
+// Auto-initialize on DOM ready
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        roleGuard.init();
+    });
 }

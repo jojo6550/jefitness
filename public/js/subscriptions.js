@@ -13,7 +13,6 @@ const STRIPE_PUBLIC_KEY =
   'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
 const stripe = Stripe(STRIPE_PUBLIC_KEY);
-const DEBUG = true;
 
 let selectedPlanId = null;
 let cardElement = null;
@@ -47,7 +46,7 @@ async function handleApiResponse(response) {
 
   if (!contentType.includes('application/json')) {
     const text = await response.text();
-    console.error('Non-JSON response:', text.slice(0, 500));
+    logger.error('Non-JSON response from server', { status: response.status, preview: text.slice(0, 200) });
     throw new Error(`Server returned non-JSON (${response.status})`);
   }
 
@@ -85,7 +84,7 @@ function showAlert(message, type = 'info') {
 }
 
 function log(...args) {
-  if (DEBUG) console.log(...args);
+  logger.debug('Subscription', { message: args.join(' ') });
 }
 
 /**
@@ -137,7 +136,7 @@ function initializeStripe() {
 
     log('Stripe initialized');
   } catch (err) {
-    console.error('Stripe init failed:', err);
+    logger.error('Stripe initialization failed', { error: err?.message });
     showAlert('Failed to load payment system', 'error');
   }
 }
@@ -154,7 +153,7 @@ async function loadPlans() {
     availablePlans = data?.data?.plans || [];
     renderPlans();
   } catch (err) {
-    console.error('Load plans failed:', err);
+    logger.error('Failed to load subscription plans', { error: err?.message });
     showAlert('Failed to load subscription plans', 'error');
   } finally {
     if (plansLoading) plansLoading.style.display = 'none';
@@ -309,30 +308,28 @@ function hasActiveSubscription(planId = null) {
 
 async function loadUserSubscriptions() {
   const userToken = localStorage.getItem('token');
-  log('loadUserSubscriptions - token:', userToken ? 'present' : 'missing');
+  log('Loading user subscriptions');
 
   if (!userToken) {
-    log('No user token found, showing plans');
+    log('No user token found');
     return;
   }
 
   try {
-    log('Fetching subscription data...');
+    log('Fetching subscription data');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/user/current`,
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
 
-    log('Response status:', res.status);
+    log('Subscription response received', { status: res.status });
     const data = await handleApiResponse(res);
-    log('Subscription data:', data);
 
     userSubscriptions = data?.data?.hasActiveSubscription
       ? [data.data]
       : [];
 
-    log('userSubscriptions after load:', userSubscriptions);
-    log('hasActiveSubscription:', hasActiveSubscription());
+    log('User subscriptions loaded', { count: userSubscriptions.length, hasActive: hasActiveSubscription() });
 
     // User should not be able to choose a different plan - only cancel
     // If user has active subscription, redirect to view-subscription page
@@ -348,8 +345,7 @@ async function loadUserSubscriptions() {
     renderUserSubscriptions();
     toggleViews();
   } catch (err) {
-    console.error('Load subscriptions failed:', err);
-    log('Error loading subscriptions:', err.message);
+    logger.error('Failed to load user subscriptions', { error: err?.message });
   }
 }
 
@@ -500,7 +496,7 @@ async function handlePaymentSubmit(e) {
 
     await loadUserSubscriptions();
   } catch (err) {
-    console.error('Payment failed:', err);
+    logger.error('Payment submission failed', { error: err?.message });
     showAlert(err.message, 'error');
   } finally {
     btn.disabled = false;
@@ -556,7 +552,7 @@ async function handleConfirmCancel() {
     document.getElementById('atPeriodEndCheck').checked = false;
     setTimeout(loadUserSubscriptions, 1000);
   } catch (err) {
-    console.error('Cancel failed:', err);
+    logger.error('Subscription cancellation failed', { error: err?.message });
     showAlert(err.message, 'error');
   }
 }

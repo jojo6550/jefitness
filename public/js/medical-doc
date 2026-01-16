@@ -1,0 +1,200 @@
+/**
+ * Medical Documents Management
+ */
+
+window.API_BASE = window.ApiConfig.getAPI_BASE();
+
+let uploadedFiles = [];
+
+/**
+ * Load medical documents
+ */
+async function loadMedicalDocuments() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${window.API_BASE}/api/v1/medical-documents`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load medical data');
+        }
+
+        const data = await response.json();
+        renderDocuments(data.data || []);
+    } catch (err) {
+        logger.error('Failed to load medical data', { error: err?.message });
+    }
+}
+
+/**
+ * Render documents list
+ */
+function renderDocuments(documents) {
+    const container = document.getElementById('documentsList');
+    if (!container) return;
+
+    if (documents.length === 0) {
+        container.innerHTML = '<p class="text-muted">No documents uploaded.</p>';
+        return;
+    }
+
+    container.innerHTML = documents.map(doc => `
+        <div class="document-item d-flex justify-content-between align-items-center p-3 border-bottom">
+            <div>
+                <strong>${doc.name}</strong>
+                <small class="text-muted d-block">${new Date(doc.uploadedAt).toLocaleDateString()}</small>
+            </div>
+            <div>
+                <span class="badge ${doc.status === 'verified' ? 'bg-success' : 'bg-warning'}">${doc.status}</span>
+                <button class="btn btn-sm btn-outline-primary ms-2" onclick="viewDocument('${doc._id}')">View</button>
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteDocument('${doc._id}')">Delete</button>
+            </div>
+    `).join('');
+}
+
+/**
+ * Upload document
+ */
+async function uploadDocument(file) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const statusEl = document.getElementById('uploadStatus');
+    if (statusEl) {
+        statusEl.textContent = 'Uploading...';
+        statusEl.className = 'medical-file-status uploading';
+    }
+
+    const formData = new FormData();
+    formData.append('document', file);
+
+    try {
+        const response = await fetch(`${window.API_BASE}/api/v1/medical-documents`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+        uploadedFiles.push(data);
+        
+        if (statusEl) {
+            statusEl.textContent = 'Upload complete';
+            statusEl.className = 'medical-file-status success';
+        }
+
+        await loadMedicalDocuments();
+    } catch (err) {
+        logger.error('Upload error', { error: err?.message });
+        if (statusEl) {
+            statusEl.textContent = 'Upload failed';
+            statusEl.className = 'medical-file-status error';
+        }
+    }
+}
+
+/**
+ * Delete document
+ */
+async function deleteDocument(documentId) {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${window.API_BASE}/api/v1/medical-documents/${documentId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Delete failed');
+        }
+
+        uploadedFiles = uploadedFiles.filter(f => f.fileId !== documentId);
+        
+        const fileItem = document.querySelector(`[data-file-id="${documentId}"]`);
+        if (fileItem) fileItem.remove();
+
+        await loadMedicalDocuments();
+    } catch (err) {
+        logger.error('Delete error', { error: err?.message });
+    }
+}
+
+/**
+ * View document
+ */
+function viewDocument(documentId) {
+    window.open(`${window.API_BASE}/api/v1/medical-documents/${documentId}/view`, '_blank');
+}
+
+/**
+ * Save health info
+ */
+async function saveHealthInfo(data) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${window.API_BASE}/api/v1/medical-documents/health-info`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Save failed');
+        }
+
+        showToast('Health information saved', 'success');
+    } catch (err) {
+        logger.error('Save info error', { error: err?.message });
+    }
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-bg-${type} border-0`;
+    toast.innerHTML = `<div class="toast-body">${message}</div>`;
+    container.appendChild(toast);
+    new bootstrap.Toast(toast).show();
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// Export globally
+window.uploadDocument = uploadDocument;
+window.deleteDocument = deleteDocument;
+window.viewDocument = viewDocument;
+window.saveHealthInfo = saveHealthInfo;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadMedicalDocuments();
+
+    // Setup file input
+    const fileInput = document.getElementById('documentUpload');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) uploadDocument(file);
+        });
+    }
+});
