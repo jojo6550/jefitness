@@ -325,7 +325,14 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
     console.log(`Security event: login_attempt | Email: ${email}`);
 
     try {
-        const user = await User.findOne({ email });
+        let user;
+        try {
+            user = await User.findOne({ email });
+        } catch (dbErr) {
+            console.error(`Database error finding user ${email}: ${dbErr.message}`);
+            return res.status(500).json({ msg: 'Server error' });
+        }
+
         if (!user) {
             console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
@@ -344,7 +351,14 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
             return res.status(400).json({ msg: 'Please verify your email before logging in.' });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        let isMatch;
+        try {
+            isMatch = await bcrypt.compare(password, user.password);
+        } catch (bcryptErr) {
+            console.error(`Password comparison error for user ${user._id}: ${bcryptErr.message}`);
+            return res.status(500).json({ msg: 'Server error' });
+        }
+
         if (!isMatch) {
             // Increment failed login attempts
             user.failedLoginAttempts += 1;
@@ -367,18 +381,35 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
 
         // Lazily create Stripe customer if missing (non-blocking)
         if (!user.stripeCustomerId) {
-          await createStripeCustomerForUser(user);
+          try {
+            await createStripeCustomerForUser(user);
+          } catch (stripeErr) {
+            console.error(`Stripe customer creation failed during login for user ${user._id}: ${stripeErr.message}`);
+            // Continue with login even if Stripe fails
+          }
         }
 
-        await user.save();
+        try {
+            await user.save();
+        } catch (saveErr) {
+            console.error(`Failed to save successful login for user ${user._id}: ${saveErr.message}`);
+            // Continue with login response even if save fails
+        }
 
         // SECURITY: Include role and token version in JWT payload (from database)
-        const tokenVersion = await getUserTokenVersion(user._id);
-        const token = jwt.sign({ 
-            id: user._id, 
+        let tokenVersion;
+        try {
+            tokenVersion = await getUserTokenVersion(user._id);
+        } catch (versionErr) {
+            console.error(`Failed to get token version for user ${user._id}: ${versionErr.message}`);
+            tokenVersion = 0; // Default to 0 if database error
+        }
+
+        const token = jwt.sign({
+            id: user._id,
             userId: user._id,
             role: user.role,
-            tokenVersion 
+            tokenVersion
         }, process.env.JWT_SECRET, { expiresIn: '1h' });
         console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
 
