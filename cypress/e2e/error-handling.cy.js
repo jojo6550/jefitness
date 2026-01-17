@@ -42,6 +42,10 @@ describe('Error Handling', () => {
   });
 
   describe('Authentication Error Handling', () => {
+    beforeEach(() => {
+      cy.visit('/');
+    });
+
     it('should handle invalid login credentials', () => {
       cy.openNavIfCollapsed();
       cy.get('.navbar-nav a').contains('Login').click();
