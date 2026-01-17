@@ -232,6 +232,30 @@ h1, h2, h3, h4, h5, h6 {
     color: #fff;
 }
 
+/* Improved visibility and contrast for trainer dropdown, time slot dropdown, and notes textarea */
+#trainerSelect, #appointmentTime, #appointmentNotes,
+#editTrainerSelect, #editAppointmentTime, #editAppointmentNotes {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border-color) !important;
+    font-weight: 500;
+}
+
+#trainerSelect:focus, #appointmentTime:focus, #appointmentNotes:focus,
+#editTrainerSelect:focus, #editAppointmentTime:focus, #editAppointmentNotes:focus {
+    background-color: var(--bg-card) !important;
+    border-color: var(--primary-accent) !important;
+    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Ensure dropdown options have good contrast */
+#trainerSelect option, #appointmentTime option,
+#editTrainerSelect option, #editAppointmentTime option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
 /* --- Trainer Specific --- */
 .trainer-image-circle {
     width: 120px;
