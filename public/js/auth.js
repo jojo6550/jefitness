@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetPasswordForm = document.getElementById('reset-password-form');
   const messageDiv = document.getElementById('message');
 
+  if (!window.ApiConfig || typeof window.ApiConfig.getAPI_BASE !== 'function') {
+    throw new Error('ApiConfig is not properly initialized. Ensure api.config.js is loaded before auth.js.');
+  }
   window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
