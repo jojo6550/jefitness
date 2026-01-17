@@ -45,6 +45,42 @@ describe('Authentication', () => {
   describe('Signup Flow', () => {
     beforeEach(() => {
       cy.get('.navbar-nav a').contains('Sign Up').click();
+      // Mock signup to require OTP verification
+      cy.intercept('POST', '/api/auth/signup', {
+        statusCode: 201,
+        body: {
+          success: true,
+          message: 'User created successfully. Please check your email to verify your account.',
+          user: {
+            id: 'mock-user-id',
+            email: 'john.doe@example.com',
+            firstName: 'John'
+          }
+        }
+      }).as('signup');
+      // Mock OTP verification
+      cy.intercept('POST', '/api/auth/verify-email', (req) => {
+        if (req.body.otp === '123456') {
+          req.reply({
+            statusCode: 200,
+            body: {
+              msg: 'Email verified successfully! Welcome to JE Fitness.',
+              token: 'mock-jwt-token',
+              user: {
+                id: 'mock-user-id',
+                name: 'John Doe',
+                email: 'john.doe@example.com',
+                role: 'user'
+              }
+            }
+          });
+        } else {
+          req.reply({
+            statusCode: 400,
+            body: { msg: 'Invalid OTP.' }
+          });
+        }
+      }).as('verifyOtp');
     });
 
     it('should display signup form correctly', () => {
@@ -88,6 +124,7 @@ describe('Authentication', () => {
       cy.get('#inputConfirmPassword').type('StrongPass123!');
       cy.get('#agreeTerms').check();
       cy.get('.btn-signup').click();
+      cy.wait('@signup');
       // Check if OTP form appears
       cy.get('#otp-container').should('be.visible');
     });
@@ -96,6 +133,7 @@ describe('Authentication', () => {
       // Assuming signup was successful and OTP form is shown
       cy.get('#inputOtp').type('123456');
       cy.get('#otp-container button[type="submit"]').click();
+      cy.wait('@verifyOtp');
       // Check for success message or redirect
       cy.get('#message').should('be.visible');
     });

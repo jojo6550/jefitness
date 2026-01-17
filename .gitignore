@@ -11,3 +11,4 @@ src/logs/combined.log
 ./TODO.md
 coverage/
 /docs/
+cypress/screenshots/
