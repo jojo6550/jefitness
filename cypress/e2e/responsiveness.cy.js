@@ -29,6 +29,10 @@ describe('Responsiveness', () => {
           cy.get('.navbar-toggler').should('be.visible');
           cy.get('.navbar-toggler').click();
           cy.get('.navbar-collapse').should('have.class', 'show');
+        } else if (viewport.width < 1024) {
+          // Tablet menu - might be collapsed
+          cy.openNavIfCollapsed();
+          cy.get('.navbar-nav').should('be.visible');
         } else {
           // Desktop menu
           cy.get('.navbar-nav').should('be.visible');

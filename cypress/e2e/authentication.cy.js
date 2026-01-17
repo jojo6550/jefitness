@@ -117,7 +117,7 @@ describe('Authentication', () => {
       cy.get('#acceptTermsBtn').should('be.visible').click();
 
       // Wait for modal to fully close before checking
-      cy.waitForModalClose('#termsModal');
+      cy.get('#termsModal').should('not.be.visible');
       cy.get('#agreeTerms').should('be.checked');
     });
 
@@ -155,13 +155,13 @@ describe('Authentication', () => {
       cy.wait('@verifyOtp');
 
       // Check for success message or redirect
-      cy.get('#message').should('be.visible');
+      cy.url().should('include', 'dashboard');
     });
 
     it('should resend OTP', () => {
       cy.get('#resendOtp').click();
       // Check for resend confirmation
-      cy.get('#otp-message').should('contain', 'code');
+      cy.get('#otp-message').should('be.visible').and('contain', 'code');
     });
   });
 

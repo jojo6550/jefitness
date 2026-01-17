@@ -45,3 +45,11 @@ Cypress.Commands.add('signup', (userData) => {
 Cypress.Commands.add('logout', () => {
   cy.get('#logoutButton').click();
 });
+
+Cypress.Commands.add('openNavIfCollapsed', () => {
+  cy.get('body').then($body => {
+    if ($body.find('.navbar-toggler').is(':visible')) {
+      cy.get('.navbar-toggler').click();
+    }
+  });
+});

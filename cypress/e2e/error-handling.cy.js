@@ -16,6 +16,7 @@ describe('Error Handling', () => {
     });
 
     it('should show validation errors for empty required fields', () => {
+      cy.openNavIfCollapsed();
       cy.get('.navbar-nav a').contains('Login').click();
       cy.get('#loginButton').click();
       cy.get('#inputEmail').should('have.class', 'is-invalid');
@@ -42,6 +43,7 @@ describe('Error Handling', () => {
 
   describe('Authentication Error Handling', () => {
     it('should handle invalid login credentials', () => {
+      cy.openNavIfCollapsed();
       cy.get('.navbar-nav a').contains('Login').click();
       cy.get('#inputEmail').type('wrong@example.com');
       cy.get('#inputPassword').type('wrongpassword');
