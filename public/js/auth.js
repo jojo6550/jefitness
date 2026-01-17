@@ -279,6 +279,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    // Handle Accept Terms button in modal
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    if (acceptTermsBtn) {
+      acceptTermsBtn.addEventListener('click', () => {
+        const agreeTermsCheckbox = document.getElementById('agreeTerms');
+        agreeTermsCheckbox.checked = true;
+        // Close the modal
+        const termsModal = bootstrap.Modal.getInstance(document.getElementById('termsModal'));
+        if (termsModal) {
+          termsModal.hide();
+        }
+      });
+    }
+
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
