@@ -56,6 +56,7 @@ describe('Responsiveness', () => {
       });
 
       it('should handle login form', () => {
+        cy.openNavIfCollapsed();
         cy.get('.navbar-nav a').contains('Login').click();
         cy.get('#login-form').should('be.visible');
         cy.get('#inputEmail').should('be.visible');
@@ -64,6 +65,7 @@ describe('Responsiveness', () => {
       });
 
       it('should handle signup form', () => {
+        cy.openNavIfCollapsed();
         cy.get('.navbar-nav a').contains('Sign Up').click();
         cy.get('#signup-form').should('be.visible');
         cy.get('#inputFirstName').should('be.visible');

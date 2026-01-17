@@ -63,15 +63,19 @@ describe('Error Handling', () => {
   });
 
   describe('Server Error Handling', () => {
+    beforeEach(() => {
+      cy.visit('/');
+    });
+
     it('should handle server errors gracefully', () => {
       // This would require mocking server errors
-      cy.visit('/');
       // Simulate server error scenario
       cy.get('body').should('be.visible');
     });
 
     it('should show user-friendly error messages', () => {
       // Test error message display
+      cy.openNavIfCollapsed();
       cy.get('.navbar-nav a').contains('Login').click();
       cy.get('#inputEmail').type('error@example.com');
       cy.get('#inputPassword').type('error');

@@ -159,6 +159,19 @@ describe('Authentication', () => {
     });
 
     it('should resend OTP', () => {
+      // First complete signup to show OTP form
+      cy.get('#inputFirstName').type('John');
+      cy.get('#inputLastName').type('Doe');
+      cy.get('#inputEmail').type('john.doe@example.com');
+      cy.get('#inputPassword').type('StrongPass123!');
+      cy.get('#inputConfirmPassword').type('StrongPass123!');
+      cy.get('#agreeTerms').check();
+      cy.get('.btn-signup').click();
+      cy.wait('@signup');
+
+      // Wait for OTP container to be visible
+      cy.get('#otp-container').should('be.visible');
+
       cy.get('#resendOtp').click();
       // Check for resend confirmation
       cy.get('#otp-message').should('be.visible').and('contain', 'code');

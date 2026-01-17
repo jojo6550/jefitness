@@ -48,8 +48,9 @@ Cypress.Commands.add('logout', () => {
 
 Cypress.Commands.add('openNavIfCollapsed', () => {
   cy.get('body').then($body => {
-    if ($body.find('.navbar-toggler').is(':visible')) {
+    if ($body.find('.navbar-toggler').is(':visible') && $body.find('.navbar-collapse').not('.show').length > 0) {
       cy.get('.navbar-toggler').click();
+      cy.get('.navbar-collapse').should('have.class', 'show');
     }
   });
 });
