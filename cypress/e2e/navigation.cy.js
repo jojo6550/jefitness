@@ -4,12 +4,18 @@ describe('Navigation', () => {
   });
 
   it('should navigate to login page from header', () => {
+    cy.viewport('iphone-6'); // Test mobile specifically
+    cy.get('.navbar-toggler').click();
+    cy.get('.navbar-collapse').should('have.class', 'show');
     cy.get('.navbar-nav a').contains('Login').click();
     cy.url().should('include', '/pages/login.html');
     cy.get('h2').should('contain', 'Login to Your Account');
   });
 
   it('should navigate to signup page from header', () => {
+    cy.viewport('iphone-6');
+    cy.get('.navbar-toggler').click();
+    cy.get('.navbar-collapse').should('have.class', 'show');
     cy.get('.navbar-nav a').contains('Sign Up').click();
     cy.url().should('include', '/pages/signup.html');
     cy.get('h2').should('contain', 'Create Your Account');

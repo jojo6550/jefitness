@@ -44,9 +44,9 @@ describe('Authentication', () => {
 
   describe('Signup Flow', () => {
     beforeEach(() => {
-      cy.get('.navbar-nav a').contains('Sign Up').click();
-      // Mock signup to require OTP verification
-      cy.intercept('POST', '/api/auth/signup', {
+      cy.visit('/pages/signup.html');
+      // Mock signup to require OTP verification - using correct API version
+      cy.intercept('POST', '/api/v1/auth/signup', {
         statusCode: 201,
         body: {
           success: true,
@@ -58,8 +58,8 @@ describe('Authentication', () => {
           }
         }
       }).as('signup');
-      // Mock OTP verification
-      cy.intercept('POST', '/api/auth/verify-email', (req) => {
+      // Mock OTP verification - using correct API version
+      cy.intercept('POST', '/api/v1/auth/verify-email', (req) => {
         if (req.body.otp === '123456') {
           req.reply({
             statusCode: 200,
@@ -111,8 +111,13 @@ describe('Authentication', () => {
 
     it('should accept terms and continue', () => {
       cy.get('#agreeTerms').next('label').find('a').click();
-      cy.get('#acceptTermsBtn').click();
-      cy.get('#termsModal').should('not.be.visible');
+      cy.get('#termsModal').should('be.visible');
+
+      // Wait for modal to be fully visible and interactive
+      cy.get('#acceptTermsBtn').should('be.visible').click();
+
+      // Wait for modal to fully close before checking
+      cy.waitForModalClose('#termsModal');
       cy.get('#agreeTerms').should('be.checked');
     });
 
@@ -130,10 +135,25 @@ describe('Authentication', () => {
     });
 
     it('should handle OTP verification', () => {
-      // Assuming signup was successful and OTP form is shown
+      // First complete signup to show OTP form
+      cy.get('#inputFirstName').type('John');
+      cy.get('#inputLastName').type('Doe');
+      cy.get('#inputEmail').type('john.doe@example.com');
+      cy.get('#inputPassword').type('StrongPass123!');
+      cy.get('#inputConfirmPassword').type('StrongPass123!');
+      cy.get('#agreeTerms').check();
+      cy.get('.btn-signup').click();
+      cy.wait('@signup');
+
+      // Wait for signup form to hide and OTP container to show
+      cy.get('#signup-form').should('not.be.visible');
+      cy.get('#otp-container').should('be.visible');
+
+      // Now test OTP verification
       cy.get('#inputOtp').type('123456');
       cy.get('#otp-container button[type="submit"]').click();
       cy.wait('@verifyOtp');
+
       // Check for success message or redirect
       cy.get('#message').should('be.visible');
     });
