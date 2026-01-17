@@ -55,7 +55,7 @@ describe('Error Handling', () => {
       cy.visit('/pages/dashboard.html');
       // Should redirect to login if session expired
       cy.url().should('satisfy', (url) => {
-        return url.includes('login') || url.includes('jeftiness.onrender.com');
+        return url.includes('login') || url.includes('jefitness.onrender.com');
       });
     });
   });

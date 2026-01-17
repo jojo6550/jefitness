@@ -22,7 +22,7 @@ describe('Navigation', () => {
 
   it('should navigate to home page from navbar brand', () => {
     cy.get('.navbar-brand').click();
-    cy.url().should('include', 'jeftiness.onrender.com');
+    cy.url().should('include', 'jefitness.onrender.com');
   });
 
   it('should navigate to products from service cards', () => {
@@ -37,12 +37,12 @@ describe('Navigation', () => {
   it('should navigate back to home from login page', () => {
     cy.get('.navbar-nav a').contains('Login').click();
     cy.get('.navbar-nav a').contains('Home').click();
-    cy.url().should('include', 'jeftiness.onrender.com');
+    cy.url().should('include', 'jefitness.onrender.com');
   });
 
   it('should navigate back to home from signup page', () => {
     cy.get('.navbar-nav a').contains('Sign Up').click();
     cy.get('.navbar-nav a').contains('Home').click();
-    cy.url().should('include', 'jeftiness.onrender.com');
+    cy.url().should('include', 'jefitness.onrender.com');
   });
 });

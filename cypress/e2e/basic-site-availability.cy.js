@@ -4,7 +4,7 @@ describe('Basic Site Availability', () => {
   });
 
   it('should load the home page successfully', () => {
-    cy.url().should('include', 'jeftiness.onrender.com');
+    cy.url().should('include', 'jefitness.onrender.com');
     cy.get('title').should('contain', 'JE Fitness');
   });
 
