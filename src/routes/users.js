@@ -60,6 +60,28 @@ router.get('/', auth, requireAdmin, async (req, res) => {
     }
 });
 
+// SECURITY: GET /api/users/profile - Get current user profile
+router.get('/profile', auth, async (req, res) => {
+    try {
+        // SECURITY: Exclude sensitive fields
+        const user = await User.findById(req.user.id).select('-password -emailVerificationToken -resetToken -pushSubscription');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        res.json(user);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({
+            success: false,
+            error: 'Server error'
+        });
+    }
+});
+
 // SECURITY: GET /api/users/:id - Get user by ID (with IDOR protection)
 router.get('/:id', auth, validateObjectId('id'), async (req, res) => {
     try {
