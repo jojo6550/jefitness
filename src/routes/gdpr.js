@@ -9,6 +9,8 @@ const { auth, blacklistToken } = require('../middleware/auth');
 
 const complianceService = require('../services/compliance');
 const monitoringService = require('../services/monitoring');
+const UserActionLog = require('../models/UserActionLog');
+
 
 /**
  * Get user's consent status

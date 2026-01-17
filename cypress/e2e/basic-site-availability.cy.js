@@ -9,14 +9,14 @@ describe('Basic Site Availability', () => {
   });
 
   it('should display key UI elements on home page', () => {
-    cy.get('h1').should('contain', 'FITNESS FOR EVERY BODY');
+    cy.get('h1').should('contain', 'FITNESS FOR THE ELITE');
     cy.get('.btn-primary').should('contain', 'Get Started Today');
     cy.get('.navbar-brand').should('contain', 'JE FITNESS');
     cy.get('footer').should('be.visible');
   });
 
   it('should have proper page title', () => {
-    cy.title().should('eq', 'JE Fitness | Fitness for Every Body');
+    cy.title().should('eq', 'JE Fitness | Fitness FOR THE ELITE');
   });
 
   it('should display services section', () => {
