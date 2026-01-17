@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
           showMessage(data.msg || 'Signup failed.', 'error');
         }
       } catch (err) {
-        logger.error('Signup failed', { error: err?.message });
+        console.error('Error:', err);
         showMessage('Signup failed. Please try again.', 'error');
       } finally {
         setLoadingState(signupButton, false);
@@ -364,8 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           alert(data.msg || 'Verification failed.');
         }
-        } catch (err) {
-        logger.error('Email verification failed', { error: err?.message });
+      } catch (err) {
+        console.error('Error:', err);
         alert('Verification failed. Please try again.');
       }
     });
@@ -400,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Failed to resend OTP.');
           }
         } catch (err) {
-          logger.error('Failed to resend OTP', { error: err?.message });
+          console.error('Error:', err);
           alert('Failed to resend OTP.');
         }
       });

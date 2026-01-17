@@ -1,4 +1,6 @@
+
 window.API_BASE = window.ApiConfig.getAPI_BASE();
+
 
 window.initTrainerDashboard = async () => {
     const token = localStorage.getItem('token');
@@ -14,20 +16,20 @@ window.initTrainerDashboard = async () => {
         });
 
         if (!userRes.ok) {
-            logger.warn('User verification failed');
+            console.warn('User verification failed');
             return;
         }
 
         const user = await userRes.json();
         if (user.role !== 'trainer') {
-            logger.warn('User is not a trainer');
+            console.warn('User is not a trainer');
             return;
         }
 
         // Load dashboard data
         await loadDashboardData(token);
     } catch (err) {
-        logger.error('Error initializing trainer dashboard', { error: err?.message });
+        console.error('Error initializing trainer dashboard:', err);
     }
 };
 
@@ -56,35 +58,28 @@ async function loadDashboardData(token) {
         // Calculate and display statistics
         updateStatistics(data.overview);
     } catch (err) {
-        logger.error('Error loading dashboard data', { error: err?.message });
+        console.error('Error loading dashboard data:', err);
         showError('Failed to load dashboard data. Please refresh the page.');
     }
 }
 
 function updateOverviewMetrics(overview) {
-    const totalClients = document.getElementById('total-clients');
-    const totalAppointments = document.getElementById('total-appointments');
-    const completedAppointments = document.getElementById('completed-appointments');
-    const completionRate = document.getElementById('completion-rate');
-
-    if (totalClients) totalClients.textContent = overview.totalClients || 0;
-    if (totalAppointments) totalAppointments.textContent = overview.totalAppointments || 0;
-    if (completedAppointments) completedAppointments.textContent = overview.completedAppointments || 0;
-    if (completionRate) completionRate.textContent = `${overview.completionRate || 0}%`;
+    document.getElementById('total-clients').textContent = overview.totalClients || 0;
+    document.getElementById('total-appointments').textContent = overview.totalAppointments || 0;
+    document.getElementById('completed-appointments').textContent = overview.completedAppointments || 0;
+    document.getElementById('completion-rate').textContent = `${overview.completionRate || 0}%`;
 }
 
 function renderUpcomingAppointments(appointments) {
     const container = document.getElementById('upcoming-appointments-container');
 
     if (!appointments || appointments.length === 0) {
-        if (container) {
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-calendar-x fs-3 text-muted mb-3"></i>
-                    <p class="text-muted">No upcoming appointments</p>
-                </div>
-            `;
-        }
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x fs-3 text-muted mb-3"></i>
+                <p class="text-muted">No upcoming appointments</p>
+            </div>
+        `;
         return;
     }
 
@@ -123,12 +118,13 @@ function renderUpcomingAppointments(appointments) {
                             </div>
                         ` : ''}
                     </div>
+                </div>
             </div>
         `;
     });
 
     html += '</div>';
-    if (container) container.innerHTML = html;
+    container.innerHTML = html;
 }
 
 function getStatusBadgeClass(status) {
@@ -169,7 +165,7 @@ async function updateAppointmentStatus(appointmentId, status) {
         await loadDashboardData(token);
         showSuccess(`Appointment marked as ${status.replace('_', ' ')}`);
     } catch (err) {
-        logger.error('Error updating appointment status', { error: err?.message });
+        console.error('Error updating appointment status:', err);
         showError(err.message);
     }
 }
@@ -190,46 +186,25 @@ function showSuccess(message) {
 function updateStatistics(overview) {
     const total = overview.totalAppointments || 1;
 
-    const scheduledCount = document.getElementById('scheduled-count');
-    const scheduledBar = document.getElementById('scheduled-bar');
-    const cancelledCount = document.getElementById('cancelled-count');
-    const cancelledBar = document.getElementById('cancelled-bar');
-    const noShowCount = document.getElementById('no-show-count');
-    const noShowBar = document.getElementById('no-show-bar');
-    const lateCount = document.getElementById('late-count');
-    const lateBar = document.getElementById('late-bar');
+    // Update scheduled count
+    document.getElementById('scheduled-count').textContent = overview.scheduledAppointments || 0;
+    const scheduledPercentage = ((overview.scheduledAppointments || 0) / total) * 100;
+    document.getElementById('scheduled-bar').style.width = `${scheduledPercentage}%`;
 
-    if (scheduledCount) {
-        scheduledCount.textContent = overview.scheduledAppointments || 0;
-        if (scheduledBar) {
-            const scheduledPercentage = ((overview.scheduledAppointments || 0) / total) * 100;
-            scheduledBar.style.width = `${scheduledPercentage}%`;
-        }
-    }
+    // Update cancelled count
+    document.getElementById('cancelled-count').textContent = overview.cancelledAppointments || 0;
+    const cancelledPercentage = ((overview.cancelledAppointments || 0) / total) * 100;
+    document.getElementById('cancelled-bar').style.width = `${cancelledPercentage}%`;
 
-    if (cancelledCount) {
-        cancelledCount.textContent = overview.cancelledAppointments || 0;
-        if (cancelledBar) {
-            const cancelledPercentage = ((overview.cancelledAppointments || 0) / total) * 100;
-            cancelledBar.style.width = `${cancelledPercentage}%`;
-        }
-    }
+    // Update no show count
+    document.getElementById('no-show-count').textContent = overview.noShowAppointments || 0;
+    const noShowPercentage = ((overview.noShowAppointments || 0) / total) * 100;
+    document.getElementById('no-show-bar').style.width = `${noShowPercentage}%`;
 
-    if (noShowCount) {
-        noShowCount.textContent = overview.noShowAppointments || 0;
-        if (noShowBar) {
-            const noShowPercentage = ((overview.noShowAppointments || 0) / total) * 100;
-            noShowBar.style.width = `${noShowPercentage}%`;
-        }
-    }
-
-    if (lateCount) {
-        lateCount.textContent = overview.lateAppointments || 0;
-        if (lateBar) {
-            const latePercentage = ((overview.lateAppointments || 0) / total) * 100;
-            lateBar.style.width = `${latePercentage}%`;
-        }
-    }
+    // Update late count
+    document.getElementById('late-count').textContent = overview.lateAppointments || 0;
+    const latePercentage = ((overview.lateAppointments || 0) / total) * 100;
+    document.getElementById('late-bar').style.width = `${latePercentage}%`;
 }
 
 function showError(message) {
@@ -244,9 +219,6 @@ function showError(message) {
     
     setTimeout(() => alertDiv.remove(), 5000);
 }
-
-// Export functions
-window.updateAppointmentStatus = updateAppointmentStatus;
 
 // Initialize on page load
 if (document.readyState === 'loading') {

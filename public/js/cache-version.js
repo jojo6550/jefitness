@@ -1,112 +1,148 @@
 /**
- * Cache Version Management
- * Handles cache invalidation and versioning
+ * Client-side Cache Busting Helper
+ * Automatically adds version parameters to asset URLs
+ * Ensures fresh assets are loaded without manual hard refresh
  */
 
-const CACHE_VERSION_KEY = 'jefitness_cache_version';
-const CACHE_VERSIONS_KEY = 'jefitness_cache_versions';
+(function() {
+  'use strict';
 
-/**
- * Get current cache version
- */
-function getCacheVersion() {
-    return localStorage.getItem(CACHE_VERSION_KEY) || '1.0.0';
-}
+  const CacheVersionManager = {
+    /**
+     * Initialize cache busting for all assets
+     */
+    init() {
+      // Update stylesheet links
+      this.updateStylesheets();
+      // Update script sources (except this one)
+      this.updateScripts();
+      // Listen for dynamic asset loading
+      this.setupMutationObserver();
+    },
 
-/**
- * Set cache version
- */
-function setCacheVersion(version) {
-    localStorage.setItem(CACHE_VERSION_KEY, version);
-    logger.info('Cache version updated', { version });
-}
-
-/**
- * Get cached versions from server
- */
-async function fetchCacheVersions() {
-    try {
-        const response = await fetch('/api/cache-versions');
-        if (response.ok) {
-            const versions = await response.json();
-            localStorage.setItem(CACHE_VERSIONS_KEY, JSON.stringify(versions));
-            return versions;
+    /**
+     * Update all stylesheet links with version parameter
+     */
+    async updateStylesheets() {
+      const links = document.querySelectorAll('link[rel="stylesheet"]');
+      for (const link of links) {
+        const href = link.getAttribute('href');
+        if (href && !href.includes('cdn.') && !href.includes('fonts.googleapis') && !href.includes('cdnjs')) {
+          link.setAttribute('href', await this.addVersionParam(href));
         }
-        throw new Error('Failed to fetch cache versions');
-    } catch (err) {
-        logger.warn('Failed to fetch cache versions, using timestamp fallback', { error: err?.message });
+      }
+    },
+
+    /**
+     * Update all script sources with version parameter
+     */
+    async updateScripts() {
+      const scripts = document.querySelectorAll('script[src]');
+      for (const script of scripts) {
+        const src = script.getAttribute('src');
+        if (src && !src.includes('cdn.') && !src.includes('fonts.') && !src.includes('cache-version')) {
+          script.setAttribute('src', await this.addVersionParam(src));
+        }
+      }
+    },
+
+    /**
+     * Add version parameter to URL
+     * @param {string} url - Original URL
+     * @returns {string} URL with version parameter
+     */
+    addVersionParam(url) {
+      if (!url) return url;
+
+      // Don't version external URLs
+      if (url.startsWith('http') && !window.location.origin) {
+        return url;
+      }
+
+      // Generate a version hash based on current timestamp
+      // This ensures fresh assets on server restart
+      const version = this.getVersion();
+
+      // Check if URL already has version param
+      if (url.includes('?v=')) {
+        return url.replace(/\?v=[\w]+/, `?v=${version}`);
+      }
+
+      // Add version parameter
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}v=${version}`;
+    },
+
+  /**
+   * Get version string for asset
+   * @param {string} assetPath - Path to the asset
+   * @returns {Promise<string>} Version hash
+   */
+  async getVersion(assetPath) {
+    // Check if server provides a version meta tag
+    const versionMeta = document.querySelector('meta[name="app-version"]');
+    if (versionMeta) {
+      return versionMeta.getAttribute('content');
+    }
+
+    // Try to get version from cache or fetch from server
+    if (!this.versionsCache) {
+      try {
+        this.versionsCache = await window.API.cache.getVersions();
+      } catch (err) {
+        console.warn('Failed to fetch cache versions, using timestamp fallback:', err);
         // Fallback: Use current minute as version (changes every minute)
-        const fallbackVersion = Date.now().toString(36);
-        return { version: fallbackVersion, timestamp: Date.now() };
-    }
-}
-
-/**
- * Check if cache needs invalidation
- */
-async function checkCacheInvalidation() {
-    try {
-        const versions = await fetchCacheVersions();
-        const currentVersion = getCacheVersion();
-
-        if (versions.version !== currentVersion) {
-            // Cache is stale, clear it
-            await clearAllCaches();
-            setCacheVersion(versions.version);
-            logger.info('Cache invalidated', { oldVersion: currentVersion, newVersion: versions.version });
-            return true;
-        }
-        return false;
-    } catch (err) {
-        logger.error('Cache invalidation check failed', { error: err?.message });
-        return false;
-    }
-}
-
-/**
- * Clear all caches
- */
-async function clearAllCaches() {
-    // Clear service worker cache
-    if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+        return Math.floor(Date.now() / 60000).toString(36);
+      }
     }
 
-    // Clear localStorage (except auth tokens)
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && !key.startsWith('jefitness_') && key !== CACHE_VERSION_KEY && key !== CACHE_VERSIONS_KEY) {
-            keysToRemove.push(key);
-        }
-    }
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    return this.versionsCache[assetPath] || Math.floor(Date.now() / 60000).toString(36);
+  },
 
-    logger.info('All caches cleared');
-}
+    /**
+     * Watch for dynamically added assets and version them
+     */
+    setupMutationObserver() {
+      const observer = new MutationObserver(async (mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList') {
+            for (const node of mutation.addedNodes) {
+              // Version new stylesheets
+              if (node.tagName === 'LINK' && node.getAttribute('rel') === 'stylesheet') {
+                const href = node.getAttribute('href');
+                if (href && !href.includes('cdn.')) {
+                  node.setAttribute('href', await this.addVersionParam(href));
+                }
+              }
 
-/**
- * Register service worker update handler
- */
-function registerServiceWorkerUpdates() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data.type === 'CACHE_UPDATED') {
-                logger.info('Service worker cache updated', { version: event.data.version });
+              // Version new scripts
+              if (node.tagName === 'SCRIPT' && node.getAttribute('src')) {
+                const src = node.getAttribute('src');
+                if (src && !src.includes('cdn.')) {
+                  node.setAttribute('src', await this.addVersionParam(src));
+                }
+              }
             }
-        });
+          }
+        }
+      });
+
+      observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+      });
     }
-}
+  };
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    checkCacheInvalidation();
-    registerServiceWorkerUpdates();
-});
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      CacheVersionManager.init();
+    });
+  } else {
+    CacheVersionManager.init();
+  }
 
-// Export globally
-window.getCacheVersion = getCacheVersion;
-window.setCacheVersion = setCacheVersion;
-window.clearAllCaches = clearAllCaches;
-window.checkCacheInvalidation = checkCacheInvalidation;
+  // Export for manual use
+  window.CacheVersionManager = CacheVersionManager;
+})();

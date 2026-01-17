@@ -1,85 +1,120 @@
 /**
- * Program Access Verification
- * Checks if user has access to a program
+ * Program Access Control
+ * Verifies that the user has purchased the program before allowing access
  */
 
-window.API_BASE = window.ApiConfig.getAPI_BASE();
+(function() {
+    'use strict';
 
-/**
- * Check if user has access to a program
- */
-async function checkProgramAccess() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        showAccessDenied('Please log in to access this program');
-        return false;
+    // Extract program slug from current page URL
+    function getProgramSlug() {
+        const path = window.location.pathname;
+        // Extract filename without .html extension
+        const match = path.match(/\/programs\/([^\/]+)\.html$/);
+        if (match) {
+            return match[1];
+        }
+        return null;
     }
 
-    // Get program slug from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const slug = urlParams.get('slug');
+    // Check if user has access to this program
+    async function verifyProgramAccess() {
+        try {
+            // Check authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                // Redirect to login page
+                window.location.href = '../../index.html?redirect=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
 
-    if (!slug) {
-        logger.error('Could not determine program slug from URL');
-        showAccessDenied('Invalid program page');
-        return false;
-    }
+            // Get program slug
+            const slug = getProgramSlug();
+            if (!slug) {
+                console.error('Could not determine program slug from URL');
+                showAccessDenied('Invalid program page');
+                return;
+            }
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/programs/${slug}/access`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+            // Check access via API
+            const response = await fetch(`${window.API_BASE}/api/v1/programs/user/access/${slug}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        if (!response.ok) {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    localStorage.removeItem('token');
+                    window.location.href = '../../index.html?redirect=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+                throw new Error('Failed to verify access');
+            }
+
             const data = await response.json();
-            showAccessDenied(data.message || 'Access denied to this program');
-            return false;
-        }
 
-        const data = await response.json();
-        return data.hasAccess;
-    } catch (error) {
-        logger.error('Error verifying program access', { error: error?.message, slug });
-        showAccessDenied('An error occurred while verifying your access.');
-        return false;
-    }
-}
-
-/**
- * Show access denied message
- */
-function showAccessDenied(message) {
-    const container = document.getElementById('programContent');
-    if (container) {
-        container.innerHTML = `
-            <div class="text-center py-5">
-                <i class="bi bi-lock-fill text-danger" style="font-size: 4rem;"></i>
-                <h3 class="mt-3">Access Denied</h3>
-                <p class="text-muted">${message}</p>
-                <a href="subscriptions.html" class="btn btn-primary mt-3">
-                    View Plans
-                </a>
-            </div>
-        `;
-    }
-}
-
-// Auto-run on program pages
-document.addEventListener('DOMContentLoaded', async () => {
-    // Only run on program pages
-    if (window.location.pathname.includes('/programs/')) {
-        const hasAccess = await checkProgramAccess();
-        if (hasAccess) {
-            // Load program content
-            loadProgramContent();
+            if (!data.hasAccess) {
+                // User doesn't have access - redirect to marketplace
+                showAccessDenied('You need to purchase this program to view it.');
+                setTimeout(() => {
+                    window.location.href = '../program-marketplace.html';
+                }, 3000);
+            } else {
+                // User has access - show content
+                showProgramContent();
+            }
+        } catch (error) {
+            console.error('Error verifying program access:', error);
+            showAccessDenied('An error occurred while verifying your access.');
         }
     }
-});
 
-/**
- * Load program content (to be implemented per program)
- */
-function loadProgramContent() {
-    logger.debug('Loading program content');
-    // Program-specific content loading goes here
-}
+    // Show access denied message
+    function showAccessDenied(message) {
+        const main = document.querySelector('main');
+        if (main) {
+            main.innerHTML = `
+                <div class="container my-5">
+                    <div class="row justify-content-center">
+                        <div class="col-lg-6 text-center">
+                            <div class="card shadow-sm p-5">
+                                <div class="card-body">
+                                    <i class="bi bi-lock-fill text-danger" style="font-size: 4rem;"></i>
+                                    <h2 class="mt-4 mb-3">Access Denied</h2>
+                                    <p class="text-muted mb-4">${message}</p>
+                                    <a href="../program-marketplace.html" class="btn btn-primary">
+                                        <i class="bi bi-shop me-2"></i>Browse Programs
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Show program content (remove loading overlay if any)
+    function showProgramContent() {
+        // Remove any loading overlays
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        if (loadingOverlay) {
+            loadingOverlay.remove();
+        }
+
+        // Show the main content
+        const main = document.querySelector('main');
+        if (main) {
+            main.style.display = 'block';
+        }
+    }
+
+    // Run verification when page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', verifyProgramAccess);
+    } else {
+        verifyProgramAccess();
+    }
+})();

@@ -1,281 +1,179 @@
-/**
- * Cart functionality
- */
-
-window.API_BASE = window.ApiConfig.getAPI_BASE();
-
-/**
- * Add item to cart
- */
-async function addToCart(itemId, quantity = 1) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'pages/login.html';
-        return;
-    }
-
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart/add`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ programId: itemId, quantity })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast('Added to cart!', 'success');
-            updateCartCount();
-        } else {
-            showToast(data.error?.message || 'Failed to add to cart', 'error');
-        }
-    } catch (err) {
-        logger.error('Add to cart failed', { error: err?.message });
-        showToast('Failed to add to cart. Please try again.', 'error');
-    }
+// Reusable helper to hide the page loading overlay
+function hidePageLoader() {
+  const loading = document.getElementById('page-loading');
+  if (loading) loading.style.display = 'none';
 }
 
-/**
- * Update cart item quantity
- */
-async function updateCartItem(itemId, quantity) {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+let cart = JSON.parse(localStorage.getItem('jefitness_cart') || '[]');
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart/update/${itemId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ quantity })
-        });
-
-        if (response.ok) {
-            loadCart();
-        } else {
-            const data = await response.json();
-            showToast(data.error?.message || 'Failed to update cart', 'error');
-        }
-    } catch (err) {
-        logger.error('Update cart failed', { error: err?.message });
-        showToast('Failed to update cart', 'error');
-    }
+function saveCart() {
+  localStorage.setItem('jefitness_cart', JSON.stringify(cart));
+  render();
 }
 
-/**
- * Remove item from cart
- */
-async function removeFromCart(itemId) {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+function render() {
+  const container = document.getElementById('cart-items-list');
+  if (!container) return; // container is mandatory
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart/remove/${itemId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+  const emptyCart = document.getElementById('empty-cart');
+  const cartItemsContainer = document.getElementById('cart-items-container');
 
-        if (response.ok) {
-            loadCart();
-        } else {
-            showToast('Failed to remove item', 'error');
-        }
-    } catch (err) {
-        logger.error('Remove from cart failed', { error: err?.message });
-        showToast('Failed to remove item', 'error');
-    }
-}
+  if (cart.length === 0) {
+    if (emptyCart) emptyCart.style.display = 'block';
+    if (cartItemsContainer) cartItemsContainer.style.display = 'none';
 
-/**
- * Clear entire cart
- */
-async function clearCart() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const itemCountEl = document.getElementById('summary-item-count');
+    const subtotalEl = document.getElementById('summary-subtotal');
+    const totalEl = document.getElementById('summary-total');
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart/clear`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+    if (itemCountEl) itemCountEl.textContent = '0';
+    if (subtotalEl) subtotalEl.textContent = '$0.00';
+    if (totalEl) totalEl.textContent = '$0.00';
 
-        if (response.ok) {
-            loadCart();
-            showToast('Cart cleared', 'success');
-        }
-    } catch (err) {
-        logger.error('Clear cart failed', { error: err?.message });
-    }
-}
+    container.innerHTML = '';
+    return;
+  }
 
-/**
- * Load and display cart
- */
-async function loadCart() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'login.html';
-        return;
-    }
+  if (emptyCart) emptyCart.style.display = 'none';
+  if (cartItemsContainer) cartItemsContainer.style.display = 'block';
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+  container.innerHTML = '';
 
-        const data = await response.json();
+  let itemCount = 0;
+  let subtotal = 0;
 
-        if (response.ok) {
-            renderCart(data);
-        } else {
-            showToast('Failed to load cart', 'error');
-        }
-    } catch (err) {
-        logger.error('Load cart failed', { error: err?.message });
-    }
-}
+  cart.forEach(item => {
+    itemCount += item.quantity;
+    subtotal += item.quantity * item.price;
 
-/**
- * Render cart items
- */
-function renderCart(cart) {
-    const container = document.getElementById('cartItems');
-    const emptyMessage = document.getElementById('cartEmptyMessage');
-    const totalElement = document.getElementById('cartTotal');
-
-    if (!cart.items || cart.items.length === 0) {
-        if (container) container.innerHTML = '';
-        if (emptyMessage) emptyMessage.style.display = 'block';
-        if (totalElement) totalElement.textContent = '$0.00';
-        return;
-    }
-
-    if (emptyMessage) emptyMessage.style.display = 'none';
-
-    if (container) {
-        container.innerHTML = cart.items.map(item => `
-            <div class="cart-item d-flex justify-content-between align-items-center p-3 border-bottom">
-                <div>
-                    <h6>${item.programName || 'Program'}</h6>
-                    <small class="text-muted">$${(item.price / 100).toFixed(2)} each</small>
-                </div>
-                <div class="d-flex align-items-center">
-                    <input type="number" class="form-control form-control-sm" 
-                           style="width: 60px;" value="${item.quantity}" 
-                           min="1" max="10"
-                           onchange="updateCartItem('${item.programId}', this.value)">
-                    <span class="mx-3">$${((item.price * item.quantity) / 100).toFixed(2)}</span>
-                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.programId}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-        `).join('');
-    }
-
-    const total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) / 100;
-    if (totalElement) totalElement.textContent = `$${total.toFixed(2)}`;
-}
-
-/**
- * Proceed to checkout
- */
-async function checkout() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'login.html';
-        return;
-    }
-
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart/checkout`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.checkoutUrl) {
-            window.location.href = data.checkoutUrl;
-        } else {
-            showToast('Failed to initiate checkout', 'error');
-        }
-    } catch (err) {
-        logger.error('Checkout failed', { error: err?.message });
-        showToast('Checkout failed. Please try again.', 'error');
-    }
-}
-
-/**
- * Update cart count in navbar
- */
-async function updateCartCount() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/cart`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (response.ok) {
-            const cart = await response.json();
-            const count = cart.items?.length || 0;
-            
-            const badge = document.querySelector('.cart-badge');
-            if (badge) {
-                badge.textContent = count;
-                badge.style.display = count > 0 ? 'inline-block' : 'none';
-            }
-        }
-    } catch (err) {
-        // Silent fail for cart count
-    }
-}
-
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    container.insertAdjacentHTML('beforeend', `
+      <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+        <div>
+          <strong>${item.name}</strong> × ${item.quantity}
+          <small class="text-muted">$${item.price.toFixed(2)} each</small>
         </div>
-    `;
-    container.appendChild(toast);
+        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item.productKey}')">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `);
+  });
 
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+  const itemCountEl = document.getElementById('summary-item-count');
+  const subtotalEl = document.getElementById('summary-subtotal');
+  const totalEl = document.getElementById('summary-total');
 
-    toast.addEventListener('hidden.bs.toast', () => toast.remove());
+  if (itemCountEl) itemCountEl.textContent = itemCount;
+  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+  if (totalEl) totalEl.textContent = `$${subtotal.toFixed(2)}`;
 }
 
-// Export functions globally
-window.addToCart = addToCart;
-window.updateCartItem = updateCartItem;
-window.removeFromCart = removeFromCart;
-window.clearCart = clearCart;
-window.loadCart = loadCart;
-window.checkout = checkout;
-window.updateCartCount = updateCartCount;
+function removeItem(key) {
+  cart = cart.filter(i => i.productKey !== key);
+  saveCart();
+}
+
+function clearCart() {
+  cart = [];
+  saveCart();
+}
+
+async function checkout() {
+  const token = localStorage.getItem('token');
+  if (!token) return location.href = 'login.html';
+
+  try {
+    const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ items: cart })
+    });
+
+    const data = await res.json();
+    if (data.success) location.href = data.checkoutUrl;
+    else throw new Error(data.error || 'Checkout failed');
+  } catch (err) {
+    console.error('Checkout failed:', err);
+    alert(err.message);
+  }
+}
+
+function checkCheckoutStatus() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('success') === 'true') {
+    clearCart();
+    render();
+    showToast('Purchase successful! Your cart has been cleared.');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+async function loadOrderHistory() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  try {
+    const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/purchases`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const data = await res.json();
+    renderOrderHistory(data.success ? data.purchases : []);
+  } catch {
+    renderOrderHistory([]);
+  }
+}
+
+function renderOrderHistory(purchases) {
+  const container = document.getElementById('order-history-container');
+  if (!container) return;
+
+  if (!purchases || purchases.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center">No order history found.</p>';
+    return;
+  }
+
+  container.innerHTML = purchases.map(p => `
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between">
+        <span>Order #${p._id.slice(-8)}</span>
+        <span class="badge bg-success">${p.status}</span>
+      </div>
+      <div class="card-body">
+        <strong>Total: $${(p.totalAmount / 100).toFixed(2)}</strong>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showToast(message) {
+  const toast = document.getElementById('cartToast');
+  const toastMessage = document.getElementById('toastMessage');
+  if (!toast || !toastMessage) return;
+
+  toastMessage.textContent = message;
+  new bootstrap.Toast(toast).show();
+}
+
+async function initCartPage() {
+  render();
+  checkCheckoutStatus();
+  await loadOrderHistory();
+
+  hidePageLoader();
+  setTimeout(hidePageLoader, 5000);
+
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) mainContent.style.display = 'block';
+
+  const clearBtn = document.getElementById('clear-cart-btn');
+  if (clearBtn) clearBtn.onclick = () => confirm('Clear cart?') && clearCart();
+
+  const checkoutBtn = document.getElementById('checkout-btn');
+  if (checkoutBtn) checkoutBtn.onclick = checkout;
+}
+
+document.addEventListener('DOMContentLoaded', initCartPage);
