@@ -195,15 +195,15 @@ function renderPlans() {
   const baseBenefits = [
     'Basic workout access',
     'Cancel anytime',
-    'No commitment'
+    '1 on 1 appointments'
   ];
 
   // Additional benefits based on plan duration
   const additionalBenefits = {
-    '1-month': [],
-    '3-month': ['Personalized plans', 'Priority support'],
-    '6-month': ['Trainer consultations', 'Custom meal planning'],
-    '12-month': ['Unlimited consultations', 'Premium analytics']
+    '1-month': ['Begin Your Journey', 'No Commitment'], 
+    '3-month': ['You Are A Warrior', 'How Far Can You Go?'],
+    '6-month': ['You Are Elite', 'Long Term Goals'],
+    '12-month': ['This Is Your Life']
   };
 
   // Monthly baseline price in cents

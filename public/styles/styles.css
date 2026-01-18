@@ -220,16 +220,22 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Components: Forms --- */
 .form-control, .form-select {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-color);
-    color: #fff;
+    background-color: var(--bg-secondary) !important;
+    border: 2px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    font-weight: 500;
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem 1rem;
+    transition: var(--transition-base);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .form-control:focus, .form-select:focus {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.15);
-    color: #fff;
+    background-color: var(--bg-card) !important;
+    border-color: var(--primary-accent) !important;
+    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25) !important;
+    color: var(--text-primary) !important;
+    transform: scale(1.01);
 }
 
 /* Improved visibility and contrast for trainer dropdown, time slot dropdown, and notes textarea */
