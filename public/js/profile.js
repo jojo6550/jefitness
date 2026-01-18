@@ -109,13 +109,13 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
             }
 
             const data = await response.json();
-            showMessage('Profile updated successfully.');
+            window.Toast.success('Profile updated successfully.');
 
             // Dispatch event so medical-documents.js can save medical info
             window.dispatchEvent(new Event('profileFormSubmitted'));
 
         } catch (error) {
-            showMessage(error.message, 'danger');
+            window.Toast.error(error.message || 'Failed to update profile');
         }
     });
 

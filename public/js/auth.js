@@ -94,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
 
+          // Show welcome back toast
+          const userName = data.user.firstName || 'User';
+          window.Toast.success(`Welcome back ${userName}!`);
+
           // Check for redirect parameter
           const urlParams = new URLSearchParams(window.location.search);
           const redirectPath = urlParams.get('redirect');
@@ -112,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         } else {
-          showMessage(data.msg || 'Login failed', 'error');
+          window.Toast.error(data.msg || 'Login failed');
         }
       } catch (err) {
         showMessage('Error connecting to server', 'error');

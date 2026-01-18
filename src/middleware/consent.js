@@ -4,6 +4,7 @@
  */
 
 const User = require('../models/User');
+const UserActionLog = require('../models/UserActionLog');
 const monitoringService = require('../services/monitoring');
 
 /**
