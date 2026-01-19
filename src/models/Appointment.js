@@ -35,4 +35,12 @@ AppointmentSchema.index({ date: 1, time: 1 });
 AppointmentSchema.index({ trainerId: 1 });
 AppointmentSchema.index({ clientId: 1 });
 
+// Compound indexes for complex queries
+AppointmentSchema.index({ trainerId: 1, date: 1 });
+AppointmentSchema.index({ trainerId: 1, status: 1 });
+AppointmentSchema.index({ clientId: 1, date: 1 });
+AppointmentSchema.index({ trainerId: 1, clientId: 1 });
+AppointmentSchema.index({ date: 1, trainerId: 1, time: 1 });
+AppointmentSchema.index({ status: 1, date: 1 });
+
 module.exports = mongoose.model('Appointment', AppointmentSchema);

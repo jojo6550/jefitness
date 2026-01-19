@@ -18,52 +18,117 @@ const { logger, logAdminAction, logUserAction } = require('../services/logger');
 router.get('/dashboard', auth, requireTrainer, async (req, res) => {
     try {
         const trainerId = req.user.id;
-
-        // Get all appointments for this trainer
-        const allAppointments = await Appointment.find({ trainerId })
-            .populate('clientId', 'firstName lastName email');
-
-        // Get upcoming appointments
         const now = new Date();
-        const upcomingAppointments = allAppointments.filter(apt => {
-            const aptDate = new Date(apt.date);
-            return aptDate >= now && apt.status !== 'cancelled';
-        }).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 5);
 
-        // Get completed appointments
-        const completedAppointments = allAppointments.filter(apt => apt.status === 'completed');
+        // Use aggregation pipeline for efficient stats calculation
+        const statsResult = await Appointment.aggregate([
+            { $match: { trainerId: mongoose.Types.ObjectId(trainerId) } },
+            {
+                $group: {
+                    _id: null,
+                    totalAppointments: { $sum: 1 },
+                    completedAppointments: {
+                        $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+                    },
+                    scheduledAppointments: {
+                        $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] }
+                    },
+                    cancelledAppointments: {
+                        $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+                    },
+                    noShowAppointments: {
+                        $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] }
+                    },
+                    lateAppointments: {
+                        $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] }
+                    },
+                    uniqueClients: { $addToSet: '$clientId' },
+                    upcomingAppointments: {
+                        $push: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $gte: ['$date', now] },
+                                        { $ne: ['$status', 'cancelled'] }
+                                    ]
+                                },
+                                {
+                                    date: '$date',
+                                    time: '$time',
+                                    status: '$status',
+                                    clientId: '$clientId',
+                                    _id: '$_id'
+                                },
+                                null
+                            ]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    totalAppointments: 1,
+                    completedAppointments: 1,
+                    scheduledAppointments: 1,
+                    cancelledAppointments: 1,
+                    noShowAppointments: 1,
+                    lateAppointments: 1,
+                    uniqueClients: { $size: '$uniqueClients' },
+                    upcomingAppointments: {
+                        $filter: {
+                            input: '$upcomingAppointments',
+                            as: 'apt',
+                            cond: { $ne: ['$$apt', null] }
+                        }
+                    }
+                }
+            }
+        ]);
 
-        // Get unique clients
-        const clientIds = new Set(allAppointments.map(apt => apt.clientId._id.toString()));
-        const uniqueClientsCount = clientIds.size;
+        const stats = statsResult[0] || {
+            totalAppointments: 0,
+            completedAppointments: 0,
+            scheduledAppointments: 0,
+            cancelledAppointments: 0,
+            noShowAppointments: 0,
+            lateAppointments: 0,
+            uniqueClients: 0,
+            upcomingAppointments: []
+        };
+
+        // Get upcoming appointments with client details (limit to 5)
+        const upcomingAppointmentsRaw = stats.upcomingAppointments
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 5);
+
+        const upcomingAppointmentIds = upcomingAppointmentsRaw.map(apt => apt._id);
+        const upcomingAppointments = await Appointment.find({ _id: { $in: upcomingAppointmentIds } })
+            .populate('clientId', 'firstName lastName email')
+            .sort({ date: 1, time: 1 })
+            .lean();
 
         // Get client details
-        const clients = await User.find({ _id: { $in: Array.from(clientIds) } })
-            .select('firstName lastName email activityStatus');
-
-        // Calculate appointment statistics
-        const totalAppointments = allAppointments.length;
-        const scheduledAppointments = allAppointments.filter(apt => apt.status === 'scheduled').length;
-        const cancelledAppointments = allAppointments.filter(apt => apt.status === 'cancelled').length;
-        const noShowAppointments = allAppointments.filter(apt => apt.status === 'no_show').length;
-        const lateAppointments = allAppointments.filter(apt => apt.status === 'late').length;
+        const clientIds = statsResult[0]?.uniqueClients || [];
+        const clients = await User.find({ _id: { $in: clientIds } })
+            .select('firstName lastName email activityStatus')
+            .lean();
 
         // Calculate completion rate
-        const completionRate = totalAppointments > 0 
-            ? Math.round((completedAppointments.length / totalAppointments) * 100) 
+        const completionRate = stats.totalAppointments > 0
+            ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
             : 0;
 
         logUserAction('view_trainer_dashboard', trainerId);
 
         res.json({
             overview: {
-                totalClients: uniqueClientsCount,
-                totalAppointments,
-                completedAppointments: completedAppointments.length,
-                scheduledAppointments,
-                cancelledAppointments,
-                noShowAppointments,
-                lateAppointments,
+                totalClients: stats.uniqueClients,
+                totalAppointments: stats.totalAppointments,
+                completedAppointments: stats.completedAppointments,
+                scheduledAppointments: stats.scheduledAppointments,
+                cancelledAppointments: stats.cancelledAppointments,
+                noShowAppointments: stats.noShowAppointments,
+                lateAppointments: stats.lateAppointments,
                 completionRate
             },
             upcomingAppointments,
@@ -176,42 +241,77 @@ router.get('/appointments', auth, async (req, res) => {
             limit = 10
         } = req.query;
 
-        // Build filter object
-        let filter = { trainerId };
+        // Build aggregation pipeline
+        const pipeline = [
+            { $match: { trainerId: mongoose.Types.ObjectId(trainerId) } }
+        ];
 
         // Add status filter
         if (status) {
-            filter.status = status;
+            pipeline.push({ $match: { status } });
         }
 
-        // Add search filter (search in client names)
+        // Add lookup for client details
+        pipeline.push({
+            $lookup: {
+                from: 'users',
+                localField: 'clientId',
+                foreignField: '_id',
+                as: 'client'
+            }
+        });
+
+        pipeline.push({ $unwind: '$client' });
+
+        // Add search filter
         if (search) {
             const searchRegex = new RegExp(search, 'i');
-            // Find client IDs that match the search
-            const matchingClients = await User.find({
-                $or: [
-                    { firstName: searchRegex },
-                    { lastName: searchRegex },
-                    { email: searchRegex }
-                ]
-            }).select('_id');
-
-            const clientIds = matchingClients.map(client => client._id);
-            filter.clientId = { $in: clientIds };
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { 'client.firstName': searchRegex },
+                        { 'client.lastName': searchRegex },
+                        { 'client.email': searchRegex }
+                    ]
+                }
+            });
         }
 
-        // Calculate pagination
+        // Get total count
+        const countPipeline = [...pipeline, { $count: 'total' }];
+        const countResult = await Appointment.aggregate(countPipeline);
+        const totalCount = countResult[0]?.total || 0;
+
+        // Add sorting and pagination
         const skip = (page - 1) * limit;
+        pipeline.push(
+            { $sort: { date: -1, time: -1 } },
+            { $skip: skip },
+            { $limit: parseInt(limit) }
+        );
 
-        // Get total count for pagination
-        const totalCount = await Appointment.countDocuments(filter);
+        // Project final result
+        pipeline.push({
+            $project: {
+                _id: 1,
+                date: 1,
+                time: 1,
+                status: 1,
+                notes: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                clientId: {
+                    _id: '$client._id',
+                    firstName: '$client.firstName',
+                    lastName: '$client.lastName',
+                    email: '$client.email'
+                },
+                trainerId: 1
+            }
+        });
 
-        // Get appointments with pagination
-        const appointments = await Appointment.find(filter)
-            .populate('clientId', 'firstName lastName email')
-            .sort({ date: -1, time: -1 })
-            .skip(skip)
-            .limit(parseInt(limit));
+        // Execute aggregation
+        const appointments = await Appointment.aggregate(pipeline);
 
         res.json({
             appointments,

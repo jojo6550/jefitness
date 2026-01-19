@@ -37,42 +37,97 @@ router.get('/', auth, async (req, res) => {
             status = ''
         } = req.query;
 
-        // Build filter object
-        let filter = {};
+        // Build aggregation pipeline
+        const pipeline = [];
 
         // Add status filter
         if (status) {
-            filter.status = status;
+            pipeline.push({ $match: { status } });
         }
 
-        // Add search filter (search in client and trainer names)
+        // Add lookups for client and trainer details
+        pipeline.push(
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'clientId',
+                    foreignField: '_id',
+                    as: 'client'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'trainerId',
+                    foreignField: '_id',
+                    as: 'trainer'
+                }
+            }
+        );
+
+        pipeline.push(
+            { $unwind: '$client' },
+            { $unwind: '$trainer' }
+        );
+
+        // Add search filter
         if (search) {
             const searchRegex = new RegExp(search, 'i');
-            filter.$or = [
-                { 'clientId.firstName': searchRegex },
-                { 'clientId.lastName': searchRegex },
-                { 'trainerId.firstName': searchRegex },
-                { 'trainerId.lastName': searchRegex }
-            ];
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { 'client.firstName': searchRegex },
+                        { 'client.lastName': searchRegex },
+                        { 'trainer.firstName': searchRegex },
+                        { 'trainer.lastName': searchRegex }
+                    ]
+                }
+            });
         }
 
-        // Build sort object
+        // Get total count
+        const countPipeline = [...pipeline, { $count: 'total' }];
+        const countResult = await Appointment.aggregate(countPipeline);
+        const totalAppointments = countResult[0]?.total || 0;
+
+        // Add sorting and pagination
         const sort = {};
         sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-        // Calculate skip value for pagination
         const skip = (page - 1) * limit;
 
-        // Get total count for pagination
-        const totalAppointments = await Appointment.countDocuments(filter);
+        pipeline.push(
+            { $sort: sort },
+            { $skip: skip },
+            { $limit: parseInt(limit) }
+        );
 
-        // Get appointments with pagination
-        const appointments = await Appointment.find(filter)
-            .populate('clientId', 'firstName lastName email')
-            .populate('trainerId', 'firstName lastName email')
-            .sort(sort)
-            .skip(skip)
-            .limit(parseInt(limit));
+        // Project final result
+        pipeline.push({
+            $project: {
+                _id: 1,
+                date: 1,
+                time: 1,
+                status: 1,
+                notes: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                clientId: {
+                    _id: '$client._id',
+                    firstName: '$client.firstName',
+                    lastName: '$client.lastName',
+                    email: '$client.email'
+                },
+                trainerId: {
+                    _id: '$trainer._id',
+                    firstName: '$trainer.firstName',
+                    lastName: '$trainer.lastName',
+                    email: '$trainer.email'
+                }
+            }
+        });
+
+        // Execute aggregation
+        const appointments = await Appointment.aggregate(pipeline);
 
         // Calculate pagination info
         const totalPages = Math.ceil(totalAppointments / limit);
