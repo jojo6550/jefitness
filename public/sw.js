@@ -3,7 +3,7 @@
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '80';
+const CACHE_VERSION = '81';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -16,8 +16,8 @@ const IS_DEVELOPMENT = location.hostname === 'localhost' ||
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/', '/index.html', '/manifest.json',
-  '/styles/styles.css', '/styles/bootstrap.min.css', '/styles/chat.css',
-  '/styles/onboarding.css', '/styles/subscription-cards.css', '/styles/tailwind.css',
+  '/styles/bootstrap.min.css', '/styles/my-programs.css', '/styles/program-marketplace.css',
+  '/styles/styles.css', '/styles/subscription-cards.css', '/styles/tailwind.css',
   '/styles/trainer-dashboard.css', '/styles/user-details-cards.css',
   '/favicons/android-chrome-192x192.png', '/favicons/android-chrome-512x512.png',
   '/favicons/apple-touch-icon.png', '/favicons/favicon-16x16.png',
@@ -26,20 +26,19 @@ const STATIC_ASSETS = [
   '/js/admin-dashboard.js', '/js/admin-logs.js', '/js/admin-notifications.js',
   '/js/api.config.js', '/js/app.js', '/js/appointments.js', '/js/auth.js',
   '/js/bmi.js', '/js/cache-version.js', '/js/cart.js', '/js/coming-soon.js', '/js/cookie-consent.js',
-  '/js/dashboard.js', '/js/logout.js', '/js/medical-documents.js',
-  '/js/navbar-subscription.js', '/js/products.js', '/js/profile.js',
-  '/js/role-guard.js', '/js/subscriptions.js', '/js/tailwind.js',
-  '/js/trainer-appointments.js', '/js/trainer-clients.js', '/js/trainer-dashboard.js',
-  '/js/view-subscription.js', '/js/auth-fixed.js', '/js/my-programs.js', '/js/program-marketplace.js',
+  '/js/dashboard.js', '/js/log-workout.js', '/js/logout.js', '/js/medical-documents.js',
+  '/js/my-programs.js', '/js/navbar-subscription.js', '/js/products.js', '/js/profile.js',
+  '/js/program-access.js', '/js/program-marketplace.js', '/js/role-guard.js', '/js/subscriptions.js',
+  '/js/tailwind.js', '/js/toast.js', '/js/trainer-dashboard.js', '/js/view-subscription.js',
+  '/js/workout-progress.js',
   '/pages/admin-dashboard.html', '/pages/cart.html', '/pages/dashboard.html', '/pages/disclaimer.html',
-  '/pages/forgot-password.html', '/pages/login.html', '/pages/meet-your-trainer.html',
-  '/pages/privacy-policy.html', '/pages/products.html', '/pages/profile.html',
-  '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
-  '/pages/terms-of-service.html', '/pages/trainer-appointments.html',
-  '/pages/trainer-clients.html', '/pages/trainer-dashboard.html',
-  '/pages/view-subscription.html', '/pages/my-programs.html', '/pages/program-marketplace.html',
+  '/pages/forgot-password.html', '/pages/log-workout.html', '/pages/login.html', '/pages/meet-your-trainer.html',
+  '/pages/my-programs.html', '/pages/privacy-policy.html', '/pages/products.html', '/pages/profile.html',
+  '/pages/program-marketplace.html', '/pages/reset-password.html', '/pages/signup.html', '/pages/subscriptions.html',
+  '/pages/terms-of-service.html', '/pages/trainer-dashboard.html', '/pages/view-subscription.html',
+  '/pages/workout-progress.html',
   '/pages/programs/8-week-eds-safe-strength-fat-loss-program.html',
-  '/pages/programs/9-week-phased-strength-program.html',
+  '/pages/programs/9_week_phased_strength_jamin_johnson.html',
   '/pages/programs/full-body-mobility.html',
   '/pages/programs/upper-lower-back-program.html'
 ];

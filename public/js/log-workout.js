@@ -39,27 +39,32 @@ function addExercise() {
                     <label class="form-label fw-bold">Exercise Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control exercise-name" placeholder="e.g., Bench Press" required maxlength="100">
                 </div>
-                
-                <div class="sets-container" data-exercise-id="${exerciseCount}">
+
+                <div class="sets-container">
                     <!-- Sets will be added here -->
                 </div>
-                
+
                 <button type="button" class="btn btn-sm btn-outline-primary add-set-btn" data-exercise-id="${exerciseCount}">
                     <i class="bi bi-plus"></i> Add Set
                 </button>
             </div>
         </div>
     `;
-    
+
     document.getElementById('exercisesContainer').insertAdjacentHTML('beforeend', exerciseHtml);
-    
+
     // Add event listeners
     const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseCount}"]`);
     exerciseCard.querySelector('.remove-exercise-btn').addEventListener('click', () => removeExercise(exerciseCount));
-    exerciseCard.querySelector('.add-set-btn').addEventListener('click', () => addSet(exerciseCount));
-    
+    exerciseCard.querySelector('.add-set-btn').addEventListener('click', (e) => {
+        const card = e.target.closest('.exercise-card');
+        const setsContainer = card.querySelector('.sets-container');
+        addSet(setsContainer);
+    });
+
     // Add first set
-    addSet(exerciseCount);
+    const setsContainer = exerciseCard.querySelector('.sets-container');
+    addSet(setsContainer);
 }
 
 function removeExercise(exerciseId) {
@@ -75,8 +80,7 @@ function removeExercise(exerciseId) {
     }
 }
 
-function addSet(exerciseId) {
-    const setsContainer = document.querySelector(`.sets-container[data-exercise-id="${exerciseId}"]`);
+function addSet(setsContainer) {
     const setNumber = setsContainer.children.length + 1;
     
     const setHtml = `
@@ -115,7 +119,7 @@ function addSet(exerciseId) {
             return;
         }
         setRow.remove();
-        renumberSets(exerciseId);
+        renumberSets(setsContainer);
     });
 }
 
@@ -157,9 +161,8 @@ async function handleSubmit(e) {
         exerciseCards.forEach(card => {
             const exerciseName = card.querySelector('.exercise-name').value.trim();
             if (!exerciseName) return;
-            
-            const exerciseId = card.dataset.exerciseId;
-            const setsContainer = card.querySelector(`.sets-container[data-exercise-id="${exerciseId}"]`);
+
+            const setsContainer = card.querySelector('.sets-container');
             const setRows = setsContainer.querySelectorAll('.set-row');
             
             const sets = [];
