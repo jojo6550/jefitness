@@ -18,6 +18,43 @@ const SleepLogSchema = new mongoose.Schema({
   hoursSlept: { type: Number, required: true, min: 0, max: 24 }
 });
 
+const WorkoutSetSchema = new mongoose.Schema({
+  setNumber: { type: Number, required: true, min: 1 },
+  reps: { type: Number, required: true, min: 0 },
+  weight: { type: Number, required: true, min: 0 },
+  rpe: { type: Number, min: 1, max: 10 },
+  completed: { type: Boolean, default: true }
+}, { _id: false });
+
+const WorkoutExerciseSchema = new mongoose.Schema({
+  exerciseName: { type: String, required: true, trim: true },
+  sets: { type: [WorkoutSetSchema], required: true, validate: [arr => arr.length > 0, 'At least one set is required'] }
+}, { _id: false });
+
+const WorkoutLogSchema = new mongoose.Schema({
+  date: { type: Date, required: true, default: Date.now },
+  programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program' },
+  workoutName: { type: String, required: true, trim: true },
+  exercises: { type: [WorkoutExerciseSchema], required: true, validate: [arr => arr.length > 0, 'At least one exercise is required'] },
+  totalVolume: { type: Number, default: 0 },
+  duration: { type: Number, min: 0 },
+  notes: { type: String, trim: true, maxlength: 500 },
+  deletedAt: { type: Date }
+});
+
+// Virtual to calculate total volume on save
+WorkoutLogSchema.pre('save', function(next) {
+  if (this.exercises) {
+    this.totalVolume = this.exercises.reduce((total, exercise) => {
+      const exerciseVolume = exercise.sets.reduce((setTotal, set) => {
+        return setTotal + (set.reps * set.weight);
+      }, 0);
+      return total + exerciseVolume;
+    }, 0);
+  }
+  next();
+});
+
 const UserSchema = new mongoose.Schema({
   firstName: { 
     type: String, 
@@ -81,6 +118,7 @@ const UserSchema = new mongoose.Schema({
   reason: { type: String },
   nutritionLogs: [NutritionLogSchema],
   sleepLogs: { type: [SleepLogSchema], default: [] },
+  workoutLogs: { type: [WorkoutLogSchema], default: [] },
   schedule: {
     lastReset: { type: Date, default: Date.now },
     plans: [{ day: { type: String, required: true }, planTitles: [{ type: String }], notes: { type: String } }]
@@ -179,6 +217,8 @@ UserSchema.index({ createdAt: -1 });
 UserSchema.index({ isEmailVerified: 1 });
 UserSchema.index({ 'assignedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'purchasedPrograms.programId': 1 }, { sparse: true });
+UserSchema.index({ 'workoutLogs.date': -1 }, { sparse: true });
+UserSchema.index({ 'workoutLogs.exercises.exerciseName': 1 }, { sparse: true });
 
 // --------------------
 // Subscription Methods
@@ -215,7 +255,7 @@ if (encKey) {
     signingKey: process.env.SIGNING_KEY || encKey,
     encryptedFields: [
       'medicalConditions', 'goals', 'reason', 'phone', 'dob', 'gender',
-      'startWeight', 'currentWeight', 'nutritionLogs', 'sleepLogs'
+      'startWeight', 'currentWeight', 'nutritionLogs', 'sleepLogs', 'workoutLogs'
     ],
     excludeFromEncryption: [
       'password', 'email', 'firstName', 'lastName', 'role',

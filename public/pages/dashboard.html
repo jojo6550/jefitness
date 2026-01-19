@@ -155,6 +155,30 @@
                 </div>
             </div> -->
 
+            <!-- Workout Logging Section -->
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 h-100 bg-gradient-primary text-white shadow">
+                    <div class="card-icon mb-3 animate-icon">
+                        <i class="bi bi-clipboard-check text-white display-4"></i>
+                    </div>
+                    <h3 class="card-title fw-bold mb-3 text-white">Log Workout</h3>
+                    <p class="card-text fs-6 mb-4 text-white-50">Track your exercises, sets, and reps. Monitor your progress over time.</p>
+                    <a href="log-workout.html" class="btn btn-light btn-lg mt-auto shadow-sm rounded-pill">Start Logging <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+
+            <!-- Workout Progress Section -->
+            <div class="col-md-6 col-lg-4">
+                <div class="dashboard-nav-card card p-4 shadow-sm h-100 border-success">
+                    <div class="card-icon mb-3">
+                        <i class="bi bi-graph-up-arrow text-success"></i>
+                    </div>
+                    <h3 class="card-title">Workout Progress</h3>
+                    <p class="card-text text-muted">View your workout statistics and track progress with detailed charts.</p>
+                    <a href="workout-progress.html" class="btn btn-outline-success mt-auto">View Progress <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+
             <div class="col-md-6 col-lg-4" id="subscription-card">
                 <div class="dashboard-nav-card card p-4 shadow-sm h-100 border-success">
                     <div class="card-icon mb-3">
@@ -185,6 +209,43 @@
                     <p class="card-text text-muted">View and manage your shopping cart items.</p>
                     <!-- <a href="cart.html" class="btn btn-outline-info mt-auto">View Cart <i class="bi bi-arrow-right"></i></a> -->
                     <span class="btn btn-outline-info mt-auto disabled">Coming Soon</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workout Statistics Section -->
+        <div class="row g-4 mt-5" id="workoutStatsSection" style="display: none;">
+            <div class="col-12">
+                <h3 class="fw-bold mb-4"><i class="bi bi-trophy me-2 text-warning"></i>Your Workout Stats</h3>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <i class="bi bi-check-circle text-primary display-4 mb-2"></i>
+                    <h5 class="text-muted small mb-1">Total Workouts</h5>
+                    <h2 class="fw-bold mb-0" id="statTotalWorkouts">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <i class="bi bi-calendar-week text-success display-4 mb-2"></i>
+                    <h5 class="text-muted small mb-1">Weekly Volume</h5>
+                    <h2 class="fw-bold mb-0" id="statWeeklyVolume">0</h2>
+                    <small class="text-muted">lbs</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <i class="bi bi-fire text-danger display-4 mb-2"></i>
+                    <h5 class="text-muted small mb-1">Most Trained</h5>
+                    <h3 class="fw-bold mb-0 fs-6" id="statMostTrained">-</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center p-3">
+                    <i class="bi bi-clock-history text-info display-4 mb-2"></i>
+                    <h5 class="text-muted small mb-1">Last Workout</h5>
+                    <h3 class="fw-bold mb-0 fs-6" id="statLastWorkout">-</h3>
+                    <small class="text-muted" id="statLastWorkoutDate">-</small>
                 </div>
             </div>
         </div>

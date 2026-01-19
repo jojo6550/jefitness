@@ -263,6 +263,7 @@ app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestrictio
 app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
 app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
+app.use('/api/v1/workouts', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/workouts'));
 
 // API Documentation routes (only in development)
 if (process.env.NODE_ENV !== 'production') {

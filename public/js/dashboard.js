@@ -33,6 +33,9 @@ window.initDashboard = async () => {
       // Load subscription status
       await loadSubscriptionStatus();
 
+      // Load workout statistics
+      await loadWorkoutStats();
+
     } catch (err) {
       console.error('Error verifying admin status:', err);
       const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
@@ -230,4 +233,41 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         alert(`Failed to cancel subscription: ${error.message}`);
     }
 });
+
+// Load workout statistics
+async function loadWorkoutStats() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${window.API_BASE}/api/v1/workouts/stats/summary`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (res.ok) {
+            const result = await res.json();
+            const stats = result.stats;
+
+            if (stats.totalWorkouts > 0) {
+                // Show stats section
+                document.getElementById('workoutStatsSection').style.display = '';
+
+                // Update stat cards
+                document.getElementById('statTotalWorkouts').textContent = stats.totalWorkouts;
+                document.getElementById('statWeeklyVolume').textContent = stats.weeklyVolume.toLocaleString();
+                document.getElementById('statMostTrained').textContent = stats.mostTrainedExercise || 'None';
+
+                if (stats.lastWorkout) {
+                    document.getElementById('statLastWorkout').textContent = stats.lastWorkout.workoutName;
+                    const lastDate = new Date(stats.lastWorkout.date).toLocaleDateString();
+                    document.getElementById('statLastWorkoutDate').textContent = lastDate;
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error loading workout stats:', err);
+    }
+}
 
