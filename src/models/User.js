@@ -2,21 +2,7 @@ const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
 const Subscription = require('./Subscription'); // <--- needed for methods
 
-const NutritionLogSchema = new mongoose.Schema({
-  id: { type: Number, required: true },
-  date: { type: String, required: true },
-  mealType: { type: String, required: true },
-  foodItem: { type: String, required: true },
-  calories: { type: Number, required: true },
-  protein: { type: Number, required: true },
-  carbs: { type: Number, required: true },
-  fats: { type: Number, required: true }
-});
 
-const SleepLogSchema = new mongoose.Schema({
-  date: { type: Date, required: true },
-  hoursSlept: { type: Number, required: true, min: 0, max: 24 }
-});
 
 const WorkoutSetSchema = new mongoose.Schema({
   setNumber: { type: Number, required: true, min: 1 },
@@ -116,8 +102,6 @@ const UserSchema = new mongoose.Schema({
   weight: { type: Number },
   goals: { type: String },
   reason: { type: String },
-  nutritionLogs: [NutritionLogSchema],
-  sleepLogs: { type: [SleepLogSchema], default: [] },
   workoutLogs: { type: [WorkoutLogSchema], default: [] },
   schedule: {
     lastReset: { type: Date, default: Date.now },
@@ -255,7 +239,7 @@ if (encKey) {
     signingKey: process.env.SIGNING_KEY || encKey,
     encryptedFields: [
       'medicalConditions', 'goals', 'reason', 'phone', 'dob', 'gender',
-      'startWeight', 'currentWeight', 'nutritionLogs', 'sleepLogs', 'workoutLogs'
+      'startWeight', 'currentWeight', 'workoutLogs'
     ],
     excludeFromEncryption: [
       'password', 'email', 'firstName', 'lastName', 'role',

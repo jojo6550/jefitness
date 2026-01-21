@@ -148,16 +148,7 @@ async function migrateUser(user) {
     updated = true;
   }
 
-  // Initialize arrays if missing
-  if (!user.nutritionLogs) {
-    user.nutritionLogs = [];
-    updated = true;
-  }
 
-  if (!user.sleepLogs) {
-    user.sleepLogs = [];
-    updated = true;
-  }
 
   if (!user.assignedPrograms) {
     user.assignedPrograms = [];
