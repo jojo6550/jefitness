@@ -95,8 +95,80 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/v1/programs/:id
- * Get single program details with Stripe pricing
+ * @swagger
+ * /api/v1/programs/{id}:
+ *   get:
+ *     summary: Get program details
+ *     tags: [Programs]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Program ID
+ *     responses:
+ *       200:
+ *         description: Program details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 program:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     slug:
+ *                       type: string
+ *                     author:
+ *                       type: string
+ *                     goals:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     tags:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     difficulty:
+ *                       type: string
+ *                     duration:
+ *                       type: string
+ *                     imageUrl:
+ *                       type: string
+ *                     features:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     stripeProductId:
+ *                       type: string
+ *                     stripePriceId:
+ *                       type: string
+ *                     price:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         amount:
+ *                           type: integer
+ *                         currency:
+ *                           type: string
+ *                         formatted:
+ *                           type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: Program not found
+ *       500:
+ *         description: Server error
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -252,8 +324,63 @@ router.post('/checkout', auth, async (req, res) => {
 });
 
 /**
- * GET /api/v1/programs/user/my-programs
- * Get all programs purchased by the authenticated user
+ * @swagger
+ * /api/v1/programs/user/my-programs:
+ *   get:
+ *     summary: Get user's purchased programs
+ *     tags: [Programs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User programs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 programs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       slug:
+ *                         type: string
+ *                       author:
+ *                         type: string
+ *                       goals:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       tags:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       difficulty:
+ *                         type: string
+ *                       duration:
+ *                         type: string
+ *                       imageUrl:
+ *                         type: string
+ *                       features:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       purchasedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       amountPaid:
+ *                         type: number
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.get('/user/my-programs', auth, async (req, res) => {
   try {

@@ -161,9 +161,105 @@ router.post('/log', auth, requireDataProcessingConsent, requireHealthDataConsent
 });
 
 /**
- * @route   GET /api/v1/workouts
- * @desc    Get all workout logs for the authenticated user with pagination
- * @access  Private
+ * @swagger
+ * /api/v1/workouts:
+ *   get:
+ *     summary: Get workout logs with pagination
+ *     tags: [Workouts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: Number of workouts per page
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order by date
+ *     responses:
+ *       200:
+ *         description: Workout logs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 workouts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       workoutName:
+ *                         type: string
+ *                       date:
+ *                         type: string
+ *                         format: date-time
+ *                       programId:
+ *                         type: string
+ *                       exercises:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             exerciseName:
+ *                               type: string
+ *                             sets:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   setNumber:
+ *                                     type: integer
+ *                                   reps:
+ *                                     type: number
+ *                                   weight:
+ *                                     type: number
+ *                                   rpe:
+ *                                     type: number
+ *                                   completed:
+ *                                     type: boolean
+ *                       duration:
+ *                         type: integer
+ *                       notes:
+ *                         type: string
+ *                       totalVolume:
+ *                         type: number
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     currentPage:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     totalWorkouts:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPrevPage:
+ *                       type: boolean
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.get('/', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
     try {
@@ -258,9 +354,38 @@ router.get('/:id', auth, requireDataProcessingConsent, requireHealthDataConsent,
 });
 
 /**
- * @route   DELETE /api/v1/workouts/:id
- * @desc    Soft delete a workout log
- * @access  Private
+ * @swagger
+ * /api/v1/workouts/{id}:
+ *   delete:
+ *     summary: Delete workout log
+ *     tags: [Workouts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Workout log ID
+ *     responses:
+ *       200:
+ *         description: Workout deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid workout ID
+ *       404:
+ *         description: User or workout not found
+ *       500:
+ *         description: Server error
  */
 router.delete('/:id', auth, requireDataProcessingConsent, checkDataRestriction, async (req, res) => {
     try {
@@ -404,9 +529,55 @@ router.get('/progress/:exerciseName', auth, requireDataProcessingConsent, requir
 });
 
 /**
- * @route   GET /api/v1/workouts/stats/summary
- * @desc    Get workout statistics summary for dashboard
- * @access  Private
+ * @swagger
+ * /api/v1/workouts/stats/summary:
+ *   get:
+ *     summary: Get workout statistics summary
+ *     tags: [Workouts]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Workout statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalWorkouts:
+ *                       type: integer
+ *                     lastWorkout:
+ *                       oneOf:
+ *                         - type: object
+ *                           nullable: true
+ *                           properties:
+ *                             workoutName:
+ *                               type: string
+ *                             date:
+ *                               type: string
+ *                               format: date-time
+ *                             duration:
+ *                               type: integer
+ *                             totalVolume:
+ *                               type: number
+ *                         - type: object
+ *                           nullable: true
+ *                     mostTrainedExercise:
+ *                       type: string
+ *                       nullable: true
+ *                     weeklyVolume:
+ *                       type: integer
+ *                     totalVolume:
+ *                       type: integer
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
  */
 router.get('/stats/summary', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
     try {

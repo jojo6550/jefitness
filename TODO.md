@@ -24,7 +24,7 @@
 - [x] Create comprehensive API_DOCUMENTATION.md
 
 ## Followup Tasks 🔄
-- [ ] Update Swagger/OpenAPI specifications to match documentation
+- [x] Update Swagger/OpenAPI specifications to match documentation (subscriptions.js, workouts.js, programs.js completed)
 - [ ] Test all endpoint examples for accuracy
 - [ ] Add API testing examples/scripts
 - [ ] Create developer onboarding guide

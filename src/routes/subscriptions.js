@@ -62,9 +62,48 @@ async function calculatePeriodEnd(priceId, startDate = new Date()) {
   }
 }
 
-// ----------------------
-// 1. GET /plans
-// ----------------------
+/**
+ * @swagger
+ * /api/v1/subscriptions/plans:
+ *   get:
+ *     summary: Get available subscription plans
+ *     tags: [Subscriptions]
+ *     responses:
+ *       200:
+ *         description: Plans retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     plans:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           amount:
+ *                             type: number
+ *                           displayPrice:
+ *                             type: string
+ *                           savings:
+ *                             type: string
+ *                             nullable: true
+ *                           priceId:
+ *                             type: string
+ *                           productId:
+ *                             type: string
+ *       500:
+ *         description: Server error
+ */
 router.get('/plans', async (req, res) => {
   try {
     // Fetch dynamic pricing from Stripe
@@ -88,9 +127,72 @@ router.get('/plans', async (req, res) => {
   }
 });
 
-// ----------------------
-// 2. GET /user/current (IDOR Protected)
-// ----------------------
+/**
+ * @swagger
+ * /api/v1/subscriptions/user/current:
+ *   get:
+ *     summary: Get current user's subscription
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Subscription retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       properties:
+ *                         hasActiveSubscription:
+ *                           type: boolean
+ *                           example: false
+ *                     - type: object
+ *                       properties:
+ *                         hasActiveSubscription:
+ *                           type: boolean
+ *                           example: true
+ *                         _id:
+ *                           type: string
+ *                         userId:
+ *                           type: string
+ *                         stripeCustomerId:
+ *                           type: string
+ *                         stripeSubscriptionId:
+ *                           type: string
+ *                         plan:
+ *                           type: string
+ *                         stripePriceId:
+ *                           type: string
+ *                         currentPeriodStart:
+ *                           type: string
+ *                           format: date-time
+ *                         currentPeriodEnd:
+ *                           type: string
+ *                           format: date-time
+ *                         status:
+ *                           type: string
+ *                         amount:
+ *                           type: number
+ *                         currency:
+ *                           type: string
+ *                         billingEnvironment:
+ *                           type: string
+ *                         cancelAtPeriodEnd:
+ *                           type: boolean
+ *                         canceledAt:
+ *                           type: string
+ *                           format: date-time
+ *                         daysLeft:
+ *                           type: integer
+ *       500:
+ *         description: Server error
+ */
 router.get('/user/current', auth, async (req, res) => {
   try {
     // SECURITY: Only return subscription for authenticated user (IDOR protection)
@@ -121,9 +223,80 @@ router.get('/user/current', auth, async (req, res) => {
   }
 });
 
-// ----------------------
-// 3. POST /create
-// ----------------------
+/**
+ * @swagger
+ * /api/v1/subscriptions/create:
+ *   post:
+ *     summary: Create a new subscription
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentMethodId
+ *               - plan
+ *             properties:
+ *               paymentMethodId:
+ *                 type: string
+ *                 description: Stripe payment method ID
+ *               plan:
+ *                 type: string
+ *                 enum: [1-month, 3-month, 6-month, 12-month]
+ *                 description: Subscription plan
+ *     responses:
+ *       201:
+ *         description: Subscription created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     subscription:
+ *                       type: object
+ *                       properties:
+ *                         _id:
+ *                           type: string
+ *                         userId:
+ *                           type: string
+ *                         stripeCustomerId:
+ *                           type: string
+ *                         stripeSubscriptionId:
+ *                           type: string
+ *                         plan:
+ *                           type: string
+ *                         stripePriceId:
+ *                           type: string
+ *                         currentPeriodStart:
+ *                           type: string
+ *                           format: date-time
+ *                         currentPeriodEnd:
+ *                           type: string
+ *                           format: date-time
+ *                         status:
+ *                           type: string
+ *                         amount:
+ *                           type: number
+ *                         currency:
+ *                           type: string
+ *                         billingEnvironment:
+ *                           type: string
+ *       400:
+ *         description: Validation failed or active subscription exists
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.post(
   '/create',
   auth,
@@ -268,9 +441,63 @@ router.delete('/:id/cancel', auth, allowOnlyFields(['atPeriodEnd'], false), asyn
   }
 });
 
-// ----------------------
-// 5. GET /:id/invoices (IDOR Protected)
-// ----------------------
+/**
+ * @swagger
+ * /api/v1/subscriptions/{id}/invoices:
+ *   get:
+ *     summary: Get subscription invoices
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stripe subscription ID
+ *     responses:
+ *       200:
+ *         description: Invoices retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       number:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       amount_paid:
+ *                         type: integer
+ *                       total:
+ *                         type: integer
+ *                       currency:
+ *                         type: string
+ *                       created:
+ *                         type: integer
+ *                       date:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                       invoice_pdf:
+ *                         type: string
+ *                       hosted_invoice_url:
+ *                         type: string
+ *       404:
+ *         description: Subscription not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id/invoices', auth, async (req, res) => {
   try {
     const subId = req.params.id;
@@ -308,9 +535,59 @@ router.get('/:id/invoices', auth, async (req, res) => {
 
 
 
-// ----------------------
-// 6. GET /:id/payment-method (IDOR Protected)
-// ----------------------
+/**
+ * @swagger
+ * /api/v1/subscriptions/{id}/payment-method:
+ *   get:
+ *     summary: Get subscription payment method
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stripe subscription ID
+ *     responses:
+ *       200:
+ *         description: Payment method retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       nullable: true
+ *                       description: No payment method set
+ *                     - type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         type:
+ *                           type: string
+ *                         card:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             brand:
+ *                               type: string
+ *                             last4:
+ *                               type: string
+ *                             exp_month:
+ *                               type: integer
+ *                             exp_year:
+ *                               type: integer
+ *       404:
+ *         description: Subscription not found
+ *       500:
+ *         description: Server error
+ */
 router.get('/:id/payment-method', auth, async (req, res) => {
   try {
     const subId = req.params.id;
