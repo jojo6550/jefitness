@@ -104,7 +104,7 @@ router.get('/user/current', auth, async (req, res) => {
     // Calculate days remaining
     const now = new Date();
     const periodEnd = new Date(subscription.currentPeriodEnd);
-    const daysLeft = Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.floor((periodEnd - now) / (1000 * 60 * 60 * 24));
     
     // Return subscription data with calculated fields
     res.json({ 
@@ -303,6 +303,62 @@ router.get('/:id/invoices', auth, async (req, res) => {
   } catch (err) {
     console.error('Failed to fetch invoices:', err);
     res.status(500).json({ success: false, error: { message: 'Failed to fetch invoices' } });
+  }
+});
+
+
+
+// ----------------------
+// 6. GET /:id/payment-method (IDOR Protected)
+// ----------------------
+router.get('/:id/payment-method', auth, async (req, res) => {
+  try {
+    const subId = req.params.id;
+
+    // SECURITY: Verify subscription belongs to authenticated user (IDOR protection)
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: subId,
+      userId: req.user.id // IDOR protection
+    });
+    if (!subscription) return res.status(404).json({ success: false, error: { message: 'Subscription not found' } });
+
+    // Get payment method from Stripe
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+
+    // Get the subscription to find the default payment method
+    const stripeSub = await stripe.subscriptions.retrieve(subId, {
+      expand: ['default_payment_method']
+    });
+
+    if (!stripeSub.default_payment_method) {
+      return res.json({ success: true, data: null });
+    }
+
+    // Get detailed payment method info
+    const paymentMethod = await stripe.paymentMethods.retrieve(stripeSub.default_payment_method.id);
+
+    // Return only card details (last 4 digits, brand, etc.)
+    const cardData = paymentMethod.card ? {
+      brand: paymentMethod.card.brand,
+      last4: paymentMethod.card.last4,
+      exp_month: paymentMethod.card.exp_month,
+      exp_year: paymentMethod.card.exp_year
+    } : null;
+
+    res.json({
+      success: true,
+      data: {
+        id: paymentMethod.id,
+        type: paymentMethod.type,
+        card: cardData
+      }
+    });
+  } catch (err) {
+    console.error('Failed to fetch payment method:', err);
+    res.status(500).json({ success: false, error: { message: 'Failed to fetch payment method' } });
   }
 });
 

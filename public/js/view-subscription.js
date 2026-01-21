@@ -122,6 +122,60 @@ async function handleApiResponse(response) {
 }
 
 /* --------------------------------------------------
+   Payment Method Details
+-------------------------------------------------- */
+
+async function fetchPaymentMethodDetails(subscriptionId, userToken) {
+  try {
+    log('Fetching payment method details...');
+    const res = await fetch(
+      `${API_BASE}/api/v1/subscriptions/${subscriptionId}/payment-method`,
+      { headers: { Authorization: `Bearer ${userToken}` } }
+    );
+
+    const data = await handleApiResponse(res);
+    log('Payment method data:', data);
+
+    if (data.success && data.data && data.data.card) {
+      setupPaymentMethodHover(data.data.card);
+    }
+  } catch (err) {
+    console.error('Failed to fetch payment method details:', err);
+    log('Error fetching payment method:', err.message);
+  }
+}
+
+function setupPaymentMethodHover(cardData) {
+  const paymentMethodEl = document.getElementById('paymentMethod');
+  if (!paymentMethodEl) return;
+
+  let originalText = paymentMethodEl.textContent;
+  let hoverTimeout;
+
+  // Format card brand and last 4 digits
+  const brandName = cardData.brand.charAt(0).toUpperCase() + cardData.brand.slice(1);
+  const lastFour = cardData.last4;
+  const expiry = `${String(cardData.exp_month).padStart(2, '0')}/${cardData.exp_year}`;
+
+  const hoverText = `${brandName} ending in ${lastFour} (expires ${expiry})`;
+
+  paymentMethodEl.addEventListener('mouseenter', () => {
+    clearTimeout(hoverTimeout);
+    hoverTimeout = setTimeout(() => {
+      paymentMethodEl.textContent = hoverText;
+      paymentMethodEl.style.cursor = 'default';
+    }, 300); // Small delay to prevent flickering
+  });
+
+  paymentMethodEl.addEventListener('mouseleave', () => {
+    clearTimeout(hoverTimeout);
+    hoverTimeout = setTimeout(() => {
+      paymentMethodEl.textContent = originalText;
+    }, 300);
+  });
+}
+
+/* --------------------------------------------------
    Load Subscription Data
 -------------------------------------------------- */
 
@@ -273,8 +327,14 @@ function renderSubscriptionDetails() {
     daysRemainingEl.textContent = `${daysLeft} days`;
   }
 
-  // Payment method (placeholder - would need to fetch from Stripe)
-  document.getElementById('paymentMethod').textContent = 'Card ending in ••••';
+  // Payment method - fetch actual details
+  const paymentMethodEl = document.getElementById('paymentMethod');
+  paymentMethodEl.textContent = 'Card ending in ••••';
+
+  // Fetch payment method details
+  if (currentSubscriptionId) {
+    fetchPaymentMethodDetails(currentSubscriptionId, userToken);
+  }
 
   // Progress bar - calculate based on exact time elapsed, not rounded days
   const totalTime = periodEnd - periodStart;
