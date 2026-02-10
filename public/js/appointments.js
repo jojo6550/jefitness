@@ -139,7 +139,7 @@ async function viewAppointment(id) {
         new bootstrap.Modal(document.getElementById('appointmentModal')).show();
     } catch (err) {
         console.error('Error viewing appointment:', err);
-        alert('Failed to load appointment details.');
+        window.Toast.error('Failed to load appointment details.');
     }
 }
 
@@ -176,7 +176,7 @@ async function editAppointment(id) {
         editModal.show();
     } catch (err) {
         console.error('Error editing appointment:', err);
-        alert('Failed to load appointment for editing.');
+        window.Toast.error('Failed to load appointment for editing.');
     }
 }
 
@@ -199,29 +199,34 @@ document.getElementById('editAppointmentForm')?.addEventListener('submit', async
 
         editModal.hide();
         loadAppointments();
-        alert('Appointment updated successfully.');
+        window.Toast.success('Appointment updated successfully.');
     } catch (err) {
         console.error('Error updating appointment:', err);
-        alert('Failed to update appointment.');
+        window.Toast.error('Failed to update appointment.');
     }
 });
 
 // ====== Delete Appointment ======
 async function deleteAppointment(id) {
-    if (!confirm('Are you sure you want to delete this appointment?')) return;
-    try {
-        await authFetch(`${window.API_BASE}/api/appointments/${id}`, { method: 'DELETE' });
-        loadAppointments();
-    } catch (err) {
-        console.error('Error deleting appointment:', err);
-        alert('Failed to delete appointment.');
-    }
+    showConfirm('Are you sure you want to delete this appointment?', async () => {
+        try {
+            await authFetch(`${window.API_BASE}/api/appointments/${id}`, { method: 'DELETE' });
+            loadAppointments();
+            window.Toast.success('Appointment deleted successfully.');
+        } catch (err) {
+            console.error('Error deleting appointment:', err);
+            window.Toast.error('Failed to delete appointment.');
+        }
+    });
 }
 
 // ====== Create Appointment ======
 document.getElementById('appointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
-    if (!userSubscriptionStatus) { alert('You need an active subscription to book appointments.'); return; }
+    if (!userSubscriptionStatus) { 
+        window.Toast.warning('You need an active subscription to book appointments.'); 
+        return; 
+    }
 
     try {
         const payload = {
@@ -230,18 +235,58 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
             notes: document.getElementById('appointmentNotes').value,
             trainerId: document.getElementById('trainerSelect').value
         };
-        if (!payload.date || !payload.time || !payload.trainerId) return alert('Date, time, and trainer are required.');
+        if (!payload.date || !payload.time || !payload.trainerId) {
+            window.Toast.warning('Date, time, and trainer are required.');
+            return;
+        }
 
-        await authFetch(`${window.API_BASE}/api/appointments`, { method: 'POST', body: JSON.stringify(payload) });
+        // Add confirmation for booking
+        showConfirm('Do you want to book this appointment?', async () => {
+            try {
+                await authFetch(`${window.API_BASE}/api/appointments`, { method: 'POST', body: JSON.stringify(payload) });
 
-        e.target.reset();
-        loadAppointments();
-        alert('Appointment booked successfully!');
+                // Close modal
+                const bookingModal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                if (bookingModal) bookingModal.hide();
+
+                e.target.reset();
+                loadAppointments();
+                window.Toast.success('Appointment booked successfully!');
+            } catch (innerErr) {
+                console.error('Error creating appointment:', innerErr);
+                window.Toast.error('Failed to create appointment.');
+            }
+        });
     } catch (err) {
-        console.error('Error creating appointment:', err);
-        alert('Failed to create appointment.');
+        console.error('Error in form submission:', err);
     }
 });
+
+/**
+ * Utility for confirmation modal
+ */
+function showConfirm(message, callback) {
+    const confirmModalEl = document.getElementById('confirmModal');
+    if (!confirmModalEl) {
+        if (confirm(message)) callback();
+        return;
+    }
+
+    const modalBody = document.getElementById('confirmModalBody');
+    if (modalBody) modalBody.textContent = message;
+
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const modal = new bootstrap.Modal(confirmModalEl);
+
+    const onConfirm = () => {
+        callback();
+        modal.hide();
+        confirmBtn.removeEventListener('click', onConfirm);
+    };
+
+    confirmBtn.onclick = onConfirm;
+    modal.show();
+}
 
 // ====== Initialization ======
 document.addEventListener('DOMContentLoaded', async () => {

@@ -61,7 +61,7 @@ async function loadClients(page = 1, search = '', sortBy = 'firstName', sortOrde
         showLoading(false);
     } catch (error) {
         console.error('Error loading clients:', error);
-        showError('Failed to load clients. Please try again.');
+        window.Toast.error('Failed to load clients. Please try again.');
         showLoading(false);
     }
 }
@@ -365,7 +365,7 @@ window.downloadMedicalDoc = function(filename) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
     })
-    .catch(err => alert('Error downloading file: ' + err.message));
+    .catch(err => window.Toast.error('Error downloading file: ' + err.message));
 };
 
 // Close user details modal
@@ -636,16 +636,15 @@ function editClient(clientId) {
 
 // Confirm delete client
 function confirmDeleteClient(clientId) {
-    if (confirm('Are you sure you want to delete this client?')) {
+    showConfirm('Are you sure you want to delete this client? This action cannot be undone.', () => {
         deleteClient(clientId);
-    }
+    });
 }
 
 // Delete client
 async function deleteClient(clientId) {
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/clients/${clientId}`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/clients/${clientId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -656,11 +655,11 @@ async function deleteClient(clientId) {
             throw new Error(`HTTP ${response.status} - ${response.statusText}`);
         }
 
-        // Reload clients after deletion
+        window.Toast.success('Client deleted successfully.');
         loadClients(currentPage, currentSearch, currentSortBy, currentSortOrder, currentStatus);
     } catch (error) {
         console.error('Error deleting client:', error);
-        alert('Failed to delete client. Please try again.');
+        window.Toast.error('Failed to delete client.');
     }
 }
 
@@ -831,6 +830,7 @@ function changeAppointmentsPage(page) {
 
 // Show appointments error message
 function showAppointmentsError(message) {
+    window.Toast.error(message);
     const tbody = document.getElementById('appointmentsTableBody');
     tbody.innerHTML = `
         <tr>
@@ -839,6 +839,31 @@ function showAppointmentsError(message) {
             </td>
         </tr>
     `;
+}
+
+/**
+ * Utility for confirmation modal
+ */
+function showConfirm(message, callback) {
+    const confirmModalEl = document.getElementById('confirmModal');
+    if (!confirmModalEl) {
+        if (confirm(message)) callback();
+        return;
+    }
+
+    const modalBody = document.getElementById('confirmModalBody');
+    if (modalBody) modalBody.textContent = message;
+
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const modal = new bootstrap.Modal(confirmModalEl);
+
+    const onConfirm = () => {
+        callback();
+        modal.hide();
+    };
+
+    confirmBtn.onclick = onConfirm;
+    modal.show();
 }
 
 // View appointment details
@@ -894,16 +919,15 @@ function editAppointment(appointmentId) {
 
 // Confirm delete appointment
 function confirmDeleteAppointment(appointmentId) {
-    if (confirm('Are you sure you want to delete this appointment?')) {
+    showConfirm('Are you sure you want to delete this appointment?', () => {
         deleteAppointment(appointmentId);
-    }
+    });
 }
 
 // Delete appointment
 async function deleteAppointment(appointmentId) {
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -914,11 +938,11 @@ async function deleteAppointment(appointmentId) {
             throw new Error(`HTTP ${response.status} - ${response.statusText}`);
         }
 
-        // Reload appointments after deletion
+        window.Toast.success('Appointment deleted successfully.');
         loadAppointments(1, '', 'date', 'asc', '');
     } catch (error) {
         console.error('Error deleting appointment:', error);
-        alert('Failed to delete appointment. Please try again.');
+        window.Toast.error('Failed to delete appointment.');
     }
 }
 
@@ -936,7 +960,7 @@ function exportAppointments() {
         const appointments = data.appointments || [];
 
         if (appointments.length === 0) {
-            alert('No appointments to export');
+            window.Toast.info('No appointments to export');
             return;
         }
 
@@ -968,7 +992,7 @@ function exportAppointments() {
     })
     .catch(error => {
         console.error('Error exporting appointments:', error);
-        alert('Failed to export appointments. Please try again.');
+        window.Toast.error('Failed to export appointments.');
     });
 }
 
@@ -1002,8 +1026,22 @@ async function loadOrders(page = 1, search = '', sortBy = currentOrdersSortBy, s
         updateOrdersPagination(pagination);
     } catch (error) {
         console.error('Error loading orders:', error);
-        showOrdersError('Failed to load orders. Please try again.');
+        window.Toast.error('Failed to load orders. Please try again.');
     }
+}
+
+/**
+ * Show orders error in table
+ */
+function showOrdersError(message) {
+    const tbody = document.getElementById('ordersTableBody');
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-6 py-4 text-center text-red-600">
+                <i class="bi bi-exclamation-triangle mr-2"></i>${message}
+            </td>
+        </tr>
+    `;
 }
 
 // Display orders in table
@@ -1187,7 +1225,7 @@ function exportOrders() {
         const orders = data.orders || [];
 
         if (orders.length === 0) {
-            alert('No orders to export');
+            window.Toast.info('No orders to export');
             return;
         }
 
@@ -1217,7 +1255,7 @@ function exportOrders() {
     })
     .catch(error => {
         console.error('Error exporting orders:', error);
-        alert('Failed to export orders. Please try again.');
+        window.Toast.error('Failed to export orders.');
     });
 }
 

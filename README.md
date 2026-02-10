@@ -138,7 +138,7 @@ JE Fitness is a full-stack web application designed for fitness centers and pers
 
 ### Development
 - Backend API: `http://localhost:3000` (default port)
-- Frontend: `http://localhost:5501` (BrowserSync)
+- Frontend: `http://localhost:5500` (BrowserSync)
 - API Documentation: `http://localhost:3000/api-docs`
 
 ### Production

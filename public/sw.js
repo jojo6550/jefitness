@@ -11,7 +11,7 @@ const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 const IS_DEVELOPMENT = location.hostname === 'localhost' ||
                        location.hostname === '127.0.0.1' ||
                        location.hostname.includes('dev') ||
-                       location.port === '5501';
+                       location.port === '5500';
 
 // Files to cache immediately
 const STATIC_ASSETS = [

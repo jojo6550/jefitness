@@ -5,7 +5,7 @@
   "main": "./src/server.js",
   "scripts": {
     "dev": "nodemon",
-    "dev:frontend": "browser-sync start --server public --files '**/*.html' --port 5501",
+    "dev:frontend": "browser-sync start --server public --files '**/*.html' --port 5500",
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
     "test": "jest",
     "test:watch": "jest --watch",

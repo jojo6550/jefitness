@@ -143,7 +143,7 @@ app.use((req, res, next) => {
     ].filter(Boolean);
     
     if (process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push('http://127.0.0.1:10000', 'http://127.0.0.1:5501', 'http://localhost:10000', 'http://localhost:5501');
+      allowedOrigins.push('http://127.0.0.1:10000', 'http://127.0.0.1:5500', 'http://localhost:10000', 'http://localhost:5500');
     }
     
     if (origin && allowedOrigins.includes(origin)) {

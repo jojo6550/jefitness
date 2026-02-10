@@ -59,7 +59,7 @@ async function loadDashboardData(token) {
         updateStatistics(data.overview);
     } catch (err) {
         console.error('Error loading dashboard data:', err);
-        showError('Failed to load dashboard data. Please refresh the page.');
+        window.Toast.error('Failed to load dashboard data. Please refresh the page.');
     }
 }
 
@@ -146,41 +146,31 @@ async function updateAppointmentStatus(appointmentId, status) {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    try {
-        const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ status }),
-        });
+    const statusText = status.replace('_', ' ');
+    showConfirm(`Are you sure you want to mark this appointment as ${statusText}?`, async () => {
+        try {
+            const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ status }),
+            });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.msg || 'Failed to update appointment status');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.msg || 'Failed to update appointment status');
+            }
+
+            // Reload dashboard data to reflect changes
+            await loadDashboardData(token);
+            window.Toast.success(`Appointment marked as ${statusText}`);
+        } catch (err) {
+            console.error('Error updating appointment status:', err);
+            window.Toast.error(err.message);
         }
-
-        // Reload dashboard data to reflect changes
-        await loadDashboardData(token);
-        showSuccess(`Appointment marked as ${status.replace('_', ' ')}`);
-    } catch (err) {
-        console.error('Error updating appointment status:', err);
-        showError(err.message);
-    }
-}
-
-function showSuccess(message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-    alertDiv.role = 'alert';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.body.insertAdjacentElement('afterbegin', alertDiv);
-
-    setTimeout(() => alertDiv.remove(), 5000);
+    });
 }
 
 function updateStatistics(overview) {
@@ -207,17 +197,30 @@ function updateStatistics(overview) {
     document.getElementById('late-bar').style.width = `${latePercentage}%`;
 }
 
-function showError(message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-    alertDiv.role = 'alert';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.body.insertAdjacentElement('afterbegin', alertDiv);
-    
-    setTimeout(() => alertDiv.remove(), 5000);
+/**
+ * Utility for confirmation modal
+ */
+function showConfirm(message, callback) {
+    const confirmModalEl = document.getElementById('confirmModal');
+    if (!confirmModalEl) {
+        if (confirm(message)) callback();
+        return;
+    }
+
+    const modalBody = document.getElementById('confirmModalBody');
+    if (modalBody) modalBody.textContent = message;
+
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    const modal = new bootstrap.Modal(confirmModalEl);
+
+    const onConfirm = () => {
+        callback();
+        modal.hide();
+        confirmBtn.removeEventListener('click', onConfirm);
+    };
+
+    confirmBtn.onclick = onConfirm;
+    modal.show();
 }
 
 // Initialize on page load

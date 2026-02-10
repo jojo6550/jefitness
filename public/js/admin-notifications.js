@@ -33,18 +33,17 @@
         const selectedUserIds = Array.from(selectedUsers.selectedOptions).map(option => option.value);
 
         if (!title || !message) {
-            alert('Please fill in both title and message');
+            window.Toast.warning('Please fill in both title and message');
             return;
         }
 
         if (!isBroadcast && selectedUserIds.length === 0) {
-            alert('Please select users or enable broadcast');
+            window.Toast.warning('Please select users or enable broadcast');
             return;
         }
 
         try {
-            const response = await fetch(`${window.API_BASE}
-/api/notifications`, {
+            const response = await fetch(`${window.API_BASE}/api/notifications`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -63,7 +62,7 @@
             const data = await response.json();
 
             if (response.ok) {
-                alert('Notification sent successfully!');
+                window.Toast.success('Notification sent successfully!');
                 // Clear form
                 document.getElementById('notificationTitle').value = '';
                 document.getElementById('notificationMessage').value = '';
@@ -77,19 +76,18 @@
                 // Refresh notifications list
                 loadNotifications();
             } else {
-                alert(data.msg || 'Failed to send notification');
+                window.Toast.error(data.msg || 'Failed to send notification');
             }
         } catch (error) {
             console.error('Error sending notification:', error);
-            alert('Error sending notification. Please try again.');
+            window.Toast.error('Error sending notification. Please try again.');
         }
     });
 
     // Load users for selection
     async function loadUsersForSelection() {
         try {
-            const response = await fetch(`${window.API_BASE}
-/api/users`, {
+            const response = await fetch(`${window.API_BASE}/api/users`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -105,9 +103,12 @@
                     option.textContent = `${user.firstName} ${user.lastName} (${user.email})`;
                     selectedUsers.appendChild(option);
                 });
+            } else {
+                window.Toast.error('Failed to load users list.');
             }
         } catch (error) {
             console.error('Error loading users:', error);
+            window.Toast.error('Network error loading users.');
         }
     }
 
