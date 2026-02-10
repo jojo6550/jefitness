@@ -116,10 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           }
         } else {
-          window.Toast.error(data.msg || 'Login failed');
+          handleApiError(res, data, 'Login failed');
         }
       } catch (err) {
-        showMessage('Error connecting to server', 'error');
+        window.Toast.error('Network error. Please check your connection.');
       } finally {
         setLoadingState(loginButton, false);
       }
@@ -346,13 +346,12 @@ document.addEventListener('DOMContentLoaded', () => {
           signupForm.style.display = 'none';
           document.getElementById('otp-container').style.display = 'block';
           document.getElementById('otp-message').textContent = `We sent a verification code to ${email}`;
-          showMessage('Signup successful! Please check your email for verification code.', 'success');
+          window.Toast.success('Signup successful! Please check your email for verification code.');
         } else {
-          showMessage(data.msg || 'Signup failed.', 'error');
+          handleApiError(response, data, 'Signup failed');
         }
       } catch (err) {
-        console.error('Error:', err);
-        showMessage('Signup failed. Please try again.', 'error');
+        window.Toast.error('Network error. Please try again.');
       } finally {
         setLoadingState(signupButton, false);
       }
@@ -380,14 +379,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (response.ok) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
-          alert('Email verified! Welcome to JE Fitness.');
-          window.location.href = '../pages/dashboard.html';
+          window.Toast.success('Email verified! Welcome to JE Fitness.');
+          setTimeout(() => {
+            window.location.href = '../pages/dashboard.html';
+          }, 1500);
         } else {
-          alert(data.msg || 'Verification failed.');
+          handleApiError(response, data, 'Verification failed');
         }
       } catch (err) {
-        console.error('Error:', err);
-        alert('Verification failed. Please try again.');
+        window.Toast.error('Network error. Please try again.');
       }
     });
 
@@ -401,8 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('inputPassword').value;
 
         try {
-          const response = await fetch(`${window.API_BASE}
-/api/auth/signup`, {
+          const response = await fetch(`${window.API_BASE}/api/v1/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -416,13 +415,13 @@ document.addEventListener('DOMContentLoaded', () => {
           });
 
           if (response.ok) {
-            alert('OTP resent to your email.');
+            window.Toast.success('OTP resent to your email.');
           } else {
-            alert('Failed to resend OTP.');
+            const data = await response.json();
+            handleApiError(response, data, 'Failed to resend OTP');
           }
         } catch (err) {
-          console.error('Error:', err);
-          alert('Failed to resend OTP.');
+          window.Toast.error('Network error. Please try again.');
         }
       });
     }
@@ -450,12 +449,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (res.ok) {
-          showMessage(data.msg || 'If an account with that email exists, a reset link has been sent.', 'success');
+          window.Toast.success(data.message || 'If an account with that email exists, a reset link has been sent.');
         } else {
-          showMessage(data.msg || 'Error sending reset email', 'error');
+          handleApiError(res, data, 'Error sending reset email');
         }
       } catch (err) {
-        showMessage('Error connecting to server', 'error');
+        window.Toast.error('Network error. Please try again.');
       } finally {
         setLoadingState(forgotButton, false);
       }
@@ -464,12 +463,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // RESET PASSWORD
   if (resetPasswordForm) {
-    // Get token from URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
     if (!token) {
-      showMessage('Invalid reset link. Please request a new password reset.');
+      window.Toast.warning('Invalid reset link. Please request a new password reset.');
       return;
     }
 
@@ -480,13 +478,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const confirmPassword = resetPasswordForm.confirmPassword.value;
 
       if (password !== confirmPassword) {
-        showMessage('Passwords do not match');
+        window.Toast.warning('Passwords do not match');
         return;
       }
 
       try {
-        const res = await fetch(`${window.API_BASE}
-/api/auth/reset-password`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/auth/reset-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token, password })
@@ -495,15 +492,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (res.ok) {
-          showMessage(data.msg || 'Password reset successfully');
+          window.Toast.success('Password reset successfully');
           setTimeout(() => {
             window.location.href = 'login.html';
           }, 2000);
         } else {
-          showMessage(data.msg || 'Error resetting password');
+          handleApiError(res, data, 'Error resetting password');
         }
       } catch (err) {
-        showMessage('Error connecting to server');
+        window.Toast.error('Network error. Please try again.');
       }
     });
   }
@@ -555,6 +552,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (errorDiv) {
       errorDiv.style.display = 'none';
+    }
+  }
+
+  /**
+   * Standardized API error handler for frontend
+   */
+  function handleApiError(response, data, defaultMsg) {
+    const errorMsg = data.error?.message || data.msg || data.error || defaultMsg;
+
+    switch (response.status) {
+      case 401:
+        window.Toast.error(errorMsg || 'Your session has expired. Please log in again.');
+        // If not on login page, redirect to login
+        if (!window.location.pathname.includes('login.html')) {
+          setTimeout(() => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+          }, 2000);
+        }
+        break;
+      case 403:
+        window.Toast.error('You do not have permission to perform this action.');
+        break;
+      case 404:
+        window.Toast.warning(errorMsg || 'The requested resource was not found.');
+        break;
+      case 423:
+        window.Toast.warning(errorMsg || 'Account is temporarily locked.');
+        break;
+      case 500:
+        window.Toast.error('A server error occurred. Please try again later.');
+        break;
+      default:
+        window.Toast.error(errorMsg);
     }
   }
 });

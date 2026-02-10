@@ -10,6 +10,7 @@ const { auth, incrementUserTokenVersion, getUserTokenVersion } = require('../mid
 const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter');
 const { stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require('../middleware/inputValidator');
 const { requireDbConnection } = require('../middleware/dbConnection');
+const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
@@ -150,11 +151,10 @@ router.post('/signup', requireDbConnection, authLimiter, [
     body('password').isLength({ min: 1 }).withMessage('Password is required'),
     body('dataProcessingConsent.given').isBoolean().withMessage('Data processing consent is required'),
     body('healthDataConsent.given').isBoolean().withMessage('Health data consent is required')
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        const errorMessages = errors.array().map(err => err.msg);
-        return res.status(400).json({ success: false, error: errorMessages.join(', ') });
+        throw new ValidationError('Validation failed', errors.array().map(err => err.msg));
     }
 
     const { firstName, lastName, email, password } = req.body;
@@ -163,33 +163,32 @@ router.post('/signup', requireDbConnection, authLimiter, [
     // Validate password strength
     const passwordError = validatePasswordStrength(password);
     if (passwordError) {
-        return res.status(400).json({ success: false, error: passwordError });
+        throw new ValidationError(passwordError);
     }
 
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ success: false, error: 'already exists' });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) throw new ValidationError('An account with this email already exists.');
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Generate 6-digit OTP
-        const otp = crypto.randomInt(100000, 999999).toString();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        const newUser = new User({
-            firstName,
-            lastName,
-            email,
-            password: hashedPassword,
-            role: 'user', // Default new signups to 'user' role
-            emailVerificationToken: otp,
-            emailVerificationExpires: otpExpires,
-            dataProcessingConsent: req.body.dataProcessingConsent,
-            healthDataConsent: req.body.healthDataConsent
-        });
+    const newUser = new User({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role: 'user', // Default new signups to 'user' role
+        emailVerificationToken: otp,
+        emailVerificationExpires: otpExpires,
+        dataProcessingConsent: req.body.dataProcessingConsent,
+        healthDataConsent: req.body.healthDataConsent
+    });
 
-        await newUser.save();
+    await newUser.save();
 
         // For test environment, auto-verify email to simplify integration tests
         if (process.env.NODE_ENV === 'test') {
@@ -272,11 +271,7 @@ router.post('/signup', requireDbConnection, authLimiter, [
             });
         }
 
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: User signup | Email: ${email}`);
-        res.status(500).json({ msg: 'Server error. Please try again.' });
-    }
-});
+}));
 
 /**
  * @route POST /api/v1/auth/login
@@ -345,115 +340,78 @@ router.post('/signup', requireDbConnection, authLimiter, [
 router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, allowOnlyFields(['email', 'password'], true), [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
     body('password').isLength({ min: 1 }).withMessage('Password is required')
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+        throw new ValidationError('Validation failed', errors.array().map(err => err.msg));
     }
 
     const { email, password } = req.body;
     console.log(`Security event: login_attempt | Email: ${email}`);
 
-    try {
-        let user;
-        try {
-            user = await User.findOne({ email }).select('+password');
-        } catch (dbErr) {
-            console.error(`Database error finding user ${email}: ${dbErr.message}`);
-            return res.status(500).json({ msg: 'Server error' });
-        }
+    const user = await User.findOne({ email }).select('+password');
 
-        if (!user) {
-            console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
-        }
-
-        // Check if account is locked
-        if (user.lockoutUntil && user.lockoutUntil > new Date()) {
-            const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60); // minutes
-            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Account locked | LockoutMinutes: ${remainingTime}`);
-            return res.status(423).json({ msg: `Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.` });
-        }
-
-        // Check if email is verified
-        if (!user.isEmailVerified) {
-            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Email not verified`);
-            return res.status(400).json({ msg: 'Please verify your email before logging in.' });
-        }
-
-        let isMatch;
-        try {
-            isMatch = await bcrypt.compare(password, user.password);
-        } catch (bcryptErr) {
-            console.error(`Password comparison error for user ${user._id}: ${bcryptErr.message}`);
-            return res.status(500).json({ msg: 'Server error' });
-        }
-
-        if (!isMatch) {
-            // Increment failed login attempts
-            user.failedLoginAttempts += 1;
-
-            // Lock account after 5 failed attempts for 2 hours
-            if (user.failedLoginAttempts >= 5) {
-                user.lockoutUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
-                console.log(`Security event: account_locked | UserId: ${user._id} | Email: ${email} | Reason: Too many failed attempts`);
-            }
-
-            await user.save();
-            console.log(`Security event: login_failed | UserId: ${user._id} | Email: ${email} | Reason: Invalid password | Attempts: ${user.failedLoginAttempts}`);
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
-        }
-
-        // Reset failed attempts on successful login
-        user.failedLoginAttempts = 0;
-        user.lockoutUntil = undefined;
-        user.lastLoggedIn = new Date();
-
-        // Lazily create Stripe customer if missing (non-blocking)
-        if (!user.stripeCustomerId) {
-          try {
-            await createStripeCustomerForUser(user);
-          } catch (stripeErr) {
-            console.error(`Stripe customer creation failed during login for user ${user._id}: ${stripeErr.message}`);
-            // Continue with login even if Stripe fails
-          }
-        }
-
-        try {
-            await user.save();
-        } catch (saveErr) {
-            console.error(`Failed to save successful login for user ${user._id}: ${saveErr.message}`);
-            // Continue with login response even if save fails
-        }
-
-        // SECURITY: Include role and token version in JWT payload (from database)
-        let tokenVersion;
-        try {
-            tokenVersion = await getUserTokenVersion(user._id);
-        } catch (versionErr) {
-            console.error(`Failed to get token version for user ${user._id}: ${versionErr.message}`);
-            tokenVersion = 0; // Default to 0 if database error
-        }
-
-        const token = jwt.sign({
-            id: user._id,
-            userId: user._id,
-            role: user.role,
-            tokenVersion
-        }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
-
-        res.json({
-            success: true,
-            message: 'Login successful',
-            token,
-            user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role } // Include role in response
-        });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: User login | Email: ${email}`);
-        res.status(500).json({ msg: 'Server error' });
+    if (!user) {
+        console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
+        throw new AuthenticationError('Invalid email or password.');
     }
-});
+
+    // Check if account is locked
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+        const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60); // minutes
+        throw new ValidationError(`Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.`, [], 423);
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+        throw new ValidationError('Please verify your email before logging in.');
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+        // Increment failed login attempts
+        user.failedLoginAttempts += 1;
+
+        // Lock account after 5 failed attempts
+        if (user.failedLoginAttempts >= 5) {
+            user.lockoutUntil = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+        }
+
+        await user.save();
+        throw new AuthenticationError('Invalid email or password.');
+    }
+
+    // Reset failed attempts on successful login
+    user.failedLoginAttempts = 0;
+    user.lockoutUntil = undefined;
+    user.lastLoggedIn = new Date();
+
+    // Lazily create Stripe customer if missing (non-blocking)
+    if (!user.stripeCustomerId) {
+        await createStripeCustomerForUser(user);
+    }
+
+    await user.save();
+
+    // SECURITY: Include role and token version in JWT payload (from database)
+    const tokenVersion = await getUserTokenVersion(user._id);
+
+    const token = jwt.sign({
+        id: user._id,
+        userId: user._id,
+        role: user.role,
+        tokenVersion
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log(`Security event: login_success | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
+
+    res.json({
+        success: true,
+        message: 'Login successful',
+        token,
+        user: { id: user._id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role }
+    });
+}));
 
 /**
  * @swagger
@@ -471,31 +429,25 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
  *       500:
  *         description: Server error
  */
-router.get('/account', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        console.log(`User action: account_info_accessed | UserId: ${req.user.id}`);
-        res.json({
-            id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            phone: user.phone,
-            createdAt: user.createdAt,
-            subscriptionStatus: user.subscriptionStatus,
-            subscriptionPlan: user.subscriptionPlan,
-            billingEnvironment: user.billingEnvironment,
-            stripeCustomerId: user.stripeCustomerId
-        });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Get account info | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+router.get('/account', auth, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    res.json({
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        createdAt: user.createdAt,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPlan: user.subscriptionPlan,
+        billingEnvironment: user.billingEnvironment,
+        stripeCustomerId: user.stripeCustomerId
+    });
+}));
 
 /**
  * @swagger
@@ -539,101 +491,91 @@ router.put('/account', auth, [
     body('lastName').optional().trim().isLength({ min: 1 }),
     body('email').optional().isEmail().normalizeEmail({ gmail_remove_dots: false }),
     body('newPassword').optional().isLength({ min: 8 })
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+        throw new ValidationError('Validation failed', errors.array().map(err => err.msg));
     }
 
     const { firstName, lastName, email, currentPassword, newPassword } = req.body;
 
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        // If changing password, verify current password
-        if (newPassword) {
-            if (!currentPassword) {
-                return res.status(400).json({ msg: 'Current password is required to change password' });
-            }
-
-            const isMatch = await bcrypt.compare(currentPassword, user.password);
-            if (!isMatch) {
-                console.log(`Security event: password_change_failed | UserId: ${user._id} | Reason: Invalid current password`);
-                return res.status(400).json({ msg: 'Current password is incorrect' });
-            }
-
-            // Validate new password strength
-            const passwordError = validatePasswordStrength(newPassword);
-            if (passwordError) {
-                return res.status(400).json({ msg: passwordError });
-            }
-
-            // SECURITY: Hash and update password
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(newPassword, salt);
-            
-            // SECURITY: Invalidate all existing tokens when password changes (database-backed)
-            await incrementUserTokenVersion(user._id);
-            console.log(`Security event: password_changed | UserId: ${user._id}`);
-        }
-
-        // Update name fields
-        if (firstName !== undefined) user.firstName = firstName;
-        if (lastName !== undefined) user.lastName = lastName;
-
-        // If email is changing, check for duplicates and sync with Stripe
-        if (email && email !== user.email) {
-            const existingUser = await User.findOne({ email });
-            if (existingUser) {
-                return res.status(400).json({ msg: 'Email is already in use' });
-            }
-
-            user.email = email;
-
-            // Sync email with Stripe customer (non-blocking)
-            if (user.stripeCustomerId) {
-                try {
-                    const stripe = getStripe();
-                    if (stripe) {
-                        await stripe.customers.update(user.stripeCustomerId, {
-                            email: email,
-                            name: `${user.firstName} ${user.lastName}`,
-                            metadata: {
-                                firstName: user.firstName,
-                                lastName: user.lastName
-                            }
-                        });
-                        console.log(`Stripe customer updated | UserId: ${user._id} | CustomerId: ${user.stripeCustomerId}`);
-                    }
-                } catch (stripeErr) {
-                    console.error(`Stripe customer update failed (non-blocking) | UserId: ${user._id} | Error: ${stripeErr.message}`);
-                    // Stripe failure does not block account update
-                }
-            }
-        }
-
-        await user.save();
-
-        console.log(`User action: account_updated | UserId: ${user._id} | Email: ${user.email}`);
-        res.json({
-            msg: 'Account updated successfully',
-            user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                phone: user.phone,
-                subscription: user.subscription
-            }
-        });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Update account | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    // If changing password, verify current password
+    if (newPassword) {
+        if (!currentPassword) {
+            throw new ValidationError('Current password is required to change password');
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            console.log(`Security event: password_change_failed | UserId: ${user._id}`);
+            throw new ValidationError('Current password is incorrect');
+        }
+
+        // Validate new password strength
+        const passwordError = validatePasswordStrength(newPassword);
+        if (passwordError) {
+            throw new ValidationError(passwordError);
+        }
+
+        // SECURITY: Hash and update password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        
+        // SECURITY: Invalidate all existing tokens
+        await incrementUserTokenVersion(user._id);
+    }
+
+    // Update name fields
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+
+    // If email is changing
+    if (email && email !== user.email) {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            throw new ValidationError('Email is already in use');
+        }
+
+        user.email = email;
+
+        // Sync email with Stripe customer (non-blocking)
+        if (user.stripeCustomerId) {
+            try {
+                const stripe = getStripe();
+                if (stripe) {
+                    await stripe.customers.update(user.stripeCustomerId, {
+                        email: email,
+                        name: `${user.firstName} ${user.lastName}`,
+                        metadata: {
+                            firstName: user.firstName,
+                            lastName: user.lastName
+                        }
+                    });
+                }
+            } catch (stripeErr) {
+                console.error(`Stripe customer update failed: ${stripeErr.message}`);
+            }
+        }
+    }
+
+    await user.save();
+
+    res.json({
+        msg: 'Account updated successfully',
+        user: {
+            id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            phone: user.phone
+        }
+    });
+}));
 
 /**
  * @swagger
@@ -685,40 +627,32 @@ router.put('/account', auth, [
  *       500:
  *         description: Server error
  */
-router.get('/me', auth, async (req, res) => {
-    try {
-        // req.user is populated by the auth middleware (from middleware/auth.js)
-        const user = await User.findById(req.user.id).select('-password'); // Exclude password
-        if (!user) {
-            console.log(`User action: profile_access_failed | UserId: ${req.user.id} | Reason: User not found`);
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        console.log(`User action: profile_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
-        res.json({
-            success: true,
-            user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                role: user.role,
-                dob: user.dob,
-                gender: user.gender,
-                phone: user.phone,
-                activityStatus: user.activityStatus,
-                startWeight: user.startWeight,
-                currentWeight: user.currentWeight,
-                goals: user.goals,
-                reason: user.reason,
-                createdAt: user.createdAt
-            }
-        });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Get user profile | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+router.get('/me', auth, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    res.json({
+        success: true,
+        user: {
+            id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            dob: user.dob,
+            gender: user.gender,
+            phone: user.phone,
+            activityStatus: user.activityStatus,
+            startWeight: user.startWeight,
+            currentWeight: user.currentWeight,
+            goals: user.goals,
+            reason: user.reason,
+            createdAt: user.createdAt
+        }
+    });
+}));
 
 /**
  * @swagger
@@ -812,7 +746,7 @@ router.get('/me', auth, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'gender', 'phone', 'activityStatus', 'startWeight', 'currentWeight', 'goals', 'reason'], true), async (req, res) => {
+router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'gender', 'phone', 'activityStatus', 'startWeight', 'currentWeight', 'goals', 'reason'], true), asyncHandler(async (req, res) => {
     const {
         firstName,
         lastName,
@@ -826,52 +760,45 @@ router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'g
         reason
     } = req.body;
 
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            console.log(`User action: profile_update_failed | UserId: ${req.user.id} | Reason: User not found`);
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        // Update fields if provided
-        if (firstName !== undefined) user.firstName = firstName;
-        if (lastName !== undefined) user.lastName = lastName;
-        if (dob !== undefined) user.dob = dob;
-        if (gender !== undefined) user.gender = gender;
-        if (phone !== undefined) user.phone = phone;
-        if (activityStatus !== undefined) user.activityStatus = activityStatus;
-        if (startWeight !== undefined) user.startWeight = startWeight;
-        if (currentWeight !== undefined) user.currentWeight = currentWeight;
-        if (goals !== undefined) user.goals = goals;
-        if (reason !== undefined) user.reason = reason;
-
-        await user.save();
-
-        console.log(`User action: profile_updated | UserId: ${req.user.id} | Email: ${user.email}`);
-        res.json({
-            msg: 'Profile updated successfully',
-            user: {
-                id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                role: user.role,
-                dob: user.dob,
-                gender: user.gender,
-                phone: user.phone,
-                activityStatus: user.activityStatus,
-                startWeight: user.startWeight,
-                currentWeight: user.currentWeight,
-                goals: user.goals,
-                reason: user.reason,
-                createdAt: user.createdAt
-            }
-        });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Profile update | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    // Update fields if provided
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (dob !== undefined) user.dob = dob;
+    if (gender !== undefined) user.gender = gender;
+    if (phone !== undefined) user.phone = phone;
+    if (activityStatus !== undefined) user.activityStatus = activityStatus;
+    if (startWeight !== undefined) user.startWeight = startWeight;
+    if (currentWeight !== undefined) user.currentWeight = currentWeight;
+    if (goals !== undefined) user.goals = goals;
+    if (reason !== undefined) user.reason = reason;
+
+    await user.save();
+
+    res.json({
+        msg: 'Profile updated successfully',
+        user: {
+            id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            dob: user.dob,
+            gender: user.gender,
+            phone: user.phone,
+            activityStatus: user.activityStatus,
+            startWeight: user.startWeight,
+            currentWeight: user.currentWeight,
+            goals: user.goals,
+            reason: user.reason,
+            createdAt: user.createdAt
+        }
+    });
+}));
 
 
 
@@ -883,21 +810,14 @@ router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'g
  * @throws  {404} User not found
  * @throws  {500} Server error
  */
-router.get('/schedule', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('schedule');
-        if (!user) {
-            console.log(`User action: schedule_access_failed | UserId: ${req.user.id} | Reason: User not found`);
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        console.log(`User action: schedule_accessed | UserId: ${req.user.id} | Email: ${user.email}`);
-        res.json(user.schedule);
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Get user schedule | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+router.get('/schedule', auth, asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user.id).select('schedule');
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    res.json(user.schedule);
+}));
 
 /**
  * @route   PUT /api/auth/schedule
@@ -909,29 +829,22 @@ router.get('/schedule', auth, async (req, res) => {
  * @throws  {404} User not found
  * @throws  {500} Server error
  */
-router.put('/schedule', auth, async (req, res) => {
+router.put('/schedule', auth, asyncHandler(async (req, res) => {
     const { schedule } = req.body;
     if (!schedule) {
-        return res.status(400).json({ msg: 'Schedule data is required' });
+        throw new ValidationError('Schedule data is required');
     }
 
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) {
-            console.log(`User action: schedule_update_failed | UserId: ${req.user.id} | Reason: User not found`);
-            return res.status(404).json({ msg: 'User not found' });
-        }
-
-        user.schedule = schedule;
-        await user.save();
-
-        console.log(`User action: schedule_updated | UserId: ${req.user.id} | Email: ${user.email}`);
-        res.json({ msg: 'Schedule updated successfully', schedule: user.schedule });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Update user schedule | UserId: ${req.user.id}`);
-        res.status(500).send('Server Error');
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    user.schedule = schedule;
+    await user.save();
+
+    res.json({ msg: 'Schedule updated successfully', schedule: user.schedule });
+}));
 
 /**
  * @route   GET /api/auth/clients
@@ -941,75 +854,57 @@ router.put('/schedule', auth, async (req, res) => {
  * @throws  {403} Access denied: Admins only
  * @throws  {500} Server error
  */
-router.get('/clients', auth, async (req, res) => {
-    try {
-        // Only allow admins
-        if (req.user.role !== 'admin') {
-            console.log(`User action: clients_access_denied | UserId: ${req.user.id} | Reason: Insufficient permissions | RequestedRole: ${req.user.role}`);
-            return res.status(403).json({ msg: 'Access denied: Admins only' });
-        }
-
-        const users = await User.find().select('-password'); // Exclude password
-        console.log(`User action: clients_accessed | UserId: ${req.user.id} | Email: ${req.user.email} | ClientCount: ${users.length}`);
-        res.json(users);
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Get all clients | UserId: ${req.user.id}`);
-        res.status(500).json({ msg: 'Server error' });
+router.get('/clients', auth, asyncHandler(async (req, res) => {
+    // Only allow admins
+    if (req.user.role !== 'admin') {
+        throw new AuthorizationError('Access denied: Admins only');
     }
-});
+
+    const users = await User.find().select('-password'); // Exclude password
+    res.json(users);
+}));
 
 // FORGOT PASSWORD ROUTE
 router.post('/forgot-password', passwordResetLimiter, [
     body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required')
-], async (req, res) => {
+], asyncHandler(async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json({ msg: 'Validation failed', errors: errors.array() });
+        throw new ValidationError('Validation failed', errors.array().map(err => err.msg));
     }
 
     const { email } = req.body;
-    console.log(`Security event: forgot_password_attempt | Email: ${email}`);
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            // Do not reveal if user exists or not for security
-            console.log(`Security event: forgot_password_failed | Email: ${email} | Reason: User not found`);
-            return res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
-        }
+    const user = await User.findOne({ email });
+    if (!user) {
+        // Do not reveal if user exists for security
+        return res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
 
-        // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        user.resetToken = resetToken;
-        user.resetExpires = resetExpires;
-        await user.save();
+    user.resetToken = resetToken;
+    user.resetExpires = resetExpires;
+    await user.save();
 
-        // Send reset email via Mailjet (skip in test environment)
-        if (process.env.NODE_ENV !== 'test') {
-            const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
-            const mailjetClient = getMailjetClient();
-            if (mailjetClient) {
-                const htmlPart = `<p>Hi <strong>${user.firstName}</strong>,</p>
-                                   <p>You requested a password reset. Click the link below to reset your password:</p>
-                                   <p><a href="${resetUrl}">Reset Password</a></p>
-                                   <p>This link will expire in 10 minutes.</p>
-                                   <p>If you didn't request this, please ignore this email.</p>
-                                   <p>Best regards,<br>JE Fitness Team</p>`;
-                const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+    // Send reset email via Mailjet
+    if (process.env.NODE_ENV !== 'test') {
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+        const mailjetClient = getMailjetClient();
+        if (mailjetClient) {
+            const htmlPart = `<p>Hi <strong>${user.firstName}</strong>,</p>
+                               <p>You requested a password reset. Click the link below to reset your password:</p>
+                               <p><a href="${resetUrl}">Reset Password</a></p>
+                               <p>This link will expire in 10 minutes.</p>
+                               <p>If you didn't request this, please ignore this email.</p>
+                               <p>Best regards,<br>JE Fitness Team</p>`;
+            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
                 Messages: [
                     {
-                        From: {
-                            Email: 'josiah.johnson6550@gmail.com',
-                            Name: 'JE Fitness'
-                        },
-                        To: [
-                            {
-                                Email: email,
-                                Name: `${user.firstName} ${user.lastName}`
-                            }
-                        ],
+                        From: { Email: 'josiah.johnson6550@gmail.com', Name: 'JE Fitness' },
+                        To: [{ Email: email, Name: `${user.firstName} ${user.lastName}` }],
                         Subject: 'Password Reset - JE Fitness',
                         TextPart: `Hi ${user.firstName},\n\nYou requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\nBest,\nJE Fitness Team`,
                         HTMLPart: htmlPart
@@ -1019,164 +914,116 @@ router.post('/forgot-password', passwordResetLimiter, [
 
             try {
                 await request;
-                console.log(`Security event: reset_email_sent | UserId: ${user._id} | Email: ${email}`);
             } catch (emailErr) {
-                console.error(`Error: ${JSON.stringify(emailErr)} | Context: Reset email sending | UserId: ${user._id}`);
-                return res.status(500).json({ msg: 'Error sending email. Please try again.' });
-            }
+                console.error(`Reset email sending failed: ${emailErr.message}`);
+                throw new Error('Error sending email. Please try again.');
             }
         }
-
-        res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
-
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Forgot password | Email: ${email}`);
-        res.status(500).json({ msg: 'Server error. Please try again.' });
     }
-});
+
+    res.status(200).json({ success: true, message: 'If an account with that email exists, a password reset link has been sent.' });
+}));
 
 // RESET PASSWORD ROUTE
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', asyncHandler(async (req, res) => {
     const { token, password } = req.body;
-    console.log(`Security event: reset_password_attempt | Token: ${token ? 'provided' : 'missing'}`);
 
     if (!token || !password) {
-        return res.status(400).json({ msg: 'Token and new password are required.' });
+        throw new ValidationError('Token and new password are required.');
     }
 
-    try {
-        const user = await User.findOne({
-            resetToken: token,
-            resetExpires: { $gt: new Date() }
-        });
+    const user = await User.findOne({
+        resetToken: token,
+        resetExpires: { $gt: new Date() }
+    });
 
-        if (!user) {
-            console.log(`Security event: reset_password_failed | Reason: Invalid or expired token`);
-            return res.status(400).json({ msg: 'Invalid or expired reset token.' });
-        }
-
-        // SECURITY: Validate password strength before resetting
-        const passwordError = validatePasswordStrength(password);
-        if (passwordError) {
-            return res.status(400).json({ msg: passwordError });
-        }
-
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Update password and clear reset fields
-        user.password = hashedPassword;
-        user.resetToken = undefined;
-        user.resetExpires = undefined;
-        
-        // SECURITY: Invalidate all existing tokens when password is reset (database-backed)
-        await incrementUserTokenVersion(user._id);
-        await user.save();
-
-        console.log(`Security event: password_reset_success | UserId: ${user._id} | Email: ${user.email}`);
-        res.status(200).json({ msg: 'Password reset successfully. You can now log in with your new password.' });
-
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Reset password | Token: ${token}`);
-        res.status(500).json({ msg: 'Server error. Please try again.' });
+    if (!user) {
+        throw new ValidationError('Invalid or expired reset token.');
     }
-});
+
+    // SECURITY: Validate password strength
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+        throw new ValidationError(passwordError);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetToken = undefined;
+    user.resetExpires = undefined;
+    
+    await incrementUserTokenVersion(user._id);
+    await user.save();
+
+    res.status(200).json({ msg: 'Password reset successfully. You can now log in with your new password.' });
+}));
 
 // EMAIL VERIFICATION ROUTE
-router.post('/verify-email', async (req, res) => {
+router.post('/verify-email', asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-        return res.status(400).json({ msg: 'Email and OTP are required.' });
+        throw new ValidationError('Email and OTP are required.');
     }
 
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ msg: 'User not found.' });
-        }
-
-        if (user.isEmailVerified) {
-            return res.status(400).json({ msg: 'Email already verified.' });
-        }
-
-        if (!user.emailVerificationToken || user.emailVerificationToken !== otp) {
-            console.log(`Security event: otp_verification_failed | UserId: ${user._id} | Email: ${email} | Reason: Invalid OTP`);
-            return res.status(400).json({ msg: 'Invalid OTP.' });
-        }
-
-        if (new Date() > user.emailVerificationExpires) {
-            console.log(`Security event: otp_verification_failed | UserId: ${user._id} | Email: ${email} | Reason: OTP expired`);
-            return res.status(400).json({ msg: 'OTP has expired. Please request a new one.' });
-        }
-
-        // Verify the email
-        user.isEmailVerified = true;
-        user.emailVerificationToken = undefined;
-        user.emailVerificationExpires = undefined;
-        await user.save();
-
-        // SECURITY: Issue JWT token with token version (from database)
-        const tokenVersion = await getUserTokenVersion(user._id);
-        const token = jwt.sign({ 
-            id: user._id, 
-            userId: user._id,
-            role: user.role,
-            tokenVersion 
-        }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        // Send confirmation email via Mailjet
-        const mailjetClient = getMailjetClient();
-        if (mailjetClient) {
-            const request = mailjetClient.post('send', { version: 'v3.1' }).request({
-            Messages: [
-                {
-                    From: {
-                        Email: 'josiah.johnson6550@gmail.com',
-                        Name: 'JE Fitness'
-                    },
-                    To: [
-                        {
-                            Email: email,
-                            Name: `${user.firstName} ${user.lastName}`
-                        }
-                    ],
-                    Subject: 'Welcome to JE Fitness!',
-                    TextPart: `Hi ${user.firstName},\n\nThank you for signing up with JE Fitness. We're excited to have you onboard!\n\nBest,\nJE Fitness Team`,
-                    HTMLPart: `<p>Hi <strong>${user.firstName}</strong>,</p>
-                               <p>Thank you for signing up with JE Fitness. We're excited to have you onboard!</p>
-                               <p>Best regards,<br>JE Fitness Team</p>`
-                }
-            ]
-        });
-
-        try {
-            await request;
-            console.log(`User action: confirmation_email_sent | UserId: ${user._id} | Email: ${email}`);
-        } catch (emailErr) {
-            console.error(`Error: ${JSON.stringify(emailErr)} | Context: Confirmation email sending after verification | UserId: ${user._id}`);
-            // Do not stop verification because of email failure
-        }
-        }
-
-        console.log(`User action: email_verified | UserId: ${user._id} | Email: ${email} | Role: ${user.role}`);
-        res.status(200).json({
-            msg: 'Email verified successfully! Welcome to JE Fitness.',
-            token,
-            user: {
-                id: user._id,
-                name: `${user.firstName} ${user.lastName}`,
-                email: user.email,
-                role: user.role
-            }
-        });
-
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: Email verification | Email: ${email}`);
-        res.status(500).json({ msg: 'Server error. Please try again.' });
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new NotFoundError('User');
     }
-});
+
+    if (user.isEmailVerified) {
+        throw new ValidationError('Email already verified.');
+    }
+
+    if (!user.emailVerificationToken || user.emailVerificationToken !== otp) {
+        throw new ValidationError('Invalid OTP.');
+    }
+
+    if (new Date() > user.emailVerificationExpires) {
+        throw new ValidationError('OTP has expired. Please request a new one.');
+    }
+
+    // Verify the email
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    // SECURITY: Issue JWT token with token version
+    const tokenVersion = await getUserTokenVersion(user._id);
+    const token = jwt.sign({ 
+        id: user._id, 
+        userId: user._id,
+        role: user.role,
+        tokenVersion 
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Send confirmation email
+    const mailjetClient = getMailjetClient();
+    if (mailjetClient) {
+        const request = mailjetClient.post('send', { version: 'v3.1' }).request({
+            Messages: [{
+                From: { Email: 'josiah.johnson6550@gmail.com', Name: 'JE Fitness' },
+                To: [{ Email: email, Name: `${user.firstName} ${user.lastName}` }],
+                Subject: 'Welcome to JE Fitness!',
+                TextPart: `Hi ${user.firstName},\n\nThank you for signing up with JE Fitness.`,
+                HTMLPart: `<p>Hi <strong>${user.firstName}</strong>,</p><p>Thank you for signing up with JE Fitness.</p>`
+            }]
+        });
+        try { await request; } catch (e) { console.error('Confirmation email failed'); }
+    }
+
+    res.status(200).json({
+        msg: 'Email verified successfully! Welcome to JE Fitness.',
+        token,
+        user: {
+            id: user._id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            role: user.role
+        }
+    });
+}));
 
 /**
  * @swagger
@@ -1201,18 +1048,12 @@ router.post('/verify-email', async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/logout', auth, async (req, res) => {
-    try {
-        // SECURITY: Increment token version to invalidate current and all user's tokens
-        // This is restart-safe as it's stored in the database
-        await incrementUserTokenVersion(req.user.id);
+router.post('/logout', auth, asyncHandler(async (req, res) => {
+    // SECURITY: Increment token version
+    await incrementUserTokenVersion(req.user.id);
 
-        console.log(`Security event: logout | UserId: ${req.user.id}`);
-        res.json({ success: true, message: 'Logged out successfully' });
-    } catch (err) {
-        console.error(`Error: ${JSON.stringify(err)} | Context: User logout | UserId: ${req.user.id}`);
-        res.status(500).json({ msg: 'Server error' });
-    }
-});
+    console.log(`Security event: logout | UserId: ${req.user.id}`);
+    res.json({ success: true, message: 'Logged out successfully' });
+}));
 
 module.exports = router;

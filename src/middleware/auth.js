@@ -1,6 +1,7 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { AuthenticationError, AuthorizationError, NotFoundError } = require('./errorHandler');
 
 // SECURITY: In-memory processed events cache for webhook replay protection
 // In production, use Redis with TTL
@@ -21,16 +22,13 @@ async function auth(req, res, next) {
     }
 
     if (!token) {
-        return res.status(401).json({
-            success: false,
-            error: 'Access denied. No token provided.'
-        });
+        return next(new AuthenticationError('Authentication required. Please log in.'));
     }
 
     try {
         if (!process.env.JWT_SECRET) {
             return res.status(500).json({
-                msg: 'Server configuration error: JWT secret missing.'
+                error: { message: 'Server configuration error: JWT secret missing.' }
             });
         }
         
@@ -39,35 +37,25 @@ async function auth(req, res, next) {
         
         // SECURITY: Validate token structure
         if (!decoded.id && !decoded.userId) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid token structure'
-            });
+            throw new AuthenticationError('Invalid session. Please log in again.');
         }
-        
+
         const userId = decoded.userId || decoded.id;
         const tokenVersion = decoded.tokenVersion || 0;
-        
+
         // SECURITY: Verify token version against database (restart-safe)
-        // This replaces in-memory token versioning and provides true invalidation
         const user = await User.findById(userId).select('+tokenVersion');
-        
+
         if (!user) {
-            return res.status(401).json({
-                success: false,
-                error: 'User not found. Token invalid.'
-            });
+            throw new AuthenticationError('Account not found. Please sign up or log in again.');
         }
-        
+
         const currentVersion = user.tokenVersion || 0;
-        
-        // SECURITY: Reject tokens with outdated version (invalidated by password change/logout)
+
+        // SECURITY: Reject tokens with outdated version
         if (tokenVersion < currentVersion) {
-            console.warn(`Security event: outdated_token_rejected | UserId: ${userId} | TokenVersion: ${tokenVersion} | CurrentVersion: ${currentVersion}`);
-            return res.status(401).json({
-                success: false,
-                error: 'Token has been revoked. Please login again.'
-            });
+            console.warn(`Security event: outdated_token_rejected | UserId: ${userId}`);
+            throw new AuthenticationError('Your session has expired. Please log in again.');
         }
         
         req.user = decoded;
@@ -78,15 +66,9 @@ async function auth(req, res, next) {
     } catch (err) {
         // SECURITY: Don't leak error details about JWT internals
         if (err.name === 'TokenExpiredError') {
-            return res.status(401).json({
-                success: false,
-                error: 'Token has expired'
-            });
+            return next(new AuthenticationError('Your session has expired. Please log in again.'));
         }
-        return res.status(401).json({
-            success: false,
-            error: 'Invalid token'
-        });
+        return next(new AuthenticationError('Invalid session. Please log in again.'));
     }
 }
 
@@ -136,31 +118,19 @@ async function requireAdmin(req, res, next) {
         const user = await User.findById(req.user.id).select('role');
 
         if (!user) {
-            console.warn(`Security event: admin_access_denied | Reason: user_not_found | UserId: ${req.user.id}`);
-            return res.status(401).json({
-                success: false,
-                error: 'User not found'
-            });
+            return next(new AuthenticationError('User not found.'));
         }
 
-        // SECURITY: Verify role from database, not from potentially stale JWT
+        // SECURITY: Verify role from database
         if (user.role !== 'admin') {
-            console.warn(`Security event: admin_access_denied | UserId: ${req.user.id} | Role: ${user.role}`);
-            return res.status(403).json({
-                success: false,
-                error: 'Access denied. Admin privileges required.'
-            });
+            return next(new AuthorizationError('Access denied. Admin privileges required.'));
         }
 
         // Update req.user with fresh role from database
         req.user.role = user.role;
         next();
     } catch (err) {
-        console.error('Admin verification error:', err.message);
-        return res.status(500).json({
-            success: false,
-            error: 'Failed to verify admin status'
-        });
+        return next(err);
     }
 }
 
