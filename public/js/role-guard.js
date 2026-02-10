@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const API_BASE = window.ApiConfig.getAPI_BASE();      
       const response = await fetch(`${window.API_BASE}
-/api/auth/me`, {
+/api/v1/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

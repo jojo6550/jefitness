@@ -104,7 +104,7 @@ describe('System Security', () => {
       for (let i = 0; i < 20; i++) {
         requests.push(
           request(app)
-            .post('/api/auth/signup')
+            .post('/api/v1/auth/signup')
             .send({
               firstName: 'Test',
               lastName: 'User',
@@ -274,7 +274,7 @@ describe('System Security', () => {
   describe('Input Validation', () => {
     test('should validate email format', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Test',
           lastName: 'User',
@@ -290,7 +290,7 @@ describe('System Security', () => {
 
     test('should validate required fields', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           email: 'test@example.com',
           password: 'TestPassword123!'
@@ -305,7 +305,7 @@ describe('System Security', () => {
       const longString = 'A'.repeat(1000);
 
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: longString,
           lastName: 'User',
@@ -332,7 +332,7 @@ describe('System Security', () => {
   describe('SQL Injection Prevention (MongoDB)', () => {
     test('should prevent injection in find queries', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: "admin@example.com' OR '1'='1",
           password: "' OR '1'='1"
@@ -344,7 +344,7 @@ describe('System Security', () => {
 
     test('should sanitize special MongoDB operators', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: { $regex: '.*' },
           password: { $ne: null }
@@ -358,7 +358,7 @@ describe('System Security', () => {
   describe('Authentication Security', () => {
     test('should not leak user existence on login', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: 'SomePassword123!'
@@ -373,7 +373,7 @@ describe('System Security', () => {
     test('should use timing-safe password comparison', async () => {
       const start1 = Date.now();
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'security@example.com',
           password: 'WrongPassword123!'
@@ -382,7 +382,7 @@ describe('System Security', () => {
 
       const start2 = Date.now();
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: 'WrongPassword123!'
@@ -396,7 +396,7 @@ describe('System Security', () => {
 
     test('should hash passwords before storage', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Hash',
           lastName: 'Test',
@@ -433,7 +433,7 @@ describe('System Security', () => {
 
     test('should handle malformed JSON gracefully', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .set('Content-Type', 'application/json')
         .send('{ invalid json }');
 

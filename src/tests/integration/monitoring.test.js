@@ -77,7 +77,7 @@ describe('System Monitoring & Notifications', () => {
 
     test('should log validation errors', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Test',
           email: 'invalid-email',
@@ -90,7 +90,7 @@ describe('System Monitoring & Notifications', () => {
 
     test('should not expose sensitive data in error logs', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
           password: 'SensitivePassword123!'
@@ -109,7 +109,7 @@ describe('System Monitoring & Notifications', () => {
       process.env.NODE_ENV = 'development';
 
       await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Notification',
           lastName: 'Test',
@@ -322,7 +322,7 @@ describe('System Monitoring & Notifications', () => {
     test('should log security events', async () => {
       // Failed login attempts should be logged
       await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'monitoring@example.com',
           password: 'WrongPassword!'

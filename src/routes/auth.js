@@ -94,7 +94,7 @@ const validatePasswordStrength = (password) => {
 
 /**
  * @swagger
- * /api/auth/signup:
+ * /api/v1/auth/signup:
  *   post:
  *     summary: Register a new user account
  *     tags: [Authentication]
@@ -287,7 +287,7 @@ router.post('/signup', requireDbConnection, authLimiter, [
  * @throws {500} Server error during authentication
  * @sideEffects Updates failed login attempts, locks account after 5 failures, logs login events
  * @swagger
- * /api/auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Authenticate user and return JWT token
  *     tags: [Authentication]
@@ -579,7 +579,7 @@ router.put('/account', auth, [
 
 /**
  * @swagger
- * /api/auth/me:
+ * /api/v1/auth/me:
  *   get:
  *     summary: Get logged in user's full profile details
  *     tags: [Authentication]
@@ -656,7 +656,7 @@ router.get('/me', auth, asyncHandler(async (req, res) => {
 
 /**
  * @swagger
- * /api/auth/profile:
+ * /api/v1/auth/profile:
  *   put:
  *     summary: Update logged in user's profile information
  *     tags: [Authentication]
@@ -803,7 +803,7 @@ router.put('/profile', auth, allowOnlyFields(['firstName', 'lastName', 'dob', 'g
 
 
 /**
- * @route   GET /api/auth/schedule
+ * @route   GET /api/v1/auth/schedule
  * @desc    Get logged-in user's schedule
  * @access  Private
  * @returns {Object} User's schedule object
@@ -820,7 +820,7 @@ router.get('/schedule', auth, asyncHandler(async (req, res) => {
 }));
 
 /**
- * @route   PUT /api/auth/schedule
+ * @route   PUT /api/v1/auth/schedule
  * @desc    Update logged-in user's schedule
  * @access  Private
  * @body    {Object} schedule - Schedule data object
@@ -847,7 +847,7 @@ router.put('/schedule', auth, asyncHandler(async (req, res) => {
 }));
 
 /**
- * @route   GET /api/auth/clients
+ * @route   GET /api/v1/auth/clients
  * @desc    Get all clients (Admin only)
  * @access  Private (Admin)
  * @returns {Array} Array of user objects
@@ -1027,7 +1027,7 @@ router.post('/verify-email', asyncHandler(async (req, res) => {
 
 /**
  * @swagger
- * /api/auth/logout:
+ * /api/v1/auth/logout:
  *   post:
  *     summary: Logout authenticated user
  *     tags: [Authentication]

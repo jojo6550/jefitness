@@ -182,33 +182,33 @@ class API {
 
   // ===== Auth Endpoints =====
   static auth = {
-    login: (email, password) => API.request('/api/auth/login', {
+    login: (email, password) => API.request('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
     }),
 
-    register: (userData) => API.request('/api/auth/register', {
+    register: (userData) => API.request('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData)
     }),
 
-    logout: () => API.request('/api/auth/logout', {
+    logout: () => API.request('/api/v1/auth/logout', {
       method: 'POST'
     }),
 
-    verifyEmail: (token) => API.request('/api/auth/verify-email', {
+    verifyEmail: (token) => API.request('/api/v1/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token })
     }),
 
-    resendVerification: (email) => API.request('/api/auth/resend-verification', {
+    resendVerification: (email) => API.request('/api/v1/auth/resend-verification', {
       method: 'POST',
       body: JSON.stringify({ email })
     }),
 
-    getSchedule: () => API.request('/api/auth/schedule'),
+    getSchedule: () => API.request('/api/v1/auth/schedule'),
 
-    updateSchedule: (schedule) => API.request('/api/auth/schedule', {
+    updateSchedule: (schedule) => API.request('/api/v1/auth/schedule', {
       method: 'PUT',
       body: JSON.stringify({ schedule })
     })

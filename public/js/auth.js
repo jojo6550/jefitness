@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const response = await fetch(`${window.API_BASE}
-/api/auth/verify-email`, {
+/api/v1/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp })
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const res = await fetch(`${window.API_BASE}
-/api/auth/forgot-password`, {
+/api/v1/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })

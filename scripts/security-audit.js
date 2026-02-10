@@ -107,7 +107,7 @@ class SecurityAuditor {
         this.log('Testing rate limiting...');
 
         try {
-            const testUrl = `${this.API_BASE}/api/auth/login`;
+            const testUrl = `${this.API_BASE}/api/v1/auth/login`;
             const requests = [];
 
             // Send multiple requests rapidly
@@ -147,7 +147,7 @@ class SecurityAuditor {
             // Test weak passwords
             const weakPasswords = ['password', '123456', 'admin', 'user'];
             for (const password of weakPasswords) {
-                const response = await this.makeRequest(`${this.API_BASE}/api/auth/login`, {
+                const response = await this.makeRequest(`${this.API_BASE}/api/v1/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -166,7 +166,7 @@ class SecurityAuditor {
             // Test SQL injection
             const sqlPayloads = ["' OR '1'='1", "admin'--", "1' UNION SELECT"];
             for (const payload of sqlPayloads) {
-                const response = await this.makeRequest(`${this.API_BASE}/api/auth/login`, {
+                const response = await this.makeRequest(`${this.API_BASE}/api/v1/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -307,7 +307,7 @@ class SecurityAuditor {
             const apiEndpoints = [
                 '/api/users/trainers',
                 '/api/programs',
-                '/api/auth/login'
+                '/api/v1/auth/login'
             ];
 
             for (const endpoint of apiEndpoints) {

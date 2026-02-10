@@ -8,7 +8,7 @@ window.initDashboard = async () => {
 
     try {
       const res = await fetch(`${window.API_BASE}
-/api/auth/me`, {
+/api/v1/auth/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

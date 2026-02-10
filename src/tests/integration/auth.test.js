@@ -12,7 +12,7 @@ const User = require('../../models/User');
 const { incrementUserTokenVersion } = require('../../middleware/auth');
 
 describe('Authentication & Authorization', () => {
-  describe('POST /api/auth/signup', () => {
+  describe('POST /api/v1/auth/signup', () => {
     test('should register a new user successfully', async () => {
       const userData = {
         firstName: 'Test',
@@ -24,7 +24,7 @@ describe('Authentication & Authorization', () => {
       };
 
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send(userData)
         .expect(201);
 
@@ -50,7 +50,7 @@ describe('Authentication & Authorization', () => {
       };
 
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send(userData)
         .expect(400);
 
@@ -69,11 +69,11 @@ describe('Authentication & Authorization', () => {
       };
 
       // Create first user
-      await request(app).post('/api/auth/signup').send(userData);
+      await request(app).post('/api/v1/auth/signup').send(userData);
 
       // Try to create duplicate
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send(userData)
         .expect(400);
 
@@ -90,7 +90,7 @@ describe('Authentication & Authorization', () => {
       };
 
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send(userData)
         .expect(400);
 
@@ -99,7 +99,7 @@ describe('Authentication & Authorization', () => {
 
     test('should reject password without uppercase letters', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Test',
           lastName: 'User',
@@ -115,7 +115,7 @@ describe('Authentication & Authorization', () => {
 
     test('should reject password without special characters', async () => {
       const response = await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'Test',
           lastName: 'User',
@@ -130,7 +130,7 @@ describe('Authentication & Authorization', () => {
     });
   });
 
-  describe('POST /api/auth/login', () => {
+  describe('POST /api/v1/auth/login', () => {
     let testUser;
 
     beforeEach(async () => {
@@ -148,7 +148,7 @@ describe('Authentication & Authorization', () => {
 
     test('should login with valid credentials', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'login@example.com',
           password: 'TestPassword123!'
@@ -165,7 +165,7 @@ describe('Authentication & Authorization', () => {
 
     test('should reject login with invalid email', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: 'TestPassword123!'
@@ -177,7 +177,7 @@ describe('Authentication & Authorization', () => {
 
     test('should reject login with invalid password', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'login@example.com',
           password: 'WrongPassword123!'
@@ -191,7 +191,7 @@ describe('Authentication & Authorization', () => {
       // Make multiple failed login attempts
       for (let i = 0; i < 3; i++) {
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .send({
             email: 'login@example.com',
             password: 'WrongPassword!'
@@ -206,7 +206,7 @@ describe('Authentication & Authorization', () => {
       // Make 5 failed login attempts
       for (let i = 0; i < 5; i++) {
         await request(app)
-          .post('/api/auth/login')
+          .post('/api/v1/auth/login')
           .send({
             email: 'login@example.com',
             password: 'WrongPassword!'
@@ -214,7 +214,7 @@ describe('Authentication & Authorization', () => {
       }
 
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'login@example.com',
           password: 'TestPassword123!'
@@ -242,7 +242,7 @@ describe('Authentication & Authorization', () => {
       process.env.NODE_ENV = 'production';
 
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'unverified@example.com',
           password: 'TestPassword123!'
@@ -478,7 +478,7 @@ describe('Authentication & Authorization', () => {
 
     test('should request password reset', async () => {
       const response = await request(app)
-        .post('/api/auth/forgot-password')
+        .post('/api/v1/auth/forgot-password')
         .send({ email: 'reset@example.com' })
         .expect(200);
 
@@ -492,7 +492,7 @@ describe('Authentication & Authorization', () => {
 
     test('should not reveal if email exists (security)', async () => {
       const response = await request(app)
-        .post('/api/auth/forgot-password')
+        .post('/api/v1/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' })
         .expect(200);
 

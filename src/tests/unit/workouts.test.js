@@ -1,29 +1,12 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const app = require('../../server');
 const User = require('../../models/User');
 const jwt = require('jsonwebtoken');
 
-let mongoServer;
 let authToken;
 let userId;
 
-beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-    await mongoose.disconnect();
-    await mongoose.connect(mongoUri);
-});
-
-afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-});
-
 beforeEach(async () => {
-    await User.deleteMany({});
-    
     // Create a test user
     const testUser = new User({
         firstName: 'Test',
@@ -42,10 +25,10 @@ beforeEach(async () => {
             version: '1.0'
         }
     });
-    
+
     await testUser.save();
     userId = testUser._id.toString();
-    
+
     // Generate auth token
     authToken = jwt.sign(
         { id: userId, userId: userId, tokenVersion: 0 },

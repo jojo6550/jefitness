@@ -415,7 +415,7 @@ describe('GDPR Compliance & Data Protection', () => {
     test('should mask passwords in logs', async () => {
       // Signup creates logs
       await request(app)
-        .post('/api/auth/signup')
+        .post('/api/v1/auth/signup')
         .send({
           firstName: 'New',
           lastName: 'User',

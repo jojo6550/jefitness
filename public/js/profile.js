@@ -18,7 +18,7 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
     async function loadProfile() {
         try {
             const response = await fetch(`${window.API_BASE}
-/api/auth/me`, {
+/api/v1/auth/me`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 
         try {
             const response = await fetch(`${window.API_BASE}
-/api/auth/profile`, {
+/api/v1/auth/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

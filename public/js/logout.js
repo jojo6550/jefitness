@@ -11,7 +11,7 @@ async function logoutUser() {
         try {
             // Call the logout API to invalidate the session on the server
             const response = await fetch(`${window.API_BASE}
-/api/auth/logout`, {
+/api/v1/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -63,7 +63,7 @@ async function checkSessionAndRedirect() {
 
     try {
         // Try to access a protected endpoint to verify token
-        const response = await fetch(`${window.API_BASE}/api/auth/me`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

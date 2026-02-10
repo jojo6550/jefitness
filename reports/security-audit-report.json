@@ -22,7 +22,7 @@
       "XSS testing failed: ",
       "API rate limiting may not be configured for /api/users/trainers",
       "API rate limiting may not be configured for /api/programs",
-      "API rate limiting may not be configured for /api/auth/login"
+      "API rate limiting may not be configured for /api/v1/auth/login"
     ],
     "critical": [
       "Failed to check security headers: "
