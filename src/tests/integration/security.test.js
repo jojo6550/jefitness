@@ -36,7 +36,7 @@ describe('System Security', () => {
   describe('Security Headers', () => {
     test('should set X-Content-Type-Options header', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
@@ -44,7 +44,7 @@ describe('System Security', () => {
 
     test('should set X-Frame-Options header', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.headers['x-frame-options']).toBeDefined();
@@ -52,7 +52,7 @@ describe('System Security', () => {
 
     test('should set Strict-Transport-Security header', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.headers['strict-transport-security']).toBeDefined();
@@ -60,7 +60,7 @@ describe('System Security', () => {
 
     test('should set Content-Security-Policy header', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.headers['content-security-policy']).toBeDefined();
@@ -68,7 +68,7 @@ describe('System Security', () => {
 
     test('should set X-DNS-Prefetch-Control header', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.headers['x-dns-prefetch-control']).toBeDefined();
@@ -87,7 +87,7 @@ describe('System Security', () => {
       for (let i = 0; i < 20; i++) {
         requests.push(
           request(app)
-            .post('/api/auth/login')
+            .post('/api/v1/auth/login')
             .send(loginData)
         );
       }
@@ -125,7 +125,7 @@ describe('System Security', () => {
 
     test('should include rate limit headers', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'test@example.com',
           password: 'password'
@@ -140,7 +140,7 @@ describe('System Security', () => {
   describe('NoSQL Injection Prevention', () => {
     test('should prevent NoSQL injection in login', async () => {
       const response = await request(app)
-        .post('/api/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: { $gt: '' }, // NoSQL injection attempt
           password: { $gt: '' }
@@ -152,7 +152,7 @@ describe('System Security', () => {
 
     test('should prevent NoSQL injection in query parameters', async () => {
       const response = await request(app)
-        .get('/api/users/profile')
+        .get('/api/v1/users/profile')
         .query({ id: { $ne: null } })
         .set('Authorization', `Bearer ${authToken}`);
 
@@ -162,7 +162,7 @@ describe('System Security', () => {
 
     test('should sanitize user input in updates', async () => {
       const response = await request(app)
-        .put(`/api/users/${testUser._id}`)
+        .put(`/api/v1/users/${testUser._id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: 'Updated',
@@ -178,7 +178,7 @@ describe('System Security', () => {
   describe('XSS Prevention', () => {
     test('should sanitize HTML in user input', async () => {
       const response = await request(app)
-        .put(`/api/users/${testUser._id}`)
+        .put(`/api/v1/users/${testUser._id}`)
         .set('Authorization', `Bearer ${authToken}`)
         .send({
           firstName: '<script>alert("XSS")</script>Test'
@@ -207,14 +207,14 @@ describe('System Security', () => {
   describe('CSRF Protection', () => {
     test('should reject requests without proper authentication', async () => {
       await request(app)
-        .post('/api/users/profile')
+        .post('/api/v1/users/profile')
         .send({ firstName: 'Hacked' })
         .expect(401);
     });
 
     test('should require valid JWT for state-changing operations', async () => {
       await request(app)
-        .put(`/api/users/${testUser._id}`)
+        .put(`/api/v1/users/${testUser._id}`)
         .send({ firstName: 'Changed' })
         .expect(401);
     });
@@ -321,7 +321,7 @@ describe('System Security', () => {
 
     test('should validate ObjectId format', async () => {
       const response = await request(app)
-        .get('/api/users/invalid-id')
+        .get('/api/v1/users/invalid-id')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(400);
 

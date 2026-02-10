@@ -12,6 +12,7 @@ let userId;
 beforeAll(async () => {
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
+    await mongoose.disconnect();
     await mongoose.connect(mongoUri);
 });
 

@@ -22,7 +22,10 @@ async function auth(req, res, next) {
     }
 
     if (!token) {
-        return next(new AuthenticationError('Authentication required. Please log in.'));
+        return res.status(401).json({
+            success: false,
+            error: 'Authentication required. Please log in.'
+        });
     }
 
     try {
@@ -123,7 +126,10 @@ async function requireAdmin(req, res, next) {
 
         // SECURITY: Verify role from database
         if (user.role !== 'admin') {
-            return next(new AuthorizationError('Access denied. Admin privileges required.'));
+            return res.status(403).json({
+                success: false,
+                error: 'Access denied. Admin privileges required.'
+            });
         }
 
         // Update req.user with fresh role from database
