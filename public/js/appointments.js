@@ -78,27 +78,49 @@ function displayAppointments(appointments) {
 
     const activeAppointments = appointments.filter(app => app.status !== 'cancelled');
     if (activeAppointments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No appointments found</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="text-muted">No upcoming appointments</h5>
+                    <p class="small text-muted mb-0">Book a session with one of our expert trainers to get started.</p>
+                </td>
+            </tr>`;
         return;
     }
 
     activeAppointments.forEach(app => {
-        const date = new Date(app.date).toLocaleDateString();
-        const statusClass = app.status === 'scheduled' ? 'text-success' :
-                            app.status === 'cancelled' ? 'text-danger' : 'text-warning';
+        const dateObj = new Date(app.date);
+        const date = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const statusClass = `appointment-status-badge status-${app.status}`;
         const trainerName = app.trainerId?.firstName ? `${app.trainerId.firstName} ${app.trainerId.lastName || ''}` : 'N/A';
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${date}</td>
-            <td>${app.time}</td>
-            <td>${trainerName}</td>
-            <td class="${statusClass}">${app.status}</td>
-            <td>${app.notes || 'N/A'}</td>
+            <td class="ps-4">
+                <div class="fw-bold">${date}</div>
+                <div class="text-muted small"><i class="bi bi-clock me-1"></i>${app.time}</div>
+            </td>
             <td>
-                <button data-id="${app._id}" class="btn btn-sm btn-outline-primary view-btn">View</button>
-                <button data-id="${app._id}" class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
-                <button data-id="${app._id}" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        ${app.trainerId?.firstName?.charAt(0) || 'T'}
+                    </div>
+                    <span>${trainerName}</span>
+                </div>
+            </td>
+            <td><span class="${statusClass}">${app.status}</span></td>
+            <td class="d-none d-lg-table-cell">
+                <div class="text-truncate text-muted" style="max-width: 200px;" title="${app.notes || ''}">${app.notes || '<span class="opacity-50 italic">No special notes</span>'}</div>
+            </td>
+            <td class="text-end pe-4">
+                <div class="btn-group">
+                    <button data-id="${app._id}" class="btn btn-sm btn-outline-primary view-btn" title="View"><i class="bi bi-eye"></i></button>
+                    <button data-id="${app._id}" class="btn btn-sm btn-outline-secondary edit-btn" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button data-id="${app._id}" class="btn btn-sm btn-outline-danger delete-btn" title="Delete"><i class="bi bi-trash"></i></button>
+                </div>
             </td>`;
         tbody.appendChild(row);
     });
@@ -296,14 +318,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const subscriptionLock = document.getElementById('subscriptionLock');
     if (subscriptionLock) subscriptionLock.style.display = hasSubscription ? 'none' : 'block';
 
-    // Book Now button
-    const bookBtn = document.querySelector('[data-bs-toggle="modal"][data-bs-target="#bookingModal"]');
-    if (bookBtn) {
-        bookBtn.disabled = !hasSubscription;
-        bookBtn.textContent = hasSubscription ? 'Book Now' : 'Subscription Required';
-        bookBtn.classList.toggle('btn-success', hasSubscription);
-        bookBtn.classList.toggle('btn-secondary', !hasSubscription);
-    }
+    // Update all booking trigger buttons
+    const bookingButtons = document.querySelectorAll('[data-bs-target="#bookingModal"]');
+    bookingButtons.forEach(btn => {
+        if (hasSubscription) {
+            btn.disabled = false;
+            // Preserve the original text if it's the "New Booking" button
+            if (btn.id !== 'bookNowTopBtn') btn.innerHTML = 'Book Now <i class="bi bi-calendar-check"></i>';
+            btn.classList.replace('btn-secondary', 'btn-primary');
+        } else {
+            btn.disabled = true;
+            btn.textContent = 'Subscription Required';
+            btn.classList.replace('btn-primary', 'btn-secondary');
+        }
+    });
 
     // Load appointments & trainers if subscribed
     if (hasSubscription) {

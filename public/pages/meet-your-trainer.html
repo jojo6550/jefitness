@@ -39,91 +39,112 @@
 
 
 
-    <main class="container py-5">
-        <div class="text-center mb-5">
-            <h2 class="display-5 fw-bold mb-3">Meet Our Trainers & Manage Your Appointments</h2>
-            <div class="services-divider"></div>
+    <main class="container py-6">
+        <div class="text-center mb-6">
+            <h1 class="display-4 fw-bold mb-3 text-gradient">Trainers & Appointments</h1>
+            <p class="lead text-muted max-w-600 mx-auto">Expert guidance tailored to your fitness journey. Meet our team and manage your schedule in one place.</p>
         </div>
-        <p class="lead text-center text-muted mb-5">Our expert trainers are dedicated to helping you achieve your fitness goals. Get to know them below and manage your appointments!</p>
 
         <!-- Subscription Lock Message -->
-        <div id="subscriptionLock" class="alert alert-warning text-center mb-5" style="display: none;" role="alert">
-            <i class="bi bi-lock-fill me-2"></i>
-            <strong>You need an active subscription to book appointments.</strong>
-            <br>
-            <small>Please upgrade your plan to access trainer consultations and appointment booking.</small>
-            <br>
-            <a href="subscriptions.html" class="btn btn-primary btn-sm mt-3">View Subscription Plans</a>
+        <div id="subscriptionLock" class="alert bg-secondary border-warning text-center mb-6 fade-in" style="display: none;" role="alert">
+            <div class="d-flex align-items-center justify-content-center flex-column py-3">
+                <i class="bi bi-lock-fill text-warning fs-1 mb-3"></i>
+                <h4 class="fw-bold">Subscription Required</h4>
+                <p class="text-muted mb-4">Upgrade your plan to access professional trainer consultations and booking.</p>
+                <a href="subscriptions.html" class="btn btn-primary btn-ripple">View Plans</a>
+            </div>
         </div>
 
-        <div id="trainerCards" class="row g-4">
+        <!-- Trainer Grid -->
+        <div id="trainerCards" class="row g-4 mb-6">
             <div class="col-lg-6">
-                <div class="trainer-card">
-                    <img src="../images/logo.jpg" alt="Jamol Elliot" class="trainer-image" onerror="this.src='../favicons/favicon-32x32.png'">
-                    <div class="trainer-details">
-                        <h3 class="mb-3">Jamol Elliot</h3>
-                        <p class="bio">N/A</p>
-                        <div class="badges">
-                            <span class="badge">Strength Training</span>
-                            <span class="badge">Weight Loss</span>
-                            <span class="badge">Functional Fitness</span>
-                        </div>
-                        <div class="certifications">
-                            <small class="text-muted"><i class="bi bi-award-fill"></i> Certifications: N/A</small>
+                <div class="card trainer-modern-card border-0 h-100">
+                    <div class="card-body p-4 p-xl-5">
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-4">
+                            <div class="position-relative">
+                                <img src="../images/logo.jpg" alt="Jamol Elliot" class="trainer-modern-image rounded-4 shadow-lg" onerror="this.src='../favicons/favicon-32x32.png'">
+                                <div class="status-indicator online"></div>
+                            </div>
+                            <div class="flex-grow-1 text-center text-sm-start">
+                                <h3 class="h2 mb-1">Jamol Elliot</h3>
+                                <p class="text-primary fw-semibold mb-3">Lead Performance Coach</p>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-sm-start mb-3">
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Strength</span>
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Weight Loss</span>
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Functional</span>
+                                </div>
+                                <div class="certifications d-flex align-items-center gap-2 justify-content-center justify-content-sm-start">
+                                    <i class="bi bi-award text-warning"></i>
+                                    <small class="text-muted">Certified Master Trainer</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-lg-6">
-                <div class="trainer-card">
-                    <img src="../images/logo.jpg" alt="Jermaine Ritchie" class="trainer-image" onerror="this.src='../favicons/favicon-32x32.png'">
-                    <div class="trainer-details">
-                        <h3 class="mb-3">Jermaine Ritchie</h3>
-                        <p class="bio">N/A</p>
-                        <div class="badges">
-                            <span class="badge">Massage Therapy</span>
-                            <span class="badge">Weight Loss</span>
-                            <span class="badge">Muscle Relaxation</span>
-                        </div>
-                        <div class="certifications">
-                            <small class="text-muted"><i class="bi bi-award-fill"></i> Certifications: N/A</small>
+                <div class="card trainer-modern-card border-0 h-100">
+                    <div class="card-body p-4 p-xl-5">
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-4">
+                            <div class="position-relative">
+                                <img src="../images/logo.jpg" alt="Jermaine Ritchie" class="trainer-modern-image rounded-4 shadow-lg" onerror="this.src='../favicons/favicon-32x32.png'">
+                                <div class="status-indicator online"></div>
+                            </div>
+                            <div class="flex-grow-1 text-center text-sm-start">
+                                <h3 class="h2 mb-1">Jermaine Ritchie</h3>
+                                <p class="text-primary fw-semibold mb-3">Holistic Fitness Specialist</p>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-sm-start mb-3">
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Massage</span>
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Recovery</span>
+                                    <span class="badge bg-dark-subtle text-primary-emphasis border border-primary-subtle">Relaxation</span>
+                                </div>
+                                <div class="certifications d-flex align-items-center gap-2 justify-content-center justify-content-sm-start">
+                                    <i class="bi bi-award text-warning"></i>
+                                    <small class="text-muted">Licensed Therapist</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            
-            </div>
         </div>
 
-        <div class="card mt-5">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">Your Appointments</h2>
-                <button id="refreshAppointments" class="btn btn-primary">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
+        <!-- Appointment Management Section -->
+        <div class="card appointment-section-card border-0 mb-6">
+            <div class="card-header bg-transparent border-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4">
+                <div>
+                    <h2 class="h3 mb-1">Your Schedule</h2>
+                    <p class="text-muted small mb-0">Track and manage your upcoming sessions</p>
+                </div>
+                <div class="mt-3 mt-md-0 d-flex gap-2">
+                    <button id="refreshAppointments" class="btn btn-outline-primary btn-sm btn-ripple">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
+                    <button class="btn btn-primary btn-sm btn-ripple" data-bs-toggle="modal" data-bs-target="#bookingModal" id="bookNowTopBtn">
+                        <i class="bi bi-plus-lg me-1"></i> New Booking
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
+                    <table class="table table-hover align-middle mb-0 custom-appointment-table">
+                        <thead class="bg-dark-subtle">
                             <tr>
-                                <th>Date</th>
-                                <th>Time</th>
+                                <th class="ps-4">Date & Time</th>
                                 <th>Trainer</th>
                                 <th>Status</th>
-                                <th>Notes</th>
-                                <th>Actions</th>
+                                <th class="d-none d-lg-table-cell">Notes</th>
+                                <th class="text-end pe-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="appointmentsTableBody">
                             <tr>
-                                <td colspan="6" class="text-center">
-                                    <div class="spinner-border" role="status">
+                                <td colspan="5" class="text-center py-5">
+                                    <div class="spinner-border text-primary mb-3" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
-                                    <p>Loading appointments...</p>
+                                    <p class="text-muted">Synchronizing appointments...</p>
                                 </td>
                             </tr>
                         </tbody>
@@ -132,20 +153,6 @@
             </div>
         </div>
     </main>
-
-    <!-- ====== Book an Appointment Section ====== -->
-    <section class="py-5 bg-light">
-      <div class="container text-center">
-        <h2 class="fw-bold text-primary mb-3">Book an Appointment</h2>
-        <p class="lead text-muted mb-4">
-          Schedule a one-on-one session with your favorite trainer at JE Fitness.
-        </p>
-        <!-- Button to trigger modal -->
-        <button class="btn btn-success btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#bookingModal">
-          Book Now <i class="bi bi-calendar-check"></i>
-        </button>
-      </div>
-    </section>
 
         <!-- ====== Booking Modal ====== -->
     <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel">
@@ -201,18 +208,18 @@
 
         <!-- Appointment Details Modal -->
     <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="appointmentModalLabel">Appointment Details</h5>
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow border-0">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold" id="appointmentModalLabel">Appointment Details</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body" id="appointmentDetails">
+          <div class="modal-body p-4" id="appointmentDetails">
             <!-- Details will be populated here -->
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary" id="editAppointmentBtn">Edit Appointment</button>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary px-4 rounded-pill" id="editAppointmentBtn">Edit Appointment</button>
           </div>
         </div>
       </div>
@@ -220,10 +227,10 @@
 
     <!-- Edit Appointment Modal -->
     <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editAppointmentModalLabel">Edit Appointment</h5>
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow border-0">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold" id="editAppointmentModalLabel">Edit Appointment</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -270,7 +277,7 @@
     <!-- Confirmation Modal -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content rounded-4 shadow border-0">
           <div class="modal-header border-0">
             <h5 class="modal-title fw-bold" id="confirmModalLabel">Confirm Action</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -287,36 +294,10 @@
     </div>
 
 
-    <div class="contact-section py-5">
-        <div class="container">
-            <h2 class="text-center mb-4">Ready to Get Started?</h2>
-            <p class="text-center lead mb-5">Contact us today to schedule your free consultation with one of our trainers.</p>
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <form class="contact-form p-4 rounded shadow-sm">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email address</label>
-                            <input type="email" class="form-control" id="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="message" class="form-label">Message</label>
-                            <textarea class="form-control" id="message" rows="4" required></textarea>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <footer class="text-center py-3">
-        <p>&copy; 2025 JE Fitness. All rights reserved.</p>
+        <p>&copy; 2026 JE Fitness. All rights reserved.</p>
     </footer>
 
     <script src="../js/api.config.js"></script>
