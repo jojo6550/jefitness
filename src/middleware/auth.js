@@ -24,7 +24,7 @@ async function auth(req, res, next) {
     if (!token) {
         return res.status(401).json({
             success: false,
-            error: 'Authentication required. Please log in.'
+            error: 'No token provided. Please log in.'
         });
     }
 
@@ -58,7 +58,7 @@ async function auth(req, res, next) {
         // SECURITY: Reject tokens with outdated version
         if (tokenVersion < currentVersion) {
             console.warn(`Security event: outdated_token_rejected | UserId: ${userId}`);
-            throw new AuthenticationError('Your session has expired. Please log in again.');
+            throw new AuthenticationError('Token has been revoked. Please log in again.');
         }
         
         req.user = decoded;
@@ -69,9 +69,15 @@ async function auth(req, res, next) {
     } catch (err) {
         // SECURITY: Don't leak error details about JWT internals
         if (err.name === 'TokenExpiredError') {
-            return next(new AuthenticationError('Your session has expired. Please log in again.'));
+            return res.status(401).json({
+                success: false,
+                error: 'Your session has expired. Please log in again.'
+            });
         }
-        return next(new AuthenticationError('Invalid session. Please log in again.'));
+        return res.status(401).json({
+            success: false,
+            error: 'Invalid session. Please log in again.'
+        });
     }
 }
 

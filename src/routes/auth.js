@@ -11,6 +11,7 @@ const { authLimiter, passwordResetLimiter } = require('../middleware/rateLimiter
 const { stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require('../middleware/inputValidator');
 const { requireDbConnection } = require('../middleware/dbConnection');
 const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const apiError = require('../utils/apiError');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
@@ -353,18 +354,18 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
 
     if (!user) {
         console.log(`Security event: login_failed | Email: ${email} | Reason: User not found`);
-        throw new AuthenticationError('Invalid email or password.');
+        throw apiError('Invalid email or password.', 400);
     }
 
     // Check if account is locked
     if (user.lockoutUntil && user.lockoutUntil > new Date()) {
         const remainingTime = Math.ceil((user.lockoutUntil - new Date()) / 1000 / 60); // minutes
-        throw new ValidationError(`Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.`, [], 423);
+        throw apiError(`Account is locked due to too many failed attempts. Try again in ${remainingTime} minutes.`, 423);
     }
 
     // Check if email is verified
     if (!user.isEmailVerified) {
-        throw new ValidationError('Please verify your email before logging in.');
+        throw apiError('Please verify your email before logging in.', 400);
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -379,7 +380,7 @@ router.post('/login', requireDbConnection, authLimiter, preventNoSQLInjection, a
         }
 
         await user.save();
-        throw new AuthenticationError('Invalid email or password.');
+        throw apiError('Invalid email or password.', 400);
     }
 
     // Reset failed attempts on successful login
@@ -933,8 +934,8 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
     }
 
     const user = await User.findOne({
-        resetToken: token,
-        resetExpires: { $gt: new Date() }
+        resetPasswordToken: token,
+        resetPasswordExpires: { $gt: new Date() }
     });
 
     if (!user) {
@@ -949,8 +950,8 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
-    user.resetToken = undefined;
-    user.resetExpires = undefined;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
     
     await incrementUserTokenVersion(user._id);
     await user.save();

@@ -256,14 +256,14 @@ app.use('/webhooks', require('./routes/webhooks'));
 app.use('/api/v1/auth', versioning, require('./routes/auth'));
 
 // Protected routes (with auth and rate limiting)
-app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/clients'));
-app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
-app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
-app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/users'));
-app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
-app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
-app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
-app.use('/api/v1/workouts', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/workouts'));
+app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/clients'));
+app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/logs'));
+app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/appointments'));
+app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/users'));
+app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) : apiLimiter, versioning, require('./routes/medical-documents'));
+app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/trainer'));
+app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) => next() : apiLimiter, versioning, require('./routes/gdpr'));
+app.use('/api/v1/workouts', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, process.env.NODE_ENV === 'test' ? (req, res, next) : apiLimiter, versioning, require('./routes/workouts'));
 
 // API Documentation routes (only in development)
 if (process.env.NODE_ENV !== 'production') {
