@@ -25,6 +25,10 @@ const AppointmentSchema = new mongoose.Schema({
     },
     notes: {
         type: String
+    },
+    statusUpdatedAt: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

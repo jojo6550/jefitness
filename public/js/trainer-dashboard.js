@@ -2,6 +2,7 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 let allAppointments = [];
+let currentView = 'active';
 
 window.initTrainerDashboard = async () => {
     const token = localStorage.getItem('token');
@@ -15,7 +16,6 @@ window.initTrainerDashboard = async () => {
         setupEventListeners();
         
         // Load data - Auth and role checks are now handled exclusively by the backend
-        // If the user is not a trainer, the backend will return a 403, which we handle in loadAppointments
         await loadAppointments();
 
         // Initialize logout listener
@@ -29,10 +29,11 @@ window.initTrainerDashboard = async () => {
 
 async function loadAppointments() {
     const token = localStorage.getItem('token');
+    const body = document.getElementById('appointmentsList');
     const footerStatus = document.getElementById('footerStatus');
 
     try {
-        const res = await fetch(`${window.API_BASE}/api/v1/trainer/appointments?limit=100`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/trainer/appointments?limit=100&view=${currentView}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -47,7 +48,6 @@ async function loadAppointments() {
         if (res.status === 403) {
             window.Toast.error('Access denied. Trainer portal only.');
             setTimeout(() => {
-                // If they have a token but aren't a trainer, send them to user dashboard
                 window.location.href = 'dashboard.html';
             }, 2000);
             return;
@@ -59,7 +59,7 @@ async function loadAppointments() {
         allAppointments = data.appointments || [];
         
         renderAppointments(allAppointments);
-        if (footerStatus) footerStatus.textContent = `${allAppointments.length} sessions loaded`;
+        if (footerStatus) footerStatus.textContent = `${allAppointments.length} ${currentView} sessions loaded`;
 
     } catch (err) {
         console.error('Error loading appointments:', err);
@@ -77,7 +77,7 @@ function renderAppointments(appointments) {
             <div class="window-loading">
                 <div class="text-center opacity-50">
                     <i class="bi bi-calendar-x fs-1 mb-2 d-block"></i>
-                    <span>No sessions found</span>
+                    <span>No ${currentView} sessions found</span>
                 </div>
             </div>
         `;
@@ -97,10 +97,11 @@ function renderAppointments(appointments) {
                 </div>
                 <div class="apt-client">
                     <div class="client-name text-truncate">${clientName}</div>
+                    ${currentView === 'archive' && apt.statusUpdatedAt ? `<div class="small text-muted" style="font-size: 0.6rem;">Status updated: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
                 </div>
                 <div class="apt-actions d-flex align-items-center gap-2">
                     <span class="apt-status status-${apt.status || 'scheduled'}">${apt.status || 'scheduled'}</span>
-                    ${apt.status === 'scheduled' ? `
+                    ${(apt.status === 'scheduled' || apt.status === 'late') && currentView === 'active' ? `
                         <div class="btn-group btn-group-sm">
                             <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'completed')" title="Complete"><i class="bi bi-check text-success"></i></button>
                             <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'late')" title="Late"><i class="bi bi-clock text-warning"></i></button>
@@ -125,6 +126,25 @@ function setupEventListeners() {
             renderAppointments(filtered);
         });
     }
+
+    const activeTab = document.getElementById('activeTab');
+    const archiveTab = document.getElementById('archiveTab');
+
+    activeTab?.addEventListener('click', () => {
+        if (currentView === 'active') return;
+        currentView = 'active';
+        activeTab.classList.add('active');
+        archiveTab?.classList.remove('active');
+        loadAppointments();
+    });
+
+    archiveTab?.addEventListener('click', () => {
+        if (currentView === 'archive') return;
+        currentView = 'archive';
+        archiveTab.classList.add('active');
+        activeTab?.classList.remove('active');
+        loadAppointments();
+    });
 
     document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
 }

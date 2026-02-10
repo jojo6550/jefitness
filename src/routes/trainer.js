@@ -236,7 +236,8 @@ router.get('/appointments', auth, requireTrainer, async (req, res) => {
             status = '',
             search = '',
             page = 1,
-            limit = 10
+            limit = 10,
+            view = 'active' // 'active' or 'archive'
         } = req.query;
 
         // Ensure page and limit are numbers
@@ -248,9 +249,31 @@ router.get('/appointments', auth, requireTrainer, async (req, res) => {
         }
 
         const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
         // Build base pipeline
         const baseMatch = { trainerId: trainerObjectId };
+        
+        if (view === 'archive') {
+            // Archive: Cancelled OR (Completed/NoShow AND > 24h old)
+            baseMatch.$or = [
+                { status: 'cancelled' },
+                { 
+                    status: { $in: ['completed', 'no_show'] }, 
+                    statusUpdatedAt: { $lt: twentyFourHoursAgo } 
+                }
+            ];
+        } else {
+            // Active: Scheduled OR Late OR (Completed/NoShow AND <= 24h old)
+            baseMatch.$or = [
+                { status: { $in: ['scheduled', 'late'] } },
+                { 
+                    status: { $in: ['completed', 'no_show'] }, 
+                    statusUpdatedAt: { $gte: twentyFourHoursAgo } 
+                }
+            ];
+        }
+
         if (status) {
             baseMatch.status = status;
         }
@@ -401,7 +424,10 @@ router.put('/appointments/:id', auth, requireTrainer, async (req, res) => {
         const { status, notes } = req.body;
 
         // Update fields
-        if (status) appointment.status = status;
+        if (status) {
+            appointment.status = status;
+            appointment.statusUpdatedAt = new Date(); // Track when button was pressed
+        }
         if (notes !== undefined) appointment.notes = notes;
 
         await appointment.save();

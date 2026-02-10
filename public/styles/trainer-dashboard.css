@@ -57,6 +57,33 @@
 .control.minimize { background: #ffbd2e; }
 .control.maximize { background: #27c93f; }
 
+.window-tabs {
+    display: flex;
+    align-items: center;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    color: var(--primary-accent);
+    background: rgba(0, 210, 255, 0.1);
+}
+
 .window-title {
     font-size: 0.75rem;
     font-weight: 700;
