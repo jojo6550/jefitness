@@ -1,205 +1,165 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+let allAppointments = [];
 
 window.initTrainerDashboard = async () => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token) {
+        window.location.href = 'login.html';
+        return;
+    }
 
     try {
-        // Verify user is trainer
-        const userRes = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
+        // Initialize UI
+        setupEventListeners();
+        
+        // Load data - Auth and role checks are now handled exclusively by the backend
+        // If the user is not a trainer, the backend will return a 403, which we handle in loadAppointments
+        await loadAppointments();
 
-        if (!userRes.ok) {
-            console.warn('User verification failed');
-            return;
+        // Initialize logout listener
+        if (window.attachLogoutListener) {
+            window.attachLogoutListener();
         }
-
-        const user = await userRes.json();
-        if (user.role !== 'trainer') {
-            console.warn('User is not a trainer');
-            return;
-        }
-
-        // Load dashboard data
-        await loadDashboardData(token);
     } catch (err) {
         console.error('Error initializing trainer dashboard:', err);
     }
 };
 
-async function loadDashboardData(token) {
+async function loadAppointments() {
+    const token = localStorage.getItem('token');
+    const footerStatus = document.getElementById('footerStatus');
+
     try {
-        // Fetch dashboard overview
-        const dashboardRes = await fetch(`${window.API_BASE}/api/v1/trainer/dashboard`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/trainer/appointments?limit=100`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!dashboardRes.ok) {
-            throw new Error('Failed to load dashboard data');
+        // Handle authentication and authorization errors from backend
+        if (res.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        if (res.status === 403) {
+            window.Toast.error('Access denied. Trainer portal only.');
+            setTimeout(() => {
+                // If they have a token but aren't a trainer, send them to user dashboard
+                window.location.href = 'dashboard.html';
+            }, 2000);
+            return;
         }
 
-        const data = await dashboardRes.json();
+        if (!res.ok) throw new Error('Failed to load appointments');
+
+        const data = await res.json();
+        allAppointments = data.appointments || [];
         
-        // Update overview metrics
-        updateOverviewMetrics(data.overview);
-        
-        // Render upcoming appointments
-        renderUpcomingAppointments(data.upcomingAppointments);
-        
-        // Calculate and display statistics
-        updateStatistics(data.overview);
+        renderAppointments(allAppointments);
+        if (footerStatus) footerStatus.textContent = `${allAppointments.length} sessions loaded`;
+
     } catch (err) {
-        console.error('Error loading dashboard data:', err);
-        window.Toast.error('Failed to load dashboard data. Please refresh the page.');
+        console.error('Error loading appointments:', err);
+        window.Toast.error('Failed to load schedule.');
+        if (footerStatus) footerStatus.textContent = 'Sync failed';
     }
 }
 
-function updateOverviewMetrics(overview) {
-    document.getElementById('total-clients').textContent = overview.totalClients || 0;
-    document.getElementById('total-appointments').textContent = overview.totalAppointments || 0;
-    document.getElementById('completed-appointments').textContent = overview.completedAppointments || 0;
-    document.getElementById('completion-rate').textContent = `${overview.completionRate || 0}%`;
-}
-
-function renderUpcomingAppointments(appointments) {
-    const container = document.getElementById('upcoming-appointments-container');
-
-    if (!appointments || appointments.length === 0) {
+function renderAppointments(appointments) {
+    const container = document.getElementById('appointmentsList');
+    if (!container) return;
+    
+    if (appointments.length === 0) {
         container.innerHTML = `
-            <div class="text-center py-5">
-                <i class="bi bi-calendar-x fs-3 text-muted mb-3"></i>
-                <p class="text-muted">No upcoming appointments</p>
+            <div class="window-loading">
+                <div class="text-center opacity-50">
+                    <i class="bi bi-calendar-x fs-1 mb-2 d-block"></i>
+                    <span>No sessions found</span>
+                </div>
             </div>
         `;
         return;
     }
 
-    let html = '<div class="list-group list-group-flush">';
-
-    appointments.forEach((apt, index) => {
-        const aptDate = new Date(apt.date);
-        const formattedDate = aptDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-
-        const clientName = apt.clientId
-            ? `${apt.clientId.firstName} ${apt.clientId.lastName}`
-            : 'Unknown Client';
-
-        html += `
-            <div class="list-group-item border-0 px-0 py-3 ${index !== appointments.length - 1 ? 'border-bottom' : ''}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1 fw-bold">${clientName}</h6>
-                        <p class="mb-1 small text-muted">
-                            <i class="bi bi-calendar me-2"></i>${formattedDate} at ${apt.time}
-                        </p>
-                        ${apt.notes ? `<p class="mb-0 small text-secondary">${apt.notes}</p>` : ''}
-                    </div>
-                    <div class="d-flex flex-column align-items-end gap-2">
-                        <span class="badge ${getStatusBadgeClass(apt.status)}">${apt.status || 'scheduled'}</span>
-                        ${apt.status === 'scheduled' ? `
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button class="btn btn-outline-success btn-sm" onclick="updateAppointmentStatus('${apt._id}', 'completed')">Complete</button>
-                                <button class="btn btn-outline-warning btn-sm" onclick="updateAppointmentStatus('${apt._id}', 'late')">Late</button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="updateAppointmentStatus('${apt._id}', 'no_show')">No Show</button>
-                            </div>
-                        ` : ''}
-                    </div>
+    container.innerHTML = appointments.map(apt => {
+        const dateObj = new Date(apt.date);
+        const dateStr = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const clientName = apt.clientId ? `${apt.clientId.firstName} ${apt.clientId.lastName}` : 'Unknown Client';
+        
+        return `
+            <div class="apt-row">
+                <div class="apt-time-block">
+                    <div class="apt-time">${apt.time}</div>
+                    <div class="apt-date">${dateStr}</div>
+                </div>
+                <div class="apt-client">
+                    <div class="client-name text-truncate">${clientName}</div>
+                </div>
+                <div class="apt-actions d-flex align-items-center gap-2">
+                    <span class="apt-status status-${apt.status || 'scheduled'}">${apt.status || 'scheduled'}</span>
+                    ${apt.status === 'scheduled' ? `
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'completed')" title="Complete"><i class="bi bi-check text-success"></i></button>
+                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'late')" title="Late"><i class="bi bi-clock text-warning"></i></button>
+                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'no_show')" title="No Show"><i class="bi bi-x text-danger"></i></button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
-    });
-
-    html += '</div>';
-    container.innerHTML = html;
+    }).join('');
 }
 
-function getStatusBadgeClass(status) {
-    switch (status) {
-        case 'completed':
-            return 'bg-success';
-        case 'cancelled':
-            return 'bg-secondary';
-        case 'no_show':
-            return 'bg-danger';
-        case 'late':
-            return 'bg-warning';
-        default:
-            return 'bg-primary';
+function setupEventListeners() {
+    const searchInput = document.getElementById('appointmentSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase().trim();
+            const filtered = allAppointments.filter(apt => {
+                const name = apt.clientId ? `${apt.clientId.firstName} ${apt.clientId.lastName}`.toLowerCase() : '';
+                return name.includes(term);
+            });
+            renderAppointments(filtered);
+        });
     }
+
+    document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
 }
 
-async function updateAppointmentStatus(appointmentId, status) {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
+window.updateStatus = async (id, status) => {
     const statusText = status.replace('_', ' ');
-    showConfirm(`Are you sure you want to mark this appointment as ${statusText}?`, async () => {
+    showConfirm(`Mark session as ${statusText}?`, async () => {
+        const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
+            const res = await fetch(`${window.API_BASE}/api/v1/trainer/appointments/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({ status })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to update appointment status');
+            if (res.status === 401 || res.status === 403) {
+                window.Toast.error('Session expired or unauthorized.');
+                setTimeout(() => window.location.reload(), 2000);
+                return;
             }
 
-            // Reload dashboard data to reflect changes
-            await loadDashboardData(token);
-            window.Toast.success(`Appointment marked as ${statusText}`);
+            if (!res.ok) throw new Error('Failed to update status');
+
+            window.Toast.success(`Updated to ${statusText}`);
+            await loadAppointments();
         } catch (err) {
-            console.error('Error updating appointment status:', err);
-            window.Toast.error(err.message);
+            console.error(err);
+            window.Toast.error('Update failed.');
         }
     });
-}
+};
 
-function updateStatistics(overview) {
-    const total = overview.totalAppointments || 1;
-
-    // Update scheduled count
-    document.getElementById('scheduled-count').textContent = overview.scheduledAppointments || 0;
-    const scheduledPercentage = ((overview.scheduledAppointments || 0) / total) * 100;
-    document.getElementById('scheduled-bar').style.width = `${scheduledPercentage}%`;
-
-    // Update cancelled count
-    document.getElementById('cancelled-count').textContent = overview.cancelledAppointments || 0;
-    const cancelledPercentage = ((overview.cancelledAppointments || 0) / total) * 100;
-    document.getElementById('cancelled-bar').style.width = `${cancelledPercentage}%`;
-
-    // Update no show count
-    document.getElementById('no-show-count').textContent = overview.noShowAppointments || 0;
-    const noShowPercentage = ((overview.noShowAppointments || 0) / total) * 100;
-    document.getElementById('no-show-bar').style.width = `${noShowPercentage}%`;
-
-    // Update late count
-    document.getElementById('late-count').textContent = overview.lateAppointments || 0;
-    const latePercentage = ((overview.lateAppointments || 0) / total) * 100;
-    document.getElementById('late-bar').style.width = `${latePercentage}%`;
-}
-
-/**
- * Utility for confirmation modal
- */
 function showConfirm(message, callback) {
     const confirmModalEl = document.getElementById('confirmModal');
     if (!confirmModalEl) {
@@ -223,7 +183,7 @@ function showConfirm(message, callback) {
     modal.show();
 }
 
-// Initialize on page load
+// Initialize
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initTrainerDashboard);
 } else {

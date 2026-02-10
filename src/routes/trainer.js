@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
@@ -21,8 +22,9 @@ router.get('/dashboard', auth, requireTrainer, async (req, res) => {
         const now = new Date();
 
         // Use aggregation pipeline for efficient stats calculation
+        const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
         const statsResult = await Appointment.aggregate([
-            { $match: { trainerId: mongoose.Types.ObjectId(trainerId) } },
+            { $match: { trainerId: trainerObjectId } },
             {
                 $group: {
                     _id: null,
@@ -227,29 +229,35 @@ router.get('/clients', auth, requireTrainer, requireActiveSubscription, async (r
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/appointments', auth, async (req, res) => {
+router.get('/appointments', auth, requireTrainer, async (req, res) => {
     try {
-        if (req.user.role !== 'trainer') {
-            return res.status(403).json({ msg: 'Access denied' });
-        }
-
         const trainerId = req.user.id;
-        const {
+        let {
             status = '',
             search = '',
             page = 1,
             limit = 10
         } = req.query;
 
-        // Build aggregation pipeline
-        const pipeline = [
-            { $match: { trainerId: mongoose.Types.ObjectId(trainerId) } }
-        ];
+        // Ensure page and limit are numbers
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
 
-        // Add status filter
-        if (status) {
-            pipeline.push({ $match: { status } });
+        if (!mongoose.Types.ObjectId.isValid(trainerId)) {
+            return res.status(400).json({ msg: 'Invalid trainer ID' });
         }
+
+        const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
+
+        // Build base pipeline
+        const baseMatch = { trainerId: trainerObjectId };
+        if (status) {
+            baseMatch.status = status;
+        }
+
+        const pipeline = [
+            { $match: baseMatch }
+        ];
 
         // Add lookup for client details
         pipeline.push({
@@ -261,11 +269,11 @@ router.get('/appointments', auth, async (req, res) => {
             }
         });
 
-        pipeline.push({ $unwind: '$client' });
+        pipeline.push({ $unwind: { path: '$client', preserveNullAndEmptyArrays: true } });
 
-        // Add search filter
+        // Add search filter if search term provided
         if (search) {
-            const searchRegex = new RegExp(search, 'i');
+            const searchRegex = new RegExp(search.trim(), 'i');
             pipeline.push({
                 $match: {
                     $or: [
@@ -277,17 +285,21 @@ router.get('/appointments', auth, async (req, res) => {
             });
         }
 
-        // Get total count
+        // Get total count using a separate aggregation or countDocuments
+        // Using countDocuments is more efficient if no complex lookup/match needed, 
+        // but since we have a lookup and potential search on lookup field, we need to handle it.
+        
+        // For simplicity and to fix the 500 error, let's use a robust count pipeline
         const countPipeline = [...pipeline, { $count: 'total' }];
         const countResult = await Appointment.aggregate(countPipeline);
-        const totalCount = countResult[0]?.total || 0;
+        const totalCount = countResult.length > 0 ? countResult[0].total : 0;
 
         // Add sorting and pagination
         const skip = (page - 1) * limit;
         pipeline.push(
             { $sort: { date: -1, time: -1 } },
             { $skip: skip },
-            { $limit: parseInt(limit) }
+            { $limit: limit }
         );
 
         // Project final result
@@ -316,7 +328,7 @@ router.get('/appointments', auth, async (req, res) => {
         res.json({
             appointments,
             pagination: {
-                currentPage: parseInt(page),
+                currentPage: page,
                 totalPages: Math.ceil(totalCount / limit),
                 totalAppointments: totalCount,
                 hasNext: page * limit < totalCount,
@@ -324,8 +336,8 @@ router.get('/appointments', auth, async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ msg: 'Server error' });
+        console.error('Trainer Appointments Error:', err);
+        res.status(500).json({ msg: 'Server error', error: err.message });
     }
 });
 
