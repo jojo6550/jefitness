@@ -2,10 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { auth, blacklistToken } = require('../middleware/auth'); // optional if admin-only
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
 
 // GET /api/clients - return all users with search, filter, sort, and pagination
-router.get('/', auth, async (req, res) => {
+// Auth is applied at router level in server.js
+router.get('/', async (req, res) => {
     try {
         // Optionally, restrict to admin role
         if (req.user.role !== 'admin') {
@@ -68,7 +70,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET /api/clients/statistics - return comprehensive client statistics
-router.get('/statistics', auth, async (req, res) => {
+router.get('/statistics', async (req, res) => {
     try {
         // Optionally, restrict to admin role
         if (req.user.role !== 'admin') {
@@ -130,7 +132,7 @@ router.get('/statistics', auth, async (req, res) => {
 });
 
 // GET /api/clients/:id - get detailed info for a specific client
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         // Optionally, restrict to admin role
         if (req.user.role !== 'admin') {
@@ -150,7 +152,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // DELETE /api/clients/:id - delete a client
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         // Optionally, restrict to admin role
         if (req.user.role !== 'admin') {

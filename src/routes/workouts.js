@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { auth } = require('../middleware/auth');
-const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('../middleware/consent');
+// Note: Auth and consent middleware is applied at the router level in server.js
+// Remove redundant middleware imports and route-level middleware
 const { logger, logUserAction } = require('../services/logger');
 const sanitizeHtml = require('sanitize-html');
 const mongoose = require('mongoose');
@@ -11,8 +11,9 @@ const mongoose = require('mongoose');
  * @route   POST /api/v1/workouts/log
  * @desc    Create a new workout log for the authenticated user
  * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.post('/log', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
+router.post('/log', async (req, res) => {
     try {
         const userId = req.user.id;
         const { workoutName, date, programId, exercises, duration, notes } = req.body;
@@ -161,107 +162,12 @@ router.post('/log', auth, requireDataProcessingConsent, requireHealthDataConsent
 });
 
 /**
- * @swagger
- * /api/v1/workouts:
- *   get:
- *     summary: Get workout logs with pagination
- *     tags: [Workouts]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
- *           default: 20
- *         description: Number of workouts per page
- *       - in: query
- *         name: sortOrder
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *           default: desc
- *         description: Sort order by date
- *     responses:
- *       200:
- *         description: Workout logs retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 workouts:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       _id:
- *                         type: string
- *                       workoutName:
- *                         type: string
- *                       date:
- *                         type: string
- *                         format: date-time
- *                       programId:
- *                         type: string
- *                       exercises:
- *                         type: array
- *                         items:
- *                           type: object
- *                           properties:
- *                             exerciseName:
- *                               type: string
- *                             sets:
- *                               type: array
- *                               items:
- *                                 type: object
- *                                 properties:
- *                                   setNumber:
- *                                     type: integer
- *                                   reps:
- *                                     type: number
- *                                   weight:
- *                                     type: number
- *                                   rpe:
- *                                     type: number
- *                                   completed:
- *                                     type: boolean
- *                       duration:
- *                         type: integer
- *                       notes:
- *                         type: string
- *                       totalVolume:
- *                         type: number
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     currentPage:
- *                       type: integer
- *                     totalPages:
- *                       type: integer
- *                     totalWorkouts:
- *                       type: integer
- *                     hasNextPage:
- *                       type: boolean
- *                     hasPrevPage:
- *                       type: boolean
- *       404:
- *         description: User not found
- *       500:
- *         description: Server error
+ * @route   GET /api/v1/workouts
+ * @desc    Get workout logs with pagination
+ * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.get('/', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const userId = req.user.id;
         const page = parseInt(req.query.page) || 1;
@@ -310,8 +216,9 @@ router.get('/', auth, requireDataProcessingConsent, requireHealthDataConsent, ch
  * @route   GET /api/v1/workouts/:id
  * @desc    Get a single workout log by ID
  * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.get('/:id', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const userId = req.user.id;
         const workoutId = req.params.id;
@@ -354,40 +261,12 @@ router.get('/:id', auth, requireDataProcessingConsent, requireHealthDataConsent,
 });
 
 /**
- * @swagger
- * /api/v1/workouts/{id}:
- *   delete:
- *     summary: Delete workout log
- *     tags: [Workouts]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Workout log ID
- *     responses:
- *       200:
- *         description: Workout deleted successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       400:
- *         description: Invalid workout ID
- *       404:
- *         description: User or workout not found
- *       500:
- *         description: Server error
+ * @route   DELETE /api/v1/workouts/:id
+ * @desc    Delete workout log
+ * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.delete('/:id', auth, requireDataProcessingConsent, checkDataRestriction, async (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         const userId = req.user.id;
         const workoutId = req.params.id;
@@ -438,8 +317,9 @@ router.delete('/:id', auth, requireDataProcessingConsent, checkDataRestriction, 
  * @route   GET /api/v1/workouts/progress/:exerciseName
  * @desc    Get progress data for a specific exercise
  * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.get('/progress/:exerciseName', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
+router.get('/progress/:exerciseName', async (req, res) => {
     try {
         const userId = req.user.id;
         const exerciseName = decodeURIComponent(req.params.exerciseName);
@@ -529,57 +409,12 @@ router.get('/progress/:exerciseName', auth, requireDataProcessingConsent, requir
 });
 
 /**
- * @swagger
- * /api/v1/workouts/stats/summary:
- *   get:
- *     summary: Get workout statistics summary
- *     tags: [Workouts]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Workout statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 stats:
- *                   type: object
- *                   properties:
- *                     totalWorkouts:
- *                       type: integer
- *                     lastWorkout:
- *                       oneOf:
- *                         - type: object
- *                           nullable: true
- *                           properties:
- *                             workoutName:
- *                               type: string
- *                             date:
- *                               type: string
- *                               format: date-time
- *                             duration:
- *                               type: integer
- *                             totalVolume:
- *                               type: number
- *                         - type: object
- *                           nullable: true
- *                     mostTrainedExercise:
- *                       type: string
- *                       nullable: true
- *                     weeklyVolume:
- *                       type: integer
- *                     totalVolume:
- *                       type: integer
- *       404:
- *         description: User not found
- *       500:
- *         description: Server error
+ * @route   GET /api/v1/workouts/stats/summary
+ * @desc    Get workout statistics summary
+ * @access  Private
+ * Note: Auth and consent middleware applied at router level in server.js
  */
-router.get('/stats/summary', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, async (req, res) => {
+router.get('/stats/summary', async (req, res) => {
     try {
         const userId = req.user.id;
 

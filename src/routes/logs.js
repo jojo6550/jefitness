@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { auth, blacklistToken } = require('../middleware/auth');
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
 
 // In-memory storage for real-time logs
 let realtimeLogs = [];
@@ -59,7 +60,8 @@ console.warn = function(...args) {
 };
 
 // GET /api/logs - Get logs with pagination and filtering
-router.get('/', auth, (req, res) => {
+// Auth is applied at router level in server.js
+router.get('/', (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
@@ -106,7 +108,7 @@ router.get('/', auth, (req, res) => {
 });
 
 // GET /api/logs/stats - Get log statistics
-router.get('/stats', auth, (req, res) => {
+router.get('/stats', (req, res) => {
   try {
     const stats = {
       total: realtimeLogs.length,
@@ -128,7 +130,7 @@ router.get('/stats', auth, (req, res) => {
 });
 
 // GET /api/logs/export - Export logs as CSV
-router.get('/export', auth, (req, res) => {
+router.get('/export', (req, res) => {
   try {
     const level = req.query.level;
     const category = req.query.category;

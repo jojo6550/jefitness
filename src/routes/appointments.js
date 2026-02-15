@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const { auth, blacklistToken } = require('../middleware/auth');
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 const { allowOnlyFields } = require('../middleware/inputValidator');
@@ -22,7 +23,7 @@ const { allowOnlyFields } = require('../middleware/inputValidator');
  * @throws  {403} Access denied if not admin
  * @throws  {500} Server error
  */
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
             return res.status(403).json({ msg: 'Access denied' });
@@ -160,7 +161,7 @@ router.get('/', auth, async (req, res) => {
  * @returns {Object} Object with success and appointments array
  * @throws  {500} Server error
  */
-router.get('/user', auth, async (req, res) => {
+router.get('/user', async (req, res) => {
     try {
         console.log(`Fetching appointments for user: ${req.user.id}`);
 
@@ -215,7 +216,7 @@ router.get('/user', auth, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id)
             .populate('clientId', 'firstName lastName email')
@@ -251,7 +252,7 @@ router.get('/:id', auth, async (req, res) => {
  * @throws  {400} Missing required fields or invalid trainer or time slot full (max 6 clients per slot)
  * @throws  {500} Server error
  */
-router.post('/', auth, requireActiveSubscription, async (req, res) => {
+router.post('/', requireActiveSubscription, async (req, res) => {
     try {
         const { trainerId, date, time, notes } = req.body;
 
@@ -372,7 +373,7 @@ router.post('/', auth, requireActiveSubscription, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.put('/:id', auth, allowOnlyFields(['trainerId', 'date', 'time', 'status', 'notes'], true), async (req, res) => {
+router.put('/:id', allowOnlyFields(['trainerId', 'date', 'time', 'status', 'notes'], true), async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);
 
@@ -453,7 +454,7 @@ router.put('/:id', auth, allowOnlyFields(['trainerId', 'date', 'time', 'status',
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);
 

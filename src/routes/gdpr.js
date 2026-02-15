@@ -5,7 +5,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { auth, blacklistToken } = require('../middleware/auth');
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
 
 const complianceService = require('../services/compliance');
 const monitoringService = require('../services/monitoring');
@@ -15,8 +16,9 @@ const UserActionLog = require('../models/UserActionLog');
 /**
  * Get user's consent status
  * GET /api/v1/gdpr/consent
+ * Note: Auth is applied at router level in server.js
  */
-router.get('/consent', auth, async (req, res) => {
+router.get('/consent', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const consentStatus = await complianceService.getConsentStatus(userId);
@@ -42,8 +44,9 @@ router.get('/consent', auth, async (req, res) => {
 /**
  * Grant data processing consent
  * POST /api/v1/gdpr/consent/data-processing
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/consent/data-processing', auth, async (req, res) => {
+router.post('/consent/data-processing', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const ipAddress = req.ip || req.connection.remoteAddress;
@@ -73,8 +76,9 @@ router.post('/consent/data-processing', auth, async (req, res) => {
 /**
  * Grant health data processing consent
  * POST /api/v1/gdpr/consent/health-data
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/consent/health-data', auth, async (req, res) => {
+router.post('/consent/health-data', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { purpose } = req.body;
@@ -106,8 +110,9 @@ router.post('/consent/health-data', auth, async (req, res) => {
 /**
  * Grant marketing consent
  * POST /api/v1/gdpr/consent/marketing
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/consent/marketing', auth, async (req, res) => {
+router.post('/consent/marketing', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const ipAddress = req.ip || req.connection.remoteAddress;
@@ -137,8 +142,9 @@ router.post('/consent/marketing', auth, async (req, res) => {
 /**
  * Withdraw consent
  * DELETE /api/v1/gdpr/consent/:consentType
+ * Note: Auth is applied at router level in server.js
  */
-router.delete('/consent/:consentType', auth, async (req, res) => {
+router.delete('/consent/:consentType', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { consentType } = req.params;
@@ -179,8 +185,9 @@ router.delete('/consent/:consentType', auth, async (req, res) => {
 /**
  * Request data access (GDPR Article 15)
  * POST /api/v1/gdpr/data-access
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/data-access', auth, async (req, res) => {
+router.post('/data-access', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const ipAddress = req.ip || req.connection.remoteAddress;
@@ -210,8 +217,9 @@ router.post('/data-access', auth, async (req, res) => {
 /**
  * Request data rectification (GDPR Article 16)
  * PUT /api/v1/gdpr/data-rectification
+ * Note: Auth is applied at router level in server.js
  */
-router.put('/data-rectification', auth, async (req, res) => {
+router.put('/data-rectification', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { rectificationData } = req.body;
@@ -250,8 +258,9 @@ router.put('/data-rectification', auth, async (req, res) => {
 /**
  * Request data erasure (GDPR Article 17 - Right to be Forgotten)
  * DELETE /api/v1/gdpr/data-erasure
+ * Note: Auth is applied at router level in server.js
  */
-router.delete('/data-erasure', auth, async (req, res) => {
+router.delete('/data-erasure', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { reason } = req.body;
@@ -283,8 +292,9 @@ router.delete('/data-erasure', auth, async (req, res) => {
 /**
  * Request data portability (GDPR Article 20)
  * POST /api/v1/gdpr/data-portability
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/data-portability', auth, async (req, res) => {
+router.post('/data-portability', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const ipAddress = req.ip || req.connection.remoteAddress;
@@ -314,8 +324,9 @@ router.post('/data-portability', auth, async (req, res) => {
 /**
  * Object to processing (GDPR Article 21)
  * POST /api/v1/gdpr/object-to-processing
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/object-to-processing', auth, async (req, res) => {
+router.post('/object-to-processing', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { reason } = req.body;
@@ -354,8 +365,9 @@ router.post('/object-to-processing', auth, async (req, res) => {
 /**
  * Request processing restriction (GDPR Article 18)
  * POST /api/v1/gdpr/restrict-processing
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/restrict-processing', auth, async (req, res) => {
+router.post('/restrict-processing', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { reason } = req.body;
@@ -394,8 +406,9 @@ router.post('/restrict-processing', auth, async (req, res) => {
 /**
  * Get data processing audit log
  * GET /api/v1/gdpr/audit-log
+ * Note: Auth is applied at router level in server.js
  */
-router.get('/audit-log', auth, async (req, res) => {
+router.get('/audit-log', async (req, res) => {
     try {
         const userId = req.user.id || req.user.user.id;
         const { limit = 50, offset = 0 } = req.query;
@@ -436,8 +449,9 @@ router.get('/audit-log', auth, async (req, res) => {
 /**
  * Admin endpoint: Process data retention cleanup
  * POST /api/v1/gdpr/admin/retention-cleanup
+ * Note: Auth is applied at router level in server.js
  */
-router.post('/admin/retention-cleanup', auth, async (req, res) => {
+router.post('/admin/retention-cleanup', async (req, res) => {
     try {
         // Check if user is admin
         const userId = req.user.id || req.user.user.id;

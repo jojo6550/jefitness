@@ -6,7 +6,8 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { auth } = require('../middleware/auth');
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads/medical-documents');
@@ -43,7 +44,8 @@ const upload = multer({
 });
 
 // ================= Upload a document =================
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+// Auth is applied at router level in server.js
+router.post('/upload', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ msg: 'No file uploaded' });
 
@@ -71,7 +73,8 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 });
 
 // ================= Delete a document =================
-router.post('/delete', auth, async (req, res) => {
+// Auth is applied at router level in server.js
+router.post('/delete', async (req, res) => {
     try {
         const { filename } = req.body;
         if (!filename) return res.status(400).json({ msg: 'Filename is required' });
@@ -101,7 +104,8 @@ router.post('/delete', auth, async (req, res) => {
 });
 
 // ================= Get user's medical documents =================
-router.get('/get', auth, async (req, res) => {
+// Auth is applied at router level in server.js
+router.get('/get', async (req, res) => {
     try {
         if (!req.user || !req.user.id) return res.status(401).json({ msg: 'Unauthorized' });
 
@@ -128,7 +132,8 @@ router.get('/get', auth, async (req, res) => {
 });
 
 // ================= Save medical info =================
-router.post('/save-info', auth, async (req, res) => {
+// Auth is applied at router level in server.js
+router.post('/save-info', async (req, res) => {
     try {
         const { hasMedical, medicalConditions } = req.body;
 
@@ -152,6 +157,7 @@ router.post('/save-info', auth, async (req, res) => {
 });
 
 // ================= View a document in browser =================
+// This route has its own token verification - no auth middleware needed
 router.get('/view/:filename', async (req, res) => {
     try {
         const { filename } = req.params;
@@ -196,7 +202,8 @@ router.get('/view/:filename', async (req, res) => {
 });
 
 // ================= Download a document =================
-router.get('/download/:filename', auth, async (req, res) => {
+// Auth is applied at router level in server.js
+router.get('/download/:filename', async (req, res) => {
     try {
         const { filename } = req.params;
 

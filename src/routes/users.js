@@ -2,15 +2,18 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { auth, requireAdmin } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const { validateObjectId, stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require('../middleware/inputValidator');
 
 // SECURITY: Apply input validation to all user routes
 router.use(preventNoSQLInjection);
 router.use(stripDangerousFields);
 
+// Note: Auth middleware is applied at the router level in server.js
+// Only role-specific middleware (like requireAdmin) should be at route level
+
 // GET /api/users/trainers - Get all trainers with pagination
-router.get('/trainers', auth, async (req, res) => {
+router.get('/trainers', async (req, res) => {
     try {
         console.log(`Fetching trainers for user: ${req.user.id}`);
         
@@ -51,7 +54,7 @@ router.get('/trainers', auth, async (req, res) => {
 });
 
 // SECURITY: GET /api/users/admins - Get all admins with pagination (admin only)
-router.get('/admins', auth, requireAdmin, async (req, res) => {
+router.get('/admins', requireAdmin, async (req, res) => {
     try {
         // Parse pagination parameters with defaults and limits
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -88,7 +91,7 @@ router.get('/admins', auth, requireAdmin, async (req, res) => {
 });
 
 // SECURITY: GET /api/users - Get all users with pagination (admin only)
-router.get('/', auth, requireAdmin, async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
     try {
         // Parse pagination parameters with defaults and limits
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -153,7 +156,7 @@ router.get('/', auth, requireAdmin, async (req, res) => {
 });
 
 // SECURITY: GET /api/users/profile - Get current user profile
-router.get('/profile', auth, async (req, res) => {
+router.get('/profile', async (req, res) => {
     try {
         // SECURITY: Exclude sensitive fields
         const user = await User.findById(req.user.id).select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
@@ -175,7 +178,7 @@ router.get('/profile', auth, async (req, res) => {
 });
 
 // SECURITY: GET /api/users/:id - Get user by ID (with IDOR protection)
-router.get('/:id', auth, validateObjectId('id'), async (req, res) => {
+router.get('/:id', validateObjectId('id'), async (req, res) => {
     try {
         // SECURITY: IDOR Prevention - Users can only access their own data unless admin
         if (req.user.role !== 'admin' && req.params.id !== req.user.id.toString()) {
@@ -208,7 +211,7 @@ router.get('/:id', auth, validateObjectId('id'), async (req, res) => {
 });
 
 // SECURITY: PUT /api/users/:id - Update user profile (with IDOR protection)
-router.put('/:id', auth, validateObjectId('id'), [
+router.put('/:id', validateObjectId('id'), [
     body('firstName').optional().isLength({ min: 1 }).withMessage('First name is required'),
     body('lastName').optional().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').optional().isEmail().withMessage('Please include a valid email'),
@@ -270,7 +273,7 @@ router.put('/:id', auth, validateObjectId('id'), [
 });
 
 // SECURITY: DELETE /api/users/:id - Delete user (admin only)
-router.delete('/:id', auth, requireAdmin, validateObjectId('id'), async (req, res) => {
+router.delete('/:id', requireAdmin, validateObjectId('id'), async (req, res) => {
     try {
 
         const user = await User.findById(req.params.id);
@@ -300,7 +303,7 @@ router.delete('/:id', auth, requireAdmin, validateObjectId('id'), async (req, re
 
 // SECURITY: GET /api/users/data-export - Export user data (GDPR Article 20)
 // FIX: Removed allowOnlyFields middleware - GET requests have no body to validate
-router.get('/data-export', auth, async (req, res) => {
+router.get('/data-export', async (req, res) => {
     try {
         // SECURITY: Exclude sensitive tokens from export
         const user = await User.findById(req.user.id).select('-password -__v -emailVerificationToken -passwordResetToken -pushSubscription');
@@ -350,7 +353,7 @@ router.get('/data-export', auth, async (req, res) => {
 });
 
 // DELETE /api/users/data-delete - Delete user data (GDPR Right to Erasure)
-router.delete('/data-delete', auth, [
+router.delete('/data-delete', [
     body('confirmation', 'Confirmation text is required').equals('DELETE ALL MY DATA'),
     body('reason', 'Deletion reason is required').isIn(['withdraw_consent', 'no_longer_needed', 'other'])
 ], async (req, res) => {
@@ -403,7 +406,7 @@ router.delete('/data-delete', auth, [
 
 // GET /api/users/privacy-settings - Get current privacy settings
 // FIX: Removed allowOnlyFields middleware - GET requests have no body to validate
-router.get('/privacy-settings', auth, async (req, res) => {
+router.get('/privacy-settings', async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('privacySettings dataDeletedAt deletionReason');
         if (!user) {
@@ -427,7 +430,7 @@ router.get('/privacy-settings', auth, async (req, res) => {
 });
 
 // PUT /api/users/privacy-settings - Update privacy settings
-router.put('/privacy-settings', auth, allowOnlyFields(['marketingEmails', 'dataAnalytics', 'thirdPartySharing'], true), async (req, res) => {
+router.put('/privacy-settings', allowOnlyFields(['marketingEmails', 'dataAnalytics', 'thirdPartySharing'], true), async (req, res) => {
     try {
         const { marketingEmails, dataAnalytics, thirdPartySharing } = req.body;
 

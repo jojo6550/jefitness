@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const { auth, requireTrainer } = require('../middleware/auth');
+// Note: Auth middleware is applied at the router level in server.js
+// Remove redundant auth imports and route-level auth
+const { requireTrainer } = require('../middleware/auth');
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 
 const { logger, logAdminAction, logUserAction } = require('../services/logger');
@@ -16,7 +18,7 @@ const { logger, logAdminAction, logUserAction } = require('../services/logger');
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/dashboard', auth, requireTrainer, async (req, res) => {
+router.get('/dashboard', requireTrainer, async (req, res) => {
     try {
         const trainerId = req.user.id;
         const now = new Date();
@@ -158,7 +160,7 @@ router.get('/dashboard', auth, requireTrainer, async (req, res) => {
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/clients', auth, requireTrainer, requireActiveSubscription, async (req, res) => {
+router.get('/clients', requireTrainer, requireActiveSubscription, async (req, res) => {
     try {
         const trainerId = req.user.id;
         const {
@@ -229,7 +231,7 @@ router.get('/clients', auth, requireTrainer, requireActiveSubscription, async (r
  * @throws  {403} Access denied if not trainer
  * @throws  {500} Server error
  */
-router.get('/appointments', auth, requireTrainer, async (req, res) => {
+router.get('/appointments', requireTrainer, async (req, res) => {
     try {
         const trainerId = req.user.id;
         let {
@@ -374,7 +376,7 @@ router.get('/appointments', auth, requireTrainer, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.get('/appointments/:id', auth, requireTrainer, async (req, res) => {
+router.get('/appointments/:id', requireTrainer, async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id)
             .populate('clientId')
@@ -408,7 +410,7 @@ router.get('/appointments/:id', auth, requireTrainer, async (req, res) => {
  * @throws  {404} Appointment not found
  * @throws  {500} Server error
  */
-router.put('/appointments/:id', auth, requireTrainer, async (req, res) => {
+router.put('/appointments/:id', requireTrainer, async (req, res) => {
     try {
         const appointment = await Appointment.findById(req.params.id);
 
@@ -453,7 +455,7 @@ router.put('/appointments/:id', auth, requireTrainer, async (req, res) => {
  * @throws  {404} Client not found
  * @throws  {500} Server error
  */
-router.get('/client/:clientId', auth, requireTrainer, async (req, res) => {
+router.get('/client/:clientId', requireTrainer, async (req, res) => {
     try {
         const trainerId = req.user.id;
         const { clientId } = req.params;
