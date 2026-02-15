@@ -353,9 +353,46 @@ app.use('/api', (req, res) => {
   });
 });
 
-// Serve frontend for SPA routes (non-API routes only)
+// 404 handler for non-existent pages (MPA mode)
+// This serves static files from public/ directory
+// For non-existent HTML pages, respond with 404
 app.use((req, res) => {
-  res.sendFile(path.resolve(__dirname, '..', 'public', 'index.html'));
+  res.status(404).set('Content-Type', 'text/html');
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>404 - Page Not Found | JE Fitness</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    </head>
+    <body>
+      <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+          <a class="navbar-brand fw-bold" href="/">JE <span style="color: #00bcd4;">FITNESS</span></a>
+        </div>
+      </nav>
+      <div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+        <div class="text-center">
+          <h1 class="display-1 fw-bold mb-4">404</h1>
+          <h2 class="mb-4">Page Not Found</h2>
+          <p class="lead mb-4">The page you're looking for doesn't exist or has been moved.</p>
+          <div class="d-flex gap-3 justify-content-center">
+            <a href="/" class="btn btn-primary btn-lg">
+              <i class="bi bi-house me-2"></i>Go Home
+            </a>
+            <a href="/pages/products.html" class="btn btn-outline-primary btn-lg">
+              <i class="bi bi-shop me-2"></i>Browse Products
+            </a>
+          </div>
+        </div>
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+  `);
 });
 
 // -----------------------------

@@ -12,6 +12,7 @@ const { stripDangerousFields, preventNoSQLInjection, allowOnlyFields } = require
 const { requireDbConnection } = require('../middleware/dbConnection');
 const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
 const apiError = require('../utils/apiError');
+const { validatePasswordStrength } = require('../utils/validators');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
@@ -67,31 +68,7 @@ const createStripeCustomerForUser = async (user) => {
 };
 
 
-// Password strength validation function
-const validatePasswordStrength = (password) => {
-    const minLength = 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-    if (password.length < minLength) {
-        return 'Password must be at least 8 characters long.';
-    }
-    if (!hasUpperCase) {
-        return 'Password must contain at least one uppercase letter.';
-    }
-    if (!hasLowerCase) {
-        return 'Password must contain at least one lowercase letter.';
-    }
-    if (!hasNumbers) {
-        return 'Password must contain at least one number.';
-    }
-    if (!hasSpecialChar) {
-        return 'Password must contain at least one special character.';
-    }
-    return null; // Password is strong
-};
 
 /**
  * @swagger

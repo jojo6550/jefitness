@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // LOGIN
   if (loginForm) {
-    // Real-time validation
+    // Real-time validation using shared validators
     const emailInput = document.getElementById('inputEmail');
     const passwordInput = document.getElementById('inputPassword');
     const emailError = document.getElementById('emailError');
@@ -21,31 +21,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateEmail() {
       const email = emailInput.value.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const result = Validators.validateEmail(email);
 
-      if (!email) {
-        showFieldError(emailInput, emailError, 'Email is required.');
-        return false;
-      } else if (!emailRegex.test(email)) {
-        showFieldError(emailInput, emailError, 'Please enter a valid email address.');
+      if (!result.valid) {
+        Validators.showFieldError(emailInput, emailError, result.error);
         return false;
       } else {
-        hideFieldError(emailInput, emailError);
+        Validators.hideFieldError(emailInput, emailError);
         return true;
       }
     }
 
     function validatePassword() {
       const password = passwordInput.value;
+      const result = Validators.validatePassword(password);
 
-      if (!password) {
-        showFieldError(passwordInput, passwordError, 'Password is required.');
-        return false;
-      } else if (password.length < 6) {
-        showFieldError(passwordInput, passwordError, 'Password must be at least 6 characters.');
+      if (!result.valid) {
+        Validators.showFieldError(passwordInput, passwordError, result.error);
         return false;
       } else {
-        hideFieldError(passwordInput, passwordError);
+        Validators.hideFieldError(passwordInput, passwordError);
         return true;
       }
     }
@@ -128,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // SIGNUP
   if (signupForm) {
-    // Password requirements checker
+    // Password requirements checker using shared validators
     const passwordInput = document.getElementById('inputPassword');
     const reqLength = document.getElementById('req-length');
     const reqUppercase = document.getElementById('req-uppercase');
@@ -138,17 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkPasswordRequirements() {
       const password = passwordInput.value;
-      const minLength = password.length >= 8;
-      const hasUpperCase = /[A-Z]/.test(password);
-      const hasLowerCase = /[a-z]/.test(password);
-      const hasNumbers = /\d/.test(password);
-      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      const reqs = Validators.getPasswordRequirements(password);
 
-      reqLength.className = minLength ? 'text-success' : 'text-muted';
-      reqUppercase.className = hasUpperCase ? 'text-success' : 'text-muted';
-      reqLowercase.className = hasLowerCase ? 'text-success' : 'text-muted';
-      reqNumber.className = hasNumbers ? 'text-success' : 'text-muted';
-      reqSpecial.className = hasSpecialChar ? 'text-success' : 'text-muted';
+      reqLength.className = reqs.minLength ? 'text-success' : 'text-muted';
+      reqUppercase.className = reqs.hasUpperCase ? 'text-success' : 'text-muted';
+      reqLowercase.className = reqs.hasLowerCase ? 'text-success' : 'text-muted';
+      reqNumber.className = reqs.hasNumbers ? 'text-success' : 'text-muted';
+      reqSpecial.className = reqs.hasSpecialChar ? 'text-success' : 'text-muted';
     }
 
     passwordInput.addEventListener('input', checkPasswordRequirements);
@@ -167,81 +158,58 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmPasswordError = document.getElementById('confirmPasswordError');
 
     function validateFirstName() {
-      const firstName = firstNameInput.value.trim();
-      if (!firstName) {
-        showFieldError(firstNameInput, firstNameError, 'First name is required.');
-        return false;
-      } else if (firstName.length < 2) {
-        showFieldError(firstNameInput, firstNameError, 'First name must be at least 2 characters.');
+      const result = Validators.validateName(firstNameInput.value, 'First name');
+      if (!result.valid) {
+        Validators.showFieldError(firstNameInput, firstNameError, result.error);
         return false;
       } else {
-        hideFieldError(firstNameInput, firstNameError);
+        Validators.hideFieldError(firstNameInput, firstNameError);
         return true;
       }
     }
 
     function validateLastName() {
-      const lastName = lastNameInput.value.trim();
-      if (!lastName) {
-        showFieldError(lastNameInput, lastNameError, 'Last name is required.');
-        return false;
-      } else if (lastName.length < 2) {
-        showFieldError(lastNameInput, lastNameError, 'Last name must be at least 2 characters.');
+      const result = Validators.validateName(lastNameInput.value, 'Last name');
+      if (!result.valid) {
+        Validators.showFieldError(lastNameInput, lastNameError, result.error);
         return false;
       } else {
-        hideFieldError(lastNameInput, lastNameError);
+        Validators.hideFieldError(lastNameInput, lastNameError);
         return true;
       }
     }
 
     function validateSignupEmail() {
-      const email = signupEmailInput.value.trim();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!email) {
-        showFieldError(signupEmailInput, signupEmailError, 'Email is required.');
-        return false;
-      } else if (!emailRegex.test(email)) {
-        showFieldError(signupEmailInput, signupEmailError, 'Please enter a valid email address.');
+      const result = Validators.validateEmail(signupEmailInput.value.trim());
+      if (!result.valid) {
+        Validators.showFieldError(signupEmailInput, signupEmailError, result.error);
         return false;
       } else {
-        hideFieldError(signupEmailInput, signupEmailError);
+        Validators.hideFieldError(signupEmailInput, signupEmailError);
         return true;
       }
     }
 
     function validateSignupPassword() {
       const password = signupPasswordInput.value;
-      const minLength = password.length >= 8;
-      const hasUpperCase = /[A-Z]/.test(password);
-      const hasLowerCase = /[a-z]/.test(password);
-      const hasNumbers = /\d/.test(password);
-      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      const error = Validators.validatePasswordStrength(password);
 
-      if (!password) {
-        showFieldError(signupPasswordInput, signupPasswordError, 'Password is required.');
-        return false;
-      } else if (!minLength || !hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
-        showFieldError(signupPasswordInput, signupPasswordError, 'Password must meet all requirements.');
+      if (error) {
+        Validators.showFieldError(signupPasswordInput, signupPasswordError, error);
         return false;
       } else {
-        hideFieldError(signupPasswordInput, signupPasswordError);
+        Validators.hideFieldError(signupPasswordInput, signupPasswordError);
         return true;
       }
     }
 
     function validateConfirmPassword() {
-      const password = signupPasswordInput.value;
-      const confirmPassword = confirmPasswordInput.value;
-
-      if (!confirmPassword) {
-        showFieldError(confirmPasswordInput, confirmPasswordError, 'Please confirm your password.');
-        return false;
-      } else if (password !== confirmPassword) {
-        showFieldError(confirmPasswordInput, confirmPasswordError, 'Passwords do not match.');
+      const result = Validators.validateConfirmPassword(signupPasswordInput.value, confirmPasswordInput.value);
+      if (!result.valid) {
+        Validators.showFieldError(confirmPasswordInput, confirmPasswordError, result.error);
         return false;
       } else {
-        hideFieldError(confirmPasswordInput, confirmPasswordError);
+        Validators.hideFieldError(confirmPasswordInput, confirmPasswordError);
         return true;
       }
     }
@@ -531,27 +499,6 @@ document.addEventListener('DOMContentLoaded', () => {
       button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Loading...';
     } else {
       button.innerHTML = originalText;
-    }
-  }
-
-  function showFieldError(input, errorDiv, message) {
-    if (input) {
-      input.classList.add('is-invalid');
-      input.classList.remove('is-valid');
-    }
-    if (errorDiv) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    }
-  }
-
-  function hideFieldError(input, errorDiv) {
-    if (input) {
-      input.classList.remove('is-invalid');
-      input.classList.add('is-valid');
-    }
-    if (errorDiv) {
-      errorDiv.style.display = 'none';
     }
   }
 

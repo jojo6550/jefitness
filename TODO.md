@@ -21,11 +21,11 @@
 ## Issue 3: Mixed Traditional HTML with SPA Approach
 
 ### Tasks:
-- [ ] 3.1 Document the architectural decision (MPA vs SPA)
-- [ ] 3.2 Option A: Convert to full SPA with React/Next.js (recommend)
-- [ ] 3.2 Option B: Standardize on traditional MPA (keep HTML pages, remove SPA fallback)
-- [ ] 3.3 Update server.js to serve appropriate content based on decision
-- [ ] 3.4 Update client-side JavaScript to match chosen architecture
+- [x] 3.1 Document the architectural decision (MPA vs SPA) - ARCHITECTURE.md enhanced with implementation details
+- [x] 3.2 Option B: Standardize on traditional MPA (chosen - keep HTML pages, remove SPA fallback)
+- [x] 3.3 Update server.js to remove the incorrect SPA fallback
+- [x] 3.4 Create proper MPA 404 handler for non-existent HTML pages
+- [x] 3.5 Verify client-side JavaScript matches MPA architecture (no SPA-like behavior found)
 
 ## Priority Order:
 1. ✅ Fix critical syntax errors in server.js (Issue 2.1)
@@ -34,9 +34,33 @@
 4. ✅ Refactor server.js into modules (Issue 1)
 5. ⚠️ Make architectural decision for SPA/MPA (Issue 3)
 
+## Issue 4: Redundant Validation & No Progressive Enhancement
+
+### Context
+- Client-side validation (auth.js) and server-side validation (routes/auth.js) duplicate the same logic
+- Forms don't work without JavaScript - no progressive enhancement
+- Inconsistent validation error messages between client and server
+
+### Tasks:
+- [x] 4.1 Create shared validation utilities `src/utils/validators.js`
+- [x] 4.2 Create client-side validators wrapper `public/js/validators.js`
+- [x] 4.3 Update `public/js/auth.js` to use shared validators
+- [x] 4.4 Remove duplicate `validatePasswordStrength` function from `src/routes/auth.js`
+- [x] 4.5 Create `PROGRESSIVE_ENHANCEMENT.md` with implementation guide
+- [ ] 4.6 Update HTML forms with `name` attributes and HTML5 validation
+- [ ] 4.7 Update form submission handlers for graceful degradation
+- [ ] 4.8 Test forms without JavaScript enabled
+
 ## Summary of Changes Made:
 
-### Fixed Route Files:
+### Issue 4 - Validation & Progressive Enhancement:
+- ✅ src/utils/validators.js - Shared validation utilities for server
+- ✅ public/js/validators.js - Shared validation utilities for client
+- ✅ public/js/auth.js - Updated to use Validators.* instead of inline functions
+- ✅ src/routes/auth.js - Removed duplicate validatePasswordStrength function
+- ✅ PROGRESSIVE_ENHANCEMENT.md - Comprehensive implementation guide
+
+### Issue 1 - Fixed Route Files:
 - ✅ src/routes/clients.js - Removed redundant auth middleware
 - ✅ src/routes/users.js - Removed redundant auth middleware (kept requireAdmin for admin routes)
 - ✅ src/routes/logs.js - Removed redundant auth middleware
@@ -46,9 +70,15 @@
 - ✅ src/routes/trainer.js - Removed redundant auth middleware (kept requireTrainer and requireActiveSubscription)
 - ✅ src/routes/gdpr.js - Removed redundant auth middleware
 
-### Created New Files:
+### Issue 1 - Created New Files:
 - ✅ src/middleware/protectedRoute.js - Middleware wrapper for consistent route protection
 
-### Fixed server.js:
+### Issue 2 - Fixed server.js:
 - ✅ Fixed syntax errors in route registrations
 - ✅ Removed messy test bypass pattern
+
+### Issue 3 - MPA Architecture Implementation:
+- ✅ ARCHITECTURE.md - Enhanced with detailed architectural decision documentation
+- ✅ src/server.js - Removed SPA fallback (lines 356-359)
+- ✅ src/server.js - Implemented proper MPA 404 handler with HTML error page
+- ✅ Verified client-side JavaScript (app.js) is compatible with MPA (PWA features only, no SPA routing)
