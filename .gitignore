@@ -14,3 +14,10 @@ coverage/
 cypress/screenshots/
 blackbox_mcp_settings.json
 demo.js
+src/tests/integration/large.pdf
+src/tests/integration/test.pdf
+src/tests/integration/test.exe
+src/tests/integration/test.jpg
+.gitignore
+result.txt
+fixes

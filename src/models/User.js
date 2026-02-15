@@ -77,7 +77,6 @@ const UserSchema = new mongoose.Schema({
     select: false // SECURITY: Don't expose token version in regular queries
   },
   lastLoggedIn: { type: Date },
-  lastLogin: { type: Date },
   role: { 
     type: String, 
     enum: ['user', 'admin', 'trainer'], 
@@ -92,7 +91,6 @@ const UserSchema = new mongoose.Schema({
       message: 'Date of birth must be in the past and after 1900'
     }
   },
-  dateOfBirth: { type: Date },
   gender: { type: String, enum: ['male', 'female'] },
   phone: { type: String, match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number'] },
   activityStatus: { type: String, enum: ['active', 'inactive', 'on-break'], default: 'active' },
@@ -111,7 +109,6 @@ const UserSchema = new mongoose.Schema({
   emailVerificationToken: { type: String },
   emailVerificationExpires: { type: Date },
   passwordResetToken: { type: String },
-  resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
   failedLoginAttempts: { type: Number, default: 0 },
   lockoutUntil: { type: Date },

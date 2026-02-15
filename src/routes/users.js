@@ -46,7 +46,7 @@ router.get('/admins', auth, requireAdmin, async (req, res) => {
 router.get('/', auth, requireAdmin, async (req, res) => {
     try {
         // SECURITY: Exclude sensitive fields from response
-        const users = await User.find().select('-password -emailVerificationToken -resetToken -pushSubscription');
+        const users = await User.find().select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
         res.json({
             success: true,
             users
@@ -64,7 +64,7 @@ router.get('/', auth, requireAdmin, async (req, res) => {
 router.get('/profile', auth, async (req, res) => {
     try {
         // SECURITY: Exclude sensitive fields
-        const user = await User.findById(req.user.id).select('-password -emailVerificationToken -resetToken -pushSubscription');
+        const user = await User.findById(req.user.id).select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -94,7 +94,7 @@ router.get('/:id', auth, validateObjectId('id'), async (req, res) => {
         }
 
         // SECURITY: Exclude sensitive fields
-        const user = await User.findById(req.params.id).select('-password -emailVerificationToken -resetToken -pushSubscription');
+        const user = await User.findById(req.params.id).select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -162,7 +162,7 @@ router.put('/:id', auth, validateObjectId('id'), [
             req.params.id, 
             updateData, 
             { new: true, runValidators: true }
-        ).select('-password -emailVerificationToken -resetToken -pushSubscription');
+        ).select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
 
         res.json({
             success: true,
@@ -211,7 +211,7 @@ router.delete('/:id', auth, requireAdmin, validateObjectId('id'), async (req, re
 router.get('/data-export', auth, async (req, res) => {
     try {
         // SECURITY: Exclude sensitive tokens from export
-        const user = await User.findById(req.user.id).select('-password -__v -emailVerificationToken -resetToken -pushSubscription');
+        const user = await User.findById(req.user.id).select('-password -__v -emailVerificationToken -passwordResetToken -pushSubscription');
         if (!user) {
             return res.status(404).json({ msg: 'User not found' });
         }
@@ -239,9 +239,9 @@ router.get('/data-export', auth, async (req, res) => {
                 dietaryRestrictions: user.dietaryRestrictions
             },
             accountData: {
-                lastLogin: user.lastLogin,
+                lastLoggedIn: user.lastLoggedIn,
                 emailVerificationToken: user.emailVerificationToken ? 'Present' : 'Not present',
-                resetToken: user.resetToken ? 'Present' : 'Not present'
+                passwordResetToken: user.passwordResetToken ? 'Present' : 'Not present'
             }
         };
 
@@ -283,7 +283,7 @@ router.delete('/data-delete', auth, [
             lastName: 'User',
             email: `deleted-${req.user.id}@jefitness.com`,
             phone: null,
-            dateOfBirth: null,
+            dob: null,
             gender: null,
             height: null,
             weight: null,
@@ -292,8 +292,8 @@ router.delete('/data-delete', auth, [
             dietaryRestrictions: null,
             isEmailVerified: false,
             emailVerificationToken: null,
-            resetToken: null,
-            lastLogin: null,
+            passwordResetToken: null,
+            lastLoggedIn: null,
             dataDeletedAt: new Date(),
             deletionReason: req.body.reason
         });
