@@ -96,14 +96,16 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
   }
 
   // SECURITY: Replay protection - check if event was already processed
-  if (isWebhookEventProcessed(event.id)) {
+  const alreadyProcessed = await isWebhookEventProcessed(event.id);
+  if (alreadyProcessed) {
     console.warn(`⚠️ Security event: webhook_replay_attempt | EventId: ${event.id} | EventType: ${event.type}`);
     // Return 200 to acknowledge but skip processing
     return res.status(200).json({ received: true, processed: false, reason: 'Event already processed' });
   }
 
   // SECURITY: Mark event as processed before handling (prevents race conditions)
-  markWebhookEventProcessed(event.id);
+  // This uses MongoDB with TTL for automatic cleanup after 24 hours
+  await markWebhookEventProcessed(event.id, event.type);
 
   try {
     switch (event.type) {

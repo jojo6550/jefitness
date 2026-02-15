@@ -400,45 +400,38 @@ describe('Auth Middleware', () => {
   });
 
   describe('Webhook Event Processing', () => {
-    test('should track processed webhook events', () => {
+    test('should track processed webhook events', async () => {
       const eventId = 'evt_test123';
 
-      expect(isWebhookEventProcessed(eventId)).toBe(false);
+      expect(await isWebhookEventProcessed(eventId)).toBe(false);
 
-      markWebhookEventProcessed(eventId);
+      await markWebhookEventProcessed(eventId, 'customer.subscription.created');
 
-      expect(isWebhookEventProcessed(eventId)).toBe(true);
+      expect(await isWebhookEventProcessed(eventId)).toBe(true);
     });
 
-    test('should prevent duplicate event processing', () => {
+    test('should prevent duplicate event processing', async () => {
       const eventId = 'evt_duplicate123';
 
-      markWebhookEventProcessed(eventId);
+      await markWebhookEventProcessed(eventId, 'customer.subscription.updated');
 
       // Try to process again
-      const isDuplicate = isWebhookEventProcessed(eventId);
+      const isDuplicate = await isWebhookEventProcessed(eventId);
       expect(isDuplicate).toBe(true);
     });
 
-    test('should auto-cleanup old events after timeout', (done) => {
-      jest.useFakeTimers();
+    test('should handle database errors gracefully', async () => {
+      // Mock database error
+      jest.spyOn(require('../../../models/WebhookEvent'), 'findOne').mockRejectedValueOnce(
+        new Error('Database connection failed')
+      );
 
-      const eventId = 'evt_cleanup123';
-      markWebhookEventProcessed(eventId);
+      const eventId = 'evt_error_test';
+      
+      // Should return true (safe failure - assume processed)
+      const result = await isWebhookEventProcessed(eventId);
+      expect(result).toBe(true);
 
-      expect(isWebhookEventProcessed(eventId)).toBe(true);
-
-      // Fast-forward past cleanup time (24 hours)
-      jest.advanceTimersByTime(24 * 60 * 60 * 1000 + 1000);
-
-      // Event should be cleaned up
-      setTimeout(() => {
-        expect(isWebhookEventProcessed(eventId)).toBe(false);
-        jest.useRealTimers();
-        done();
-      }, 100);
-
-      jest.runAllTimers();
     });
   });
 });

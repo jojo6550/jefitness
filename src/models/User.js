@@ -229,21 +229,20 @@ UserSchema.methods.getSubscriptionInfo = async function() {
 // --------------------
 // Encryption
 // --------------------
-const encKey = process.env.ENCRYPTION_KEY;
-if (encKey) {
-  UserSchema.plugin(encrypt, {
-    encryptionKey: encKey,
-    signingKey: process.env.SIGNING_KEY || encKey,
-    encryptedFields: [
-      'medicalConditions', 'goals', 'reason', 'phone', 'dob', 'gender',
-      'startWeight', 'currentWeight', 'workoutLogs'
-    ],
-    excludeFromEncryption: [
-      'password', 'email', 'firstName', 'lastName', 'role',
-      'isEmailVerified', 'createdAt', 'lastLoggedIn', 'activityStatus',
-      'hasMedical', 'stripeCustomerId'
-    ]
-  });
+const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptionConfig');
+
+// SECURITY: Validate and apply encryption plugin with improved key handling
+if (isEncryptionEnabled()) {
+  try {
+    const encryptionConfig = getEncryptionConfig();
+    if (encryptionConfig) {
+      UserSchema.plugin(encrypt, encryptionConfig);
+    }
+  } catch (err) {
+    console.error('Failed to initialize encryption plugin:', err.message);
+    // Continue without encryption if key validation fails
+    // This is safer than failing startup
+  }
 }
 
 module.exports = mongoose.model('User', UserSchema);

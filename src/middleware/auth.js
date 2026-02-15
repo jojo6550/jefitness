@@ -1,11 +1,12 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const WebhookEvent = require('../models/WebhookEvent');
 const { AuthenticationError, AuthorizationError, NotFoundError } = require('./errorHandler');
 
-// SECURITY: In-memory processed events cache for webhook replay protection
-// In production, use Redis with TTL
-const processedWebhookEvents = new Set();
+// SECURITY: Webhook replay protection using MongoDB
+// Webhook events are persisted in the database with TTL for replay protection
+// This works across multiple server instances and survives restarts
 
 /**
  * SECURITY: Main authentication middleware
@@ -187,22 +188,46 @@ async function requireTrainer(req, res, next) {
 
 /**
  * SECURITY: Helper to check if webhook event has been processed (replay protection)
+ * Uses MongoDB for persistence across server restarts and instances
+ * @param {string} eventId - Stripe webhook event ID
+ * @returns {Promise<boolean>} True if event was already processed
  */
-function isWebhookEventProcessed(eventId) {
-    return processedWebhookEvents.has(eventId);
+async function isWebhookEventProcessed(eventId) {
+    try {
+        const existingEvent = await WebhookEvent.findOne({ eventId });
+        return !!existingEvent;
+    } catch (err) {
+        // If database is down, log error and fall back to safe behavior
+        // (reject the event to prevent potential duplicate processing)
+        console.error(`Failed to check webhook event status: ${err.message}`);
+        return true; // Assume processed on error (safe failure)
+    }
 }
 
 /**
  * SECURITY: Mark webhook event as processed
+ * Uses MongoDB TTL index for automatic cleanup after 24 hours
+ * This prevents memory leaks and works across multiple server instances
+ * @param {string} eventId - Stripe webhook event ID
+ * @param {string} eventType - Type of webhook event
+ * @returns {Promise<void>}
  */
-function markWebhookEventProcessed(eventId) {
-    processedWebhookEvents.add(eventId);
-    
-    // SECURITY: Auto-cleanup after 24 hours to prevent memory leak
-    // In production, use Redis with TTL instead
-    setTimeout(() => {
-        processedWebhookEvents.delete(eventId);
-    }, 24 * 60 * 60 * 1000);
+async function markWebhookEventProcessed(eventId, eventType = 'unknown') {
+    try {
+        const webhookEvent = new WebhookEvent({
+            eventId,
+            eventType,
+            processedAt: new Date(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+        });
+        
+        // Use ensureProcessed to handle race conditions safely
+        await webhookEvent.ensureProcessed();
+        console.log(`Webhook event marked as processed: ${eventId}`);
+    } catch (err) {
+        // Log error but don't throw - webhook processing should continue
+        console.error(`Failed to mark webhook event as processed: ${err.message}`);
+    }
 }
 
 module.exports = {
