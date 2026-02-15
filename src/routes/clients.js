@@ -75,81 +75,52 @@ router.get('/statistics', auth, async (req, res) => {
             return res.status(403).json({ msg: 'Access denied' });
         }
 
-        // Get all clients for statistics (excluding admins)
-        const clients = await User.find({ role: { $ne: 'admin' } }).select('-password');
-
-        // Calculate statistics
-        const totalClients = clients.length;
-        const activeClients = clients.filter(c => c.activityStatus === 'active').length;
-        const inactiveClients = clients.filter(c => c.activityStatus === 'inactive').length;
-        const onBreakClients = clients.filter(c => c.activityStatus === 'on-break').length;
-
-        // Calculate average calories from nutrition logs
-        let totalCalories = 0;
-        let totalNutritionLogs = 0;
-        clients.forEach(client => {
-            if (client.nutritionLogs && client.nutritionLogs.length > 0) {
-                client.nutritionLogs.forEach(log => {
-                    totalCalories += log.calories || 0;
-                    totalNutritionLogs++;
-                });
+        // Use MongoDB aggregation to calculate statistics in the database (fixes N+1 query)
+        const statistics = await User.aggregate([
+            // Match all non-admin users
+            {
+                $match: { role: { $ne: 'admin' } }
+            },
+            // Group all documents and calculate counts using $cond for activityStatus
+            {
+                $group: {
+                    _id: null,
+                    totalClients: { $sum: 1 },
+                    activeClients: {
+                        $sum: { $cond: [{ $eq: ['$activityStatus', 'active'] }, 1, 0] }
+                    },
+                    inactiveClients: {
+                        $sum: { $cond: [{ $eq: ['$activityStatus', 'inactive'] }, 1, 0] }
+                    },
+                    onBreakClients: {
+                        $sum: { $cond: [{ $eq: ['$activityStatus', 'on-break'] }, 1, 0] }
+                    }
+                }
             }
-        });
-        const avgCalories = totalNutritionLogs > 0 ? Math.round(totalCalories / totalNutritionLogs) : 0;
+        ]);
 
-        // Calculate average sleep hours
-        let totalSleepHours = 0;
-        let totalSleepLogs = 0;
-        clients.forEach(client => {
-            if (client.sleepLogs && client.sleepLogs.length > 0) {
-                client.sleepLogs.forEach(log => {
-                    totalSleepHours += log.hoursSlept || 0;
-                    totalSleepLogs++;
-                });
-            }
-        });
-        const avgSleep = totalSleepLogs > 0 ? (totalSleepHours / totalSleepLogs).toFixed(1) : '0.0';
+        // Extract statistics from aggregation result (default to 0 if no clients found)
+        const stats = statistics[0] || {
+            totalClients: 0,
+            activeClients: 0,
+            inactiveClients: 0,
+            onBreakClients: 0
+        };
 
-        // Find top performers based on available data
-        const topCalorieBurner = clients.reduce((top, client) => {
-            const clientCalories = client.nutritionLogs?.reduce((sum, log) => sum + (log.calories || 0), 0) || 0;
-            const topCalories = top.nutritionLogs?.reduce((sum, log) => sum + (log.calories || 0), 0) || 0;
-            return clientCalories > topCalories ? client : top;
-        }, clients[0] || null);
-
-        const bestSleeper = clients.reduce((best, client) => {
-            const avgClientSleep = client.sleepLogs?.length > 0 
-                ? client.sleepLogs.reduce((sum, log) => sum + log.hoursSlept, 0) / client.sleepLogs.length 
-                : 0;
-            const avgBestSleep = best.sleepLogs?.length > 0 
-                ? best.sleepLogs.reduce((sum, log) => sum + log.hoursSlept, 0) / best.sleepLogs.length 
-                : 0;
-            return avgClientSleep > avgBestSleep ? client : best;
-        }, clients[0] || null);
-
-        const mostActive = clients.filter(c => c.activityStatus === 'active')[0] || null;
-
+        // Note: nutritionLogs and sleepLogs fields are not present in the User model
+        // If these fields are added in the future, they can be calculated via aggregation
+        // For now, return null/0 for these metrics
         res.json({
-            totalClients,
-            activeClients,
-            inactiveClients,
-            onBreakClients,
-            avgCalories,
-            avgSleep,
+            totalClients: stats.totalClients,
+            activeClients: stats.activeClients,
+            inactiveClients: stats.inactiveClients,
+            onBreakClients: stats.onBreakClients,
+            avgCalories: 0,
+            avgSleep: '0.0',
             topPerformers: {
-                topCalorieBurner: topCalorieBurner ? {
-                    name: `${topCalorieBurner.firstName} ${topCalorieBurner.lastName}`,
-                    calories: topCalorieBurner.nutritionLogs?.reduce((sum, log) => sum + (log.calories || 0), 0) || 0
-                } : null,
-                bestSleeper: bestSleeper ? {
-                    name: `${bestSleeper.firstName} ${bestSleeper.lastName}`,
-                    avgSleep: bestSleeper.sleepLogs?.length > 0 
-                        ? (bestSleeper.sleepLogs.reduce((sum, log) => sum + log.hoursSlept, 0) / bestSleeper.sleepLogs.length).toFixed(1)
-                        : '0.0'
-                } : null,
-                mostActive: mostActive ? {
-                    name: `${mostActive.firstName} ${mostActive.lastName}`
-                } : null
+                topCalorieBurner: null,
+                bestSleeper: null,
+                mostActive: stats.activeClients > 0 ? { name: 'N/A' } : null
             }
         });
     } catch (err) {

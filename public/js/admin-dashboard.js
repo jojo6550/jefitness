@@ -8,10 +8,6 @@ let currentSortOrder = 'asc';
 let currentStatus = '';
 let currentAppointmentsSortBy = 'date';
 let currentAppointmentsSortOrder = 'asc';
-let currentOrdersPage = 1;
-let currentOrdersSearch = '';
-let currentOrdersSortBy = 'createdAt';
-let currentOrdersSortOrder = 'desc';
 
 // Debounce function for search
 function debounce(func, wait) {

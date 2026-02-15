@@ -9,18 +9,39 @@ const { validateObjectId, stripDangerousFields, preventNoSQLInjection, allowOnly
 router.use(preventNoSQLInjection);
 router.use(stripDangerousFields);
 
-// GET /api/users/trainers - Get all trainers
+// GET /api/users/trainers - Get all trainers with pagination
 router.get('/trainers', auth, async (req, res) => {
     try {
         console.log(`Fetching trainers for user: ${req.user.id}`);
+        
+        // Parse pagination parameters with defaults and limits
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination metadata
+        const totalCount = await User.countDocuments({ role: 'trainer' });
+
+        // Fetch trainers with pagination
         const trainers = await User.find({
             role: 'trainer'
-        }).select('firstName lastName email _id');
+        })
+        .select('firstName lastName email _id')
+        .skip(skip)
+        .limit(limit)
+        .sort({ firstName: 1, lastName: 1 });
 
-        console.log(`Found ${trainers.length} trainers`);
+        console.log(`Found ${trainers.length} trainers (page ${page} of ${Math.ceil(totalCount/limit)})`);
         res.json({
             success: true,
-            trainers
+            trainers,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalTrainers: totalCount,
+                hasNext: page * limit < totalCount,
+                hasPrev: page > 1
+            }
         });
     } catch (err) {
         console.error('Error fetching trainers:', err);
@@ -29,27 +50,98 @@ router.get('/trainers', auth, async (req, res) => {
     }
 });
 
-// SECURITY: GET /api/users/admins - Get all admins (admin only)
+// SECURITY: GET /api/users/admins - Get all admins with pagination (admin only)
 router.get('/admins', auth, requireAdmin, async (req, res) => {
     try {
+        // Parse pagination parameters with defaults and limits
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const skip = (page - 1) * limit;
+
+        // Get total count for pagination metadata
+        const totalCount = await User.countDocuments({ role: 'admin' });
+
+        // Fetch admins with pagination
         const admins = await User.find({
             role: 'admin'
-        }).select('firstName lastName email _id');
-        res.json({ success: true, admins });
+        })
+        .select('firstName lastName email _id')
+        .skip(skip)
+        .limit(limit)
+        .sort({ firstName: 1, lastName: 1 });
+
+        res.json({ 
+            success: true, 
+            admins,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalAdmins: totalCount,
+                hasNext: page * limit < totalCount,
+                hasPrev: page > 1
+            }
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Server error' });
     }
 });
 
-// SECURITY: GET /api/users - Get all users (admin only)
+// SECURITY: GET /api/users - Get all users with pagination (admin only)
 router.get('/', auth, requireAdmin, async (req, res) => {
     try {
-        // SECURITY: Exclude sensitive fields from response
-        const users = await User.find().select('-password -emailVerificationToken -passwordResetToken -pushSubscription');
+        // Parse pagination parameters with defaults and limits
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+        const skip = (page - 1) * limit;
+
+        // Optional search/filter parameters
+        const { search, status, role } = req.query;
+        
+        // Build query
+        const query = {};
+        
+        // Add search filter
+        if (search) {
+            query.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+        
+        // Add status filter
+        if (status) {
+            query.activityStatus = status;
+        }
+        
+        // Add role filter
+        if (role) {
+            query.role = role;
+        }
+
+        // Get total count for pagination metadata
+        const totalCount = await User.countDocuments(query);
+
+        // SECURITY: Exclude sensitive fields AND large embedded arrays from response
+        // This prevents fetching workoutLogs, auditLog, etc. which can be very large
+        const users = await User.find(query)
+            .select('-password -emailVerificationToken -passwordResetToken -pushSubscription -workoutLogs -auditLog -medicalDocuments -purchasedPrograms -assignedPrograms')
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 })
+            .lean(); // Use lean() for better performance when we don't need Mongoose documents
+
         res.json({
             success: true,
-            users
+            users,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalUsers: totalCount,
+                hasNext: page * limit < totalCount,
+                hasPrev: page > 1
+            }
         });
     } catch (err) {
         console.error(err.message);
