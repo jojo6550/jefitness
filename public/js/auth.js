@@ -335,8 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const otp = document.getElementById('inputOtp').value;
 
       try {
-        const response = await fetch(`${window.API_BASE}
-/api/v1/auth/verify-email`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/auth/verify-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp })
@@ -407,8 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(forgotButton, true);
 
       try {
-        const res = await fetch(`${window.API_BASE}
-/api/v1/auth/forgot-password`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/auth/forgot-password`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email })
@@ -506,7 +504,21 @@ document.addEventListener('DOMContentLoaded', () => {
    * Standardized API error handler for frontend
    */
   function handleApiError(response, data, defaultMsg) {
-    const errorMsg = data.error?.message || data.msg || data.error || defaultMsg;
+    // Defensive check: ensure data exists and has expected structure
+    let errorMsg = defaultMsg;
+    
+    if (data) {
+      // Try various possible error response structures
+      if (data.error?.message) {
+        errorMsg = data.error.message;
+      } else if (data.msg) {
+        errorMsg = data.msg;
+      } else if (data.error) {
+        errorMsg = typeof data.error === 'string' ? data.error : data.error.message || defaultMsg;
+      } else if (data.message) {
+        errorMsg = data.message;
+      }
+    }
 
     switch (response.status) {
       case 401:
