@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!window.ApiConfig || typeof window.ApiConfig.getAPI_BASE !== 'function') {
     throw new Error('ApiConfig is not properly initialized. Ensure api.config.js is loaded before auth.js.');
   }
+  if (!window.Validators || typeof window.Validators.validateEmail !== 'function') {
+    throw new Error('Validators is not properly initialized. Ensure validators.js is loaded before auth.js.');
+  }
   window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 
@@ -313,6 +316,17 @@ document.addEventListener('DOMContentLoaded', () => {
           // Hide signup form and show OTP verification form
           signupForm.style.display = 'none';
           document.getElementById('otp-container').style.display = 'block';
+          // Store email in hidden input for OTP form
+          document.getElementById('otpEmail').value = email;
+          // Store signup data in sessionStorage for resend functionality
+          sessionStorage.setItem('signupAttempt', JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            password,
+            dataProcessingConsent: { given: true },
+            healthDataConsent: { given: true }
+          }));
           document.getElementById('otp-message').textContent = `We sent a verification code to ${email}`;
           window.Toast.success('Signup successful! Please check your email for verification code.');
         } else {
@@ -331,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (otpForm) {
     otpForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('inputEmail').value;
+      const email = document.getElementById('otpEmail').value;
       const otp = document.getElementById('inputOtp').value;
 
       try {
@@ -341,11 +355,22 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ email, otp })
         });
 
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          data = undefined;
+        }
 
         if (response.ok) {
+          if (!data) {
+            window.Toast.error('Invalid response from server. Please try again.');
+            return;
+          }
           localStorage.setItem('token', data.token);
           localStorage.setItem('userRole', data.user.role);
+          // Clear signup attempt data from session
+          sessionStorage.removeItem('signupAttempt');
           window.Toast.success('Email verified! Welcome to JE Fitness.');
           setTimeout(() => {
             window.location.href = '../pages/dashboard.html';
@@ -362,29 +387,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const resendOtpBtn = document.getElementById('resendOtp');
     if (resendOtpBtn) {
       resendOtpBtn.addEventListener('click', async () => {
-        const firstName = document.getElementById('inputFirstName').value;
-        const lastName = document.getElementById('inputLastName').value;
-        const email = document.getElementById('inputEmail').value;
-        const password = document.getElementById('inputPassword').value;
+        // Retrieve stored signup attempt data
+        const signupAttemptStr = sessionStorage.getItem('signupAttempt');
+        
+        if (!signupAttemptStr) {
+          window.Toast.error('Session expired. Please go back and sign up again.');
+          return;
+        }
+
+        let signupData;
+        try {
+          signupData = JSON.parse(signupAttemptStr);
+        } catch (err) {
+          window.Toast.error('Invalid session data. Please go back and sign up again.');
+          return;
+        }
 
         try {
           const response = await fetch(`${window.API_BASE}/api/v1/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firstName,
-              lastName,
-              email,
-              password,
-              dataProcessingConsent: { given: true },
-              healthDataConsent: { given: true }
-            })
+            body: JSON.stringify(signupData)
           });
+
+          let data;
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            data = undefined;
+          }
 
           if (response.ok) {
             window.Toast.success('OTP resent to your email.');
           } else {
-            const data = await response.json();
             handleApiError(response, data, 'Failed to resend OTP');
           }
         } catch (err) {
@@ -507,20 +542,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Defensive check: ensure data exists and has expected structure
     let errorMsg = defaultMsg;
     
+    // Use optional chaining throughout to handle undefined data
     if (data) {
       // Try various possible error response structures with optional chaining
-      if (data.error?.message) {
+      if (data?.error?.message) {
         errorMsg = data.error.message;
-      } else if (data.msg) {
+      } else if (data?.msg) {
         errorMsg = data.msg;
-      } else if (data.error) {
+      } else if (data?.error) {
         errorMsg = typeof data.error === 'string' ? data.error : (data.error?.message || defaultMsg);
-      } else if (data.message) {
+      } else if (data?.message) {
         errorMsg = data.message;
       }
     }
 
-    switch (response.status) {
+    switch (response?.status) {
       case 401:
         window.Toast.error(errorMsg || 'Your session has expired. Please log in again.');
         // If not on login page, redirect to login

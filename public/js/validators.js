@@ -116,3 +116,6 @@ const Validators = {
     }
   }
 };
+
+// Expose to window for global access
+window.Validators = Validators;
