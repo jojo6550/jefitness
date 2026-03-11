@@ -12,15 +12,18 @@ const cors = require('cors');
  */
 const corsOptions = {
   origin: function (origin, callback) {
-    // SECURITY: Define allowed origins explicitly (exact match only)
+    // Define allowed origins explicitly (exact match only)
     const allowedOrigins = [
       'https://jefitness.onrender.com', // Production
       process.env.FRONTEND_URL,
       ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
     ].filter(Boolean);
     
-    // SECURITY: In development only, allow localhost origins
-    if (process.env.NODE_ENV !== 'production') {
+    // Always allow localhost origins for development
+    // Check if origin contains localhost or 127.0.0.1
+    const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+    
+    if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
       allowedOrigins.push(
         'http://127.0.0.1:10000',
         'http://127.0.0.1:5500',
@@ -32,7 +35,7 @@ const corsOptions = {
     // SECURITY: Reject null origins (indicates potential CSRF or privacy mode)
     // Allow only if explicitly needed for mobile apps
     if (origin === 'null') {
-      console.warn(`Security event: cors_null_origin_rejected | IP: ${this?.req?.ip || 'unknown'}`);
+      console.warn(`Security event: cors_null_origin_rejected | Origin: ${origin}`);
       callback(new Error('Null origin not allowed'), false);
       return;
     }
@@ -50,7 +53,7 @@ const corsOptions = {
       callback(null, true);
     } else {
       // SECURITY: Log rejected origins for security monitoring
-      console.warn(`Security event: cors_origin_rejected | Origin: ${origin} | IP: ${this?.req?.ip || 'unknown'}`);
+      console.warn(`Security event: cors_origin_rejected | Origin: ${origin}`);
       callback(new Error('Not allowed by CORS'), false);
     }
   },
@@ -77,7 +80,10 @@ const corsPreflightHandler = (req, res) => {
     ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
   ].filter(Boolean);
   
-  if (process.env.NODE_ENV !== 'production') {
+  // Always allow localhost origins for development
+  const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+  
+  if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
     allowedOrigins.push(
       'http://127.0.0.1:10000',
       'http://127.0.0.1:5500',
@@ -92,6 +98,9 @@ const corsPreflightHandler = (req, res) => {
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
+    res.sendStatus(204);
+  } else if (!origin) {
+    // Allow requests with no origin (same-origin requests)
     res.sendStatus(204);
   } else {
     console.warn(`Security event: cors_preflight_rejected | Origin: ${origin}`);

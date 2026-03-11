@@ -147,8 +147,17 @@ app.use((req, res, next) => {
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
-    if (process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push('http://127.0.0.1:10000', 'http://127.0.0.1:5500', 'http://localhost:10000', 'http://localhost:5500');
+    // Always allow localhost origins for development
+    // Check if origin contains localhost or 127.0.0.1
+    const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
+    
+    if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
+      allowedOrigins.push(
+        'http://127.0.0.1:10000', 
+        'http://127.0.0.1:5500', 
+        'http://localhost:10000', 
+        'http://localhost:5500'
+      );
     }
     
     if (origin && allowedOrigins.includes(origin)) {
@@ -158,7 +167,11 @@ app.use((req, res, next) => {
       res.header('Access-Control-Allow-Credentials', 'true');
       res.header('Access-Control-Max-Age', '86400');
       res.sendStatus(204);
+    } else if (!origin) {
+      // Allow requests with no origin (same-origin)
+      res.sendStatus(204);
     } else {
+      console.warn(`CORS preflight rejected for origin: ${origin}`);
       res.sendStatus(403);
     }
     return;

@@ -508,13 +508,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let errorMsg = defaultMsg;
     
     if (data) {
-      // Try various possible error response structures
+      // Try various possible error response structures with optional chaining
       if (data.error?.message) {
         errorMsg = data.error.message;
       } else if (data.msg) {
         errorMsg = data.msg;
       } else if (data.error) {
-        errorMsg = typeof data.error === 'string' ? data.error : data.error.message || defaultMsg;
+        errorMsg = typeof data.error === 'string' ? data.error : (data.error?.message || defaultMsg);
       } else if (data.message) {
         errorMsg = data.message;
       }
