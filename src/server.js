@@ -19,22 +19,9 @@ const PORT = process.env.PORT;
 
 const app = express();
 
-// Initialize cache service
+// Initialize in-memory cache service
 const cacheService = require('./services/cache');
 cacheService.connect();
-
-// Initialize job queue service (if Redis available)
-const jobQueue = require('./services/jobQueue');
-const { initializeProcessors } = require('./services/jobProcessors');
-if (process.env.JOB_QUEUE_ENABLED === 'true' && process.env.REDIS_URL) {
-  jobQueue.init().then(() => {
-    initializeProcessors();
-  }).catch(err => {
-    console.warn('Job Queue initialization failed, continuing without async jobs:', err.message);
-  });
-} else {
-  console.warn('⚠️ Job Queue disabled (requires REDIS_URL and JOB_QUEUE_ENABLED=true)');
-}
 
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
@@ -265,22 +252,17 @@ app.get('/api/v1/csrf-token', (req, res) => {
   });
 });
 
-// Job Queue Status Endpoint (admin only)
+// Import auth middleware before using it in routes
+const { auth } = require('./middleware/auth');
+
+// Job Queue Status Endpoint (disabled - Redis removed)
+// Note: Job queue functionality has been disabled
 app.get('/api/v1/queue-status', auth, async (req, res) => {
-  // TODO: Add admin role check
-  try {
-    const stats = await jobQueue.getAllQueueStats();
-    res.json({
-      success: true,
-      queues: stats
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve queue status',
-      details: err.message
-    });
-  }
+  res.json({
+    success: true,
+    message: 'Job queue is disabled',
+    queues: {}
+  });
 });
 
 // -----------------------------
@@ -291,7 +273,6 @@ app.use('/api', require('./routes/cache'));
 // -----------------------------
 // Routes with API Versioning
 // -----------------------------
-const { auth } = require('./middleware/auth');
 const versioning = require('./middleware/versioning');
 
 // Public routes (no auth, no rate limiting)
@@ -569,16 +550,6 @@ if (require.main === module) {
     // Close cache service
     cacheService.stop();
     console.log('✅ Cache service stopped');
-    
-    // Close job queue
-    if (process.env.JOB_QUEUE_ENABLED === 'true') {
-      try {
-        await jobQueue.close();
-        console.log('✅ Job queue closed');
-      } catch (err) {
-        console.error('Error closing job queue:', err.message);
-      }
-    }
     
     // Close server
     server.close(() => {

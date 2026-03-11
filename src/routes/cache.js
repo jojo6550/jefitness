@@ -89,7 +89,7 @@ router.get('/cache-diagnostics', (req, res) => {
     success: true,
     diagnostics: {
       environment: process.env.NODE_ENV || 'development',
-      cacheService: 'in-memory',
+      cacheType: 'in-memory-only',
       cacheVersionUtility: 'available',
       serviceWorker: 'enabled',
       timestamp: Date.now()
@@ -102,3 +102,4 @@ router.get('/cache-diagnostics', (req, res) => {
 });
 
 module.exports = router;
+

@@ -1,315 +1,134 @@
-const Queue = require('bull');
-
 /**
- * Job Queue Service using Bull/Redis
- * Handles async operations for:
- * - Email sending (prevents request timeouts)
- * - File uploads/processing
- * - Report generation
- * - Data cleanup and maintenance
- * - Webhook retries
+ * Job Queue Service (Stub)
  * 
- * SECURITY: Prevents slow API responses and unreliable operations
- * Uses Redis for persistence (survives app restarts)
+ * This is a stub implementation that logs a warning when job queue methods are called.
+ * The job queue functionality was previously using Bull/Redis which has been removed.
+ * 
+ * For production use, consider implementing a job queue using:
+ * - MongoDB-based job queue
+ * - Message queues (RabbitMQ, Kafka)
+ * - Cloud functions for async processing
  */
 
-// Initialize queues
-const queues = {
-  // Email operations
-  email: new Queue('email', process.env.REDIS_URL || 'redis://127.0.0.1:6379'),
-  
-  // File operations
-  fileProcessing: new Queue('file-processing', process.env.REDIS_URL || 'redis://127.0.0.1:6379'),
-  
-  // Report generation
-  reports: new Queue('reports', process.env.REDIS_URL || 'redis://127.0.0.1:6379'),
-  
-  // Data maintenance
-  cleanup: new Queue('cleanup', process.env.REDIS_URL || 'redis://127.0.0.1:6379'),
-  
-  // Webhook retries
-  webhooks: new Queue('webhooks', process.env.REDIS_URL || 'redis://127.0.0.1:6379')
-};
-
-/**
- * Job Queue Service
- * Provides methods to queue and process async jobs
- */
+// Stub implementation
 class JobQueueService {
   constructor() {
-    this.queues = queues;
+    this.queues = {};
     this.processors = new Map();
   }
 
   /**
-   * Initialize all queues and set up event handlers
+   * Initialize the job queue service (no-op)
    */
   async init() {
-    console.log('🚀 Initializing Job Queue Service...');
-
-    for (const [name, queue] of Object.entries(this.queues)) {
-      // Setup event handlers for monitoring
-      queue.on('failed', (job, err) => {
-        console.error(`❌ Job ${name}:${job.id} failed:`, err.message);
-      });
-
-      queue.on('completed', (job) => {
-        console.log(`✅ Job ${name}:${job.id} completed`);
-      });
-
-      queue.on('active', (job) => {
-        console.log(`⚙️ Job ${name}:${job.id} is processing...`);
-      });
-
-      queue.on('stalled', (job) => {
-        console.warn(`⚠️ Job ${name}:${job.id} stalled, will retry`);
-      });
-
-      queue.on('error', (err) => {
-        console.error(`❌ Queue ${name} error:`, err.message);
-      });
-
-      // Clear old completed jobs (optional - can be configured via Bull)
-      await queue.clean(86400000, 'completed'); // 24 hours
-    }
-
-    console.log('✅ Job Queue Service initialized');
+    console.warn('⚠️ Job Queue is disabled (Redis dependency removed)');
   }
 
   /**
-   * Register a job processor
-   * @param {string} queueName - Name of queue
-   * @param {number} concurrency - Number of concurrent jobs
-   * @param {Function} processor - Async function to process job
+   * Register a job processor (no-op)
    */
   registerProcessor(queueName, concurrency, processor) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-
-    this.queues[queueName].process(concurrency, processor);
-    this.processors.set(queueName, processor);
-    console.log(`📋 Processor registered for queue: ${queueName} (concurrency: ${concurrency})`);
+    console.warn(`⚠️ Job processor registration skipped: ${queueName} (job queue disabled)`);
   }
 
   /**
-   * Queue an email job
-   * @param {Object} emailData - { to, subject, template, data }
-   * @param {Object} options - { delay, attempts, priority }
+   * Queue an email job (no-op)
    */
   async queueEmail(emailData, options = {}) {
-    const defaults = { 
-      attempts: 3, 
-      backoff: { type: 'exponential', delay: 2000 },
-      removeOnComplete: true
-    };
-
-    const job = await this.queues.email.add(emailData, {
-      ...defaults,
-      ...options
-    });
-
-    console.log(`📧 Email job queued:`, job.id);
-    return job;
+    console.warn('⚠️ Email job queued skipped (job queue disabled)');
+    return null;
   }
 
   /**
-   * Queue a file processing job
-   * @param {Object} fileData - { userId, fileId, fileType, action }
-   * @param {Object} options - Queue options
+   * Queue a file processing job (no-op)
    */
   async queueFileProcessing(fileData, options = {}) {
-    const defaults = { 
-      attempts: 2, 
-      backoff: { type: 'fixed', delay: 5000 },
-      timeout: 30000 // 30 second timeout
-    };
-
-    const job = await this.queues.fileProcessing.add(fileData, {
-      ...defaults,
-      ...options
-    });
-
-    console.log(`📁 File processing job queued:`, job.id);
-    return job;
+    console.warn('⚠️ File processing job queued skipped (job queue disabled)');
+    return null;
   }
 
   /**
-   * Queue a report generation job
-   * @param {Object} reportData - { userId, reportType, dateRange }
-   * @param {Object} options - Queue options
+   * Queue a report generation job (no-op)
    */
   async queueReport(reportData, options = {}) {
-    const defaults = { 
-      attempts: 1, 
-      timeout: 60000 // 1 minute timeout
-    };
-
-    const job = await this.queues.reports.add(reportData, {
-      ...defaults,
-      ...options
-    });
-
-    console.log(`📊 Report job queued:`, job.id);
-    return job;
+    console.warn('⚠️ Report job queued skipped (job queue disabled)');
+    return null;
   }
 
   /**
-   * Queue a cleanup job
-   * @param {Object} cleanupData - { type, target, criteria }
-   * @param {Object} options - Queue options
+   * Queue a cleanup job (no-op)
    */
   async queueCleanup(cleanupData, options = {}) {
-    const defaults = { 
-      attempts: 2, 
-      backoff: { type: 'fixed', delay: 10000 }
-    };
-
-    const job = await this.queues.cleanup.add(cleanupData, {
-      ...defaults,
-      ...options
-    });
-
-    console.log(`🧹 Cleanup job queued:`, job.id);
-    return job;
+    console.warn('⚠️ Cleanup job queued skipped (job queue disabled)');
+    return null;
   }
 
   /**
-   * Queue a webhook retry
-   * @param {Object} webhookData - { eventId, url, payload, attempt }
-   * @param {Object} options - Queue options
+   * Queue a webhook retry (no-op)
    */
   async queueWebhook(webhookData, options = {}) {
-    const defaults = { 
-      attempts: 5, 
-      backoff: { type: 'exponential', delay: 5000 },
-      timeout: 10000 // 10 second timeout
-    };
-
-    const job = await this.queues.webhooks.add(webhookData, {
-      ...defaults,
-      ...options
-    });
-
-    console.log(`🔗 Webhook job queued:`, job.id);
-    return job;
+    console.warn('⚠️ Webhook job queued skipped (job queue disabled)');
+    return null;
   }
 
   /**
-   * Get job status
-   * @param {string} queueName - Queue name
-   * @param {string} jobId - Job ID
+   * Get job status (returns null)
    */
   async getJobStatus(queueName, jobId) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-
-    const job = await this.queues[queueName].getJob(jobId);
-    if (!job) return null;
-
-    return {
-      id: job.id,
-      state: await job.getState(),
-      progress: job.progress(),
-      data: job.data,
-      failedReason: job.failedReason,
-      stacktrace: job.stacktrace,
-      attempts: job.attemptsMade,
-      maxAttempts: job.opts.attempts
-    };
+    return null;
   }
 
   /**
-   * Get queue statistics
-   * @param {string} queueName - Queue name
+   * Get queue statistics (returns empty stats)
    */
   async getQueueStats(queueName) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-
-    const queue = this.queues[queueName];
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      queue.getWaitingCount(),
-      queue.getActiveCount(),
-      queue.getCompletedCount(),
-      queue.getFailedCount(),
-      queue.getDelayedCount()
-    ]);
-
     return {
       queue: queueName,
-      waiting,
-      active,
-      completed,
-      failed,
-      delayed,
-      totalJobs: waiting + active + completed + failed + delayed
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+      totalJobs: 0,
+      message: 'Job queue disabled'
     };
   }
 
   /**
-   * Get all queue statistics
+   * Get all queue statistics (returns empty stats)
    */
   async getAllQueueStats() {
-    const stats = {};
-    for (const queueName of Object.keys(this.queues)) {
-      stats[queueName] = await this.getQueueStats(queueName);
-    }
-    return stats;
+    return {};
   }
 
   /**
-   * Pause a queue
-   * @param {string} queueName - Queue name
+   * Pause a queue (no-op)
    */
   async pauseQueue(queueName) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-    await this.queues[queueName].pause();
-    console.log(`⏸️ Queue ${queueName} paused`);
+    console.warn('⚠️ Queue pause skipped (job queue disabled)');
   }
 
   /**
-   * Resume a queue
-   * @param {string} queueName - Queue name
+   * Resume a queue (no-op)
    */
   async resumeQueue(queueName) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-    await this.queues[queueName].resume();
-    console.log(`▶️ Queue ${queueName} resumed`);
+    console.warn('⚠️ Queue resume skipped (job queue disabled)');
   }
 
   /**
-   * Clear a queue
-   * @param {string} queueName - Queue name
+   * Clear a queue (no-op)
    */
   async clearQueue(queueName) {
-    if (!this.queues[queueName]) {
-      throw new Error(`Queue ${queueName} does not exist`);
-    }
-    await this.queues[queueName].empty();
-    console.log(`🗑️ Queue ${queueName} cleared`);
+    console.warn('⚠️ Queue clear skipped (job queue disabled)');
   }
 
   /**
-   * Close all queues
+   * Close all queues (no-op)
    */
   async close() {
-    console.log('Closing all job queues...');
-    for (const [name, queue] of Object.entries(this.queues)) {
-      try {
-        await queue.close();
-        console.log(`✅ Queue ${name} closed`);
-      } catch (err) {
-        console.error(`Error closing queue ${name}:`, err.message);
-      }
-    }
+    console.log('✅ Job queue service closed');
   }
 }
 
 module.exports = new JobQueueService();
+
