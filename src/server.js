@@ -6,6 +6,7 @@ const cron = require('node-cron');
 const helmet = require('helmet');
 const path = require('path');
 const morgan = require('morgan');
+const fs = require('fs');
 
 
 // API Documentation imports
@@ -394,6 +395,40 @@ app.use('/api', (req, res) => {
       method: req.method
     }
   });
+});
+
+// ====================================================
+// CLEAN URLS ROUTE HANDLER
+// Maps /:page → /public/pages/${page}.html
+// Automatically works for any new page added to /public/pages
+// ====================================================
+app.get('/:page', (req, res, next) => {
+  // Extract the page parameter from the URL
+  const page = req.params.page;
+  
+  // Build the full file path using path.join() for security
+  // This prevents directory traversal attacks
+  const filePath = path.join(__dirname, '..', 'public', 'pages', `${page}.html`);
+  
+  // Resolve to absolute path to ensure it's within public/pages/
+  const resolvedPath = path.resolve(filePath);
+  const allowedDir = path.resolve(path.join(__dirname, '..', 'public', 'pages'));
+  
+  // Security check: ensure the resolved path is within the allowed directory
+  if (!resolvedPath.startsWith(allowedDir)) {
+    return next(); // Pass to next handler (404)
+  }
+  
+  // Check if the file exists synchronously
+  if (fs.existsSync(resolvedPath)) {
+    // Set appropriate content type header
+    res.type('html');
+    // Send the HTML file
+    return res.sendFile(resolvedPath);
+  }
+  
+  // If file doesn't exist, pass to next handler (404)
+  next();
 });
 
 // 404 handler for non-existent pages (MPA mode)
