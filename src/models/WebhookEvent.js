@@ -32,9 +32,6 @@ const WebhookEventSchema = new mongoose.Schema({
   }
 }, { timestamps: false }); // Don't add createdAt/updatedAt since we manage the lifecycle
 
-// Ensure the TTL index is created
-WebhookEventSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-
 // SECURITY: Prevent duplicate key error on race conditions
 // This is a safe no-op if the event already exists
 WebhookEventSchema.methods.ensureProcessed = async function() {
