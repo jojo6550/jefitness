@@ -106,11 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             // Role-based redirection
             if (data.user.role === 'admin') {
-              window.location.href = '../pages/admin-dashboard.html';
+              window.location.href = '/admin-dashboard';
             } else if (data.user.role === 'trainer') {
-              window.location.href = '../pages/trainer-dashboard.html';
+              window.location.href = '/trainer-dashboard';
             } else {
-              window.location.href = '../pages/dashboard.html';
+              window.location.href = '/dashboard';
             }
           }
         } else {
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
           sessionStorage.removeItem('signupAttempt');
           window.Toast.success('Email verified! Welcome to JE Fitness.');
           setTimeout(() => {
-            window.location.href = '../pages/dashboard.html';
+            window.location.href = '/dashboard';
           }, 1500);
         } else {
           handleApiError(response, data, 'Verification failed');
@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           window.Toast.success('Password reset successfully');
           setTimeout(() => {
-            window.location.href = 'login.html';
+            window.location.href = '/login';
           }, 2000);
         } else {
           handleApiError(res, data, 'Error resetting password');
@@ -560,10 +560,10 @@ document.addEventListener('DOMContentLoaded', () => {
       case 401:
         window.Toast.error(errorMsg || 'Your session has expired. Please log in again.');
         // If not on login page, redirect to login
-        if (!window.location.pathname.includes('login.html')) {
+        if (!window.location.pathname.includes('/login')) {
           setTimeout(() => {
             localStorage.removeItem('token');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
           }, 2000);
         }
         break;

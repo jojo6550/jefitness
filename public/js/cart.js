@@ -80,7 +80,7 @@ function clearCart() {
 
 async function checkout() {
   const token = localStorage.getItem('token');
-  if (!token) return location.href = 'login.html';
+  if (!token) return location.href = '/login';
 
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {

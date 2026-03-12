@@ -123,7 +123,7 @@ async function handleCheckout() {
   if (!cart.length) return alert('Cart empty');
 
   const token = localStorage.getItem('token');
-  if (!token) return window.location.href = 'login.html';
+  if (!token) return window.location.href = '/login';
 
   try {
     const res = await fetch(

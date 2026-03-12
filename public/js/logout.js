@@ -37,7 +37,7 @@ async function logoutUser() {
 
     // Redirect the user to the index page after logout
     // Use replace to prevent back button from showing cached page
-    window.location.replace('../index.html');
+    window.location.replace('/');
 }
 
 // Function to attach the logout event listener
@@ -57,7 +57,7 @@ async function checkSessionAndRedirect() {
     const token = localStorage.getItem('token');
     if (!token) {
         // No token, redirect to login
-        window.location.replace('../pages/login.html');
+        window.location.replace('/login');
         return;
     }
 

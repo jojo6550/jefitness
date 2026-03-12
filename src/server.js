@@ -398,6 +398,17 @@ app.use('/api', (req, res) => {
 });
 
 // ====================================================
+// CLEAN URLS: Redirect /pages/*.html → clean URLs
+// Ensures old links and bookmarks still work
+// ====================================================
+app.get('/pages/:page.html', (req, res) => {
+  const page = req.params.page;
+  // Preserve query string (e.g., ?redirect=...)
+  const query = req.originalUrl.includes('?') ? '?' + req.originalUrl.split('?')[1] : '';
+  res.redirect(301, `/${page}${query}`);
+});
+
+// ====================================================
 // CLEAN URLS ROUTE HANDLER
 // Maps /:page → /public/pages/${page}.html
 // Automatically works for any new page added to /public/pages
@@ -405,25 +416,27 @@ app.use('/api', (req, res) => {
 app.get('/:page', (req, res, next) => {
   // Extract the page parameter from the URL
   const page = req.params.page;
-  
+
+  // SECURITY: Only allow alphanumeric characters, hyphens, and underscores
+  if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
+    return next();
+  }
+
   // Build the full file path using path.join() for security
-  // This prevents directory traversal attacks
   const filePath = path.join(__dirname, '..', 'public', 'pages', `${page}.html`);
   
   // Resolve to absolute path to ensure it's within public/pages/
   const resolvedPath = path.resolve(filePath);
   const allowedDir = path.resolve(path.join(__dirname, '..', 'public', 'pages'));
   
-  // Security check: ensure the resolved path is within the allowed directory
-  if (!resolvedPath.startsWith(allowedDir)) {
-    return next(); // Pass to next handler (404)
+  // SECURITY: Ensure the resolved path is within the allowed directory
+  if (!resolvedPath.startsWith(allowedDir + path.sep) && resolvedPath !== allowedDir) {
+    return next();
   }
   
-  // Check if the file exists synchronously
+  // Check if the file exists
   if (fs.existsSync(resolvedPath)) {
-    // Set appropriate content type header
     res.type('html');
-    // Send the HTML file
     return res.sendFile(resolvedPath);
   }
   
@@ -461,7 +474,7 @@ app.use((req, res) => {
             <a href="/" class="btn btn-primary btn-lg">
               <i class="bi bi-house me-2"></i>Go Home
             </a>
-            <a href="/pages/products.html" class="btn btn-outline-primary btn-lg">
+            <a href="/products" class="btn btn-outline-primary btn-lg">
               <i class="bi bi-shop me-2"></i>Browse Products
             </a>
           </div>

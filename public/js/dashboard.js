@@ -17,7 +17,7 @@ window.initDashboard = async () => {
 
       if (!res.ok) {
         console.warn('User data fetch failed');
-        const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
+        const adminLink = document.querySelector('a[href="/admin-dashboard"]');
         if (adminLink) adminLink.style.display = 'none';
         return;
       }
@@ -26,7 +26,7 @@ window.initDashboard = async () => {
 
       // Hide Admin Dashboard link if not admin
       if (user.role !== 'admin') {
-        const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
+        const adminLink = document.querySelector('a[href="/admin-dashboard"]');
         if (adminLink) adminLink.style.display = 'none';
       }
 
@@ -38,7 +38,7 @@ window.initDashboard = async () => {
 
     } catch (err) {
       console.error('Error verifying admin status:', err);
-      const adminLink = document.querySelector('a[href="admin-dashboard.html"]');
+      const adminLink = document.querySelector('a[href="/admin-dashboard"]');
       if (adminLink) adminLink.style.display = 'none';
     }
   };
@@ -170,7 +170,7 @@ async function loadSubscriptionStatus() {
 
 // Event listener for upgrade subscription button
 document.getElementById('upgrade-subscription-btn').addEventListener('click', () => {
-    window.location.href = '../subscriptions.html';
+    window.location.href = '/subscriptions';
 });
 
 // Event listener for cancel subscription button

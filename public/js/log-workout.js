@@ -6,7 +6,7 @@ let exerciseCount = 0;
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '../index.html';
+        window.location.href = '/';
         return;
     }
 
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addExerciseBtn').addEventListener('click', addExercise);
     document.getElementById('workoutForm').addEventListener('submit', handleSubmit);
     document.getElementById('cancelBtn').addEventListener('click', () => {
-        window.location.href = 'dashboard.html';
+        window.location.href = '/dashboard';
     });
 });
 
@@ -216,7 +216,7 @@ async function handleSubmit(e) {
         
         // Reset form or redirect
         setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = '/dashboard';
         }, 1500);
         
     } catch (error) {

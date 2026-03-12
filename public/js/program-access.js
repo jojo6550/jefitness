@@ -24,7 +24,7 @@
             const token = localStorage.getItem('token');
             if (!token) {
                 // Redirect to login page
-                window.location.href = '../../index.html?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
                 return;
             }
 
@@ -47,7 +47,7 @@
                 if (response.status === 401) {
                     // Token expired or invalid
                     localStorage.removeItem('token');
-                    window.location.href = '../../index.html?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
                     return;
                 }
                 throw new Error('Failed to verify access');
@@ -59,7 +59,7 @@
                 // User doesn't have access - redirect to marketplace
                 showAccessDenied('You need to purchase this program to view it.');
                 setTimeout(() => {
-                    window.location.href = '../program-marketplace.html';
+                    window.location.href = '/program-marketplace';
                 }, 3000);
             } else {
                 // User has access - show content
@@ -84,7 +84,7 @@
                                     <i class="bi bi-lock-fill text-danger" style="font-size: 4rem;"></i>
                                     <h2 class="mt-4 mb-3">Access Denied</h2>
                                     <p class="text-muted mb-4">${message}</p>
-                                    <a href="../program-marketplace.html" class="btn btn-primary">
+                                    <a href="/program-marketplace" class="btn btn-primary">
                                         <i class="bi bi-shop me-2"></i>Browse Programs
                                     </a>
                                 </div>

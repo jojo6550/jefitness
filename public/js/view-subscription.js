@@ -524,7 +524,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!userToken) {
     showAlert('Please log in to view your subscription', 'info');
     setTimeout(() => {
-      window.location.href = `/pages/login.html?redirect=/view-subscription.html`;
+      window.location.href = `/login?redirect=/view-subscription`;
     }, 1500);
     return;
   }

@@ -7,7 +7,7 @@ let currentView = 'active';
 window.initTrainerDashboard = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
         return;
     }
 
@@ -41,14 +41,14 @@ async function loadAppointments() {
         // Handle authentication and authorization errors from backend
         if (res.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = 'login.html';
+            window.location.href = '/login';
             return;
         }
         
         if (res.status === 403) {
             window.Toast.error('Access denied. Trainer portal only.');
             setTimeout(() => {
-                window.location.href = 'dashboard.html';
+                window.location.href = '/dashboard';
             }, 2000);
             return;
         }

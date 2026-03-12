@@ -175,7 +175,7 @@ function renderPlans() {
         </div>
         <h3 class="mb-3">You Have an Active Subscription</h3>
         <p class="text-muted mb-4">You cannot choose a different plan while you have an active subscription.</p>
-        <a href="view-subscription.html" class="btn btn-primary btn-lg">
+        <a href="/view-subscription" class="btn btn-primary btn-lg">
           <i class="bi bi-credit-card me-2"></i>View My Subscription
         </a>
       </div>
@@ -341,7 +341,7 @@ async function loadUserSubscriptions() {
       log('User has active subscription - redirecting to view-subscription.html...');
       showAlert('You already have an active subscription. You can view or cancel it from the My Subscription page.', 'info');
       setTimeout(() => {
-        window.location.href = 'view-subscription.html';
+        window.location.href = '/view-subscription';
       }, 2000);
       return;
     }
@@ -431,7 +431,7 @@ async function selectPlan(planId) {
   if (!userToken) {
     showAlert('Please log in to subscribe', 'info');
     setTimeout(() => {
-      window.location.href = `/pages/login.html?redirect=/subscriptions.html`;
+      window.location.href = `/login?redirect=/subscriptions`;
     }, 1500);
     return;
   }

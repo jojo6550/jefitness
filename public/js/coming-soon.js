@@ -9,9 +9,9 @@ function replaceProductCartLinks(enable) {
     }
 
     try {
-        // Find all links to products.html and cart.html
-        const productLinks = document.querySelectorAll('a[href*="products.html"]');
-        const cartLinks = document.querySelectorAll('a[href*="cart.html"]');
+        // Find all links to products and cart pages
+        const productLinks = document.querySelectorAll('a[href*="/products"]');
+        const cartLinks = document.querySelectorAll('a[href*="/cart"]');
 
         // Replace product links
         productLinks.forEach(link => {

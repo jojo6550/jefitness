@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If no token, redirect to login
     if (!token) {
-      window.location.href = '../pages/login.html';
+      window.location.href = '/login';
       return;
     }
 
@@ -37,13 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Token is invalid or expired
         localStorage.removeItem('token');
         localStorage.removeItem('userRole');
-        window.location.href = '../pages/login.html';
+        window.location.href = '/login';
       }
     } catch (error) {
       console.error('Token verification failed:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
-      window.location.href = '../pages/login.html';
+      window.location.href = '/login';
     }
   }
 });
@@ -58,5 +58,5 @@ function hasRole(requiredRole) {
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('userRole');
-  window.location.href = '../pages/login.html';
+  window.location.href = '/login';
 }
