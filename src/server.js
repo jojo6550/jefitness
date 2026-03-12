@@ -72,7 +72,8 @@ app.use(helmet({
         "'self'",
         "https://api.mailjet.com",
         "https://cdn.jsdelivr.net",
-        "https://api.stripe.com"
+        "https://api.stripe.com",
+        "https://jefitness.onrender.com"
       ],
       frameSrc: [
         "'self'",
