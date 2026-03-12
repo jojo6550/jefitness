@@ -327,14 +327,15 @@ async function loadUserSubscriptions() {
     const data = await handleApiResponse(res);
     log('Subscription data:', data);
 
-    userSubscriptions = data?.data?.hasActiveSubscription
+    // Store subscription if it exists (active, expired, or canceled)
+    userSubscriptions = data?.data?.stripeSubscriptionId
       ? [data.data]
       : [];
 
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
-    // User should not be able to choose a different plan - only cancel
+    // User should not be able to choose a different plan if they have active subscription
     // If user has active subscription, redirect to view-subscription page
     if (hasActiveSubscription()) {
       log('User has active subscription - redirecting to view-subscription.html...');
@@ -345,8 +346,11 @@ async function loadUserSubscriptions() {
       return;
     }
 
-    renderUserSubscriptions();
-    toggleViews();
+    // If user has expired or canceled subscription, show it with renewal option
+    if (userSubscriptions.length > 0) {
+      renderUserSubscriptions();
+      toggleViews();
+    }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
     log('Error loading subscriptions:', err.message);
@@ -404,8 +408,11 @@ function renderUserSubscriptions() {
       <div>Next Billing: ${end.toLocaleDateString()}</div>
       <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>
       <div class="subscription-actions">
-        ${!expired ? `<button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>` : ''}
-        ${!expired ? `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>` : ''}
+        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>
+        ${expired 
+          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` 
+          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`
+        }
       </div>
     `;
 
@@ -510,8 +517,101 @@ async function handlePaymentSubmit(e) {
 }
 
 /* --------------------------------------------------
-   Cancel Subscription
+   Manage Subscription (Cancel, Renew, Invoices)
 -------------------------------------------------- */
+
+function openCancelModal(subscriptionId) {
+  currentSubscriptionId = subscriptionId;
+  
+  if (!currentSubscriptionId) {
+    showAlert('Subscription not found', 'error');
+    return;
+  }
+
+  const modal = new bootstrap.Modal(document.getElementById('cancelConfirmModal'));
+  modal.show();
+}
+
+function renewSubscription() {
+  // Allow user to select a new plan and redirect to payment
+  showAlert('Redirecting you to select a new plan...', 'info');
+  
+  // Clear the current subscription from view and show plans
+  userSubscriptions = [];
+  renderPlans();
+  toggleViews();
+  
+  // Scroll to plans section
+  const plansSection = document.querySelector('.plans-container-wrapper');
+  if (plansSection) {
+    plansSection.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+async function downloadInvoices(subscriptionId) {
+  const userToken = localStorage.getItem('token');
+  
+  if (!userToken) {
+    showAlert('Please log in to download invoices', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/v1/subscriptions/${subscriptionId}/invoices`,
+      { headers: { Authorization: `Bearer ${userToken}` } }
+    );
+
+    const data = await handleApiResponse(res);
+    
+    if (!data.data || data.data.length === 0) {
+      showAlert('No invoices found for this subscription', 'info');
+      return;
+    }
+
+    // Open a modal or alert showing invoices
+    let invoiceHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+    invoiceHtml += '<h5 class="mb-3">Recent Invoices</h5>';
+    
+    data.data.forEach(invoice => {
+      const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
+      const date = new Date(invoice.created * 1000).toLocaleDateString();
+      const amount = formatCurrency(invoice.amount_paid / 100 || invoice.total / 100);
+      const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
+      
+      if (pdfUrl) {
+        invoiceHtml += `
+          <div class="mb-2 p-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
+                <div class="small text-muted">${date} - ${amount} - ${status}</div>
+              </div>
+              <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                Download
+              </a>
+            </div>
+          </div>
+        `;
+      }
+    });
+    
+    invoiceHtml += '</div>';
+    
+    // Create a simple alert with invoices
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-info alert-dismissible fade show';
+    alertDiv.innerHTML = `
+      ${invoiceHtml}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    alertContainer.innerHTML = '';
+    alertContainer.appendChild(alertDiv);
+  } catch (err) {
+    console.error('Download invoices failed:', err);
+    showAlert('Failed to load invoices: ' + err.message, 'error');
+  }
+}
 
 async function handleConfirmCancel() {
   if (!currentSubscriptionId) {

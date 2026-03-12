@@ -21,3 +21,4 @@ src/tests/integration/test.jpg
 .gitignore
 result.txt
 fixes
+.env.example

@@ -38,11 +38,21 @@
 
 
 
-    <main class="container my-5">
-        <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold text-primary mb-3">Choose Your Plan</h1>
-            <p class="lead text-muted">Select the perfect subscription plan for your fitness journey</p>
-        </div>
+    <main>
+        <!-- Hero Section -->
+        <section class="subscription-hero py-5">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h1 class="display-3 fw-bold mb-3">
+                        <span class="text-gradient">Choose Your Plan</span>
+                    </h1>
+                    <p class="lead text-muted mb-2">Select the perfect subscription plan for your fitness journey</p>
+                    <p class="text-muted small">Start your transformation today with flexible, affordable plans</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="container my-5">
 
         <!-- Alert Container -->
         <div id="alertContainer" class="mb-4"></div>
@@ -56,10 +66,10 @@
         </div>
 
         <!-- Plans Container -->
-        <div class="plans-container" id="plansContainer" style="display: none;">
+        <div class="plans-container-wrapper" id="plansContainer" style="display: none;">
             <div class="row g-4 justify-content-center">
                 <!-- 1-Month Plan -->
-                <div class="col-md-6 col-lg-4">
+                <div class="col-lg-6 col-xl-3">
                     <div class="card plan-card h-100 border-primary">
                         <div class="card-header bg-primary text-white text-center">
                             <h3 class="card-title mb-0">1 Month Plan</h3>
@@ -81,12 +91,13 @@
                     </div>
                 </div>
 
-                <!-- 3-Month Plan -->
-                <div class="col-md-6 col-lg-4">
-                    <div class="card plan-card h-100 border-success">
+                <!-- 3-Month Plan - BEST VALUE -->
+                <div class="col-lg-6 col-xl-3">
+                    <div class="card plan-card h-100 border-success featured">
+                        <div class="best-value-badge">★ Best Value</div>
                         <div class="card-header bg-success text-white text-center">
                             <h3 class="card-title mb-0">3 Month Plan</h3>
-                            <div class="plan-savings badge bg-warning text-dark mt-2" style="display: none;"></div>
+                            <div class="plan-savings badge bg-warning text-dark mt-2">Save 17%</div>
                         </div>
                         <div class="card-body text-center">
                             <div class="plan-price display-4 fw-bold text-success mb-3">
@@ -107,11 +118,11 @@
                 </div>
 
                 <!-- 6-Month Plan -->
-                <div class="col-md-6 col-lg-3">
+                <div class="col-lg-6 col-xl-3">
                     <div class="card plan-card h-100 border-info">
                         <div class="card-header bg-info text-white text-center">
                             <h3 class="card-title mb-0">6 Month Plan</h3>
-                            <div class="plan-savings badge bg-warning text-dark mt-2" style="display: none;"></div>
+                            <div class="plan-savings badge bg-warning text-dark mt-2">Save 33%</div>
                         </div>
                         <div class="card-body text-center">
                             <div class="plan-price display-4 fw-bold text-info mb-3">
@@ -133,11 +144,11 @@
                 </div>
 
                 <!-- 12-Month Plan -->
-                <div class="col-md-6 col-lg-3">
+                <div class="col-lg-6 col-xl-3">
                     <div class="card plan-card h-100 border-warning">
                         <div class="card-header bg-warning text-dark text-center">
                             <h3 class="card-title mb-0">12 Month Plan</h3>
-                            <div class="plan-savings badge bg-danger text-white mt-2" style="display: none;"></div>
+                            <div class="plan-savings badge bg-danger text-white mt-2">Save 44%</div>
                         </div>
                         <div class="card-body text-center">
                             <div class="plan-price display-4 fw-bold text-warning mb-3">

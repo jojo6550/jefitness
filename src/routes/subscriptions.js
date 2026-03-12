@@ -196,10 +196,11 @@ router.get('/plans', async (req, res) => {
 router.get('/user/current', auth, async (req, res) => {
   try {
     // SECURITY: Only return subscription for authenticated user (IDOR protection)
+    // Include 'canceled' status so users can see expired subscriptions and renew
     const subscription = await Subscription.findOne({ 
       userId: req.user.id, // IDOR protection
-      status: { $in: ['active', 'past_due', 'paused'] }
-    });
+      status: { $in: ['active', 'past_due', 'paused', 'canceled'] }
+    }).sort({ createdAt: -1 }); // Get most recent subscription
     
     if (!subscription) return res.json({ success: true, data: { hasActiveSubscription: false } });
     
@@ -208,11 +209,14 @@ router.get('/user/current', auth, async (req, res) => {
     const periodEnd = new Date(subscription.currentPeriodEnd);
     const daysLeft = Math.floor((periodEnd - now) / (1000 * 60 * 60 * 24));
     
+    // Consider subscription "active" only if status is truly active and not expired
+    const isActiveAndNotExpired = (subscription.status === 'active' || subscription.status === 'past_due' || subscription.status === 'paused') && daysLeft > 0;
+    
     // Return subscription data with calculated fields
     res.json({ 
       success: true, 
       data: { 
-        hasActiveSubscription: true, 
+        hasActiveSubscription: isActiveAndNotExpired, 
         ...subscription.toObject(),
         daysLeft: daysLeft > 0 ? daysLeft : 0
       } 
