@@ -401,12 +401,14 @@ app.use('/api', (req, res) => {
 // CLEAN URLS: Redirect /pages/*.html → clean URLs
 // Ensures old links and bookmarks still work
 // ====================================================
-app.get('/pages/:page.html', (req, res) => {
+app.get('public/pages/:page.html', (req, res) => {
   const page = req.params.page;
   // Preserve query string (e.g., ?redirect=...)
   const query = req.originalUrl.includes('?') ? '?' + req.originalUrl.split('?')[1] : '';
   res.redirect(301, `/${page}${query}`);
 });
+
+
 
 // ====================================================
 // CLEAN URLS ROUTE HANDLER
