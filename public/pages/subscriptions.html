@@ -37,10 +37,10 @@
     </nav>
 
     <main>
-        <section class="subscription-hero py-5">
-            <div class="container text-center mt-4 mb-5">
-                <h1 class="display-4 fw-bold mb-3 text-white">Choose Your Plan</h1>
-                <p class="lead text-secondary mb-0">Select the perfect subscription plan for your fitness journey.</p>
+        <section class="subscription-hero py-4">
+            <div class="container text-center mt-3 mb-4">
+                <h1 class="h2 fw-bold mb-2 text-white">Subscription Plans</h1>
+                <p class="text-secondary mb-0 small">Loading plans...</p>
             </div>
         </section>
 
@@ -55,91 +55,192 @@
             </div>
 
             <div class="plans-container-wrapper" id="plansContainer" style="display: none;">
-                <div class="row g-4 justify-content-center align-items-center">
-                    
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card plan-card h-100">
-                            <div class="card-body p-4 d-flex flex-column">
-                                <h5 class="text-muted fw-bold mb-3">1 Month</h5>
-                                <div class="plan-price display-5 fw-bold text-white mb-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+            <div class="row g-4 justify-content-center">
+                <!-- Dynamic plan cards will be inserted here by JS -->
+                <div class="col-lg-3 col-md-6" style="min-height: 500px;">
+                    <div class="card plan-card h-100 skeleton">
+                        <div class="card-body p-4">
+                            <div class="skeleton-title mb-3"></div>
+                            <div class="skeleton-price mb-4"></div>
+                            <div class="skeleton-features"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" style="min-height: 500px;">
+                    <div class="card plan-card featured h-100 skeleton">
+                        <div class="card-body p-4">
+                            <div class="skeleton-title mb-3"></div>
+                            <div class="skeleton-price mb-4"></div>
+                            <div class="skeleton-features"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" style="min-height: 500px;">
+                    <div class="card plan-card h-100 skeleton">
+                        <div class="card-body p-4">
+                            <div class="skeleton-title mb-3"></div>
+                            <div class="skeleton-price mb-4"></div>
+                            <div class="skeleton-features"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6" style="min-height: 500px;">
+                    <div class="card plan-card h-100 skeleton">
+                        <div class="card-body p-4">
+                            <div class="skeleton-title mb-3"></div>
+                            <div class="skeleton-price mb-4"></div>
+                            <div class="skeleton-features"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Tabbed Subscription Management Section -->
+            <div id="subscriptionTabsSection" class="mt-5 pt-5 border-top border-secondary" style="display: none;">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs mb-4 justify-content-center" id="subscriptionTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="pill" data-bs-target="#subscriptionSummaryTab" type="button">Summary</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="details-tab" data-bs-toggle="pill" data-bs-target="#subscriptionDetailsTab" type="button">Details</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="invoices-tab" data-bs-toggle="pill" data-bs-target="#invoicesTab" type="button">Invoices</button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade show active" id="subscriptionSummaryTab">
+                        <h3 class="text-center mb-4 text-white">Your Subscription Summary</h3>
+                        <div id="userSubscriptionsContainer" class="row justify-content-center"></div>
+                    </div>
+
+                    <!-- Details Tab - Copied from view-subscription.html -->
+                    <div class="tab-pane fade" id="subscriptionDetailsTab">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8 mb-4">
+                                <div class="card subscription-main-card border-0 shadow-sm">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between align-items-start mb-4">
+                                            <div>
+                                                <h2 class="card-title mb-1" id="subscriptionType">Subscription Type</h2>
+                                                <span id="subscriptionStatus" class="badge">Status</span>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="h3 mb-0 text-primary" id="subscriptionAmount">$0.00</div>
+                                                <small class="text-muted" id="billingPeriod">per month</small>
+                                            </div>
+                                        </div>
+                                        <hr class="my-4">
+                                        <div class="row mb-4">
+                                            <div class="col-md-4 mb-3 mb-md-0">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-calendar-event text-primary me-2"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block">Next Billing Date</small>
+                                                        <strong id="nextBillingDate">-</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-3 mb-md-0">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-clock-history text-primary me-2"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block">Days Remaining</small>
+                                                        <strong id="daysRemaining">-</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="detail-item">
+                                                    <i class="bi bi-credit-card-2-back text-primary me-2"></i>
+                                                    <div>
+                                                        <small class="text-muted d-block">Payment Method</small>
+                                                        <strong id="paymentMethod">Card ending in ••••</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-4">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <small class="text-muted">Subscription Progress</small>
+                                                <small class="text-muted" id="progressPercent">0%</small>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div id="subscriptionProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button id="cancelSubscriptionBtn" class="btn btn-outline-danger" onclick="openCancelModal()">
+                                                <i class="bi bi-x-circle me-1"></i>Cancel Subscription
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <ul class="list-unstyled mb-4 flex-grow-1">
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>A Month Long Subscription</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Access to 1 on 1 Training</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>No Long Term Commitment</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Start Your Fitness Journey</li>
-                                </ul>
-                                <button class="btn btn-outline-light w-100 py-2 plan-button" onclick="selectPlan('1-month')">Select Plan</button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card plan-card featured h-100 border-primary">
-                            <div class="card-body p-4 d-flex flex-column position-relative">
-                                <span class="badge bg-primary position-absolute top-0 start-50 translate-middle rounded-pill px-3 py-2">Best Value - Save 17%</span>
-                                <h5 class="text-primary fw-bold mb-3 mt-2">3 Months</h5>
-                                <div class="plan-price display-5 fw-bold text-white mb-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                    <!-- Invoices Tab -->
+                    <div class="tab-pane fade" id="invoicesTab">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-white py-3">
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-file-earmark-text me-2"></i>Billing History
+                                        </h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="invoicesLoading" class="text-center py-4">
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <small class="text-muted ms-2">Loading invoices...</small>
+                                        </div>
+                                        <div id="invoicesList" class="list-group list-group-flush" style="display: none;"></div>
+                                        <div id="noInvoices" class="text-center py-4" style="display: none;">
+                                            <i class="bi bi-receipt text-muted" style="font-size: 2rem;"></i>
+                                            <p class="text-muted mt-2 mb-0">No invoices yet</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <ul class="list-unstyled mb-4 flex-grow-1">
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>A 3 Month Subscription</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Become A Warrior</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Priority community support</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Mobile app access</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Nutrition guidance</li>
-                                </ul>
-                                <button class="btn btn-primary w-100 py-2 plan-button" onclick="selectPlan('3-month')">Select Plan</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card plan-card h-100">
-                            <div class="card-body p-4 d-flex flex-column position-relative">
-                                <span class="badge bg-dark border border-secondary text-light position-absolute top-0 start-50 translate-middle rounded-pill px-3 py-1">Save 33%</span>
-                                <h5 class="text-muted fw-bold mb-3 mt-2">6 Months</h5>
-                                <div class="plan-price display-5 fw-bold text-white mb-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                                </div>
-                                <ul class="list-unstyled mb-4 flex-grow-1">
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Everything in 3-month plan</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>1-on-1 trainer consultations</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Custom meal planning</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Advanced analytics</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Exclusive content access</li>
-                                </ul>
-                                <button class="btn btn-outline-light w-100 py-2 plan-button" onclick="selectPlan('6-month')">Select Plan</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 col-lg-3">
-                        <div class="card plan-card h-100">
-                            <div class="card-body p-4 d-flex flex-column position-relative">
-                                <span class="badge bg-dark border border-secondary text-light position-absolute top-0 start-50 translate-middle rounded-pill px-3 py-1">Save 44%</span>
-                                <h5 class="text-muted fw-bold mb-3 mt-2">12 Months</h5>
-                                <div class="plan-price display-5 fw-bold text-white mb-4">
-                                    <div class="spinner-border spinner-border-sm" role="status"></div>
-                                </div>
-                                <ul class="list-unstyled mb-4 flex-grow-1">
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Everything in 6-month plan</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Unlimited trainer consultations</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Advanced nutrition coaching</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>Premium analytics dashboard</li>
-                                    <li class="mb-3 text-secondary"><i class="bi bi-check2 text-primary me-2"></i>VIP support</li>
-                                </ul>
-                                <button class="btn btn-outline-light w-100 py-2 plan-button" onclick="selectPlan('12-month')">Select Plan</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="userSubscriptionsSection" class="mt-5 pt-5 border-top border-secondary" style="display: none;">
-                <h3 class="text-center mb-4 text-white">Your Current Subscription</h3>
-                <div id="userSubscriptionsContainer" class="row justify-content-center"></div>
+            <!-- Cancel Modal (global) -->
+            <div class="modal fade" id="cancelConfirmModal" tabindex="-1" aria-labelledby="cancelConfirmModalLabel">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cancelConfirmModalLabel">Cancel Subscription</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>Warning: This action cannot be undone.
+                            </div>
+                            <p>Are you sure?</p>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="atPeriodEndCheck">
+                                <label class="form-check-label" for="atPeriodEndCheck">
+                                    Cancel at end of billing period
+                                </label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep</button>
+                            <button type="button" class="btn btn-danger" id="confirmCancelBtnGlobal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>

@@ -7,7 +7,7 @@
    Config & Globals
 -------------------------------------------------- */
 
-window.API_BASE = window.ApiConfig.getAPI_BASE();
+window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 
 const STRIPE_PUBLIC_KEY =
   'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
@@ -335,21 +335,37 @@ async function loadUserSubscriptions() {
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
-    // User should not be able to choose a different plan if they have active subscription
-    // If user has active subscription, redirect to view-subscription page
-    if (hasActiveSubscription()) {
-      log('User has active subscription - redirecting to view-subscription.html...');
-      showAlert('You already have an active subscription. You can view or cancel it from the My Subscription page.', 'info');
-      setTimeout(() => {
-        window.location.href = '/view-subscription';
-      }, 2000);
-      return;
-    }
-
-    // If user has expired or canceled subscription, show it with renewal option
+    // FIXED: Removed auto-redirect to break loop. Handle all states here.
+    log('Subscription state:', hasActiveSubscription() ? 'Active/Paused' : 'No/Expired');
+    
+    // Always render subscriptions section if any exist (active, expired, canceled)
     if (userSubscriptions.length > 0) {
-      renderUserSubscriptions();
-      toggleViews();
+      const sub = userSubscriptions[0];
+      document.getElementById('subscriptionTabsSection').style.display = 'block';
+      document.getElementById('subscriptionType').textContent = `${sub.plan?.replace('-', ' ').toUpperCase()} Plan`;
+      document.getElementById('subscriptionAmount').textContent = formatCurrency(sub.amount || 0);
+      
+      // Basic status and dates
+      const now = new Date();
+      const periodEnd = parseDate(sub.currentPeriodEnd, new Date());
+      const daysLeft = Math.ceil((periodEnd - now) / 86400000);
+      const statusEl = document.getElementById('subscriptionStatus');
+      if (daysLeft <= 0) {
+        statusEl.textContent = 'EXPIRED';
+        statusEl.className = 'badge bg-danger';
+      } else {
+        statusEl.textContent = 'ACTIVE';
+        statusEl.className = 'badge bg-success';
+      }
+      document.getElementById('nextBillingDate').textContent = formatDate(periodEnd);
+      document.getElementById('daysRemaining').textContent = `${daysLeft} days`;
+      
+      renderUserSubscriptions();    
+      toggleSubscriptionTabs('summary');     
+      if (sub.stripeSubscriptionId) loadInvoices(sub.stripeSubscriptionId); 
+    } else {
+      toggleViews(); 
+      document.getElementById('subscriptionTabsSection').style.display = 'none';
     }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
@@ -357,68 +373,32 @@ async function loadUserSubscriptions() {
   }
 }
 
-function toggleViews() {
-  const hasSub = hasActiveSubscription();
-  userSubscriptionsSection.style.display = hasSub ? 'block' : 'none';
-  plansContainer.style.display = hasSub ? 'none' : 'grid';
-}
-
-function renderUserSubscriptions() {
-  if (!userSubscriptionsContainer) return;
-
-  userSubscriptionsContainer.innerHTML = '';
-
-  userSubscriptions.forEach(sub => {
-    const planName = (sub.plan || '').replace('-', ' ').toUpperCase();
-
-    // Helper function to parse date values (handles strings from JSON, Date objects, and timestamps)
-    function parseDate(value, fallback) {
-      if (!value) return fallback;
-      // If it's a string (ISO format from JSON), try to parse it
-      if (typeof value === 'string') {
-        const d = new Date(value);
-        return isNaN(d.getTime()) ? fallback : d;
-      }
-      // If it's a number (timestamp in seconds), convert to Date
-      if (typeof value === 'number') {
-        const timestamp = value > 10000000000 ? value : value * 1000;
-        return new Date(timestamp);
-      }
-      // If it's already a Date object
-      if (value instanceof Date && !isNaN(value.getTime())) {
-        return value;
-      }
-      return fallback;
-    }
-
-    const start = parseDate(sub.currentPeriodStart, new Date());
-    const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));
-
-    const daysLeft = Math.ceil((end - new Date()) / 86400000);
-    const expired = daysLeft <= 0;
-
-    const card = document.createElement('div');
-    card.className = 'subscription-card';
-    card.innerHTML = `
-      <h5>${planName} Plan</h5>
-      <span class="subscription-status ${expired ? 'expired' : 'active'}">
-        ${expired ? 'EXPIRED' : 'ACTIVE'}
-      </span>
-      <div>Amount: ${formatCurrency(sub.amount)}/month</div>
-      <div>Next Billing: ${end.toLocaleDateString()}</div>
-      <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>
-      <div class="subscription-actions">
-        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>
-        ${expired 
-          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` 
-          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`
-        }
-      </div>
-    `;
-
-    userSubscriptionsContainer.appendChild(card);
+function toggleSubscriptionTabs(activeTab = 'summary') {
+  // Hide all tab contents
+  const summaryTab = document.getElementById('subscriptionSummaryTab');
+  const detailsTab = document.getElementById('subscriptionDetailsTab');
+  const invoicesTab = document.getElementById('invoicesTab');
+  
+  if (summaryTab) summaryTab.style.display = activeTab === 'summary' ? 'block' : 'none';
+  if (detailsTab) detailsTab.style.display = activeTab === 'details' ? 'block' : 'none';
+  if (invoicesTab) invoicesTab.style.display = activeTab === 'invoices' ? 'block' : 'none';
+  
+  // Update tab buttons
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === activeTab);
   });
+  
+  // Default: show summary if no sub
+  if (!userSubscriptions.length) {
+    plansContainer.style.display = 'grid';
+    userSubscriptionsSection.style.display = 'none';
+  } else {
+    plansContainer.style.display = 'none';
+    userSubscriptionsSection.style.display = 'block';
+  }
 }
+
+// Global parseDate helper - moved up for use in loadUserSubscriptions()\nfunction parseDate(value, fallback) {\n  if (!value) return fallback;\n  if (typeof value === 'string') {\n    const d = new Date(value);\n    return isNaN(d.getTime()) ? fallback : d;\n  }\n  if (typeof value === 'number') {\n    const timestamp = value > 10000000000 ? value : value * 1000;\n    return new Date(timestamp);\n  }\n  if (value instanceof Date && !isNaN(value.getTime())) {\n    return value;\n  }\n  return fallback;\n}\n\nfunction renderUserSubscriptions() {\n  if (!userSubscriptionsContainer) return;\n\n  userSubscriptionsContainer.innerHTML = '';\n\n  userSubscriptions.forEach(sub => {\n    const planName = (sub.plan || '').replace('-', ' ').toUpperCase();\n\n    const start = parseDate(sub.currentPeriodStart, new Date());\n    const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));\n\n    const daysLeft = Math.ceil((end - new Date()) / 86400000);\n    const expired = daysLeft <= 0;\n\n    const card = document.createElement('div');\n    card.className = 'subscription-card';\n    card.innerHTML = `\n      <h5>${planName} Plan</h5>\n      <span class="subscription-status ${expired ? 'expired' : 'active'}">\n        ${expired ? 'EXPIRED' : 'ACTIVE'}\n      </span>\n      <div>Amount: ${formatCurrency(sub.amount)}/month</div>\n      <div>Next Billing: ${end.toLocaleDateString()}</div>\n      <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>\n      <div class="subscription-actions">\n        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>\n        ${expired \n          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` \n          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`\n        }\n      </div>\n    `;\n\n    userSubscriptionsContainer.appendChild(card);\n  });\n}
 
 /* --------------------------------------------------
    Plan Selection & Payment

@@ -12,11 +12,7 @@
     --text-secondary: #a1a1aa;
 }
 
-body.subscriptions-page {
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, sans-serif;
-}
+body.subscriptions-page {\n    background-color: var(--bg-main);\n    color: var(--text-primary);\n    font-family: system-ui, -apple-system, sans-serif;\n}
 
 /* --- Hero Section --- */
 .subscription-hero {
