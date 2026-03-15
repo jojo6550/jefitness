@@ -15,8 +15,10 @@ const { handleValidationErrors } = require('../middleware/inputValidator');
  */
 router.post('/signup', 
     [
-        body('email').isEmail().withMessage('Enter a valid email'),
-        body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 chars'),
+        body('firstName').trim().notEmpty().withMessage('First name is required'),
+        body('lastName').trim().notEmpty().withMessage('Last name is required'),
+        body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+        body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 chars'),
         handleValidationErrors
     ],
     authController.signup
@@ -29,7 +31,15 @@ router.post('/signup',
  *     summary: Login user
  *     tags: [Authentication]
  */
-router.post('/login', authLimiter, authController.login);
+router.post('/login', 
+    authLimiter, 
+    [
+        body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+        body('password').notEmpty().withMessage('Password is required'),
+        handleValidationErrors
+    ],
+    authController.login
+);
 
 /**
  * @swagger

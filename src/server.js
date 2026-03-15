@@ -32,168 +32,29 @@ startSubscriptionCleanupJob();
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
 
-// Import security middleware
-const securityHeaders = require('./middleware/securityHeaders');
-const { corsOptions } = require('./middleware/corsConfig');
-const { sanitizeInput } = require('./middleware/sanitizeInput');
-const { requestLogger } = require('./middleware/requestLogger');
-const { errorHandler } = require('./middleware/errorHandler');
-const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
-const { requireActiveSubscription } = require('./middleware/subscriptionAuth');
-const csrfProtection = require('./middleware/csrf');
+// Import security configurations
+const { nonceMiddleware, helmetOptions, optionsHandler } = require('./config/security');
 
-// -----------------------------
-// Enhanced Security Headers with Helmet
-// -----------------------------
-// SECURITY: Content Security Policy - Defense-in-depth against XSS
-app.use((req, res, next) => {
-  res.locals.cspNonce = require('crypto').randomBytes(16).toString('base64');
-  next();
-});
+// Security Middlewares
+app.use(nonceMiddleware);
+app.use(helmet(helmetOptions));
+app.use(optionsHandler);
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      // SECURITY: scriptSrc - Allow only self and trusted CDNs
-      scriptSrc: [
-        "'self'",
-        (req, res) => `'nonce-${res.locals.cspNonce}'`,
-        "https://cdn.jsdelivr.net",
-        "https://cdnjs.cloudflare.com",
-        "https://unpkg.com",
-        "https://js.stripe.com"
-      ],
-      scriptSrcAttr: [(req, res) => `'nonce-${res.locals.cspNonce}'`],
-      styleSrc: [
-        "'self'",
-        (req, res) => `'nonce-${res.locals.cspNonce}'`,
-        "https://cdn.jsdelivr.net",
-        "https://fonts.googleapis.com",
-        "https://cdnjs.cloudflare.com"
-      ],
-      fontSrc: [
-        "'self'",
-        "https://fonts.gstatic.com",
-        "https://cdn.jsdelivr.net"
-      ],
-      connectSrc: [
-        "'self'",
-        "https://api.mailjet.com",
-        "https://cdn.jsdelivr.net",
-        "https://api.stripe.com",
-        "https://jefitness.onrender.com"
-      ],
-      frameSrc: [
-        "'self'",
-        "https://js.stripe.com" // Required for Stripe payment forms
-      ],
-      imgSrc: [
-        "'self'",
-        "data:", // Required for base64 encoded images
-        "https://via.placeholder.com",
-        "https://cdn.jsdelivr.net",
-        "https://*.stripe.com" // Stripe images
-      ],
-      objectSrc: ["'none'"], // SECURITY: Block plugins (Flash, Java, etc.)
-      baseUri: ["'self'"], // SECURITY: Prevent base tag injection
-      formAction: ["'self'"], // SECURITY: Restrict form submissions
-      upgradeInsecureRequests: [], // SECURITY: Upgrade HTTP to HTTPS
-      blockAllMixedContent: [] // SECURITY: Block mixed content
-    }
-  },
-  // SECURITY: HTTP Strict Transport Security - Force HTTPS
-  hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true
-  },
-  // SECURITY: Prevent MIME type sniffing
-  noSniff: true,
-  // SECURITY: Enable XSS filter in older browsers
-  xssFilter: true,
-  // SECURITY: Control referrer information
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  // SECURITY: Prevent clickjacking
-  frameguard: { action: "deny" },
-  // SECURITY: Restrict Adobe Flash and PDF
-  permittedCrossDomainPolicies: { permittedPolicies: "none" }
-}));
-
-// -----------------------------
-// Middleware
-// -----------------------------
 // Request logging
 app.use(requestLogger);
-
-// Security headers
-app.use(securityHeaders);
-
-// Logging
 app.use(morgan('combined'));
 
-// WEBHOOKS: Must be registered BEFORE express.json() so the request body arrives
-// as a raw Buffer. stripe.webhooks.constructEvent() requires the raw body to
-// verify the Stripe-Signature header. Placing this after express.json() would
-// consume the stream and break signature verification.
+// WEBHOOKS
 app.use('/webhooks', require('./routes/webhooks'));
 
-// Body parsing (applied to all routes EXCEPT /webhooks above)
+// Body parsing
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 
-// Input sanitization
+// Input sanitization & CSRF
 app.use(sanitizeInput);
-
-// CSRF Protection
-// SECURITY: Generates tokens for GET/HEAD/OPTIONS, validates for state-changing methods
 app.use(csrfProtection.middleware());
-
-// CORS with enhanced security
 app.use(cors(corsOptions));
-
-// SECURITY: Global OPTIONS handler for preflight requests
-// This is handled by CORS middleware, but kept for explicit control
-app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    // SECURITY: Never use wildcard for credentials-enabled CORS
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'https://jefitness.onrender.com',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
-    
-    // Always allow localhost origins for development
-    // Check if origin contains localhost or 127.0.0.1
-    const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
-    
-    if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push(
-        'http://127.0.0.1:10000', 
-        'http://127.0.0.1:5500', 
-        'http://localhost:10000', 
-        'http://localhost:5500'
-      );
-    }
-    
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Max-Age', '86400');
-      res.sendStatus(204);
-    } else if (!origin) {
-      // Allow requests with no origin (same-origin)
-      res.sendStatus(204);
-    } else {
-      console.warn(`CORS preflight rejected for origin: ${origin}`);
-      res.sendStatus(403);
-    }
-    return;
-  }
-  next();
-});
 
 // Disable caching in development for all routes
 if (process.env.NODE_ENV !== 'production') {
@@ -612,7 +473,10 @@ setInterval(() => {
 
 // Only start server if this file is run directly (not required in tests)
 if (require.main === module) {
-  const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+
+// Global Error Handler
+app.use(errorHandler);
 
   // Graceful shutdown handler
   const gracefulShutdown = async (signal) => {

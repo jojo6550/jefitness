@@ -8,46 +8,7 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-/**
- * STRIPE PRODUCT IDS CONFIGURATION
- * Replace these with your actual Stripe Product IDs from the dashboard
- * You can find them at: https://dashboard.stripe.com/test/products
- * Each product should have at least one active recurring price
- */
-const PRODUCT_IDS = {
-  '1-month': process.env.STRIPE_PRODUCT_1_MONTH || 'prod_TlkNETGd6OFrRf',
-  '3-month': process.env.STRIPE_PRODUCT_3_MONTH || 'prod_TlkOMtyHdhvBXQ',
-  '6-month': process.env.STRIPE_PRODUCT_6_MONTH || 'prod_TlkQ5HrbgnHXA5',
-  '12-month': process.env.STRIPE_PRODUCT_12_MONTH || 'prod_TlkRUlSilrQIu0'
-};
-
-/**
- * PRODUCT MAP CONFIGURATION
- * One-time product purchases configuration
- * Maps product keys to their Stripe product IDs and price IDs
- */
-const PRODUCT_MAP = {
-  'seamoss-small': {
-    productId: process.env.STRIPE_PRODUCT_SEAMOSS_SMALL,
-    priceId: process.env.STRIPE_PRICE_SEAMOSS_SMALL,
-    name: 'Seamoss - Small Size'
-  },
-  'seamoss-large': {
-    productId: process.env.STRIPE_PRODUCT_SEAMOSS_LARGE,
-    priceId: process.env.STRIPE_PRICE_SEAMOSS_LARGE,
-    name: 'Seamoss - Large Size'
-  },
-  'coconut-water': {
-    productId: process.env.STRIPE_PRODUCT_COCONUT_WATER,
-    priceId: process.env.STRIPE_PRICE_COCONUT_WATER,
-    name: 'Coconut Water'
-  },
-  'coconut-jelly': {
-    productId: process.env.STRIPE_PRODUCT_COCONUT_JELLY,
-    priceId: process.env.STRIPE_PRICE_COCONUT_JELLY,
-    name: 'Coconut Jelly'
-  }
-};
+const { PRODUCT_IDS, PRODUCT_MAP, PROGRAM_PRODUCT_IDS } = require('../config/stripeConfig');
 
 /**
  * Get the active recurring price ID for a product
