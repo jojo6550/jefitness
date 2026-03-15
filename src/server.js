@@ -124,7 +124,13 @@ app.use(securityHeaders);
 // Logging
 app.use(morgan('combined'));
 
-// Body parsing
+// WEBHOOKS: Must be registered BEFORE express.json() so the request body arrives
+// as a raw Buffer. stripe.webhooks.constructEvent() requires the raw body to
+// verify the Stripe-Signature header. Placing this after express.json() would
+// consume the stream and break signature verification.
+app.use('/webhooks', require('./routes/webhooks'));
+
+// Body parsing (applied to all routes EXCEPT /webhooks above)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 
@@ -294,7 +300,7 @@ const versioning = require('./middleware/versioning');
 app.use('/api/v1/products', versioning, require('./routes/products'));
 app.use('/api/v1/subscriptions', versioning, require('./routes/subscriptions'));
 app.use('/api/v1/programs', versioning, require('./routes/programs'));
-app.use('/webhooks', require('./routes/webhooks'));
+// Note: /webhooks is registered before express.json() above for raw body access
 
 // Auth routes
 app.use('/api/v1/auth', versioning, require('./routes/auth'));

@@ -19,14 +19,14 @@ const getStripe = () => {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // SECURITY: Whitelist of allowed Stripe events
-// Only process events we explicitly handle to prevent unexpected behavior
 const ALLOWED_WEBHOOK_EVENTS = new Set([
   'customer.created',
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',
   'invoice.created',
-  'invoice.payment_succeeded',
+  'invoice.paid',                    // Modern Stripe event for successful invoice payment
+  'invoice.payment_succeeded',       // Legacy alias — kept for backward compatibility
   'invoice.payment_failed',
   'payment_intent.succeeded',
   'payment_intent.payment_failed',
@@ -34,7 +34,7 @@ const ALLOWED_WEBHOOK_EVENTS = new Set([
 ]);
 
 // ===== DYNAMIC PLAN MAP =====
-// Add new plans here only
+// Maps Stripe Price IDs → internal plan keys
 const PLAN_MAP = {
   [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
   [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
@@ -42,7 +42,9 @@ const PLAN_MAP = {
   [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
 };
 
-// Middleware to parse Stripe webhook payload correctly
+// Middleware to parse Stripe webhook payload as raw buffer
+// IMPORTANT: This route must be registered BEFORE express.json() in server.js
+// so the body stream is not consumed before Stripe signature verification.
 const webhookMiddleware =
   process.env.NODE_ENV === 'test'
     ? express.json()
@@ -72,8 +74,8 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
       return res.status(500).send('Stripe not configured');
     }
 
-    // SECURITY: Verify webhook signature using Stripe's official verification
-    // This is the ONLY way to ensure the webhook came from Stripe
+    // SECURITY: Verify webhook signature using Stripe's official verification.
+    // req.body is a raw Buffer here because this route is registered before express.json().
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.error(`⚠️ Security event: webhook_signature_verification_failed | Error: ${err.message} | IP: ${req.ip}`);
@@ -90,21 +92,18 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
 
   // SECURITY: Check if event is in whitelist
   if (!ALLOWED_WEBHOOK_EVENTS.has(event.type)) {
-    console.warn(`⚠️ Security event: webhook_event_not_allowed | EventType: ${event.type} | EventId: ${event.id}`);
-    // Return 200 to prevent Stripe from retrying, but don't process
+    console.warn(`⚠️ Unhandled webhook event type: ${event.type} | EventId: ${event.id}`);
     return res.status(200).json({ received: true, processed: false, reason: 'Event type not handled' });
   }
 
-  // SECURITY: Replay protection - check if event was already processed
+  // SECURITY: Replay protection — check if event was already processed
   const alreadyProcessed = await isWebhookEventProcessed(event.id);
   if (alreadyProcessed) {
     console.warn(`⚠️ Security event: webhook_replay_attempt | EventId: ${event.id} | EventType: ${event.type}`);
-    // Return 200 to acknowledge but skip processing
     return res.status(200).json({ received: true, processed: false, reason: 'Event already processed' });
   }
 
-  // SECURITY: Mark event as processed before handling (prevents race conditions)
-  // This uses MongoDB with TTL for automatic cleanup after 24 hours
+  // SECURITY: Mark event as processed BEFORE handling (prevents race conditions on retries)
   await markWebhookEventProcessed(event.id, event.type);
 
   try {
@@ -115,7 +114,7 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
 
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
-        await handleSubscriptionUpsert(event.data.object, event.type === 'customer.subscription.updated');
+        await handleSubscriptionUpsert(event.data.object);
         break;
 
       case 'customer.subscription.deleted':
@@ -126,8 +125,9 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
         await handleInvoiceCreated(event.data.object);
         break;
 
+      case 'invoice.paid':
       case 'invoice.payment_succeeded':
-        await handleInvoicePaymentSucceeded(event.data.object);
+        await handleInvoicePaid(event.data.object);
         break;
 
       case 'invoice.payment_failed':
@@ -150,106 +150,170 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
 
-    res.send('Webhook received');
+    res.status(200).json({ received: true, processed: true });
   } catch (error) {
-    console.error(`Error processing webhook event ${event.type}:`, error);
-    res.json({ received: true, error: error.message });
+    console.error(`❌ Error processing webhook event ${event.type} (${event.id}):`, error);
+    // Always return 200 so Stripe does not keep retrying a bad event.
+    // The error is logged for investigation.
+    res.status(200).json({ received: true, processed: false, error: error.message });
   }
 });
 
 // ===== HELPERS =====
 
-// Get plan dynamically from price ID
 const getPlanFromPrice = (priceId) => PLAN_MAP[priceId] || 'unknown-plan';
+
+/**
+ * Build the Subscription upsert payload from a Stripe subscription object.
+ */
+function buildSubscriptionPayload(subscription) {
+  const priceItem = subscription.items?.data[0];
+  const priceId = priceItem?.price?.id;
+  const plan = getPlanFromPrice(priceId);
+
+  return {
+    stripeCustomerId: subscription.customer,
+    stripeSubscriptionId: subscription.id,
+    plan,
+    stripePriceId: priceId,
+    currentPeriodStart: subscription.current_period_start
+      ? new Date(subscription.current_period_start * 1000)
+      : null,
+    currentPeriodEnd: subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000)
+      : null,
+    status: subscription.status,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+    amount: priceItem?.price?.unit_amount || 0,
+    currency: priceItem?.price?.currency || 'jmd',
+    billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
+    lastWebhookEventAt: new Date(),
+  };
+}
 
 async function handleCustomerCreated(customer) {
   console.log(`✅ Customer created: ${customer.id}`);
 }
 
-async function handleSubscriptionUpsert(subscription, isUpdate = false) {
-  const user = await User.findOne({ stripeCustomerId: subscription.customer }) ||
-               await User.findOne({ stripeSubscriptionId: subscription.id });
+/**
+ * Handles both customer.subscription.created and customer.subscription.updated.
+ * Stripe is the source of truth — we upsert the Subscription document to match.
+ */
+async function handleSubscriptionUpsert(subscription) {
+  // Resolve the user by their Stripe customer ID stored in the User document
+  const user = await User.findOne({ stripeCustomerId: subscription.customer });
 
   if (!user) {
-    console.warn(`User not found for subscription ${subscription.id}`);
+    console.warn(`⚠️ No user found for Stripe customer ${subscription.customer} (subscription: ${subscription.id})`);
     return;
   }
 
-  const priceId = subscription.items?.data[0]?.price?.id;
-  const plan = getPlanFromPrice(priceId);
+  const payload = buildSubscriptionPayload(subscription);
 
-  if (isUpdate) {
-    user.subscription = {
-      isActive: subscription.status === 'active',
-      plan,
-      stripePriceId: priceId,
-      currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
-      currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
-    };
-    await user.save();
-    console.log(`✅ User subscription updated: ${user._id}, plan: ${plan}`);
-  } else {
-    const subscriptionDoc = await Subscription.findOneAndUpdate(
-      { stripeSubscriptionId: subscription.id },
-      {
-        userId: user._id,
-        stripeCustomerId: subscription.customer,
-        stripeSubscriptionId: subscription.id,
-        plan,
-        stripePriceId: priceId,
-        currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
-        currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
-        status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-        billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
-        amount: subscription.items?.data[0]?.price?.unit_amount || 0,
-        currency: subscription.items?.data[0]?.price?.currency || 'jmd',
-        lastWebhookEventAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
-    console.log(`✅ Subscription created: ${subscriptionDoc._id}, plan: ${plan}`);
-  }
+  const doc = await Subscription.findOneAndUpdate(
+    { stripeSubscriptionId: subscription.id },
+    { $set: { userId: user._id, ...payload } },
+    { upsert: true, new: true }
+  );
+
+  console.log(`✅ Subscription upserted: ${doc._id} | status: ${doc.status} | plan: ${doc.plan}`);
 }
 
+/**
+ * Handles customer.subscription.deleted.
+ * Marks the subscription as canceled in MongoDB.
+ */
 async function handleSubscriptionDeleted(subscription) {
   const sub = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
-    { status: 'canceled', canceledAt: new Date(), lastWebhookEventAt: new Date() },
+    {
+      $set: {
+        status: 'canceled',
+        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : new Date(),
+        lastWebhookEventAt: new Date()
+      }
+    },
     { new: true }
   );
 
-  if (!sub) console.warn(`Subscription ${subscription.id} not found`);
-  else console.log(`✅ Subscription canceled: ${subscription.id}`);
+  if (!sub) {
+    console.warn(`⚠️ Subscription ${subscription.id} not found in DB on deletion event`);
+  } else {
+    console.log(`✅ Subscription canceled in DB: ${subscription.id}`);
+  }
 }
 
 async function handleInvoiceCreated(invoice) {
-  console.log(`✅ Invoice created: ${invoice.id}`);
+  console.log(`ℹ️ Invoice created: ${invoice.id}`);
 }
 
-async function handleInvoicePaymentSucceeded(invoice) {
-  console.log(`✅ Invoice payment succeeded: ${invoice.id}`);
+/**
+ * Handles invoice.paid and invoice.payment_succeeded.
+ * Ensures subscription status is 'active' and period dates are current.
+ */
+async function handleInvoicePaid(invoice) {
+  console.log(`✅ Invoice paid: ${invoice.id}`);
   if (!invoice.subscription) return;
+
+  const stripe = getStripe();
+  let currentPeriodEnd = null;
+  let currentPeriodStart = null;
+
+  // Fetch latest subscription data from Stripe to get accurate period dates
+  try {
+    if (stripe) {
+      const stripeSub = await stripe.subscriptions.retrieve(invoice.subscription);
+      currentPeriodStart = stripeSub.current_period_start
+        ? new Date(stripeSub.current_period_start * 1000)
+        : null;
+      currentPeriodEnd = stripeSub.current_period_end
+        ? new Date(stripeSub.current_period_end * 1000)
+        : null;
+    }
+  } catch (err) {
+    console.warn(`⚠️ Could not fetch subscription ${invoice.subscription} from Stripe: ${err.message}`);
+  }
+
+  const updatePayload = {
+    status: 'active',
+    lastWebhookEventAt: new Date()
+  };
+  if (currentPeriodStart) updatePayload.currentPeriodStart = currentPeriodStart;
+  if (currentPeriodEnd) updatePayload.currentPeriodEnd = currentPeriodEnd;
 
   const sub = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: invoice.subscription },
-    { status: 'active', lastWebhookEventAt: new Date() },
+    { $set: updatePayload },
     { new: true }
   );
 
-  if (sub) console.log(`✅ Subscription activated: ${sub._id}`);
+  if (sub) {
+    console.log(`✅ Subscription activated/renewed in DB: ${sub._id}`);
+  } else {
+    console.warn(`⚠️ Subscription ${invoice.subscription} not found in DB on invoice.paid`);
+  }
 }
 
+/**
+ * Handles invoice.payment_failed.
+ * Marks the subscription as past_due in MongoDB.
+ */
 async function handleInvoicePaymentFailed(invoice) {
   console.log(`❌ Invoice payment failed: ${invoice.id}`);
   if (!invoice.subscription) return;
 
-  const user = await User.findOne({ stripeSubscriptionId: invoice.subscription });
-  if (!user) return;
+  const sub = await Subscription.findOneAndUpdate(
+    { stripeSubscriptionId: invoice.subscription },
+    { $set: { status: 'past_due', lastWebhookEventAt: new Date() } },
+    { new: true }
+  );
 
-  user.subscriptionStatus = 'past_due';
-  await user.save();
-  console.log(`❌ User subscription marked past_due: ${user._id}`);
+  if (sub) {
+    console.log(`❌ Subscription marked past_due in DB: ${sub._id}`);
+  } else {
+    console.warn(`⚠️ Subscription ${invoice.subscription} not found in DB on payment_failed`);
+  }
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
@@ -260,106 +324,104 @@ async function handlePaymentIntentFailed(paymentIntent) {
   console.log(`❌ Payment intent failed: ${paymentIntent.id}`);
 }
 
+/**
+ * Handles checkout.session.completed.
+ * For subscription mode: upserts the Subscription document.
+ * For payment mode: handles program purchases and product purchases.
+ */
 async function handleCheckoutSessionCompleted(session) {
   console.log(`✅ Checkout session completed: ${session.id}`);
-  
-  // SECURITY: Verify customer exists before processing
+
   if (!session.customer) {
     console.warn(`⚠️ Checkout session ${session.id} has no customer ID`);
     return;
   }
-  
+
   const user = await User.findOne({ stripeCustomerId: session.customer });
   if (!user) {
-    console.warn(`⚠️ User not found for Stripe customer ${session.customer}`);
+    console.warn(`⚠️ No user found for Stripe customer ${session.customer}`);
     return;
   }
 
-  const stripe = getStripe();
-  let subscription;
+  // --- Subscription checkout ---
+  if (session.mode === 'subscription' && session.subscription) {
+    const stripe = getStripe();
+    let stripeSub;
 
-  if (session.mode === 'subscription' && stripe && session.subscription) {
-    try { subscription = await stripe.subscriptions.retrieve(session.subscription); }
-    catch (err) { console.warn(`Could not fetch subscription from Stripe: ${err.message}`); }
+    try {
+      if (stripe) {
+        stripeSub = await stripe.subscriptions.retrieve(session.subscription);
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not fetch subscription from Stripe: ${err.message}`);
+    }
 
-    const priceId = subscription?.items?.data[0]?.price?.id || session.subscription?.items?.data[0]?.price?.id;
-    const plan = getPlanFromPrice(priceId);
-
-    await Subscription.findOneAndUpdate(
-      { stripeSubscriptionId: session.subscription },
-      {
-        userId: user._id,
-        stripeCustomerId: session.customer,
-        stripeSubscriptionId: session.subscription,
-        plan,
-        stripePriceId: priceId,
-        currentPeriodStart: subscription?.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
-        currentPeriodEnd: subscription?.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
-        status: subscription?.status || 'active',
-        cancelAtPeriodEnd: subscription?.cancel_at_period_end || false,
-        billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
-        amount: subscription?.items?.data[0]?.price?.unit_amount || 0,
-        currency: subscription?.items?.data[0]?.price?.currency || 'jmd',
-        checkoutSessionId: session.id,
-        lastWebhookEventAt: new Date(),
-      },
-      { upsert: true, new: true }
-    );
-    console.log(`✅ Subscription updated via checkout session, plan: ${plan}`);
+    if (stripeSub) {
+      const payload = buildSubscriptionPayload(stripeSub);
+      const doc = await Subscription.findOneAndUpdate(
+        { stripeSubscriptionId: session.subscription },
+        { $set: { userId: user._id, ...payload, checkoutSessionId: session.id } },
+        { upsert: true, new: true }
+      );
+      console.log(`✅ Subscription upserted via checkout: ${doc._id} | plan: ${doc.plan}`);
+    }
+    return;
   }
 
+  // --- One-time payment checkout ---
   if (session.mode === 'payment') {
-    if (session.metadata?.programId && session.metadata?.type === 'program_purchase') {
-      // SECURITY: Validate programId format before processing
-      const programId = session.metadata.programId;
+    const { metadata } = session;
+
+    if (metadata?.type === 'program_purchase' && metadata?.programId) {
+      const programId = metadata.programId;
+      // SECURITY: Validate MongoDB ObjectId format
       if (!/^[0-9a-fA-F]{24}$/.test(programId)) {
         console.error(`⚠️ Invalid program ID format: ${programId}`);
         return;
       }
-      const alreadyPurchased = user.purchasedPrograms.some(p => p.programId.toString() === programId);
-      
+
+      const alreadyPurchased = user.purchasedPrograms.some(
+        (p) => p.programId.toString() === programId
+      );
+
       if (!alreadyPurchased) {
-        // Get program details to store price info
         const Program = require('../models/Program');
         const program = await Program.findById(programId);
-        
-        // SECURITY: Store amount from Stripe, not from metadata
+
         user.purchasedPrograms.push({
           programId,
           purchasedAt: new Date(),
           stripeCheckoutSessionId: session.id,
           stripePriceId: program?.stripePriceId,
-          amountPaid: session.amount_total // Server-side price from Stripe
+          amountPaid: session.amount_total // SECURITY: use server-side amount from Stripe
         });
         await user.save();
         console.log(`✅ Program ${programId} purchased by user ${user._id}`);
       } else {
         console.log(`ℹ️ Program ${programId} already purchased by user ${user._id}`);
       }
-    } else if (session.metadata?.programId) {
-      // Handle legacy program assignments (trainer assigned programs)
-      const programId = session.metadata.programId;
-      const alreadyAssigned = user.assignedPrograms.some(ap => ap.programId.toString() === programId);
+    } else if (metadata?.programId) {
+      // Legacy: trainer-assigned programs
+      const programId = metadata.programId;
+      const alreadyAssigned = user.assignedPrograms.some(
+        (ap) => ap.programId.toString() === programId
+      );
       if (!alreadyAssigned) {
         user.assignedPrograms.push({ programId, assignedAt: new Date() });
         await user.save();
         console.log(`✅ Program ${programId} assigned to user ${user._id}`);
-      } else {
-        console.log(`ℹ️ Program ${programId} already assigned to user ${user._id}`);
       }
-    } else if (session.metadata?.type === 'product_purchase') {
-      // Handle product purchases
+    } else if (metadata?.type === 'product_purchase') {
       const Purchase = require('../models/Purchase');
       const purchase = await Purchase.findOne({ stripeCheckoutSessionId: session.id });
 
       if (purchase && purchase.status === 'pending') {
-        // Update purchase record with payment details
         purchase.stripePaymentIntentId = session.payment_intent;
         purchase.status = 'completed';
         await purchase.save();
         console.log(`✅ Product purchase ${purchase._id} completed for user ${user._id}`);
       } else {
-        console.warn(`Purchase record not found or already processed for session ${session.id}`);
+        console.warn(`⚠️ Purchase record not found or already processed for session ${session.id}`);
       }
     }
   }

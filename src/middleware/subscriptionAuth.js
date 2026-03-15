@@ -1,24 +1,23 @@
 /**
  * Middleware to enforce active subscription requirements
  * Protects routes that require a valid, active subscription
+ * Stripe is the source of truth — status is verified from the Subscription collection (DB mirror of Stripe)
  */
 
-const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 
 /**
  * Middleware: requireActiveSubscription
- * Checks if the authenticated user has an active subscription
- * Blocks access if subscription is inactive, expired, or not present
- * 
- * @param {Object} req - Express request object
+ * Checks if the authenticated user has an active, non-expired subscription record in MongoDB.
+ * MongoDB is kept in sync with Stripe via webhooks, so this is a fast, DB-only check.
+ *
+ * @param {Object} req - Express request object (must have req.user set by auth middleware)
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
- * 
- * @returns {Object} 403 Forbidden if no active subscription
  */
 async function requireActiveSubscription(req, res, next) {
     try {
-        // Ensure user is authenticated (should be called after auth middleware)
+        // Ensure user is authenticated (must be called after auth middleware)
         if (!req.user || !req.user.id) {
             return res.status(401).json({
                 success: false,
@@ -29,40 +28,40 @@ async function requireActiveSubscription(req, res, next) {
             });
         }
 
-        // Fetch user from database to get latest subscription status
-        const user = await User.findById(req.user.id);
-        
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                error: {
-                    code: 'USER_NOT_FOUND',
-                    message: 'User not found'
-                }
-            });
-        }
+        // Query Subscription collection directly — source of truth mirrored from Stripe via webhooks
+        const subscription = await Subscription.findOne({
+            userId: req.user.id,
+            status: 'active',
+            currentPeriodEnd: { $gte: new Date() }
+        }).sort({ currentPeriodEnd: -1 });
 
-        // Check if user has an active subscription using the model method
-        if (!user.hasActiveSubscription()) {
+        if (!subscription) {
+            // Try to find any subscription to provide better error context
+            const anySubscription = await Subscription.findOne({ userId: req.user.id })
+                .sort({ createdAt: -1 });
+
             return res.status(403).json({
                 success: false,
                 error: {
                     code: 'SUBSCRIPTION_REQUIRED',
                     message: 'You need an active subscription to access this feature.',
                     details: {
-                        currentStatus: user.subscriptionStatus,
-                        hasExpired: user.currentPeriodEnd ? new Date() > user.currentPeriodEnd : false,
-                        expiryDate: user.currentPeriodEnd
+                        currentStatus: anySubscription ? anySubscription.status : 'none',
+                        hasExpired: anySubscription
+                            ? new Date() > new Date(anySubscription.currentPeriodEnd)
+                            : false,
+                        expiryDate: anySubscription ? anySubscription.currentPeriodEnd : null
                     },
                     action: {
                         type: 'PURCHASE_SUBSCRIPTION',
-                        url: '/subscriptions.html'
+                        url: '/subscriptions'
                     }
                 }
             });
         }
 
-        // User has active subscription, proceed
+        // Attach subscription to request for downstream use
+        req.subscription = subscription;
         next();
     } catch (error) {
         console.error('Error in requireActiveSubscription middleware:', error);
@@ -78,25 +77,31 @@ async function requireActiveSubscription(req, res, next) {
 
 /**
  * Middleware: optionalSubscriptionCheck
- * Adds subscription info to request without blocking access
- * Useful for routes that want to know subscription status but don't require it
- * 
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
+ * Attaches subscription info to req without blocking access.
+ * Useful for routes that adapt behaviour based on subscription but don't require it.
  */
 async function optionalSubscriptionCheck(req, res, next) {
     try {
         if (req.user && req.user.id) {
-            const user = await User.findById(req.user.id);
-            if (user) {
-                req.subscriptionInfo = user.getSubscriptionInfo();
-            }
+            const subscription = await Subscription.findOne({
+                userId: req.user.id,
+                status: 'active',
+                currentPeriodEnd: { $gte: new Date() }
+            }).sort({ currentPeriodEnd: -1 });
+
+            req.subscriptionInfo = subscription
+                ? {
+                    hasSubscription: true,
+                    plan: subscription.plan,
+                    expiresAt: subscription.currentPeriodEnd,
+                    status: subscription.status
+                  }
+                : { hasSubscription: false, plan: null, expiresAt: null };
         }
         next();
     } catch (error) {
         console.error('Error in optionalSubscriptionCheck middleware:', error);
-        // Don't block request on error, just proceed without subscription info
+        // Don't block the request on non-critical errors
         next();
     }
 }

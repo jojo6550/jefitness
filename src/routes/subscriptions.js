@@ -4,7 +4,16 @@ const { auth } = require('../middleware/auth');
 const { preventNoSQLInjection, stripDangerousFields, handleValidationErrors, allowOnlyFields } = require('../middleware/inputValidator');
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
-const { createOrRetrieveCustomer, createSubscription, cancelSubscription, getPlanPricing, getSubscriptionInvoices, getStripe } = require('../services/stripe');
+const {
+  createOrRetrieveCustomer,
+  createSubscription,
+  cancelSubscription,
+  updateSubscription,
+  createCheckoutSession,
+  getPlanPricing,
+  getSubscriptionInvoices,
+  getStripe
+} = require('../services/stripe');
 const { calculateSubscriptionEndDate } = require('../utils/dateUtils');
 
 const router = express.Router();
@@ -643,4 +652,214 @@ router.get('/:id/payment-method', auth, async (req, res) => {
   }
 });
 
+// ============================================================
+// GET /status
+// Returns the authenticated user's current subscription status
+// from MongoDB (mirrored from Stripe via webhooks).
+// SECURITY: Never trusts frontend data — reads from DB only.
+// ============================================================
+router.get('/status', auth, async (req, res) => {
+  try {
+    const subscription = await Subscription.findOne({
+      userId: req.user.id,
+      status: { $in: ['active', 'past_due', 'paused'] }
+    }).sort({ currentPeriodEnd: -1 });
+
+    if (!subscription) {
+      return res.json({
+        success: true,
+        data: { subscriptionStatus: 'none', hasActiveSubscription: false }
+      });
+    }
+
+    const now = new Date();
+    const isActive = subscription.status === 'active' && subscription.currentPeriodEnd > now;
+
+    return res.json({
+      success: true,
+      data: {
+        subscriptionStatus: subscription.status,
+        hasActiveSubscription: isActive,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        planId: subscription.plan,
+        priceId: subscription.stripePriceId,
+        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd
+      }
+    });
+  } catch (err) {
+    console.error('Failed to fetch subscription status:', err);
+    res.status(500).json({ success: false, error: { message: 'Failed to fetch subscription status' } });
+  }
+});
+
+// ============================================================
+// POST /create-checkout-session
+// Creates a Stripe Checkout session for the selected plan.
+// The user is redirected to Stripe's hosted checkout page.
+// After payment, Stripe fires webhooks which update MongoDB.
+// ============================================================
+router.post(
+  '/create-checkout-session',
+  auth,
+  [
+    body('plan')
+      .isIn(['1-month', '3-month', '6-month', '12-month'])
+      .withMessage('Invalid plan selected')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ success: false, error: { message: 'User not found' } });
+      }
+
+      const { plan } = req.body;
+
+      // Build redirect URLs
+      const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+      const successUrl = `${baseUrl}/subscriptions?session_id={CHECKOUT_SESSION_ID}&success=true`;
+      const cancelUrl  = `${baseUrl}/subscriptions?canceled=true`;
+
+      // Create or retrieve Stripe customer — use DB email, not frontend input
+      const customer = await createOrRetrieveCustomer(
+        user.email,
+        null,
+        { userId: user._id.toString(), firstName: user.firstName, lastName: user.lastName }
+      );
+
+      // Persist stripeCustomerId on the User if not already set
+      if (!user.stripeCustomerId) {
+        await User.findByIdAndUpdate(user._id, { stripeCustomerId: customer.id });
+      }
+
+      const session = await createCheckoutSession(customer.id, plan, successUrl, cancelUrl);
+
+      res.json({ success: true, data: { url: session.url, sessionId: session.id } });
+    } catch (err) {
+      console.error('Failed to create checkout session:', err);
+      res.status(500).json({ success: false, error: { message: 'Failed to create checkout session' } });
+    }
+  }
+);
+
+// ============================================================
+// POST /cancel
+// Cancels the user's active subscription via Stripe.
+// atPeriodEnd=true (default): subscription stays active until period end.
+// atPeriodEnd=false: immediate cancellation.
+// Webhooks will confirm and finalize the DB state.
+// ============================================================
+router.post('/cancel', auth, allowOnlyFields(['atPeriodEnd'], false), async (req, res) => {
+  try {
+    const { atPeriodEnd = true } = req.body;
+
+    // SECURITY: Find subscription by userId — prevents IDOR
+    const subscription = await Subscription.findOne({
+      userId: req.user.id,
+      status: { $in: ['active', 'past_due'] }
+    }).sort({ currentPeriodEnd: -1 });
+
+    if (!subscription) {
+      return res.status(404).json({ success: false, error: { message: 'No active subscription found' } });
+    }
+
+    // Cancel on Stripe — Stripe is the source of truth
+    await cancelSubscription(subscription.stripeSubscriptionId, atPeriodEnd);
+
+    // Optimistically update DB; the webhook will confirm
+    if (atPeriodEnd) {
+      subscription.cancelAtPeriodEnd = true;
+      // Status stays 'active' — user retains access until period end
+    } else {
+      subscription.status = 'canceled';
+      subscription.canceledAt = new Date();
+      subscription.cancelAtPeriodEnd = false;
+    }
+    await subscription.save();
+
+    res.json({
+      success: true,
+      data: {
+        message: atPeriodEnd
+          ? 'Subscription will be canceled at the end of the billing period'
+          : 'Subscription canceled immediately'
+      }
+    });
+  } catch (err) {
+    console.error('Cancel subscription failed:', err);
+    res.status(500).json({ success: false, error: { message: err.message || 'Failed to cancel subscription' } });
+  }
+});
+
+// ============================================================
+// POST /change-plan
+// Upgrades or downgrades the user's subscription to a new plan.
+// Uses Stripe prorations. Webhook confirms the DB update.
+// ============================================================
+router.post(
+  '/change-plan',
+  auth,
+  [
+    body('plan')
+      .isIn(['1-month', '3-month', '6-month', '12-month'])
+      .withMessage('Invalid plan selected')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { plan } = req.body;
+
+      // SECURITY: Find subscription by userId — prevents IDOR
+      const subscription = await Subscription.findOne({
+        userId: req.user.id,
+        status: { $in: ['active', 'past_due'] }
+      }).sort({ currentPeriodEnd: -1 });
+
+      if (!subscription) {
+        return res.status(404).json({ success: false, error: { message: 'No active subscription found' } });
+      }
+
+      if (subscription.plan === plan) {
+        return res.status(400).json({ success: false, error: { message: 'Already on this plan' } });
+      }
+
+      // Update on Stripe — proration is applied automatically
+      const updatedStripeSub = await updateSubscription(subscription.stripeSubscriptionId, { plan });
+
+      const newPriceItem = updatedStripeSub.items?.data[0];
+      const newPriceId   = newPriceItem?.price?.id;
+      const newAmount    = newPriceItem?.price?.unit_amount;
+
+      // Optimistically update DB; the webhook will confirm
+      await Subscription.findByIdAndUpdate(subscription._id, {
+        plan,
+        stripePriceId: newPriceId    || subscription.stripePriceId,
+        amount:        newAmount != null ? newAmount / 100 : subscription.amount,
+        currentPeriodStart: updatedStripeSub.current_period_start
+          ? new Date(updatedStripeSub.current_period_start * 1000)
+          : subscription.currentPeriodStart,
+        currentPeriodEnd: updatedStripeSub.current_period_end
+          ? new Date(updatedStripeSub.current_period_end * 1000)
+          : subscription.currentPeriodEnd,
+        status: updatedStripeSub.status
+      });
+
+      res.json({
+        success: true,
+        data: {
+          message: `Plan changed to ${plan} successfully`,
+          plan,
+          status: updatedStripeSub.status
+        }
+      });
+    } catch (err) {
+      console.error('Failed to change plan:', err);
+      res.status(500).json({ success: false, error: { message: err.message || 'Failed to change plan' } });
+    }
+  }
+);
+
 module.exports = router;
+
