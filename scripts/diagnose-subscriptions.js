@@ -1,61 +1,83 @@
 #!/usr/bin/env node
-
 /**
- * Diagnose User Subscriptions
- * Shows user's Subscription records and User.subscription subdoc status
- * Usage: node scripts/diagnose-subscriptions.js --email=user@example.com
+ * Enhanced Diagnostic Script for Subscriptions Checkout
+ * Tests the exact failing endpoint + Stripe connectivity
  */
 
+const axios = require('axios');
 const mongoose = require('mongoose');
+const { getStripe, PRODUCT_IDS } = require('../src/services/stripe');
+const User = require('../src/models/User');
 require('dotenv').config();
 
-const User = require('../src/models/User');
-const Subscription = require('../src/models/Subscription');
+const API_BASE = process.env.API_BASE || 'http://localhost:10000';
 
-async function connectDB() {
-  await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness');
-  console.log('✅ DB connected');
+async function testCheckout() {
+  console.log('🔍 TESTING CHECKOUT ENDPOINT...\n');
+  
+  try {
+    // 1. Check Stripe connectivity
+    const stripe = getStripe();
+    console.log('✅ Stripe initialized:', !!stripe);
+    console.log('📋 Environment:', process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'LIVE');
+    
+    // 2. Check PRODUCT_IDS config
+    console.log('📦 PRODUCT_IDS:', PRODUCT_IDS);
+    if (!PRODUCT_IDS['1-month']) {
+      console.error('❌ MISSING STRIPE_PRODUCT_1_MONTH env var!');
+      return;
+    }
+    
+    // 3. Create test user or get existing
+    await mongoose.connect(process.env.MONGODB_URI);
+    let user = await User.findOne({ email: 'test@checkout.local' });
+    if (!user) {
+      user = new User({
+        email: 'test@checkout.local',
+        firstName: 'Test',
+        lastName: 'Checkout',
+        password: 'testpass123'
+      });
+      await user.save();
+      console.log('👤 Created test user:', user._id);
+    }
+    
+    // 4. Get auth token (simplified for test)
+    const loginRes = await axios.post(`${API_BASE}/api/v1/auth/login`, {
+      email: user.email,
+      password: 'testpass123'
+    });
+    const token = loginRes.data.data.token;
+    console.log('🔑 Got test token');
+    
+    // 5. Test checkout endpoint
+    console.log('🧪 POST /api/v1/subscriptions/checkout');
+    const checkoutRes = await axios.post(
+      `${API_BASE}/api/v1/subscriptions/checkout`,
+      { planId: '1-month' },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    
+    console.log('✅ CHECKOUT SUCCESS:', checkoutRes.data);
+    
+  } catch (error) {
+    console.error('❌ CHECKOUT FAILED:', error.response?.data || error.message);
+    
+    // Detailed Stripe diagnosis
+    if (error.response?.status === 500) {
+      console.log('\n🔍 STRIPE DIAGNOSIS:');
+      console.log('1. Check .env has STRIPE_PRODUCT_1_MONTH=prod_xxxxx');
+      console.log('2. Stripe Dashboard → Products → Verify active RECURRING price');
+      console.log('3. Test product ID:', PRODUCT_IDS['1-month']);
+    }
+  } finally {
+    mongoose.disconnect();
+  }
 }
 
-async function diagnoseUser(email) {
-  const user = await User.findOne({ email: email.toLowerCase() });
-  if (!user) {
-    console.log('❌ User not found');
-    return;
-  }
-
-  console.log(`\n👤 User: ${user.email}`);
-  console.log(`ID: ${user._id}`);
-  console.log(`User.subscription.isActive: ${user.subscription?.isActive}`);
-  console.log(`User.subscription.plan: ${user.subscription?.plan || 'N/A'}`);
-  console.log(`User.subscription.currentPeriodEnd: ${user.subscription?.currentPeriodEnd ? new Date(user.subscription.currentPeriodEnd).toISOString() : 'N/A'}`);
-
-  const subs = await Subscription.find({ userId: user._id }).sort({ createdAt: -1 });
-  console.log(`\n📋 Subscription docs (${subs.length}):`);
-  subs.forEach((sub, i) => {
-    const now = new Date();
-    const end = new Date(sub.currentPeriodEnd);
-    const daysLeft = Math.floor((end - now) / (1000 * 60 * 60 * 24));
-    console.log(`  ${i+1}. ID:${sub._id} plan:${sub.plan} status:${sub.status} end:${end.toISOString()} daysLeft:${daysLeft}`);
-    console.log(`     stripeSub:${sub.stripeSubscriptionId}`);
-  });
-
-  if (subs.length === 0) {
-    console.log('✅ No stale subs - issue likely frontend only');
-  } else if (subs[0].status === 'canceled' || daysLeft <= 0) {
-    console.log('\n🔧 RECOMMEND: Run fix script to clean stale record');
-  }
+if (process.argv.includes('checkout')) {
+  testCheckout();
+} else {
+  console.log('Usage: node scripts/diagnose-subscriptions.js checkout');
 }
-
-(async () => {
-  const email = process.argv.find(arg => arg.startsWith('--email=')).split('=')[1];
-  if (!email) {
-    console.log('Usage: node scripts/diagnose-subscriptions.js --email=user@example.com');
-    process.exit(1);
-  }
-
-  await connectDB();
-  await diagnoseUser(email);
-  mongoose.disconnect();
-})();
 

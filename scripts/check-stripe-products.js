@@ -1,61 +1,52 @@
 #!/usr/bin/env node
-
 /**
- * Check Stripe Products Script
- *
- * This script checks the current Stripe products and their prices
- * to help debug subscription creation issues.
+ * Stripe Products & Prices Checker
  */
 
-const dotenv = require('dotenv');
+const { getStripe, getPlanPricing, PRODUCT_IDS } = require('../src/services/stripe');
+require('dotenv').config();
 
-// Load environment variables
-dotenv.config();
-
-const { getAllProducts, getAllActivePrices } = require('../src/services/stripe');
-
-async function checkStripeProducts() {
-  try {
-    console.log('🔍 Checking Stripe products...\n');
-
-    // Get all products
-    const products = await getAllProducts();
-    console.log(`📦 Found ${products.length} products:`);
-
-    products.forEach((product, index) => {
-      console.log(`${index + 1}. ${product.name} (${product.id})`);
-      console.log(`   Active: ${product.active}`);
-      console.log(`   Prices: ${product.prices.length}`);
-
-      product.prices.forEach(price => {
-        console.log(`   - ${price.id}: $${(price.amount / 100).toFixed(2)} ${price.currency} (${price.type})`);
-        if (price.recurring) {
-          console.log(`     Recurring: ${price.recurring.interval_count} ${price.recurring.interval}`);
-        }
+async function checkProducts() {
+  console.log('🔍 CHECKING STRIPE PRODUCTS & PRICES...\n');
+  
+  const stripe = getStripe();
+  if (!stripe) {
+    console.error('❌ STRIPE_SECRET_KEY missing!');
+    return;
+  }
+  
+  console.log('✅ Connected to Stripe');
+  console.log('📦 Plans to check:', Object.keys(PRODUCT_IDS));
+  
+  for (const [plan, productId] of Object.entries(PRODUCT_IDS)) {
+    console.log(`\n--- ${plan.toUpperCase()} ---`);
+    console.log('Product ID:', productId);
+    
+    try {
+      // Check product exists
+      const product = await stripe.products.retrieve(productId);
+      console.log('✅ Product exists:', product.name);
+      
+      // Check active recurring prices
+      const prices = await stripe.prices.list({
+        product: productId,
+        active: true,
+        type: 'recurring'
       });
-      console.log('');
-    });
-
-    // Get all active prices
-    const prices = await getAllActivePrices();
-    console.log(`💰 Found ${prices.length} active recurring prices:`);
-
-    prices.forEach((price, index) => {
-      console.log(`${index + 1}. ${price.productName} - $${price.amount} (${price.interval})`);
-      console.log(`   Product ID: ${price.productId}`);
-      console.log(`   Price ID: ${price.priceId}`);
-      console.log('');
-    });
-
-  } catch (error) {
-    console.error('❌ Error checking Stripe products:', error.message);
-    process.exit(1);
+      
+      if (prices.data.length === 0) {
+        console.error('❌ NO ACTIVE RECURRING PRICE!');
+        console.log('💡 Fix: Stripe Dashboard → Products → Add Recurring Price');
+      } else {
+        console.log('✅ Active recurring price:', prices.data[0].id);
+        console.log('   Amount:', `$${(prices.data[0].unit_amount/100).toFixed(2)}`);
+      }
+    } catch (error) {
+      console.error('❌ Product not found:', error.message);
+      console.log('💡 Fix: Create product in Stripe Dashboard');
+    }
   }
 }
 
-// Run if called directly
-if (require.main === module) {
-  checkStripeProducts();
-}
+checkProducts();
 
-module.exports = { checkStripeProducts };

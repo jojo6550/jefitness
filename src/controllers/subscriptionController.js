@@ -17,6 +17,8 @@ const subscriptionController = {
    * Create a checkout session
    */
   createCheckout: asyncHandler(async (req, res) => {
+    console.log('[CHECKOUT] Request body:', req.body);
+    console.log('[CHECKOUT] User ID:', req.user?.id);
     const { planId } = req.body;
 
     // Fetch user to get/create their Stripe customer ID
@@ -43,14 +45,25 @@ const subscriptionController = {
     const successUrl = `${baseUrl}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/subscriptions?canceled=true`;
 
-    const session = await stripeService.createCheckoutSession(
+    try {
+      const session = await stripeService.createCheckoutSession(
       stripeCustomerId,
       planId,
       successUrl,
       cancelUrl
     );
 
-    res.json({ success: true, data: { sessionId: session.id, url: session.url } });
+      res.json({ success: true, data: { sessionId: session.id, url: session.url } });
+    } catch (error) {
+      console.error('[CHECKOUT ERROR]', {
+        planId: req.body.planId,
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        error: error.message,
+        stack: error.stack
+      });
+      throw error; // Re-throw for asyncHandler
+    }
   }),
 
   /**
