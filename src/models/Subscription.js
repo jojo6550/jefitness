@@ -80,13 +80,31 @@ const SubscriptionSchema = new mongoose.Schema(
       type: String,
       enum: ['test', 'production'],
       required: true
-    }
+    },
+
+    statusHistory: [{
+      status: String,
+      changedAt: { type: Date, default: Date.now },
+      reason: String
+    }]
   },
   { timestamps: true }
 );
 
 // 🔎 Fast active lookup
 SubscriptionSchema.index({ userId: 1, status: 1, currentPeriodEnd: -1 });
+
+// Track status changes
+SubscriptionSchema.pre('save', function(next) {
+  if (this.isModified('status')) {
+    this.statusHistory.push({
+      status: this.status,
+      changedAt: new Date(),
+      reason: 'Status updated'
+    });
+  }
+  next();
+});
 
 // Pre-save hook to ensure Stripe cancellation when status changes to 'canceled'
 SubscriptionSchema.pre('save', async function(next) {

@@ -14,6 +14,8 @@ const swaggerUi = require('swagger-ui-express');
 const redoc = require('redoc-express');
 const swaggerSpec = require('./docs/swagger');
 
+const { startSubscriptionCleanupJob } = require('./jobs');
+
 dotenv.config();
 
 const PORT = process.env.PORT;
@@ -23,6 +25,9 @@ const app = express();
 // Initialize in-memory cache service
 const cacheService = require('./services/cache');
 cacheService.connect();
+
+// Start background jobs
+startSubscriptionCleanupJob();
 
 // Trust proxy for accurate IP identification (required for Render deployment)
 app.set('trust proxy', 1);
@@ -41,25 +46,28 @@ const csrfProtection = require('./middleware/csrf');
 // Enhanced Security Headers with Helmet
 // -----------------------------
 // SECURITY: Content Security Policy - Defense-in-depth against XSS
-// While we sanitize input, CSP provides browser-level protection
+app.use((req, res, next) => {
+  res.locals.cspNonce = require('crypto').randomBytes(16).toString('base64');
+  next();
+});
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       // SECURITY: scriptSrc - Allow only self and trusted CDNs
-      // 'unsafe-inline' required for static HTML app (future: migrate to nonces)
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // TODO: Replace with nonce-based CSP
+        (req, res) => `'nonce-${res.locals.cspNonce}'`,
         "https://cdn.jsdelivr.net",
         "https://cdnjs.cloudflare.com",
         "https://unpkg.com",
         "https://js.stripe.com"
       ],
-      scriptSrcAttr: ["'unsafe-inline'"], // For inline event handlers (future: remove)
+      scriptSrcAttr: [(req, res) => `'nonce-${res.locals.cspNonce}'`],
       styleSrc: [
         "'self'",
-        "'unsafe-inline'", // Required for style attributes
+        (req, res) => `'nonce-${res.locals.cspNonce}'`,
         "https://cdn.jsdelivr.net",
         "https://fonts.googleapis.com",
         "https://cdnjs.cloudflare.com"

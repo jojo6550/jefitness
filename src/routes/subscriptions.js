@@ -4,6 +4,9 @@ const subscriptionController = require('../controllers/subscriptionController');
 const { auth } = require('../middleware/auth');
 const { preventNoSQLInjection, stripDangerousFields } = require('../middleware/inputValidator');
 
+const { body } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/inputValidator');
+
 // SECURITY: Apply input validation to all subscription routes
 router.use(preventNoSQLInjection);
 router.use(stripDangerousFields);
@@ -24,7 +27,19 @@ router.get('/plans', subscriptionController.getPlans);
  *     summary: Create a checkout session
  *     tags: [Subscriptions]
  */
-router.post('/checkout', auth, subscriptionController.createCheckout);
+router.post('/checkout', 
+  auth, 
+  [
+    body('planId')
+      .trim()
+      .notEmpty()
+      .withMessage('Plan ID is required')
+      .isIn(['1-month', '3-month', '6-month', '12-month'])
+      .withMessage('Invalid plan ID')
+  ],
+  handleValidationErrors,
+  subscriptionController.createCheckout
+);
 
 /**
  * @swagger

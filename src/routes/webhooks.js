@@ -3,6 +3,8 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { isWebhookEventProcessed, markWebhookEventProcessed } = require('../middleware/auth');
 
+const { PLAN_MAP, ALLOWED_WEBHOOK_EVENTS: ALLOWED_EVENTS_ARRAY } = require('../config/subscriptionConstants');
+
 const router = express.Router();
 
 // Lazy Stripe initialization
@@ -19,28 +21,7 @@ const getStripe = () => {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // SECURITY: Whitelist of allowed Stripe events
-const ALLOWED_WEBHOOK_EVENTS = new Set([
-  'customer.created',
-  'customer.subscription.created',
-  'customer.subscription.updated',
-  'customer.subscription.deleted',
-  'invoice.created',
-  'invoice.paid',                    // Modern Stripe event for successful invoice payment
-  'invoice.payment_succeeded',       // Legacy alias — kept for backward compatibility
-  'invoice.payment_failed',
-  'payment_intent.succeeded',
-  'payment_intent.payment_failed',
-  'checkout.session.completed'
-]);
-
-// ===== DYNAMIC PLAN MAP =====
-// Maps Stripe Price IDs → internal plan keys
-const PLAN_MAP = {
-  [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
-  [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
-  [process.env.STRIPE_PRICE_6_MONTH]: '6-month',
-  [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
-};
+const ALLOWED_WEBHOOK_EVENTS = new Set(ALLOWED_EVENTS_ARRAY);
 
 // Middleware to parse Stripe webhook payload as raw buffer
 // IMPORTANT: This route must be registered BEFORE express.json() in server.js

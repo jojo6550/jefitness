@@ -189,9 +189,7 @@ function initializeStripe() {
 
 async function loadPlans() {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/subscriptions/plans`);
-    const data = await handleApiResponse(res);
-
+    const data = await SubscriptionService.getPlans();
     availablePlans = data?.data?.plans || [];
     renderPlans();
   } catch (err) {
@@ -307,17 +305,11 @@ async function loadUserSubscriptions() {
 
   try {
     log('Fetching subscription data...');
-    const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/user/current`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
-    );
-
-    log('Response status:', res.status);
-    const data = await handleApiResponse(res);
+    const data = await SubscriptionService.getCurrentSubscription(userToken);
     log('Subscription data:', data);
 
     // Store subscription if it exists (active, expired, or canceled)
-    userSubscriptions = data?.data?.stripeSubscriptionId
+    userSubscriptions = data?.data?._id
       ? [data.data]
       : [];
 
@@ -552,36 +544,13 @@ async function handlePaymentSubmit(e) {
   spinner.style.display = 'inline';
 
   try {
-    const { paymentMethod, error } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-      billing_details: {
-        name
-      }
-    });
-
-    if (error) throw new Error(error.message);
-
-    const res = await fetch(`${API_BASE}/api/v1/subscriptions/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`
-      },
-      body: JSON.stringify({
-        plan: selectedPlanId,
-        paymentMethodId: paymentMethod.id
-      })
-    });
-
-    await handleApiResponse(res);
-
-    showAlert('Subscription successful!', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-    paymentForm.reset();
-    cardElement.clear();
-
-    await loadUserSubscriptions();
+    const data = await SubscriptionService.createCheckout(userToken, selectedPlanId);
+    
+    if (data?.data?.url) {
+      window.location.href = data.data.url;
+    } else {
+      throw new Error('Failed to create checkout session');
+    }
   } catch (err) {
     console.error('Payment failed:', err);
     showAlert(err.message, 'error');
@@ -704,19 +673,7 @@ async function handleConfirmCancel() {
   const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
 
   try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/${currentSubscriptionId}/cancel`,
-      {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`
-        },
-        body: JSON.stringify({ atPeriodEnd })
-      }
-    );
-
-    await handleApiResponse(res);
+    await SubscriptionService.cancelSubscription(userToken, currentSubscriptionId);
 
     showAlert(
       atPeriodEnd

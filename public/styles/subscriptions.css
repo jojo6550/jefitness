@@ -88,7 +88,9 @@
     box-shadow: none;
 }
 
-.plan-card .card-body {\n    padding: 2.5rem 2rem;\n}
+.plan-card .card-body {
+    padding: 2.5rem 2rem;
+}
 
 /* Plan Duration Badge */
 .plan-duration {
@@ -204,6 +206,16 @@
 .status-badge.status-active {
     background: rgba(16, 185, 129, 0.15);
     color: #10b981;
+}
+
+.status-badge.status-past_due {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.status-badge.status-paused {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
 }
 
 .status-badge.status-expired {
