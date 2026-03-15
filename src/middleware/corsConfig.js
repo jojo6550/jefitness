@@ -14,7 +14,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Define allowed origins explicitly (exact match only)
     const allowedOrigins = [
-      'https://jefitness.onrender.com', // Production
+      'https://jefitness.onrender.com', // Production backend
+      'https://jefitnessja.com',        // Custom frontend domain
       process.env.FRONTEND_URL,
       ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
     ].filter(Boolean);
@@ -64,7 +65,8 @@ const corsPreflightHandler = (req, res) => {
   
   // SECURITY: Only set Access-Control-Allow-Origin for allowed origins
   const allowedOrigins = [
-    'https://jefitness.onrender.com',
+    'https://jefitness.onrender.com', // Production backend
+    'https://jefitnessja.com',        // Custom frontend domain
     process.env.FRONTEND_URL,
     ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
   ].filter(Boolean);

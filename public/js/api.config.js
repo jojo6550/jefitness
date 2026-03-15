@@ -17,6 +17,10 @@ class ApiConfig {
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
+        // For custom domain jefitnessja.com, use backend URL
+        if (window.location.hostname === 'jefitnessja.com') {
+          return 'https://jefitness.onrender.com';
+        }
         return window.location.origin;
       default:
         return window.location.origin;
