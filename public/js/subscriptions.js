@@ -23,23 +23,54 @@ let currentSubscriptionId = null;
 
 let availablePlans = [];
 let userSubscriptions = [];
+let isLoadingSubscriptions = false;
 
 /* --------------------------------------------------
    DOM Elements
 -------------------------------------------------- */
 
-const alertContainer = document.getElementById('alertContainer');
-const plansContainer = document.getElementById('plansContainer');
-const plansLoading = document.getElementById('plansLoading');
+const alertContainer = getElement('alertContainer');
+const plansContainer = getElement('plansContainer');
+const plansLoading = getElement('plansLoading');
 
-const paymentForm = document.getElementById('paymentForm');
-const cardErrors = document.getElementById('cardErrors');
+const paymentForm = getElement('paymentForm');
+const cardErrors = getElement('cardErrors');
 
-const userSubscriptionsSection = document.getElementById('userSubscriptionsSection');
-const userSubscriptionsContainer = document.getElementById('userSubscriptionsContainer');
-const activeSubscriptionSection = document.getElementById('activeSubscriptionSection');
-const activeSubscriptionSummary = document.getElementById('activeSubscriptionSummary');
-const manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
+const userSubscriptionsSection = getElement('userSubscriptionsSection');
+const userSubscriptionsContainer = getElement('userSubscriptionsContainer');
+const activeSubscriptionSection = getElement('activeSubscriptionSection');
+const activeSubscriptionSummary = getElement('activeSubscriptionSummary');
+const manageSubscriptionBtn = getElement('manageSubscriptionBtn');
+
+/* --------------------------------------------------
+   DOM Utilities - Safe element access
+-------------------------------------------------- */
+
+function getElement(id, fallback = null) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`Element #${id} not found`);
+    return fallback;
+  }
+  return el;
+}
+
+function safeStyle(el, prop, value) {
+  if (el && el.style) {
+    el.style[prop] = value;
+    return true;
+  }
+  console.warn(`Cannot set style.${prop} on element:`, el);
+  return false;
+}
+
+function safeShow(el) {
+  return safeStyle(el, 'display', 'block');
+}
+
+function safeHide(el) {
+  return safeStyle(el, 'display', 'none');
+}
 
 /* --------------------------------------------------
    Utilities
@@ -127,12 +158,19 @@ function initializeStripe() {
       hidePostalCode: false
     });
 
-    const modal = document.getElementById('paymentModal');
-    modal?.addEventListener('shown.bs.modal', () => {
-      if (!document.querySelector('#cardElement .StripeElement')) {
-        cardElement.mount('#cardElement');
-      }
-    });
+    const paymentModal = getElement('paymentModal');
+    if (paymentModal) {
+      paymentModal.addEventListener('shown.bs.modal', () => {
+        if (!document.querySelector('#cardElement .StripeElement')) {
+          cardElement.mount('#cardElement');
+        }
+      });
+      
+      // Fix aria-hidden issue - ensure proper Bootstrap lifecycle
+      paymentModal.addEventListener('hide.bs.modal', () => {
+        cardElement.clear();
+      });
+    }
 
     cardElement.on('change', e => {
       if (cardErrors) cardErrors.textContent = e.error?.message || '';
@@ -160,7 +198,7 @@ async function loadPlans() {
     console.error('Load plans failed:', err);
     showAlert('Failed to load subscription plans', 'error');
   } finally {
-    if (plansLoading) plansLoading.style.display = 'none';
+    safeHide(plansLoading);
   }
 }
 
@@ -169,7 +207,7 @@ function renderPlans() {
 
   // Always render plans if no active sub; otherwise show message
   if (hasActiveSubscription()) {
-    document.getElementById('plansSection').style.display = 'none';
+    safeHide(getElement('plansSection'));
     return;
   }
 
@@ -236,20 +274,34 @@ function renderPlans() {
 -------------------------------------------------- */
 
 function hasActiveSubscription(planId = null) {
-  return userSubscriptions.some(
-    sub => (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused') && (!planId || sub.plan === planId)
-  );
+  return userSubscriptions.some(sub => {
+    // Backend sends daysLeft; calculate fallback if missing
+    const now = new Date();
+    const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000));
+    const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
+    return (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused') 
+           && daysLeft > 0 
+           && (!planId || sub.plan === planId);
+  });
 }
 
 async function loadUserSubscriptions() {
+  if (isLoadingSubscriptions) {
+    log('loadUserSubscriptions - already loading, skipping');
+    return;
+  }
+
+  isLoadingSubscriptions = true;
+
   const userToken = localStorage.getItem('token');
   log('loadUserSubscriptions - token:', userToken ? 'present' : 'missing');
 
   if (!userToken) {
     log('No user token found, showing plans');
     // Show plans section
-    document.getElementById('plansSection').style.display = 'block';
-    activeSubscriptionSection.style.display = 'none';
+    safeShow(getElement('plansSection'));
+    safeHide(activeSubscriptionSection);
+    isLoadingSubscriptions = false;
     return;
   }
 
@@ -274,48 +326,54 @@ async function loadUserSubscriptions() {
 
     if (userSubscriptions.length > 0) {
       // Hide plans, show active sub summary
-      document.getElementById('plansSection').style.display = 'none';
-      activeSubscriptionSection.style.display = 'block';
+      safeHide(getElement('plansSection'));
+      safeShow(activeSubscriptionSection);
       renderActiveSubscriptionSummary();
     } else {
       // Show plans, hide active sub
-      document.getElementById('plansSection').style.display = 'block';
-      activeSubscriptionSection.style.display = 'none';
+      safeShow(getElement('plansSection'));
+      safeHide(activeSubscriptionSection);
     }
 
-    // Hide tabs section (moved to view-subscription.html)
-    document.getElementById('subscriptionTabsSection').style.display = 'none';
+// Hide tabs section (moved to view-subscription.html)
+    safeHide(getElement('subscriptionTabsSection'));
   } catch (err) {
     console.error('Load subscriptions failed:', err);
     log('Error loading subscriptions:', err.message);
     // Default to showing plans
-    document.getElementById('plansSection').style.display = 'block';
-    activeSubscriptionSection.style.display = 'none';
+    safeShow(getElement('plansSection'));
+    safeHide(activeSubscriptionSection);
+  } finally {
+    isLoadingSubscriptions = false;
   }
 }
 
 function toggleSubscriptionTabs(activeTab = 'summary') {
-  // Hide all tab contents
-  const summaryTab = document.getElementById('subscriptionSummaryTab');
-  const detailsTab = document.getElementById('subscriptionDetailsTab');
-  const invoicesTab = document.getElementById('invoicesTab');
+  // Safe hide all tab contents
+  const summaryTab = getElement('subscriptionSummaryTab');
+  const detailsTab = getElement('subscriptionDetailsTab');
+  const invoicesTab = getElement('invoicesTab');
   
-  if (summaryTab) summaryTab.style.display = activeTab === 'summary' ? 'block' : 'none';
-  if (detailsTab) detailsTab.style.display = activeTab === 'details' ? 'block' : 'none';
-  if (invoicesTab) invoicesTab.style.display = activeTab === 'invoices' ? 'block' : 'none';
+  if (summaryTab) safeStyle(summaryTab, 'display', activeTab === 'summary' ? 'block' : 'none');
+  if (detailsTab) safeStyle(detailsTab, 'display', activeTab === 'details' ? 'block' : 'none');
+  if (invoicesTab) safeStyle(invoicesTab, 'display', activeTab === 'invoices' ? 'block' : 'none');
   
-  // Update tab buttons
+  // Update tab buttons safely
   document.querySelectorAll('[data-tab]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === activeTab);
+    if (btn.dataset.tab === activeTab) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
   });
   
   // Default: show summary if no sub
   if (!userSubscriptions.length) {
-    plansContainer.style.display = 'grid';
-    userSubscriptionsSection.style.display = 'none';
+    if (plansContainer) plansContainer.style.display = 'grid';
+    safeHide(userSubscriptionsSection);
   } else {
-    plansContainer.style.display = 'none';
-    userSubscriptionsSection.style.display = 'block';
+    if (plansContainer) plansContainer.style.display = 'none';
+    safeShow(userSubscriptionsSection);
   }
 }
 
@@ -345,13 +403,13 @@ function renderActiveSubscriptionSummary() {
   const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
   const amount = formatCurrency(sub.amount || 0);
 
-  const now = new Date();
-  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 86400000));
-  const daysLeft = Math.ceil((periodEnd - now) / 86400000);
-
+  // Use backend-computed daysLeft (primary), fallback to local calc
+  const computedDaysLeft = Math.ceil((parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)) - new Date()) / 86400000);
+  const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : computedDaysLeft;
   const isExpired = daysLeft <= 0;
-  const statusClass = isExpired ? 'expired' : 'active';
-  const statusText = isExpired ? 'EXPIRED' : 'ACTIVE';
+  const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
+  const statusClass = isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active');
+  const statusText = isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE');
 
   activeSubscriptionSummary.innerHTML = `
     <div class="row g-4 align-items-center">
@@ -367,9 +425,9 @@ function renderActiveSubscriptionSummary() {
               <span class="detail-label">Monthly Cost</span>
               <span class="detail-value">${amount}</span>
             </div>
-            <div class="detail-item">
+          <div class="detail-item">
               <span class="detail-label">Next Billing Date</span>
-              <span class="detail-value">${periodEnd.toLocaleDateString()}</span>
+              <span class="detail-value">${parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)).toLocaleDateString()}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Days Remaining</span>
@@ -382,8 +440,8 @@ function renderActiveSubscriptionSummary() {
       <div class="col-lg-4">
         <div class="actions-card">
           <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
-          <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2">
-            <i class="bi bi-pencil me-2"></i>Update Plan
+          <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2" title="Refresh subscription status">
+            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status & Update Plan
           </button>
           <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
@@ -457,7 +515,11 @@ async function selectPlan(planId) {
     return;
   }
 
-  new bootstrap.Modal(document.getElementById('paymentModal')).show();
+  const paymentModal = getElement('paymentModal');
+  if (paymentModal) {
+    const modalInstance = new bootstrap.Modal(paymentModal);
+    modalInstance.show();
+  }
 }
 
 async function handlePaymentSubmit(e) {
@@ -696,11 +758,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('click', (e) => {
     if (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')) {
       // Show plans section and scroll to it
-      document.getElementById('plansSection').style.display = 'block';
-      document.getElementById('activeSubscriptionSection').style.display = 'none';
+      safeShow(getElement('plansSection'));
+      safeHide(getElement('activeSubscriptionSection'));
       
       setTimeout(() => {
-        document.querySelector('#plansSection').scrollIntoView({ behavior: 'smooth' });
+        const plansSection = getElement('plansSection');
+        if (plansSection) plansSection.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
   });
