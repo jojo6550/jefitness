@@ -39,7 +39,7 @@ class CookieConsentManager {
 
         // Show health consent for logged-in users
         if (this.isLoggedIn) {
-            this.healthConsentCategory.style.display = 'block';
+            this.healthConsentCategory.classList.remove('d-none');
         }
 
         this.bindEvents();

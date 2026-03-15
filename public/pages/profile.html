@@ -171,7 +171,7 @@
                         <small class="form-text text-muted d-block mt-2">Please inform us if you have any medical conditions so we can provide appropriate guidance.</small>
                     </div>
 
-                    <div id="medicalDocumentsSection" style="display: none;">
+                    <div id="medicalDocumentsSection" class="d-none">
                         <div class="mb-3">
                             <label for="medicalConditions" class="form-label">Medical Conditions</label>
                             <textarea class="form-control" id="medicalConditions" rows="3" placeholder="E.g. Asthma, heart condition, diabetes, joint issues, etc."></textarea> 
@@ -192,14 +192,14 @@
                                     <p class="mb-2"><strong>Drag & drop your files here</strong></p>
                                     <p class="text-muted small mb-3">or</p>
                                     <button type="button" class="btn btn-outline-primary btn-sm" id="browseFilesBtn">Browse Files</button>
-                                    <input type="file" id="medicalFileInput" style="display: none;" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                    <input type="file" id="medicalFileInput" class="d-none" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
                                 </div>
                             </div>
 
                             <!-- Upload Progress Container -->
-                            <div id="uploadProgressContainer" style="display: none;" class="mt-3">
+                            <div id="uploadProgressContainer" class="d-none mt-3">
                                 <div class="progress mb-2">
-                                    <div id="uploadProgressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    <div id="uploadProgressBar" class="progress-bar" role="progressbar"></div>
                                 </div>
                                 <small id="uploadStatus" class="text-muted">Preparing upload...</small>
                             </div>

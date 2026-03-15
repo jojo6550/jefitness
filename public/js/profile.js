@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('userProfileForm');
     const formMessage = document.getElementById('formMessage');
 
-window.API_BASE = window.ApiConfig.getAPI_BASE();
+    window.API_BASE = window.ApiConfig.getAPI_BASE();
+
+    let currentUserId = null;
 
     // Helper to show messages
     function showMessage(message, type = 'success') {
@@ -17,8 +19,7 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
     // Fetch profile data and populate form
     async function loadProfile() {
         try {
-            const response = await fetch(`${window.API_BASE}
-/api/v1/auth/me`, {
+            const response = await fetch(`${window.API_BASE}/api/v1/users/profile`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -30,21 +31,24 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
             }
             const data = await response.json();
 
+            // Store user ID for updates
+            currentUserId = data._id;
+
             // Populate form fields
-            document.getElementById('fullName').value = data.user.firstName + ' ' + data.user.lastName;
-            if (data.user.dob) document.getElementById('dob').value = new Date(data.user.dob).toISOString().split('T')[0];
-            if (data.user.gender) document.getElementById('gender').value = data.user.gender;
-            if (data.user.email) document.getElementById('email').value = data.user.email;
-            if (data.user.phone) document.getElementById('phone').value = data.user.phone;
-            if (data.user.activityStatus) document.getElementById('activityStatus').value = data.user.activityStatus;
-            if (data.user.startWeight !== undefined && data.user.startWeight !== null) document.getElementById('startWeight').value = data.user.startWeight;
-            if (data.user.currentWeight !== undefined && data.user.currentWeight !== null) document.getElementById('currentWeight').value = data.user.currentWeight;
-            if (data.user.goals) document.getElementById('goals').value = data.user.goals;
-            if (data.user.reason) document.getElementById('reason').value = data.user.reason;
+            document.getElementById('fullName').value = (data.firstName || '') + ' ' + (data.lastName || '');
+            if (data.dob) document.getElementById('dob').value = new Date(data.dob).toISOString().split('T')[0];
+            if (data.gender) document.getElementById('gender').value = data.gender;
+            if (data.email) document.getElementById('email').value = data.email;
+            if (data.phone) document.getElementById('phone').value = data.phone;
+            if (data.activityStatus) document.getElementById('activityStatus').value = data.activityStatus;
+            if (data.startWeight !== undefined && data.startWeight !== null) document.getElementById('startWeight').value = data.startWeight;
+            if (data.currentWeight !== undefined && data.currentWeight !== null) document.getElementById('currentWeight').value = data.currentWeight;
+            if (data.goals) document.getElementById('goals').value = data.goals;
+            if (data.reason) document.getElementById('reason').value = data.reason;
 
             // Calculate days enrolled
-            if (data.user.createdAt) {
-                const createdDate = new Date(data.user.createdAt);
+            if (data.createdAt) {
+                const createdDate = new Date(data.createdAt);
                 const now = new Date();
                 const diffTime = Math.abs(now - createdDate);
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -58,6 +62,11 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
     // Handle form submission
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        if (!currentUserId) {
+            showMessage('Profile not loaded yet. Please wait and try again.', 'danger');
+            return;
+        }
 
         // Extract form values
         const fullName = document.getElementById('fullName').value.trim();
@@ -93,8 +102,7 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
         };
 
         try {
-            const response = await fetch(`${window.API_BASE}
-/api/v1/auth/profile`, {
+            const response = await fetch(`${window.API_BASE}/api/v1/users/${currentUserId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -105,10 +113,10 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to update profile');
+                throw new Error(errorData.error || errorData.msg || 'Failed to update profile');
             }
 
-            const data = await response.json();
+            await response.json();
             window.Toast.success('Profile updated successfully.');
 
             // Dispatch event so medical-documents.js can save medical info

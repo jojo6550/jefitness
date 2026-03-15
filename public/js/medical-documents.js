@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle medical documents section
     hasMedicalRadios.forEach(radio => {
         radio.addEventListener('change', e => {
-            medicalDocumentsSection.style.display = e.target.value === 'yes' ? 'block' : 'none';
+            medicalDocumentsSection.classList.toggle('d-none', e.target.value !== 'yes');
         });
     });
 
@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.hasMedical) {
                 document.getElementById('hasMedicalYes').checked = true;
-                medicalDocumentsSection.style.display = 'block';
+                medicalDocumentsSection.classList.remove('d-none');
             }
             if (data.medicalConditions) medicalConditions.value = data.medicalConditions;
 

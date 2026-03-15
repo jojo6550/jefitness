@@ -72,7 +72,7 @@ const authController = {
   login: asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
     if (!user || !(await user.comparePassword(password))) {
       throw new AuthenticationError('Invalid credentials');
     }
