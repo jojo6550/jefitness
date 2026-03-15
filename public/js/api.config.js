@@ -150,13 +150,17 @@ class API {
   static async checkBackendHealth() {
     try {
       const API_BASE = ApiConfig.getAPI_BASE();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s faster timeout
       const response = await fetch(`${API_BASE}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
+      console.warn('Backend health check failed:', error.name, error.message);
       return false;
     }
   }

@@ -80,46 +80,41 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(loginButton, true);
 
       try {
-        const res = await fetch(`${window.API_BASE}/api/v1/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
+        const data = await window.API.auth.login(email, password);
+        const { token, user } = data.data || data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('userRole', user.role);
 
-        const data = await res.json();
+        // Show welcome back toast
+        const userName = user.firstName || 'User';
+        window.Toast.success(`Welcome back ${userName}!`);
 
-        if (res.ok) {
-          const { token, user } = data.data || data;
-          localStorage.setItem('token', token);
-          localStorage.setItem('userRole', user.role);
+        // Check for redirect parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectPath = urlParams.get('redirect');
 
-          // Show welcome back toast
-          const userName = user.firstName || 'User';
-          window.Toast.success(`Welcome back ${userName}!`);
-
-          // Check for redirect parameter
-          const urlParams = new URLSearchParams(window.location.search);
-          const redirectPath = urlParams.get('redirect');
-
-          if (redirectPath) {
-            // Redirect to the specified path
-            window.location.href = redirectPath;
-          } else {
-            // Role-based redirection
-            if (user.role === 'admin') {
-              window.location.href = '/admin-dashboard';
-            } else if (user.role === 'trainer') {
-              window.location.href = '/trainer-dashboard';
-            } else {
-              window.location.href = '/dashboard';
-            }
-          }
+        if (redirectPath) {
+          // Redirect to the specified path
+          window.location.href = redirectPath;
         } else {
-          handleApiError(res, data, 'Login failed');
+          // Role-based redirection
+          if (user.role === 'admin') {
+            window.location.href = '/admin-dashboard';
+          } else if (user.role === 'trainer') {
+            window.location.href = '/trainer-dashboard';
+          } else {
+            window.location.href = '/dashboard';
+          }
         }
       } catch (err) {
         console.error('Login error:', err);
-        window.Toast.error('Network error. Please check your connection.');
+        if (err.message.includes('Backend service is currently unavailable') || err.message.includes('fetch')) {
+          window.Toast.error('Backend service unavailable. Please check server connection.');
+        } else if (err.message.includes('HTTP')) {
+          window.Toast.error(`Server error: ${err.message}`);
+        } else {
+          window.Toast.error(err.message || 'Login failed. Please try again.');
+        }
       } finally {
         setLoadingState(loginButton, false);
       }
