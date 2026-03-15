@@ -37,6 +37,9 @@ const cardErrors = document.getElementById('cardErrors');
 
 const userSubscriptionsSection = document.getElementById('userSubscriptionsSection');
 const userSubscriptionsContainer = document.getElementById('userSubscriptionsContainer');
+const activeSubscriptionSection = document.getElementById('activeSubscriptionSection');
+const activeSubscriptionSummary = document.getElementById('activeSubscriptionSummary');
+const manageSubscriptionBtn = document.getElementById('manageSubscriptionBtn');
 
 /* --------------------------------------------------
    Utilities
@@ -164,126 +167,57 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  plansContainer.innerHTML = '';
-
-  // If user has active subscription, show message and hide plans
+  // Always render plans if no active sub; otherwise show message
   if (hasActiveSubscription()) {
-    plansContainer.innerHTML = `
-      <div class="col-12 text-center py-5">
-        <div class="mb-4">
-          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-        </div>
-        <h3 class="mb-3">You Have an Active Subscription</h3>
-        <p class="text-muted mb-4">You cannot choose a different plan while you have an active subscription.</p>
-        <a href="/view-subscription" class="btn btn-primary btn-lg">
-          <i class="bi bi-credit-card me-2"></i>View My Subscription
-        </a>
-      </div>
-    `;
+    document.getElementById('plansSection').style.display = 'none';
     return;
   }
 
-  // Border class for each plan
-  const planBorders = {
-    '1-month': 'border-primary',
-    '3-month': 'border-success',
-    '6-month': 'border-info',
-    '12-month': 'border-warning'
+  plansContainer.innerHTML = '';
+
+  // Plan duration mapping with display names
+  const planDurations = {
+    '1-month': { months: 1, displayName: '1 Month' },
+    '3-month': { months: 3, displayName: '3 Months' },
+    '6-month': { months: 6, displayName: '6 Months' },
+    '12-month': { months: 12, displayName: '12 Months' }
   };
-
-  // Base benefits for all plans
-  const baseBenefits = [
-    'Basic workout access',
-    'Cancel anytime',
-    '1 on 1 appointments'
-  ];
-
-  // Additional benefits based on plan duration
-  const additionalBenefits = {
-    '1-month': ['Begin Your Journey', 'No Commitment'], 
-    '3-month': ['You Are A Warrior', 'How Far Can You Go?'],
-    '6-month': ['You Are Elite', 'Long Term Goals'],
-    '12-month': ['This Is Your Life']
-  };
-
-  // Monthly baseline price in cents
-  const MONTHLY_BASELINE_CENTS = 18000;
 
   availablePlans.forEach(plan => {
     const isCurrent = hasActiveSubscription(plan.id);
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
-    const borderClass = planBorders[planId] || 'border-primary';
-    
-    // Derive intervalCount from plan ID
-    let intervalCount;
-    switch (planId) {
-      case '1-month': intervalCount = 1; break;
-      case '3-month': intervalCount = 3; break;
-      case '6-month': intervalCount = 6; break;
-      case '12-month': intervalCount = 12; break;
-      default: intervalCount = 1;
-    }
+    const durationInfo = planDurations[planId] || { months: 1, displayName: '1 Month' };
     
     // plan.amount is total amount (in cents) for the entire subscription period
     const actualTotalCents = plan.amount || 0;
     const actualTotal = actualTotalCents / 100;
     
-    // Effective monthly price = total / intervalCount
-    const effectiveMonthly = actualTotal / intervalCount;
+    // Effective monthly price = total / durationInfo.months
+    const effectiveMonthly = actualTotal / durationInfo.months;
     
-    // Baseline total = monthly baseline × intervalCount
-    const baselineTotal = (MONTHLY_BASELINE_CENTS / 100) * intervalCount;
+    // Format prices for display
+    const monthlyPrice = formatCurrency(effectiveMonthly);
+    const totalPrice = formatCurrency(actualTotal);
     
-    // Savings = baseline - actual
-    const savingsCents = baselineTotal * 100 - actualTotalCents;
-    const savingsAmount = savingsCents / 100;
-    
-    // Savings percentage
-    const savingsPercent = Math.round((savingsCents / (baselineTotal * 100)) * 100);
-    
-    // Format price for display (effective monthly)
-    const price = formatCurrency(effectiveMonthly);
-    const totalAmount = actualTotal;
-    
-    // Build billing text
-    let billingText;
-    if (intervalCount === 1) {
-      billingText = `${price} billed monthly`;
-    } else {
-      billingText = `${price}/month (${formatCurrency(totalAmount)} total for ${intervalCount} months)`;
-    }
-    
-    // Build benefits list dynamically
-    const benefits = [billingText, ...baseBenefits, ...(additionalBenefits[planId] || [])];
-    if (savingsAmount > 0) {
-      benefits.splice(1, 0, `Save ${formatCurrency(savingsAmount)}`);
-    }
-
-    // Build benefits list HTML
-    const benefitsHtml = benefits.map(benefit =>
-      `<li><i class="bi bi-check-circle-fill text-success"></i>${benefit}</li>`
-    ).join('');
-
     const card = document.createElement('div');
-    card.className = `plan-card ${borderClass} ${isCurrent ? 'disabled-plan' : ''}`;
+    card.className = `col-lg-3 col-md-6 col-12`;
     card.innerHTML = `
-      <div class="card-header text-center">
-        <h3 class="card-title mb-0">${plan.name || 'Plan'}</h3>
-        ${savingsAmount > 0 ? `<div class="plan-savings badge bg-warning text-dark mt-2">Save ${savingsPercent}%</div>` : ''}
-      </div>
-      <div class="card-body text-center">
-        <div class="plan-price">
-          <span class="price-amount">
-            <span class="currency">$</span>${price}
-          </span>
-          <span class="period">/month</span>
+      <div class="card h-100 plan-card ${isCurrent ? 'disabled-plan' : ''}">
+        <div class="card-body d-flex flex-column justify-content-between h-100">
+          <div>
+            <div class="plan-duration mb-3">
+              <span class="duration-badge">${durationInfo.displayName}</span>
+            </div>
+            <div class="plan-price mb-2">
+              <div class="price-main">${monthlyPrice}</div>
+              <div class="price-period">/month</div>
+            </div>
+            ${durationInfo.months > 1 ? `<div class="plan-total text-muted small">Total: ${totalPrice}</div>` : ''}
+          </div>
+          <button class="btn btn-primary plan-button w-100 mt-4" ${isCurrent ? 'disabled' : ''}>
+            ${isCurrent ? 'Current Plan' : 'Subscribe Now'}
+          </button>
         </div>
-        <ul class="list-unstyled mb-4">
-          ${benefitsHtml}
-        </ul>
-        <button class="btn plan-button ${isCurrent ? '' : borderClass}" ${isCurrent ? 'disabled' : ''}>
-          ${isCurrent ? 'Current Plan' : 'Select Plan'}
-        </button>
       </div>
     `;
 
@@ -313,6 +247,9 @@ async function loadUserSubscriptions() {
 
   if (!userToken) {
     log('No user token found, showing plans');
+    // Show plans section
+    document.getElementById('plansSection').style.display = 'block';
+    activeSubscriptionSection.style.display = 'none';
     return;
   }
 
@@ -335,41 +272,25 @@ async function loadUserSubscriptions() {
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
-    // FIXED: Removed auto-redirect to break loop. Handle all states here.
-    log('Subscription state:', hasActiveSubscription() ? 'Active/Paused' : 'No/Expired');
-    
-    // Always render subscriptions section if any exist (active, expired, canceled)
     if (userSubscriptions.length > 0) {
-      const sub = userSubscriptions[0];
-      document.getElementById('subscriptionTabsSection').style.display = 'block';
-      document.getElementById('subscriptionType').textContent = `${sub.plan?.replace('-', ' ').toUpperCase()} Plan`;
-      document.getElementById('subscriptionAmount').textContent = formatCurrency(sub.amount || 0);
-      
-      // Basic status and dates
-      const now = new Date();
-      const periodEnd = parseDate(sub.currentPeriodEnd, new Date());
-      const daysLeft = Math.ceil((periodEnd - now) / 86400000);
-      const statusEl = document.getElementById('subscriptionStatus');
-      if (daysLeft <= 0) {
-        statusEl.textContent = 'EXPIRED';
-        statusEl.className = 'badge bg-danger';
-      } else {
-        statusEl.textContent = 'ACTIVE';
-        statusEl.className = 'badge bg-success';
-      }
-      document.getElementById('nextBillingDate').textContent = formatDate(periodEnd);
-      document.getElementById('daysRemaining').textContent = `${daysLeft} days`;
-      
-      renderUserSubscriptions();    
-      toggleSubscriptionTabs('summary');     
-      if (sub.stripeSubscriptionId) loadInvoices(sub.stripeSubscriptionId); 
+      // Hide plans, show active sub summary
+      document.getElementById('plansSection').style.display = 'none';
+      activeSubscriptionSection.style.display = 'block';
+      renderActiveSubscriptionSummary();
     } else {
-      toggleViews(); 
-      document.getElementById('subscriptionTabsSection').style.display = 'none';
+      // Show plans, hide active sub
+      document.getElementById('plansSection').style.display = 'block';
+      activeSubscriptionSection.style.display = 'none';
     }
+
+    // Hide tabs section (moved to view-subscription.html)
+    document.getElementById('subscriptionTabsSection').style.display = 'none';
   } catch (err) {
     console.error('Load subscriptions failed:', err);
     log('Error loading subscriptions:', err.message);
+    // Default to showing plans
+    document.getElementById('plansSection').style.display = 'block';
+    activeSubscriptionSection.style.display = 'none';
   }
 }
 
@@ -398,7 +319,120 @@ function toggleSubscriptionTabs(activeTab = 'summary') {
   }
 }
 
-// Global parseDate helper - moved up for use in loadUserSubscriptions()\nfunction parseDate(value, fallback) {\n  if (!value) return fallback;\n  if (typeof value === 'string') {\n    const d = new Date(value);\n    return isNaN(d.getTime()) ? fallback : d;\n  }\n  if (typeof value === 'number') {\n    const timestamp = value > 10000000000 ? value : value * 1000;\n    return new Date(timestamp);\n  }\n  if (value instanceof Date && !isNaN(value.getTime())) {\n    return value;\n  }\n  return fallback;\n}\n\nfunction renderUserSubscriptions() {\n  if (!userSubscriptionsContainer) return;\n\n  userSubscriptionsContainer.innerHTML = '';\n\n  userSubscriptions.forEach(sub => {\n    const planName = (sub.plan || '').replace('-', ' ').toUpperCase();\n\n    const start = parseDate(sub.currentPeriodStart, new Date());\n    const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));\n\n    const daysLeft = Math.ceil((end - new Date()) / 86400000);\n    const expired = daysLeft <= 0;\n\n    const card = document.createElement('div');\n    card.className = 'subscription-card';\n    card.innerHTML = `\n      <h5>${planName} Plan</h5>\n      <span class="subscription-status ${expired ? 'expired' : 'active'}">\n        ${expired ? 'EXPIRED' : 'ACTIVE'}\n      </span>\n      <div>Amount: ${formatCurrency(sub.amount)}/month</div>\n      <div>Next Billing: ${end.toLocaleDateString()}</div>\n      <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>\n      <div class="subscription-actions">\n        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>\n        ${expired \n          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` \n          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`\n        }\n      </div>\n    `;\n\n    userSubscriptionsContainer.appendChild(card);\n  });\n}
+// Global parseDate helper - moved up for use in loadUserSubscriptions()
+function parseDate(value, fallback) {
+  if (!value) return fallback;
+  if (typeof value === 'string') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? fallback : d;
+  }
+  if (typeof value === 'number') {
+    const timestamp = value > 10000000000 ? value : value * 1000;
+    return new Date(timestamp);
+  }
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value;
+  }
+  return fallback;
+}
+
+function renderActiveSubscriptionSummary() {
+  if (!activeSubscriptionSummary) return;
+
+  const sub = userSubscriptions[0];
+  if (!sub) return;
+
+  const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
+  const amount = formatCurrency(sub.amount || 0);
+
+  const now = new Date();
+  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 86400000));
+  const daysLeft = Math.ceil((periodEnd - now) / 86400000);
+
+  const isExpired = daysLeft <= 0;
+  const statusClass = isExpired ? 'expired' : 'active';
+  const statusText = isExpired ? 'EXPIRED' : 'ACTIVE';
+
+  activeSubscriptionSummary.innerHTML = `
+    <div class="row g-4 align-items-center">
+      <div class="col-lg-8">
+        <div class="subscription-summary-card">
+          <div class="subscription-header">
+            <h3 class="subscription-title">${planName}</h3>
+            <span class="status-badge status-${statusClass.toLowerCase()}">${statusText}</span>
+          </div>
+          
+          <div class="subscription-details">
+            <div class="detail-item">
+              <span class="detail-label">Monthly Cost</span>
+              <span class="detail-value">${amount}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Next Billing Date</span>
+              <span class="detail-value">${periodEnd.toLocaleDateString()}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Days Remaining</span>
+              <span class="detail-value">${isExpired ? 'Expired' : daysLeft + ' days'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="actions-card">
+          <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
+          <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2">
+            <i class="bi bi-pencil me-2"></i>Update Plan
+          </button>
+          <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')" class="btn btn-outline-primary w-100 mb-2 btn-sm">
+            <i class="bi bi-download me-2"></i>Download Invoices
+          </button>
+          <button onclick="openCancelModal('${sub.stripeSubscriptionId}')" class="btn btn-outline-danger w-100 btn-sm">
+            <i class="bi bi-trash me-2"></i>Cancel Plan
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderUserSubscriptions() {
+  if (!userSubscriptionsContainer) return;
+
+  userSubscriptionsContainer.innerHTML = '';
+
+  userSubscriptions.forEach(sub => {
+    const planName = (sub.plan || '').replace('-', ' ').toUpperCase();
+
+    const start = parseDate(sub.currentPeriodStart, new Date());
+    const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));
+
+    const daysLeft = Math.ceil((end - new Date()) / 86400000);
+    const expired = daysLeft <= 0;
+
+    const card = document.createElement('div');
+    card.className = 'subscription-card';
+    card.innerHTML = `
+      <h5>${planName} Plan</h5>
+      <span class="subscription-status ${expired ? 'expired' : 'active'}">
+        ${expired ? 'EXPIRED' : 'ACTIVE'}
+      </span>
+      <div>Amount: ${formatCurrency(sub.amount)}/month</div>
+      <div>Next Billing: ${end.toLocaleDateString()}</div>
+      <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>
+      <div class="subscription-actions">
+        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>
+        ${expired 
+          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` 
+          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`
+        }
+      </div>
+    `;
+
+    userSubscriptionsContainer.appendChild(card);
+  });
+}
 
 /* --------------------------------------------------
    Plan Selection & Payment
@@ -657,6 +691,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   document
     .getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
+
+  // Add click handler for manage subscription button
+  document.addEventListener('click', (e) => {
+    if (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')) {
+      // Show plans section and scroll to it
+      document.getElementById('plansSection').style.display = 'block';
+      document.getElementById('activeSubscriptionSection').style.display = 'none';
+      
+      setTimeout(() => {
+        document.querySelector('#plansSection').scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  });
 
   await loadPlans();
   if (userToken) await loadUserSubscriptions();

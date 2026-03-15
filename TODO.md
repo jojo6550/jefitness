@@ -1,23 +1,11 @@
-# Subscriptions.js TypeScript Error Fixes - TODO
+# Subscriptions Page Implementation TODO
 
-## Completed Steps
-- [x] Create TODO.md with task tracking
-- [x] Fix invalid character at line 345 (API_BASE → window.API_BASE)
-- [x] Fix template literal escaping at line 438 (\\` → proper backticks)
-- [x] Fix parseDate call at line 469 (add fallback argument)
-- [x] Move parseDate helper to top-level scope
-- [x] Add missing semicolons and ensure proper try-catch structure
-- [x] Verify no cascading JSX/regex errors remain
+## Plan Breakdown
+1. [x] Create `public/pages/subscriptions.html` - Main hub page with conditional sections
+2. [ ] Update `public/js/subscriptions.js` - Adjust rendering for new HTML structure + manage button
+3. [ ] Test page functionality (plans display, active sub management)
+4. [ ] Verify navigation to `/view-subscription.html` (ensure it exists/works)
+5. [ ] Update navbar links if needed
+6. [ ] attempt_completion
 
-## Pending Steps
-- [ ] Test in browser: Load `/pages/subscriptions.html`
-- [ ] Check browser console for JS errors
-- [ ] Test subscription flow: Select plan → payment modal → Stripe
-- [ ] Verify user subscriptions load correctly (login required)
-- [ ] Test cancel/renew flows
-- [ ] Run `npm run lint` or check VSCode errors
-- [ ] Update TODO.md with test results
-- [ ] attempt_completion once verified
-
-**Next: Test the page and report any remaining issues.**
-
+**Current Step:** 2/6 - Update subscriptions.js
