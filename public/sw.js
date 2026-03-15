@@ -16,31 +16,14 @@ const IS_DEVELOPMENT = location.hostname === 'localhost' ||
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/', '/index.html', '/manifest.json',
-  '/styles/bootstrap.min.css', '/styles/my-programs.css', '/styles/program-marketplace.css',
-  '/styles/styles.css', '/styles/subscription-cards.css', '/styles/tailwind.css',
-  '/styles/trainer-dashboard.css', '/styles/user-details-cards.css',
+  '/styles/styles.css',
   '/favicons/android-chrome-192x192.png', '/favicons/android-chrome-512x512.png',
   '/favicons/apple-touch-icon.png', '/favicons/favicon-16x16.png',
   '/favicons/favicon-32x32.png', '/favicons/favicon.ico', '/favicons/site.webmanifest',
-  '/images/hero.jpg', '/images/logo.jpg',
-  '/js/admin-dashboard.js', '/js/admin-logs.js', '/js/admin-notifications.js',
-  '/js/api.config.js', '/js/app.js', '/js/appointments.js', '/js/auth.js',
-  '/js/bmi.js', '/js/cache-version.js', '/js/cart.js', '/js/coming-soon.js', '/js/cookie-consent.js',
-  '/js/dashboard.js', '/js/log-workout.js', '/js/logout.js', '/js/medical-documents.js',
-  '/js/my-programs.js', '/js/navbar-subscription.js', '/js/products.js', '/js/profile.js',
-  '/js/program-access.js', '/js/program-marketplace.js', '/js/role-guard.js', '/js/subscriptions.js',
-  '/js/tailwind.js', '/js/toast.js', '/js/trainer-dashboard.js', '/js/view-subscription.js',
-  '/js/workout-progress.js',
-  '/admin-dashboard', '/cart', '/dashboard', '/disclaimer',
-  '/forgot-password', '/log-workout', '/login', '/meet-your-trainer',
-  '/my-programs', '/privacy-policy', '/products', '/profile',
-  '/program-marketplace', '/reset-password', '/signup', '/subscriptions',
-  '/terms-of-service', '/trainer-dashboard', '/view-subscription',
-  '/workout-progress',
-  '/pages/programs/8-week-eds-safe-strength-fat-loss-program.html',
-  '/pages/programs/9_week_phased_strength_jamin_johnson.html',
-  '/pages/programs/full-body-mobility.html',
-  '/pages/programs/upper-lower-back-program.html'
+  '/js/api.config.js', '/js/app.js', '/js/auth.js',
+  '/js/cache-version.js', '/js/cookie-consent.js',
+  '/js/toast.js', '/js/validators.js',
+  '/login', '/signup'
 ];
 
 // ===============================

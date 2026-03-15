@@ -25,11 +25,33 @@ function validateEncryptionKey() {
   }
 
   // Validate encryption key format and length
-  // Encryption keys should be at least 32 characters for security
-  // Note: For demonstration purposes, we are using the environment variable directly.
-  // In production, ensure the key is a properly formatted base64 or hex string.
-  if (encryptionKey.length < 32) {
-    console.warn('⚠️ ENCRYPTION_KEY is shorter than 32 characters. Encryption may be insecure.');
+  // Encryption keys must be exactly 32 bytes for mongoose-encryption
+  if (encryptionKey) {
+    try {
+      // Check if key is hex (64 chars) or base64 (approx 44 chars)
+      let keyBuffer;
+      if (encryptionKey.length === 64 && /^[0-9a-fA-F]+$/.test(encryptionKey)) {
+        keyBuffer = Buffer.from(encryptionKey, 'hex');
+      } else {
+        keyBuffer = Buffer.from(encryptionKey, 'base64');
+      }
+
+      if (keyBuffer.length !== 32) {
+        console.warn(`⚠️ ENCRYPTION_KEY length is ${keyBuffer.length} bytes. mongoose-encryption requires exactly 32 bytes.`);
+        return {
+          isValid: false,
+          isConfigured: true,
+          encryptionConfig: null
+        };
+      }
+    } catch (e) {
+      console.warn('⚠️ ENCRYPTION_KEY format is invalid. Must be hex or base64.');
+      return {
+        isValid: false,
+        isConfigured: true,
+        encryptionConfig: null
+      };
+    }
   }
 
   // SECURITY: Log only that encryption is configured, never log the key itself

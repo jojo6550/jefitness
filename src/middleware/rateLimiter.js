@@ -1,10 +1,8 @@
 const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
 
 /**
  * SECURITY: Identity-aware rate limit key generator
  * Prefers userId > email > IP for better protection against distributed attacks
- * Uses ipKeyGenerator helper for proper IPv6 support
  */
 const identityAwareKeyGenerator = (req) => {
     // SECURITY: Prefer authenticated user ID (most specific)
@@ -17,8 +15,8 @@ const identityAwareKeyGenerator = (req) => {
         return `email:${req.body.email.toLowerCase()}`;
     }
 
-    // SECURITY: Fallback to IP address with proper IPv6 support
-    return `ip:${ipKeyGenerator(req)}`;
+    // SECURITY: Fallback to IP address (handled by express-rate-limit validation)
+    return req.ip;
 };
 
 /**
@@ -29,6 +27,7 @@ const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 10, // limit each identity to 10 auth attempts per 15 minutes
     keyGenerator: identityAwareKeyGenerator,
+    validate: { xForwardedForHeader: false },
     message: {
         msg: 'Too many authentication attempts. Please try again later.',
         retryAfter: '15 minutes'
@@ -51,6 +50,7 @@ const passwordResetLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 3, // limit each identity to 3 password reset requests per hour
     keyGenerator: identityAwareKeyGenerator,
+    validate: { xForwardedForHeader: false },
     message: {
         msg: 'Too many password reset requests. Please try again later.',
         retryAfter: '1 hour'
@@ -72,6 +72,7 @@ const checkoutLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 10, // limit each identity to 10 checkout attempts per 15 minutes
     keyGenerator: identityAwareKeyGenerator,
+    validate: { xForwardedForHeader: false },
     message: {
         msg: 'Too many checkout attempts. Please try again later.',
         retryAfter: '15 minutes'
@@ -81,7 +82,7 @@ const checkoutLimiter = rateLimit({
     skipSuccessfulRequests: false,
     handler: (req, res, next, options) => {
         const identifier = identityAwareKeyGenerator(req);
-        console.warn(`Security event: checkout_rate_limit_exceeded | Identifier: ${identifier} | IP: ${ipKeyGenerator(req)} | Path: ${req.path}`);
+        console.warn(`Security event: checkout_rate_limit_exceeded | Identifier: ${identifier} | IP: ${req.ip} | Path: ${req.path}`);
         res.status(options.statusCode).json(options.message);
     }
 });
@@ -94,6 +95,7 @@ const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each identity to 100 requests per 15 minutes
     keyGenerator: identityAwareKeyGenerator,
+    validate: { xForwardedForHeader: false },
     message: {
         msg: 'Too many requests. Please try again later.',
         retryAfter: '15 minutes'
@@ -110,6 +112,7 @@ const adminLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 50, // limit each identity to 50 admin requests per 15 minutes
     keyGenerator: identityAwareKeyGenerator,
+    validate: { xForwardedForHeader: false },
     message: {
         msg: 'Too many admin requests. Please try again later.',
         retryAfter: '15 minutes'
@@ -118,7 +121,7 @@ const adminLimiter = rateLimit({
     legacyHeaders: false,
     handler: (req, res, next, options) => {
         const identifier = identityAwareKeyGenerator(req);
-        console.warn(`Security event: admin_rate_limit_exceeded | Identifier: ${identifier} | IP: ${ipKeyGenerator(req)} | Path: ${req.path}`);
+        console.warn(`Security event: admin_rate_limit_exceeded | Identifier: ${identifier} | IP: ${req.ip} | Path: ${req.path}`);
         res.status(options.statusCode).json(options.message);
     }
 });

@@ -263,14 +263,22 @@ if (isEncryptionEnabled()) {
     const encryptionConfig = getEncryptionConfig();
     if (encryptionConfig && encryptionConfig.encryptionKey) {
       try {
-        const keyBuffer = Buffer.from(encryptionConfig.encryptionKey, 'base64');
+        const key = encryptionConfig.encryptionKey;
+        let keyBuffer;
+        // Support both hex (64 chars) and base64 encryption keys
+        if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
+          keyBuffer = Buffer.from(key, 'hex');
+        } else {
+          keyBuffer = Buffer.from(key, 'base64');
+        }
+
         if (keyBuffer.length === 32) {
           UserSchema.plugin(encrypt, encryptionConfig);
         } else {
-          console.warn('⚠️ User model: Encryption key must be exactly 32 bytes (base64). Encryption disabled for this model.');
+          console.warn(`⚠️ User model: Encryption key must be exactly 32 bytes. Found ${keyBuffer.length} bytes.`);
         }
       } catch (e) {
-        console.warn('⚠️ User model: Invalid base64 encryption key. Encryption disabled for this model.');
+        console.warn('⚠️ User model: Invalid encryption key format. Encryption disabled for this model.');
       }
     }
   } catch (err) {

@@ -28,33 +28,22 @@ const corsOptions = {
         'http://127.0.0.1:10000',
         'http://127.0.0.1:5500',
         'http://localhost:10000',
-        'http://localhost:5500'
+        'http://localhost:5500',
+        'https://jefitness.onrender.com'
       );
     }
 
-    // SECURITY: Reject null origins (indicates potential CSRF or privacy mode)
-    // Allow only if explicitly needed for mobile apps
-    if (origin === 'null') {
-      console.warn(`Security event: cors_null_origin_rejected | Origin: ${origin}`);
-      callback(new Error('Null origin not allowed'), false);
-      return;
-    }
-
     // SECURITY: Allow requests with no origin (same-origin, server-to-server, or mobile apps)
-    // Log for monitoring purposes
     if (!origin) {
-      // Same-origin requests or direct server access
       callback(null, true);
       return;
     }
     
-    // SECURITY: Exact match only - no wildcard or substring matching
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.includes(origin) || origin === 'null') {
       callback(null, true);
     } else {
-      // SECURITY: Log rejected origins for security monitoring
       console.warn(`Security event: cors_origin_rejected | Origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'), false);
+      callback(new Error(`Not allowed by CORS: ${origin}`), false);
     }
   },
   credentials: true, // SECURITY: Allow credentials (cookies, auth headers) for authenticated requests
@@ -88,11 +77,12 @@ const corsPreflightHandler = (req, res) => {
       'http://127.0.0.1:10000',
       'http://127.0.0.1:5500',
       'http://localhost:10000',
-      'http://localhost:5500'
+      'http://localhost:5500',
+      'https://jefitness.onrender.com'
     );
   }
 
-  if (origin && allowedOrigins.includes(origin)) {
+  if (origin && (allowedOrigins.includes(origin) || origin === 'null')) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With, X-CSRF-Token');

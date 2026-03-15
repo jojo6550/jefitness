@@ -30,7 +30,8 @@ const securityConfig = {
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
+          "'unsafe-inline'"
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
         connectSrc: [
@@ -38,7 +39,9 @@ const securityConfig = {
           "https://api.mailjet.com",
           "https://cdn.jsdelivr.net",
           "https://api.stripe.com",
-          "https://jefitness.onrender.com"
+          "https://jefitness.onrender.com",
+          "http://localhost:10000",
+          "http://127.0.0.1:10000"
         ],
         frameSrc: ["'self'", "https://js.stripe.com"],
         imgSrc: [
@@ -90,7 +93,7 @@ const securityConfig = {
       if (origin && allowedOrigins.includes(origin)) {
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With, X-CSRF-Token');
         res.header('Access-Control-Allow-Credentials', 'true');
         res.header('Access-Control-Max-Age', '86400');
         res.sendStatus(204);
