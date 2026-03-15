@@ -22,6 +22,9 @@ const PORT = process.env.PORT;
 
 const app = express();
 
+// WEBHOOKS - MUST come BEFORE body parsers for raw body access
+app.use('/webhooks', require('./routes/webhooks'));
+
 // Initialize in-memory cache service
 const cacheService = require('./services/cache');
 cacheService.connect();
@@ -35,6 +38,14 @@ app.set('trust proxy', 1);
 // Import security configurations
 const { nonceMiddleware, helmetOptions, optionsHandler } = require('./config/security');
 
+// Import middleware
+const { requestLogger } = require('./middleware/requestLogger');
+const { sanitizeInput } = require('./middleware/sanitizeInput');
+const csrfProtection = require('./middleware/csrf');
+const { corsOptions } = require('./middleware/corsConfig');
+const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
+const { errorHandler } = require('./middleware/errorHandler');
+
 // Security Middlewares
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
@@ -44,8 +55,6 @@ app.use(optionsHandler);
 app.use(requestLogger);
 app.use(morgan('combined'));
 
-// WEBHOOKS
-app.use('/webhooks', require('./routes/webhooks'));
 
 // Body parsing
 app.use(express.json({ limit: '10kb' }));

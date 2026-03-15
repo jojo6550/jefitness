@@ -1,36 +1,16 @@
-# Fix: No subscription but subscriptions page shows 3-month plan
+# JE Fitness Server Fix - Circular Dependency Resolution
 
-## Status: ✅ Plan Approved - In Progress
+## Plan (Approved ✅)
+1. [x] **Break circular dependency** in `src/models/User.js`
+   - Remove premature `require('./Subscription')` 
+   - Implement lazy-loading for subscription methods
+   
+2. [ ] Test server startup: `node src/server.js`
+3. [ ] Verify nodemon auto-restart works
+4. [ ] Test subscription endpoints work correctly
+5. [ ] Complete task with `attempt_completion`
 
-### 1. Frontend Fix ✅ Complete
-- Update `public/js/subscriptions.js`:
-  * `hasActiveSubscription()`: Add `daysLeft > 0` check
-  * `renderActiveSubscriptionSummary()`: Use daysLeft, stricter status
-  * Add refresh button
-- **Expected Result:** Page correctly shows/hides based on actual active status
-
-### 2. Diagnostic Script [PENDING]
-- Create `scripts/diagnose-user-sub.js`
-- Check user's Subscription docs, User.subdoc sync
-
-### 3. Get User Details [PENDING]
-- Need: User email/username
-- Run: `node scripts/diagnose-user-sub.js --email=...`
-
-### 4. DB Cleanup Script [PENDING]
-- Create `scripts/fix-user-expired-sub.js`
-- Mark expired subs as 'canceled'
-
-### 5. Backend Improvements [PENDING]
-- `src/routes/subscriptions.js`: Stricter `/user/current` query
-- `src/models/Subscription.js`: Expired cleanup hook/index
-
-### 6. Prevention [PENDING]
-- Cron job for expired sub cleanup
-
-### 7. Testing [PENDING]
-- Reload page
-- Test subscription flow
-- E2E test
-
-**Next:** Implement frontend fix. Approve?
+## Current Status
+- **Diagnosis confirmed**: Circular dependency crash at server.js:64
+- **User approved fix plan**
+- **Next step**: Edit User.js model

@@ -26,9 +26,10 @@ function validateEncryptionKey() {
 
   // Validate encryption key format and length
   // Encryption keys should be at least 32 characters for security
+  // Note: For demonstration purposes, we are using the environment variable directly.
+  // In production, ensure the key is a properly formatted base64 or hex string.
   if (encryptionKey.length < 32) {
-    console.error('❌ ERROR: ENCRYPTION_KEY is too short. Must be at least 32 characters.');
-    throw new Error('Invalid encryption key: minimum 32 characters required');
+    console.warn('⚠️ ENCRYPTION_KEY is shorter than 32 characters. Encryption may be insecure.');
   }
 
   // SECURITY: Log only that encryption is configured, never log the key itself

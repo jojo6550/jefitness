@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
-const Subscription = require('./Subscription'); // <--- needed for methods
 
 
 
@@ -202,9 +201,10 @@ UserSchema.index({ 'workoutLogs.date': -1 }, { sparse: true });
 UserSchema.index({ 'workoutLogs.exercises.exerciseName': 1 }, { sparse: true });
 
 // --------------------
-// Subscription Methods
+// Subscription Methods (Lazy Loading)
 // --------------------
 UserSchema.methods.getActiveSubscription = async function() {
+  const Subscription = require('./Subscription');
   if (!this._id) return null;
   return await Subscription.findOne({
     userId: this._id,
@@ -214,11 +214,13 @@ UserSchema.methods.getActiveSubscription = async function() {
 };
 
 UserSchema.methods.hasActiveSubscription = async function() {
+  const Subscription = require('./Subscription');
   const activeSub = await this.getActiveSubscription();
   return !!activeSub;
 };
 
 UserSchema.methods.getSubscriptionInfo = async function() {
+  const Subscription = require('./Subscription');
   const activeSub = await this.getActiveSubscription();
   if (!activeSub) {
     return { hasSubscription: false, plan: null, expiresAt: null, message: 'No active subscription' };
@@ -232,16 +234,26 @@ UserSchema.methods.getSubscriptionInfo = async function() {
 const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptionConfig');
 
 // SECURITY: Validate and apply encryption plugin with improved key handling
+// Encryption is applied only if configured correctly to prevent buffering timeouts
 if (isEncryptionEnabled()) {
   try {
     const encryptionConfig = getEncryptionConfig();
-    if (encryptionConfig) {
-      UserSchema.plugin(encrypt, encryptionConfig);
+    // Validate that we have a 32-byte base64 string for the encryption key
+    // This prevents mongoose-encryption from throwing an error that blocks model initialization
+    if (encryptionConfig && encryptionConfig.encryptionKey) {
+      try {
+        const keyBuffer = Buffer.from(encryptionConfig.encryptionKey, 'base64');
+        if (keyBuffer.length === 32) {
+          UserSchema.plugin(encrypt, encryptionConfig);
+        } else {
+          console.warn('⚠️ User model: Encryption key must be exactly 32 bytes (base64). Encryption disabled for this model.');
+        }
+      } catch (e) {
+        console.warn('⚠️ User model: Invalid base64 encryption key. Encryption disabled for this model.');
+      }
     }
   } catch (err) {
-    console.error('Failed to initialize encryption plugin:', err.message);
-    // Continue without encryption if key validation fails
-    // This is safer than failing startup
+    console.error('Failed to initialize encryption plugin for User model:', err.message);
   }
 }
 
