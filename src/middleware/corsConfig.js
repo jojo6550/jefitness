@@ -59,7 +59,7 @@ const corsOptions = {
   },
   credentials: true, // SECURITY: Allow credentials (cookies, auth headers) for authenticated requests
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token', 'X-Requested-With', 'X-CSRF-Token'],
   exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
   maxAge: 86400, // SECURITY: Cache preflight for 24 hours to reduce overhead
   preflightContinue: false, // SECURITY: Don't pass preflight to route handlers
@@ -95,7 +95,7 @@ const corsPreflightHandler = (req, res) => {
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With, X-CSRF-Token');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
     res.sendStatus(204);

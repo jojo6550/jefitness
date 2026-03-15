@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
-
-
+const bcrypt = require('bcryptjs');
 
 const WorkoutSetSchema = new mongoose.Schema({
   setNumber: { type: Number, required: true, min: 1 },
@@ -191,6 +190,34 @@ const UserSchema = new mongoose.Schema({
   deletionReason: { type: String }
 }, { timestamps: true });
 
+// --------------------
+// Password Hashing
+// --------------------
+UserSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) {
+    return next();
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --------------------
+// Password Comparison
+// --------------------
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (err) {
+    throw err;
+  }
+};
+
 // Indexes
 UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
@@ -214,13 +241,11 @@ UserSchema.methods.getActiveSubscription = async function() {
 };
 
 UserSchema.methods.hasActiveSubscription = async function() {
-  const Subscription = require('./Subscription');
   const activeSub = await this.getActiveSubscription();
   return !!activeSub;
 };
 
 UserSchema.methods.getSubscriptionInfo = async function() {
-  const Subscription = require('./Subscription');
   const activeSub = await this.getActiveSubscription();
   if (!activeSub) {
     return { hasSubscription: false, plan: null, expiresAt: null, message: 'No active subscription' };
@@ -233,13 +258,9 @@ UserSchema.methods.getSubscriptionInfo = async function() {
 // --------------------
 const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptionConfig');
 
-// SECURITY: Validate and apply encryption plugin with improved key handling
-// Encryption is applied only if configured correctly to prevent buffering timeouts
 if (isEncryptionEnabled()) {
   try {
     const encryptionConfig = getEncryptionConfig();
-    // Validate that we have a 32-byte base64 string for the encryption key
-    // This prevents mongoose-encryption from throwing an error that blocks model initialization
     if (encryptionConfig && encryptionConfig.encryptionKey) {
       try {
         const keyBuffer = Buffer.from(encryptionConfig.encryptionKey, 'base64');

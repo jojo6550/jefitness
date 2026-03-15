@@ -503,12 +503,16 @@ app.use(errorHandler);
     console.log('✅ Cache service stopped');
     
     // Close server
-    server.close(() => {
+    server.close(async () => {
       console.log('✅ Server closed');
-      mongoose.connection.close(false, () => {
+      try {
+        await mongoose.connection.close();
         console.log('✅ MongoDB connection closed');
         process.exit(0);
-      });
+      } catch (err) {
+        console.error('❌ Error closing MongoDB connection:', err);
+        process.exit(1);
+      }
     });
     
     // Force exit after 30 seconds
