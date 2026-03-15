@@ -89,11 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
 
         if (res.ok) {
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('userRole', data.user.role);
+          const { token, user } = data.data || data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('userRole', user.role);
 
           // Show welcome back toast
-          const userName = data.user.firstName || 'User';
+          const userName = user.firstName || 'User';
           window.Toast.success(`Welcome back ${userName}!`);
 
           // Check for redirect parameter
@@ -105,9 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = redirectPath;
           } else {
             // Role-based redirection
-            if (data.user.role === 'admin') {
+            if (user.role === 'admin') {
               window.location.href = '/admin-dashboard';
-            } else if (data.user.role === 'trainer') {
+            } else if (user.role === 'trainer') {
               window.location.href = '/trainer-dashboard';
             } else {
               window.location.href = '/dashboard';
@@ -117,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
           handleApiError(res, data, 'Login failed');
         }
       } catch (err) {
+        console.error('Login error:', err);
         window.Toast.error('Network error. Please check your connection.');
       } finally {
         setLoadingState(loginButton, false);
@@ -333,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
           handleApiError(response, data, 'Signup failed');
         }
       } catch (err) {
+        console.error('Signup error:', err);
         window.Toast.error('Network error. Please try again.');
       } finally {
         setLoadingState(signupButton, false);
@@ -367,8 +370,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.Toast.error('Invalid response from server. Please try again.');
             return;
           }
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('userRole', data.user.role);
+          const { token, user } = data.data || data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('userRole', user.role);
           // Clear signup attempt data from session
           sessionStorage.removeItem('signupAttempt');
           window.Toast.success('Email verified! Welcome to JE Fitness.');
@@ -379,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
           handleApiError(response, data, 'Verification failed');
         }
       } catch (err) {
+        console.error('OTP verification error:', err);
         window.Toast.error('Network error. Please try again.');
       }
     });
@@ -422,7 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             handleApiError(response, data, 'Failed to resend OTP');
           }
-        } catch (err) {
+          } catch (err) {
+          console.error('Resend OTP error:', err);
           window.Toast.error('Network error. Please try again.');
         }
       });
@@ -455,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
           handleApiError(res, data, 'Error sending reset email');
         }
       } catch (err) {
+        console.error('Forgot password error:', err);
         window.Toast.error('Network error. Please try again.');
       } finally {
         setLoadingState(forgotButton, false);
@@ -501,6 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
           handleApiError(res, data, 'Error resetting password');
         }
       } catch (err) {
+        console.error('Reset password error:', err);
         window.Toast.error('Network error. Please try again.');
       }
     });

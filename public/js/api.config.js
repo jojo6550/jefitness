@@ -13,11 +13,11 @@ class ApiConfig {
         return 'http://10.0.2.2:10000';
       case 'IOS_SIMULATOR':
       case 'BROWSER':
-        return 'http://localhost:10000';
+        return window.location.origin;
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
-        return 'https://jefitness.onrender.com';
+        return window.location.origin;
       default:
         return window.location.origin;
     }

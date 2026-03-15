@@ -18,7 +18,7 @@ window.initDashboard = async () => {
       if (!res.ok) {
         console.warn('User data fetch failed');
         const adminLink = document.querySelector('a[href="/admin-dashboard"]');
-        if (adminLink) adminLink.style.display = 'none';
+        if (adminLink) adminLink.classList.add('d-none');
         return;
       }
 
@@ -27,7 +27,7 @@ window.initDashboard = async () => {
       // Hide Admin Dashboard link if not admin
       if (user.role !== 'admin') {
         const adminLink = document.querySelector('a[href="/admin-dashboard"]');
-        if (adminLink) adminLink.style.display = 'none';
+        if (adminLink) adminLink.classList.add('d-none');
       }
 
       // Load subscription status
@@ -39,7 +39,7 @@ window.initDashboard = async () => {
     } catch (err) {
       console.error('Error verifying admin status:', err);
       const adminLink = document.querySelector('a[href="/admin-dashboard"]');
-      if (adminLink) adminLink.style.display = 'none';
+      if (adminLink) adminLink.classList.add('d-none');
     }
   };
 
@@ -69,7 +69,7 @@ async function loadCartCount() {
             const navbarBadge = document.querySelector('.cart-badge');
             if (navbarBadge) {
                 navbarBadge.textContent = count;
-                navbarBadge.style.display = count > 0 ? 'inline-block' : 'none';
+                navbarBadge.classList.toggle('d-none', count === 0);
             }
         }
     } catch (err) {
@@ -92,8 +92,7 @@ async function loadSubscriptionStatus() {
     }
 
     try {
-        const res = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/user/current`, {
+        const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -143,7 +142,7 @@ async function loadSubscriptionStatus() {
                 // Hide subscription card for users with active subscription
                 const subscriptionCard = document.getElementById('subscription-card');
                 if (subscriptionCard) {
-                    subscriptionCard.style.display = 'none';
+                    subscriptionCard.classList.add('d-none');
                     console.log('Subscription card hidden for user with active/trialing subscription');
                 }
             } else {
@@ -155,7 +154,7 @@ async function loadSubscriptionStatus() {
                 // Show subscription card for users without active subscription
                 const subscriptionCard = document.getElementById('subscription-card');
                 if (subscriptionCard) {
-                    subscriptionCard.style.display = '';
+                    subscriptionCard.classList.remove('d-none');
                     console.log('Subscription card shown for user without active subscription');
                 }
             }
@@ -187,8 +186,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
 
     try {
         // Get current subscription to find the subscription ID
-        const currentRes = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/user/current`, {
+        const currentRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -252,7 +250,7 @@ async function loadWorkoutStats() {
 
             if (stats.totalWorkouts > 0) {
                 // Show stats section
-                document.getElementById('workoutStatsSection').style.display = '';
+                document.getElementById('workoutStatsSection').classList.remove('d-none');
 
                 // Update stat cards
                 document.getElementById('statTotalWorkouts').textContent = stats.totalWorkouts;

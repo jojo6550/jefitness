@@ -15,9 +15,9 @@ async function loadNavbarSubscriptionStatus() {
 
         window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-        if (isDevelopment) console.log('Fetching subscription status from:', `${window.API_BASE}/api/v1/subscriptions/user/current`);
+        if (isDevelopment) console.log('Fetching subscription status from:', `${window.API_BASE}/api/v1/subscriptions/current`);
 
-        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/user/current`, {
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
