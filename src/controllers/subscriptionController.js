@@ -18,7 +18,38 @@ const subscriptionController = {
    */
   createCheckout: asyncHandler(async (req, res) => {
     const { planId } = req.body;
-    const session = await stripeService.createCheckoutSession(req.user.id, planId);
+
+    // Fetch user to get/create their Stripe customer ID
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      throw new ValidationError('User not found');
+    }
+
+    // Create or retrieve Stripe customer if not already linked
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      const customer = await stripeService.createOrRetrieveCustomer(
+        user.email,
+        null,
+        { userId: user._id.toString() }
+      );
+      stripeCustomerId = customer.id;
+      user.stripeCustomerId = stripeCustomerId;
+      await user.save();
+    }
+
+    // Build redirect URLs from the current request origin
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const successUrl = `${baseUrl}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/subscriptions?canceled=true`;
+
+    const session = await stripeService.createCheckoutSession(
+      stripeCustomerId,
+      planId,
+      successUrl,
+      cancelUrl
+    );
+
     res.json({ success: true, data: { sessionId: session.id, url: session.url } });
   }),
 

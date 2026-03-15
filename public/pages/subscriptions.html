@@ -38,7 +38,7 @@
             <div id="alertContainer" class="mb-4"></div>
 
             <!-- Active Subscription Section -->
-            <section id="activeSubscriptionSection" style="display: none;" class="mb-5 pb-5 border-bottom">
+            <section id="activeSubscriptionSection" class="d-none mb-5 pb-5 border-bottom">
                 <div class="mb-4">
                     <h2 class="display-6 fw-bold mb-2">Your Active Subscription</h2>
                     <p class="text-muted">Manage your current plan or switch to a different one</p>
@@ -62,7 +62,7 @@
                 </div>
 
                 <!-- Plans Grid -->
-                <div id="plansContainer" class="row g-4" style="display: none;"></div>
+                <div id="plansContainer" class="row g-4 d-none"></div>
             </section>
         </div>
     </main>
@@ -89,7 +89,7 @@
                         <div class="d-grid">
                             <button type="submit" id="submitPaymentBtn" class="btn btn-primary btn-lg">
                                 <span id="submitPaymentText">Subscribe Now</span>
-                                <span id="submitPaymentSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status" aria-hidden="true"></span>
+                                <span id="submitPaymentSpinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status" aria-hidden="true"></span>
                             </button>
                         </div>
                     </form>
@@ -142,6 +142,7 @@
     <script src="../js/navbar-subscription.js" defer></script>
     <script src="../js/logout.js" defer></script>
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="../js/services/SubscriptionService.js"></script>
     <script src="../js/subscriptions.js"></script>
 </body>
 </html>

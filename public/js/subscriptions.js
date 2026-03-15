@@ -36,11 +36,8 @@ const plansLoading = getElement('plansLoading');
 const paymentForm = getElement('paymentForm');
 const cardErrors = getElement('cardErrors');
 
-const userSubscriptionsSection = getElement('userSubscriptionsSection');
-const userSubscriptionsContainer = getElement('userSubscriptionsContainer');
 const activeSubscriptionSection = getElement('activeSubscriptionSection');
 const activeSubscriptionSummary = getElement('activeSubscriptionSummary');
-const manageSubscriptionBtn = getElement('manageSubscriptionBtn');
 
 /* --------------------------------------------------
    DOM Utilities - Safe element access
@@ -55,21 +52,16 @@ function getElement(id, fallback = null) {
   return el;
 }
 
-function safeStyle(el, prop, value) {
-  if (el && el.style) {
-    el.style[prop] = value;
-    return true;
-  }
-  console.warn(`Cannot set style.${prop} on element:`, el);
-  return false;
-}
-
 function safeShow(el) {
-  return safeStyle(el, 'display', 'block');
+  if (!el) { console.warn('Cannot show null element'); return false; }
+  el.classList.remove('d-none');
+  return true;
 }
 
 function safeHide(el) {
-  return safeStyle(el, 'display', 'none');
+  if (!el) { console.warn('Cannot hide null element'); return false; }
+  el.classList.add('d-none');
+  return true;
 }
 
 /* --------------------------------------------------
@@ -190,7 +182,9 @@ function initializeStripe() {
 async function loadPlans() {
   try {
     const data = await SubscriptionService.getPlans();
-    availablePlans = data?.data?.plans || [];
+    const plansObj = data?.data?.plans || {};
+    // API returns a keyed object; convert to array with id field for rendering
+    availablePlans = Object.entries(plansObj).map(([id, plan]) => ({ id, ...plan }));
     renderPlans();
   } catch (err) {
     console.error('Load plans failed:', err);
@@ -264,7 +258,7 @@ function renderPlans() {
     plansContainer.appendChild(card);
   });
 
-  plansContainer.style.display = 'grid';
+  plansContainer.classList.remove('d-none');
 }
 
 /* --------------------------------------------------
@@ -327,8 +321,7 @@ async function loadUserSubscriptions() {
       safeHide(activeSubscriptionSection);
     }
 
-// Hide tabs section (moved to view-subscription.html)
-    safeHide(getElement('subscriptionTabsSection'));
+
   } catch (err) {
     console.error('Load subscriptions failed:', err);
     log('Error loading subscriptions:', err.message);
@@ -346,9 +339,9 @@ function toggleSubscriptionTabs(activeTab = 'summary') {
   const detailsTab = getElement('subscriptionDetailsTab');
   const invoicesTab = getElement('invoicesTab');
   
-  if (summaryTab) safeStyle(summaryTab, 'display', activeTab === 'summary' ? 'block' : 'none');
-  if (detailsTab) safeStyle(detailsTab, 'display', activeTab === 'details' ? 'block' : 'none');
-  if (invoicesTab) safeStyle(invoicesTab, 'display', activeTab === 'invoices' ? 'block' : 'none');
+  if (summaryTab) summaryTab.classList.toggle('d-none', activeTab !== 'summary');
+  if (detailsTab) detailsTab.classList.toggle('d-none', activeTab !== 'details');
+  if (invoicesTab) invoicesTab.classList.toggle('d-none', activeTab !== 'invoices');
   
   // Update tab buttons safely
   document.querySelectorAll('[data-tab]').forEach(btn => {
@@ -361,10 +354,10 @@ function toggleSubscriptionTabs(activeTab = 'summary') {
   
   // Default: show summary if no sub
   if (!userSubscriptions.length) {
-    if (plansContainer) plansContainer.style.display = 'grid';
+    if (plansContainer) plansContainer.classList.remove('d-none');
     safeHide(userSubscriptionsSection);
   } else {
-    if (plansContainer) plansContainer.style.display = 'none';
+    if (plansContainer) plansContainer.classList.add('d-none');
     safeShow(userSubscriptionsSection);
   }
 }
@@ -540,8 +533,8 @@ async function handlePaymentSubmit(e) {
   const spinner = document.getElementById('submitPaymentSpinner');
 
   btn.disabled = true;
-  text.style.display = 'none';
-  spinner.style.display = 'inline';
+  text.classList.add('d-none');
+  spinner.classList.remove('d-none');
 
   try {
     const data = await SubscriptionService.createCheckout(userToken, selectedPlanId);
@@ -556,8 +549,8 @@ async function handlePaymentSubmit(e) {
     showAlert(err.message, 'error');
   } finally {
     btn.disabled = false;
-    text.style.display = 'inline';
-    spinner.style.display = 'none';
+    text.classList.remove('d-none');
+    spinner.classList.add('d-none');
   }
 }
 
