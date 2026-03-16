@@ -186,13 +186,12 @@ const subscriptionController = {
    */
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
-    
+
     console.log(`[CANCEL] Attempting to cancel subscription ${subscriptionId} for user ${req.user.id}`);
-    
-    const Subscription = require('../models/Subscription');
-    const subscription = await Subscription.findOne({ 
-      _id: subscriptionId, 
-      userId: req.user.id 
+
+    const subscription = await Subscription.findOne({
+      _id: subscriptionId,
+      userId: req.user.id
     });
 
     if (!subscription) {
@@ -200,42 +199,52 @@ const subscriptionController = {
       throw new NotFoundError('Subscription not found or access denied');
     }
 
-    if (!subscription.stripeSubscriptionId) {
-      console.warn(`[CANCEL] Subscription ${subscriptionId} has no stripeSubscriptionId - marking as canceled locally`);
-      subscription.status = 'canceled';
-      subscription.canceledAt = new Date();
-      await subscription.save();
-      return res.json({ 
-        success: true, 
-        message: 'Subscription record marked as canceled (no Stripe subscription linked)',
-        warning: 'Contact support if you believe this is incorrect.'
-      });
+    // Step 1: Cancel on Stripe directly (do not rely on pre-save hook which may fail
+    // validation on older documents missing required fields like billingEnvironment)
+    if (subscription.stripeSubscriptionId) {
+      try {
+        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, false);
+        console.log(`[CANCEL] ✅ Stripe subscription ${subscription.stripeSubscriptionId} canceled`);
+      } catch (stripeErr) {
+        const msg = stripeErr.message || '';
+        const alreadyGone =
+          msg.includes('already canceled') ||
+          msg.includes('No such subscription') ||
+          msg.includes('does not exist') ||
+          msg.includes('resource_missing');
+        if (alreadyGone) {
+          console.log(`[CANCEL] ℹ️ Stripe subscription already gone — continuing with DB update`);
+        } else {
+          // Non-fatal: log and continue so the DB record is still updated
+          console.error(`[CANCEL] Stripe cancel error (non-fatal, continuing):`, stripeErr.message);
+        }
+      }
+    } else {
+      console.warn(`[CANCEL] No stripeSubscriptionId — marking canceled in DB only`);
     }
 
-    // Set status — pre-save hook will cancel on Stripe
-    subscription.status = 'canceled';
-    subscription.canceledAt = new Date();
+    // Step 2: Update DB using findByIdAndUpdate with runValidators:false
+    // This avoids Mongoose validation failures on older documents that may be
+    // missing fields added to the schema after the document was created (e.g. billingEnvironment)
+    const now = new Date();
+    await Subscription.findByIdAndUpdate(
+      subscription._id,
+      {
+        $set: { status: 'canceled', canceledAt: now },
+        $push: { statusHistory: { status: 'canceled', changedAt: now, reason: 'User requested cancellation' } }
+      },
+      { runValidators: false }
+    );
 
+    console.log(`[CANCEL] ✅ Subscription ${subscriptionId} marked canceled in DB`);
+
+    // Step 3: Update user record (best-effort)
     try {
-      // Sync to user only if stripeSubscriptionId exists
-      const User = require('../models/User');
       await User.findByIdAndUpdate(req.user.id, {
-        $set: { 
-          stripeSubscriptionId: subscription.stripeSubscriptionId,
-          subscriptionStatus: 'canceled'
-        }
+        $set: { subscriptionStatus: 'canceled' }
       });
     } catch (userUpdateError) {
       console.error(`[CANCEL] Failed to update user ${req.user.id}:`, userUpdateError.message);
-      // Don't fail the whole operation - user update is best-effort
-    }
-
-    try {
-      await subscription.save();
-      console.log(`[CANCEL] ✅ Subscription ${subscriptionId} canceled successfully`);
-    } catch (saveError) {
-      console.error(`[CANCEL] ❌ Save failed for ${subscriptionId}:`, saveError.message);
-      throw new Error(`Failed to update subscription record: ${saveError.message}`);
     }
 
     res.json({ success: true, message: 'Subscription canceled successfully' });

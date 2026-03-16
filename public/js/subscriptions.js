@@ -396,8 +396,13 @@ function renderActiveSubscriptionSummary() {
   // Use backend-computed daysLeft (primary), fallback to local calc
   const computedDaysLeft = Math.ceil((parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)) - new Date()) / 86400000);
   const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : computedDaysLeft;
+
+  // Use status as the source of truth — daysLeft can be 0 in Stripe test mode
+  // even for a freshly purchased active subscription (billing periods are compressed)
+  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
   const isCanceled = sub.status === 'canceled';
-  const isExpired = daysLeft <= 0;
+  const isActiveStatus = ACTIVE_STATUSES.includes(sub.status);
+  const isExpired = !isActiveStatus && !isCanceled; // only expired if status says so
   const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
   const statusClass = isCanceled ? 'expired' : (isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active'));
   const statusText = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
@@ -422,7 +427,7 @@ function renderActiveSubscriptionSummary() {
             </div>
             <div class="detail-item">
               <span class="detail-label">Days Remaining</span>
-              <span class="detail-value">${isExpired ? 'Expired' : daysLeft + ' days'}</span>
+              <span class="detail-value">${isExpired ? 'Expired' : (daysLeft > 0 ? daysLeft + ' days' : 'Active')}</span>
             </div>
           </div>
         </div>
@@ -732,6 +737,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   document
     .getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
+
+  // Fix: move focus out of the modal BEFORE Bootstrap applies aria-hidden,
+  // which would otherwise trap focus on a hidden element (accessibility violation)
+  document.getElementById('cancelConfirmModal')
+    ?.addEventListener('hide.bs.modal', () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    });
 
   // Global event delegation for all dynamic subscription buttons
   document.addEventListener('click', async (e) => {
