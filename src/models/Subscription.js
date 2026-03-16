@@ -110,11 +110,8 @@ SubscriptionSchema.pre('save', function(next) {
 // Pre-save hook to ensure Stripe cancellation when status changes to 'canceled'
 SubscriptionSchema.pre('save', async function(next) {
   try {
-    // Check if status is being changed to 'canceled'
+    // Check if status is being changed to 'canceled' AND stripeSubscriptionId exists
     if (this.isModified('status') && this.status === 'canceled' && this.stripeSubscriptionId) {
-      // Only cancel on Stripe if not already canceled
-      // We can't easily check Stripe status here without an API call,
-      // but the cancelSubscription function handles "already canceled" errors gracefully
       console.log(`🔄 Canceling subscription ${this.stripeSubscriptionId} on Stripe due to DB status change`);
 
       try {
@@ -122,14 +119,21 @@ SubscriptionSchema.pre('save', async function(next) {
         await cancelSubscription(this.stripeSubscriptionId, false);
         console.log(`✅ Successfully canceled subscription ${this.stripeSubscriptionId} on Stripe`);
       } catch (stripeError) {
-        // If already canceled, that's fine - just log it
-        if (stripeError.message.includes('already canceled') || stripeError.message.includes('does not exist')) {
-          console.log(`ℹ️ Subscription ${this.stripeSubscriptionId} was already canceled on Stripe`);
+        // If already canceled or missing, that's fine - just log it
+        const msg = stripeError.message || '';
+        if (
+          msg.includes('already canceled') || 
+          msg.includes('does not exist') ||
+          stripeError.code === 'resource_missing' ||
+          stripeError.code === 'subscription_already_canceled'
+        ) {
+          console.log(`ℹ️ Subscription ${this.stripeSubscriptionId} already handled on Stripe - continuing`);
         } else {
-          // For other errors, log but don't fail the save
-          console.error(`❌ Failed to cancel subscription ${this.stripeSubscriptionId} on Stripe:`, stripeError.message);
+          console.error(`❌ Non-fatal Stripe cancel error for ${this.stripeSubscriptionId}:`, stripeError.message);
         }
       }
+    } else if (this.isModified('status') && this.status === 'canceled') {
+      console.log(`ℹ️ Skipping Stripe cancel - no stripeSubscriptionId for ${this._id}`);
     }
     next();
   } catch (error) {

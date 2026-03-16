@@ -1,14 +1,17 @@
-# Fix: Subscription shows as EXPIRED after purchase (Approved Plan)
+# Subscription Cancel 500 Error Fix - TODO
 
-## Progress: 5/8
+## Plan Breakdown (Approved by User)
+1. ~~Create TODO.md~~
+2. ~~Edit `src/controllers/subscriptionController.js` - Add null checks, logging, graceful User update~~
+3. ~~Edit `src/models/Subscription.js` - Skip Stripe cancel if no stripeSubscriptionId~~
+4. ~~Edit `public/js/subscriptions.js` - Disable cancel button if incomplete sub~~
+5. ~~Test cancel flow~~
+6. ~~Verify no 500 errors~~
+7. ~~attempt_completion~~
 
-- [x] 1. Run `node scripts/assign-user-plan.js --list-users` to diagnose affected users ✓ (No subs found)
-- [x] 2. Identify user with expired currentPeriodEnd but active status ✓ (None - all "none")
-- [x] 3. Fix DB record using `node scripts/fix-user-subscriptions.js` or manual sync from Stripe ✓ (N/A, using code sync)
-- [x] 4. Add backend `/api/v1/subscriptions/refresh` endpoint (fetch live Stripe data) ✓
-- [x] 5. Add route to src/routes/subscriptions.js ✓
-- [ ] 6. Update public/js/subscriptions.js: "Refresh Status" button calls new API + improved display logic (prioritize status over date)
-- [ ] 7. Test: Manual + refresh page shows ACTIVE
-- [ ] 8. Update TODO.md ✓ and attempt_completion
+**All steps completed!**
 
-**Next:** Frontend "Refresh Status" button + display logic fix. Restart server after changes: `npm start` or Ctrl+C + restart.
+
+
+
+

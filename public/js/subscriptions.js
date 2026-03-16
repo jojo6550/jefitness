@@ -437,13 +437,18 @@ function renderActiveSubscriptionSummary() {
           <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
-          ${!isCanceled ? `
+          ${!isCanceled && sub.stripeSubscriptionId ? `
           <button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
             <i class="bi bi-trash me-2"></i>Cancel Plan
-          </button>` : `
-          <button class="btn btn-outline-secondary w-100 btn-sm" disabled>
-            <i class="bi bi-x-circle me-2"></i>Plan Canceled
-          </button>`}
+          </button>` : 
+          (!isCanceled ? 
+            `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
+              <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
+            </button>` : 
+            `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+              <i class="bi bi-x-circle me-2"></i>Plan Canceled
+            </button>`
+          )}
         </div>
       </div>
     </div>

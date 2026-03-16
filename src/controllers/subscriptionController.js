@@ -186,23 +186,59 @@ const subscriptionController = {
    */
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
-    // Frontend sends MongoDB _id for cancel — query by _id (stripeSubscriptionId used for invoices only)
+    
+    console.log(`[CANCEL] Attempting to cancel subscription ${subscriptionId} for user ${req.user.id}`);
+    
+    const Subscription = require('../models/Subscription');
     const subscription = await Subscription.findOne({ 
       _id: subscriptionId, 
       userId: req.user.id 
     });
 
     if (!subscription) {
-      throw new NotFoundError('Subscription not found');
+      console.warn(`[CANCEL] Subscription ${subscriptionId} not found for user ${req.user.id}`);
+      throw new NotFoundError('Subscription not found or access denied');
     }
 
-    // Set status — the Subscription pre-save hook will cancel on Stripe automatically
-    // (avoids a double-cancel race where explicit call + hook both hit Stripe)
+    if (!subscription.stripeSubscriptionId) {
+      console.warn(`[CANCEL] Subscription ${subscriptionId} has no stripeSubscriptionId - marking as canceled locally`);
+      subscription.status = 'canceled';
+      subscription.canceledAt = new Date();
+      await subscription.save();
+      return res.json({ 
+        success: true, 
+        message: 'Subscription record marked as canceled (no Stripe subscription linked)',
+        warning: 'Contact support if you believe this is incorrect.'
+      });
+    }
+
+    // Set status — pre-save hook will cancel on Stripe
     subscription.status = 'canceled';
     subscription.canceledAt = new Date();
-    await subscription.save();
 
-    res.json({ success: true, message: 'Subscription canceled' });
+    try {
+      // Sync to user only if stripeSubscriptionId exists
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(req.user.id, {
+        $set: { 
+          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          subscriptionStatus: 'canceled'
+        }
+      });
+    } catch (userUpdateError) {
+      console.error(`[CANCEL] Failed to update user ${req.user.id}:`, userUpdateError.message);
+      // Don't fail the whole operation - user update is best-effort
+    }
+
+    try {
+      await subscription.save();
+      console.log(`[CANCEL] ✅ Subscription ${subscriptionId} canceled successfully`);
+    } catch (saveError) {
+      console.error(`[CANCEL] ❌ Save failed for ${subscriptionId}:`, saveError.message);
+      throw new Error(`Failed to update subscription record: ${saveError.message}`);
+    }
+
+    res.json({ success: true, message: 'Subscription canceled successfully' });
   }),
 
   /**
