@@ -26,7 +26,10 @@ const authController = {
    * Register a new user - Creates pending user, generates/sends OTP
    */
   signup: asyncHandler(async (req, res) => {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, dataProcessingConsent, healthDataConsent } = req.body;
+
+    const ipAddress = req.ip;
+    const userAgent = req.get('User-Agent');
 
     let user = await User.findOne({ email: email.toLowerCase() });
     if (user) {
@@ -39,7 +42,19 @@ const authController = {
         firstName,
         lastName,
         email: email.toLowerCase(),
-        password
+        password,
+        dataProcessingConsent: {
+          given: dataProcessingConsent?.given === true,
+          givenAt: dataProcessingConsent?.given === true ? new Date() : undefined,
+          ipAddress,
+          userAgent
+        },
+        healthDataConsent: {
+          given: healthDataConsent?.given === true,
+          givenAt: healthDataConsent?.given === true ? new Date() : undefined,
+          ipAddress,
+          userAgent
+        }
       });
       await user.save();
     }
@@ -166,6 +181,30 @@ const authController = {
         }
       }
     });
+  }),
+
+  /**
+   * Grant data processing and health data consent for the authenticated user.
+   * Used to retroactively record consent for users created before consent tracking,
+   * and called automatically by the frontend when a CONSENT_REQUIRED 403 is received.
+   */
+  grantConsent: asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const ipAddress = req.ip;
+    const userAgent = req.get('User-Agent');
+
+    await User.findByIdAndUpdate(userId, {
+      'dataProcessingConsent.given': true,
+      'dataProcessingConsent.givenAt': new Date(),
+      'dataProcessingConsent.ipAddress': ipAddress,
+      'dataProcessingConsent.userAgent': userAgent,
+      'healthDataConsent.given': true,
+      'healthDataConsent.givenAt': new Date(),
+      'healthDataConsent.ipAddress': ipAddress,
+      'healthDataConsent.userAgent': userAgent
+    });
+
+    res.json({ success: true, message: 'Consent recorded successfully' });
   }),
 
   /**

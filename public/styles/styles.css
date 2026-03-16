@@ -371,6 +371,11 @@ h1, h2, h3, h4, h5, h6 {
 .status-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
 .status-cancelled { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 
+/* Appointment table helpers (replaces CSP-blocked inline styles) */
+.appt-empty-icon { font-size: 3rem; }
+.appt-trainer-avatar { width: 32px; height: 32px; flex-shrink: 0; }
+.appt-notes-cell { max-width: 200px; }
+
 /* Contact Section */
 .contact-section {
     background-color: var(--bg-secondary);

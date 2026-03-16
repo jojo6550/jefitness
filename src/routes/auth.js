@@ -85,6 +85,15 @@ router.post('/logout', auth, authController.logout);
 
 /**
  * @swagger
+ * /api/v1/auth/consent:
+ *   post:
+ *     summary: Grant data processing consent (auto-called for existing users missing consent)
+ *     tags: [Authentication]
+ */
+router.post('/consent', auth, authController.grantConsent);
+
+/**
+ * @swagger
  * /api/v1/auth/email-status/{messageId}:
  *   get:
  *     summary: Check email delivery status (for debugging)

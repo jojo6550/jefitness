@@ -27,6 +27,22 @@ async function authFetch(url, options = {}) {
     };
 
     const res = await fetch(url, options);
+
+    // Auto-grant consent for users created before consent tracking was enforced
+    if (res.status === 403) {
+        const body = await res.json();
+        if (body.code === 'CONSENT_REQUIRED') {
+            await fetch(`${window.API_BASE}/api/v1/auth/consent`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            const retry = await fetch(url, options);
+            if (!retry.ok) throw new Error(`HTTP ${retry.status} - ${retry.statusText}`);
+            return retry.json();
+        }
+        throw new Error(body.error || `HTTP 403 - Forbidden`);
+    }
+
     if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
     return res.json();
 }
@@ -70,7 +86,7 @@ async function loadAppointments() {
     }
 
     try {
-        const data = await authFetch(`${window.API_BASE}/api/appointments/user`);
+        const data = await authFetch(`${window.API_BASE}/api/v1/appointments/user`);
         const appointments = data.appointments;
         displayAppointments(appointments);
     } catch (err) {
@@ -90,7 +106,7 @@ function displayAppointments(appointments) {
             <tr>
                 <td colspan="5" class="text-center py-5">
                     <div class="mb-3">
-                        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+                        <i class="bi bi-calendar-x text-muted appt-empty-icon"></i>
                     </div>
                     <h5 class="text-muted">No upcoming appointments</h5>
                     <p class="small text-muted mb-0">Book a session with one of our expert trainers to get started.</p>
@@ -113,7 +129,7 @@ function displayAppointments(appointments) {
             </td>
             <td>
                 <div class="d-flex align-items-center gap-2">
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center appt-trainer-avatar">
                         ${app.trainerId?.firstName?.charAt(0) || 'T'}
                     </div>
                     <span>${trainerName}</span>
@@ -121,7 +137,7 @@ function displayAppointments(appointments) {
             </td>
             <td><span class="${statusClass}">${app.status}</span></td>
             <td class="d-none d-lg-table-cell">
-                <div class="text-truncate text-muted" style="max-width: 200px;" title="${app.notes || ''}">${app.notes || '<span class="opacity-50 italic">No special notes</span>'}</div>
+                <div class="text-truncate text-muted appt-notes-cell" title="${app.notes || ''}">${app.notes || '<span class="opacity-50 fst-italic">No special notes</span>'}</div>
             </td>
             <td class="text-end pe-4">
                 <div class="btn-group">
@@ -176,7 +192,7 @@ async function viewAppointment(id) {
 // ====== Load Trainers ======
 async function loadTrainersInto(selectElement, selectedId = '') {
     try {
-        const data = await authFetch(`${window.API_BASE}/api/users/trainers`);
+        const data = await authFetch(`${window.API_BASE}/api/v1/users/trainers`);
         const trainers = data.trainers;
         selectElement.innerHTML = '<option value="">Choose...</option>';
         trainers.forEach(trainer => {
@@ -196,7 +212,7 @@ const editModal = new bootstrap.Modal(document.getElementById('editAppointmentMo
 async function editAppointment(id) {
     try {
         currentEditAppointmentId = id;
-        const app = await authFetch(`${window.API_BASE}/api/appointments/${id}`);
+        const app = await authFetch(`${window.API_BASE}/api/v1/appointments/${id}`);
 
         document.getElementById('editAppointmentDate').value = new Date(app.date).toISOString().slice(0, 10);
         document.getElementById('editAppointmentTime').value = app.time;
@@ -222,7 +238,7 @@ document.getElementById('editAppointmentForm')?.addEventListener('submit', async
             notes: document.getElementById('editAppointmentNotes').value,
             trainerId: document.getElementById('editTrainerSelect').value
         };
-        await authFetch(`${window.API_BASE}/api/appointments/${currentEditAppointmentId}`, {
+        await authFetch(`${window.API_BASE}/api/v1/appointments/${currentEditAppointmentId}`, {
             method: 'PUT',
             body: JSON.stringify(payload)
         });
@@ -240,7 +256,7 @@ document.getElementById('editAppointmentForm')?.addEventListener('submit', async
 async function deleteAppointment(id) {
     showConfirm('Are you sure you want to delete this appointment?', async () => {
         try {
-            await authFetch(`${window.API_BASE}/api/appointments/${id}`, { method: 'DELETE' });
+            await authFetch(`${window.API_BASE}/api/v1/appointments/${id}`, { method: 'DELETE' });
             loadAppointments();
             window.Toast.success('Appointment deleted successfully.');
         } catch (err) {
@@ -273,7 +289,7 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
         // Add confirmation for booking
         showConfirm('Do you want to book this appointment?', async () => {
             try {
-                await authFetch(`${window.API_BASE}/api/appointments`, { method: 'POST', body: JSON.stringify(payload) });
+                await authFetch(`${window.API_BASE}/api/v1/appointments`, { method: 'POST', body: JSON.stringify(payload) });
 
                 // Close modal
                 const bookingModal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
