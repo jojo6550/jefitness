@@ -68,4 +68,15 @@ router.post('/verify-session/:sessionId', auth, subscriptionController.verifyChe
  */
 router.post('/cancel/:subscriptionId', auth, subscriptionController.cancel);
 
+/**
+ * @swagger
+ * /api/v1/subscriptions/refresh:
+ *   get:
+ *     summary: Refresh subscription status from Stripe (force sync)
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/refresh', auth, subscriptionController.refresh);
+
 module.exports = router;

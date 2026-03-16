@@ -244,6 +244,44 @@ function hasActiveSubscription(planId = null) {
   );
 }
 
+async function refreshSubscription() {
+  const userToken = localStorage.getItem('token');
+  if (!userToken) {
+    showAlert('Please log in to refresh subscription status', 'warning');
+    return false;
+  }
+
+  try {
+    log('Refreshing subscription from Stripe...');
+    const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/refresh`, {
+      headers: {
+        'Authorization': `Bearer ${userToken}`
+      }
+    });
+
+    const data = await handleApiResponse(response);
+    log('Refresh response:', data);
+
+    if (data.success && data.data) {
+      // Update local state
+      userSubscriptions = [data.data];
+      showAlert(data.message || 'Subscription refreshed successfully!', 'success');
+      renderActiveSubscriptionSummary();
+      return true;
+    } else {
+      showAlert(data.message || 'No subscription found in Stripe', 'info');
+      userSubscriptions = [];
+      safeShow(getElement('plansSection'));
+      safeHide(activeSubscriptionSection);
+      return false;
+    }
+  } catch (err) {
+    console.error('Refresh failed:', err);
+    showAlert(`Refresh failed: ${err.message}`, 'error');
+    return false;
+  }
+}
+
 async function loadUserSubscriptions() {
   if (isLoadingSubscriptions) {
     log('loadUserSubscriptions - already loading, skipping');
@@ -698,8 +736,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (btn.id === 'manageSubscriptionBtn') {
       e.preventDefault();
-      showAlert('Refreshing subscription status...', 'info');
-      await loadUserSubscriptions();
+      showAlert('Syncing with Stripe...', 'info');
+      const refreshed = await refreshSubscription();
+      if (!refreshed) {
+        await loadUserSubscriptions(); // Fallback
+      }
       return;
     }
 

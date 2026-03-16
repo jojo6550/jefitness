@@ -203,6 +203,94 @@ const subscriptionController = {
     await subscription.save();
 
     res.json({ success: true, message: 'Subscription canceled' });
+  }),
+
+  /**
+   * Refresh subscription from Stripe (force sync)
+   * Fetches live data from Stripe and updates/creates DB record
+   */
+  refresh: asyncHandler(async (req, res) => {
+    const User = require('../models/User');
+    const Subscription = require('../models/Subscription');
+    const stripeService = require('../services/stripe');
+    const { PLAN_MAP } = require('../config/subscriptionConstants');
+
+    const user = await User.findById(req.user.id).select('stripeSubscriptionId stripeCustomerId');
+    if (!user.stripeSubscriptionId && !user.stripeCustomerId) {
+      return res.json({ success: true, data: null, message: 'No Stripe subscription linked to account' });
+    }
+
+    let stripeSub = null;
+    const stripe = stripeService.getStripe();
+
+    try {
+      if (user.stripeSubscriptionId && stripe) {
+        stripeSub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+      } else if (user.stripeCustomerId && stripe) {
+        // Fallback: List active subs for customer
+        const subs = await stripe.subscriptions.list({
+          customer: user.stripeCustomerId,
+          status: 'active',
+          limit: 1
+        });
+        if (subs.data.length > 0) {
+          stripeSub = subs.data[0];
+        }
+      }
+    } catch (err) {
+      console.warn(`Stripe fetch failed for user ${req.user.id}:`, err.message);
+    }
+
+    if (!stripeSub) {
+      return res.json({ success: true, data: null, message: 'No active Stripe subscription found' });
+    }
+
+    // Build upsert payload (reuse webhook logic)
+    const priceItem = stripeSub.items?.data[0];
+    const priceId = priceItem?.price?.id;
+    const plan = PLAN_MAP[priceId] || 'unknown';
+    const billingEnv = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+
+    const payload = {
+      userId: user._id,
+      stripeCustomerId: stripeSub.customer,
+      stripeSubscriptionId: stripeSub.id,
+      plan,
+      stripePriceId: priceId,
+      currentPeriodStart: stripeSub.current_period_start ? new Date(stripeSub.current_period_start * 1000) : new Date(),
+      currentPeriodEnd: stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null,
+      status: stripeSub.status,
+      cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
+      canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+      amount: priceItem?.price?.unit_amount || 0,
+      currency: priceItem?.price?.currency || 'jmd',
+      billingEnvironment: billingEnv,
+      lastWebhookEventAt: new Date()
+    };
+
+    const sub = await Subscription.findOneAndUpdate(
+      { stripeSubscriptionId: stripeSub.id },
+      { $set: payload },
+      { upsert: true, new: true }
+    );
+
+    // Sync to user doc
+    await User.findByIdAndUpdate(user._id, {
+      $set: {
+        stripeSubscriptionId: stripeSub.id,
+        billingEnvironment: billingEnv
+      }
+    });
+
+    // Compute daysLeft
+    const now = new Date();
+    const daysLeft = Math.ceil((sub.currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
+
+    res.json({
+      success: true,
+      data: { ...sub.toObject(), daysLeft: Math.max(0, daysLeft) },
+      message: 'Subscription refreshed from Stripe'
+    });
   })
 };
 
