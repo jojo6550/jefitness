@@ -140,48 +140,8 @@ function formatCurrency(amount) {
 -------------------------------------------------- */
 
 function initializeStripe() {
-  try {
-    const elements = stripe.elements();
-
-    cardElement = elements.create('card', {
-      style: {
-        base: {
-          fontSize: '16px',
-          color: '#424770',
-          '::placeholder': { color: '#9ca3af' }
-        },
-        invalid: {
-          color: '#fa755a',
-          iconColor: '#fa755a'
-        }
-      },
-      // Enable postal code collection within the card element
-      hidePostalCode: false
-    });
-
-    const paymentModal = getElement('paymentModal');
-    if (paymentModal) {
-      paymentModal.addEventListener('shown.bs.modal', () => {
-        if (!document.querySelector('#cardElement .StripeElement')) {
-          cardElement.mount('#cardElement');
-        }
-      });
-      
-      // Fix aria-hidden issue - ensure proper Bootstrap lifecycle
-      paymentModal.addEventListener('hide.bs.modal', () => {
-        cardElement.clear();
-      });
-    }
-
-    cardElement.on('change', e => {
-      if (cardErrors) cardErrors.textContent = e.error?.message || '';
-    });
-
-    log('Stripe initialized');
-  } catch (err) {
-    console.error('Stripe init failed:', err);
-    showAlert('Failed to load payment system', 'error');
-  }
+  // Stripe Elements no longer needed for direct checkout
+  log('Stripe initialized for session redirect (no Elements needed)');
 }
 
 /* --------------------------------------------------
@@ -276,11 +236,8 @@ function renderPlans() {
 
 function hasActiveSubscription(planId = null) {
   return userSubscriptions.some(sub => {
-    // Backend sends daysLeft; calculate fallback if missing
-    const now = new Date();
-    const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000));
-    const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
-    return (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused') 
+    const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : 0;
+    return (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused' || sub.status === 'incomplete' || sub.status === 'trialing') 
            && daysLeft > 0 
            && (!planId || sub.plan === planId);
   });
@@ -509,81 +466,24 @@ async function selectPlan(planId) {
     return;
   }
 
-  const paymentModal = getElement('paymentModal');
-  if (paymentModal) {
-    const modalInstance = new bootstrap.Modal(paymentModal);
-    modalInstance.show();
-  }
-}
-
-async function handlePaymentSubmit(e) {
-  e.preventDefault();
-
-  if (!selectedPlanId || !cardElement) {
-    showAlert('Payment system not ready. Please refresh the page.', 'error');
-    return;
-  }
-
-  const userToken = localStorage.getItem('token');
-  if (!userToken) {
-    showAlert('Please log in to continue payment', 'error');
-    return;
-  }
-
-  const name = document.getElementById('cardholderName').value.trim();
-  if (!name) {
-    showAlert('Please enter your full name', 'error');
-    return;
-  }
-
-  // Validate card
-  const { error, paymentMethod } = await stripe.createPaymentMethod({
-    type: 'card',
-    card: cardElement,
-    billing_details: { name }
-  });
-
-  if (error) {
-    showAlert(error.message, 'error');
-    return;
-  }
-
-  const btn = document.getElementById('submitPaymentBtn');
-  const text = document.getElementById('submitPaymentText');
-  const spinner = document.getElementById('submitPaymentSpinner');
-
-  btn.disabled = true;
-  text.classList.add('d-none');
-  spinner.classList.remove('d-none');
-  showAlert('Creating secure checkout session...', 'info');
-
+  // Direct redirect to checkout - no modal
+  showAlert('Redirecting to secure checkout...', 'info');
   try {
-    const data = await SubscriptionService.createCheckout(userToken, selectedPlanId);
-    
+    const data = await SubscriptionService.createCheckout(userToken, planId);
     if (data?.data?.url) {
-      showAlert('Redirecting to secure payment...', 'success');
       setTimeout(() => {
         window.location.href = data.data.url;
       }, 800);
     } else {
-      throw new Error('Invalid checkout response from server');
+      throw new Error('Invalid checkout response');
     }
   } catch (err) {
-    console.error('Checkout failed:', err);
-    let userMsg = err.message;
-    // Specific handling for common backend errors
-    if (userMsg.includes('price') || userMsg.includes('subscription')) {
-      userMsg = 'Subscription temporarily unavailable. Plans are being updated. Please try again later or contact support.';
-    } else if (userMsg.includes('token')) {
-      userMsg = 'Authentication failed. Please refresh and log in again.';
-    }
-    showAlert(userMsg, 'error');
-  } finally {
-    btn.disabled = false;
-    text.classList.remove('d-none');
-    spinner.classList.add('d-none');
+    console.error('Direct checkout failed:', err);
+    showAlert(err.message || 'Checkout failed. Please try again.', 'error');
   }
 }
+
+
 
 /* --------------------------------------------------
    Manage Subscription (Cancel, Renew, Invoices)
@@ -722,6 +622,43 @@ async function handleConfirmCancel() {
    Init
 -------------------------------------------------- */
 
+async function handleSuccessRedirect() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const success = urlParams.get('success');
+  const sessionId = urlParams.get('session_id');
+  const canceled = urlParams.get('canceled');
+
+  if (canceled === 'true') {
+    showAlert('Subscription purchase canceled.', 'warning');
+    return;
+  }
+
+  if (success === 'true' && sessionId && localStorage.getItem('token')) {
+    try {
+      log('Verifying checkout session:', sessionId);
+      showAlert('Verifying subscription purchase...', 'info');
+      const data = await SubscriptionService.verifySession(localStorage.getItem('token'), sessionId);
+      
+      if (data.success && data.data) {
+        showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
+        userSubscriptions = [data.data];
+        safeHide(getElement('plansSection'));
+        safeShow(activeSubscriptionSection);
+        renderActiveSubscriptionSummary();
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        showAlert('Purchase completed but subscription not yet active. Refreshing status...', 'info');
+        await loadUserSubscriptions();
+      }
+    } catch (err) {
+      log('Session verification failed:', err);
+      showAlert('Verification failed. Status will refresh automatically.', 'warning');
+      await loadUserSubscriptions();
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   log('Subscriptions page loaded');
 
@@ -730,25 +667,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   log('Initial token check:', userToken ? 'present' : 'missing');
 
   initializeStripe();
-  paymentForm?.addEventListener('submit', handlePaymentSubmit);
   document
     .getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
 
-  // Add click handler for manage subscription button
-  document.addEventListener('click', (e) => {
+  // Add click handler for manage subscription button / refresh
+  document.addEventListener('click', async (e) => {
     if (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')) {
-      // Show plans section and scroll to it
-      safeShow(getElement('plansSection'));
-      safeHide(getElement('activeSubscriptionSection'));
-      
-      setTimeout(() => {
-        const plansSection = getElement('plansSection');
-        if (plansSection) plansSection.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      e.preventDefault();
+      showAlert('Refreshing subscription status...', 'info');
+      await loadUserSubscriptions();
     }
   });
 
   await loadPlans();
-  if (userToken) await loadUserSubscriptions();
+  if (userToken) {
+    await handleSuccessRedirect();
+    await loadUserSubscriptions();
+  }
 });

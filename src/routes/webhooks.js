@@ -199,6 +199,19 @@ async function handleSubscriptionUpsert(subscription) {
   );
 
   console.log(`✅ Subscription upserted: ${doc._id} | status: ${doc.status} | plan: ${doc.plan}`);
+
+  // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
+  await User.findOneAndUpdate(
+    { _id: user._id },
+    { 
+      $set: { 
+        stripeSubscriptionId: subscription.id,
+        billingEnvironment: payload.billingEnvironment
+      }
+    }
+  );
+  console.log(`✅ User account synced: ${user._id} | sub: ${subscription.id}`);
+
 }
 
 /**
@@ -345,6 +358,19 @@ async function handleCheckoutSessionCompleted(session) {
         { upsert: true, new: true }
       );
       console.log(`✅ Subscription upserted via checkout: ${doc._id} | plan: ${doc.plan}`);
+
+      // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
+      await User.findOneAndUpdate(
+        { _id: user._id },
+        { 
+          $set: { 
+            stripeSubscriptionId: session.subscription,
+            billingEnvironment: payload.billingEnvironment
+          }
+        }
+      );
+      console.log(`✅ User account synced via checkout: ${user._id} | sub: ${session.subscription}`);
+
     }
     return;
   }

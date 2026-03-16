@@ -42,6 +42,19 @@ const SubscriptionService = {
       }
     );
     return handleApiResponse(res);
+  },
+
+  verifySession: async (userToken, sessionId) => {
+    const res = await fetch(
+      `${API_BASE}/api/v1/subscriptions/verify-session/${sessionId}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${userToken}`
+        }
+      }
+    );
+    return handleApiResponse(res);
   }
 };
 

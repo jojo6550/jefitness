@@ -52,6 +52,15 @@ router.get('/current', auth, subscriptionController.getCurrentSubscription);
 
 /**
  * @swagger
+ * /api/v1/subscriptions/verify-session/:sessionId:
+ *   post:
+ *     summary: Verify checkout session completion
+ *     tags: [Subscriptions]
+ */
+router.post('/verify-session/:sessionId', auth, subscriptionController.verifyCheckoutSession);
+
+/**
+ * @swagger
  * /api/v1/subscriptions/cancel/:subscriptionId:
  *   post:
  *     summary: Cancel a subscription
