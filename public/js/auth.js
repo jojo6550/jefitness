@@ -87,30 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ensure role is set, default to 'user' for safety
         const userRole = user.role || 'user';
         localStorage.setItem('userRole', userRole);
-        console.log('Login success: Set role:', userRole);  // DEBUG: Log role
 
         // Show welcome back toast
         const userName = user.firstName || 'User';
-        window.Toast.success(`Welcome back ${userName}! (Role: ${userRole})`);
+        window.Toast.success(`Welcome back, ${userName}!`);
 
         // Check for redirect parameter
         const urlParams = new URLSearchParams(window.location.search);
         const redirectPath = urlParams.get('redirect');
-        console.log('Login redirect check: redirectPath=', redirectPath);  // DEBUG
 
         if (redirectPath) {
-          // Redirect to the specified path
-          console.log('Redirecting to URL param:', redirectPath);  // DEBUG
           window.location.href = redirectPath;
         } else {
-          // Role-based redirection using safe role
-          let redirectPathRole = '/dashboard';  // default
+          // Role-based redirection
+          let redirectPathRole = '/dashboard';
           if (userRole === 'admin') {
             redirectPathRole = '/admin-dashboard';
           } else if (userRole === 'trainer') {
             redirectPathRole = '/trainer-dashboard';
           }
-          console.log('Role-based redirect to:', redirectPathRole, 'for role:', userRole);  // DEBUG
           window.location.href = redirectPathRole;
         }
       } catch (err) {
@@ -335,15 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('otp-container').classList.add('otp-visible');
           // Store email in hidden input for OTP form
           document.getElementById('otpEmail').value = email;
-          // Store signup data in sessionStorage for resend functionality
-          sessionStorage.setItem('signupAttempt', JSON.stringify({
-            firstName,
-            lastName,
-            email,
-            password,
-            dataProcessingConsent: { given: true },
-            healthDataConsent: { given: true }
-          }));
+          // Store only the email for the resend-otp flow — NEVER store passwords in sessionStorage
+          sessionStorage.setItem('pendingVerificationEmail', email);
           document.getElementById('otp-message').textContent = `We sent a verification code to ${email}`;
           window.Toast.success('Signup successful! Please check your email for verification code.');
         } else {
@@ -388,8 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const { token, user } = data.data || data;
           localStorage.setItem('token', token);
           localStorage.setItem('userRole', user.role);
-          // Clear signup attempt data from session
-          sessionStorage.removeItem('signupAttempt');
+          // Clear pending verification email from session
+          sessionStorage.removeItem('pendingVerificationEmail');
           window.Toast.success('Email verified! Welcome to JE Fitness.');
           setTimeout(() => {
             window.location.href = '/dashboard';
@@ -407,27 +395,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const resendOtpBtn = document.getElementById('resendOtp');
     if (resendOtpBtn) {
       resendOtpBtn.addEventListener('click', async () => {
-        // Retrieve stored signup attempt data
-        const signupAttemptStr = sessionStorage.getItem('signupAttempt');
-        
-        if (!signupAttemptStr) {
+        // Retrieve stored email for OTP resend
+        const pendingEmail = sessionStorage.getItem('pendingVerificationEmail');
+
+        if (!pendingEmail) {
           window.Toast.error('Session expired. Please go back and sign up again.');
           return;
         }
 
-        let signupData;
         try {
-          signupData = JSON.parse(signupAttemptStr);
-        } catch (err) {
-          window.Toast.error('Invalid session data. Please go back and sign up again.');
-          return;
-        }
-
-        try {
-          const response = await fetch(`${window.API_BASE}/api/v1/auth/signup`, {
+          const response = await fetch(`${window.API_BASE}/api/v1/auth/resend-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(signupData)
+            body: JSON.stringify({ email: pendingEmail })
           });
 
           let data;
@@ -442,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             handleApiError(response, data, 'Failed to resend OTP');
           }
-          } catch (err) {
+        } catch (err) {
           console.error('Resend OTP error:', err);
           window.Toast.error('Network error. Please try again.');
         }

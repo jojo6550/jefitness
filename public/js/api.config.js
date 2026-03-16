@@ -122,8 +122,8 @@ class API {
       defaultHeaders['Authorization'] = `Bearer ${token}`;
     }
 
-    // Check backend availability before making requests
-    if (!await this.checkBackendHealth()) {
+    // Check backend availability (result is cached for 30s to avoid 2× requests per call)
+    if (!await this.isHealthy()) {
       throw new Error('Backend service is currently unavailable. Please try again later.');
     }
 
@@ -154,6 +154,15 @@ class API {
       }
       throw error;
     }
+  }
+
+  /** Cached health result — avoids a preflight request on every single API call */
+  static _healthCache = { ok: null, checkedAt: 0 };
+  static async isHealthy() {
+    if (Date.now() - this._healthCache.checkedAt < 30000) return this._healthCache.ok;
+    const ok = await this.checkBackendHealth();
+    this._healthCache = { ok, checkedAt: Date.now() };
+    return ok;
   }
 
   static async checkBackendHealth() {
@@ -277,28 +286,7 @@ class API {
     })
   };
 
-  // ===== Users Endpoints =====
-  static users = {
-    getProfile: () => API.request('/api/users/profile'),
-    
-    updateProfile: (data) => API.request('/api/users/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
-
-    changePassword: (oldPassword, newPassword) => API.request('/api/users/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ oldPassword, newPassword })
-    }),
-
-    getAll: () => API.request('/api/users'),
-
-    getOne: (id) => API.request(`/api/users/${id}`),
-
-    delete: (id) => API.request(`/api/users/${id}`, {
-      method: 'DELETE'
-    })
-  };
+  // ===== Users Endpoints (merged — see second definition below) =====
 
   // ===== Programs Endpoints =====
   static programs = {
@@ -428,27 +416,27 @@ class API {
 
   // ===== Users Endpoints =====
   static users = {
-    getTrainers: () => API.request('/api/users/trainers'),
+    getTrainers: () => API.request('/api/v1/users/trainers'),
 
-    getAdmins: () => API.request('/api/users/admins'),
+    getAdmins: () => API.request('/api/v1/users/admins'),
 
-    getProfile: () => API.request('/api/users/profile'),
+    getProfile: () => API.request('/api/v1/users/profile'),
 
-    updateProfile: (data) => API.request('/api/users/profile', {
+    updateProfile: (data) => API.request('/api/v1/users/profile', {
       method: 'PUT',
       body: JSON.stringify(data)
     }),
 
-    changePassword: (oldPassword, newPassword) => API.request('/api/users/change-password', {
+    changePassword: (oldPassword, newPassword) => API.request('/api/v1/users/change-password', {
       method: 'POST',
       body: JSON.stringify({ oldPassword, newPassword })
     }),
 
-    getAll: () => API.request('/api/users'),
+    getAll: () => API.request('/api/v1/users'),
 
-    getOne: (id) => API.request(`/api/users/${id}`),
+    getOne: (id) => API.request(`/api/v1/users/${id}`),
 
-    delete: (id) => API.request(`/api/users/${id}`, {
+    delete: (id) => API.request(`/api/v1/users/${id}`, {
       method: 'DELETE'
     })
   };

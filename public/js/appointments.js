@@ -10,6 +10,15 @@ if (window.API_BASE?.startsWith('https://localhost')) {
 
 console.log('Appointments - Resolved API_BASE:', window.API_BASE, window.ApiConfig?.getDebugInfo?.());
 
+// ====== Helpers ======
+/** Escapes user-supplied strings before inserting into innerHTML to prevent XSS */
+function escapeHtml(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(String(str)));
+    return div.innerHTML;
+}
+
 // ====== State ======
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
@@ -28,17 +37,11 @@ async function authFetch(url, options = {}) {
 
     const res = await fetch(url, options);
 
-    // Auto-grant consent for users created before consent tracking was enforced
     if (res.status === 403) {
         const body = await res.json();
+        // GDPR: Do NOT silently auto-grant consent. Surface the issue to the user.
         if (body.code === 'CONSENT_REQUIRED') {
-            await fetch(`${window.API_BASE}/api/v1/auth/consent`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            const retry = await fetch(url, options);
-            if (!retry.ok) throw new Error(`HTTP ${retry.status} - ${retry.statusText}`);
-            return retry.json();
+            throw new Error('Data processing consent is required. Please update your privacy settings.');
         }
         const errMsg = typeof body.error === 'string'
             ? body.error
@@ -121,32 +124,34 @@ function displayAppointments(appointments) {
     activeAppointments.forEach(app => {
         const dateObj = new Date(app.date);
         const date = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const statusClass = `appointment-status-badge status-${app.status}`;
-        const trainerName = app.trainerId?.firstName ? `${app.trainerId.firstName} ${app.trainerId.lastName || ''}` : 'N/A';
+        const statusClass = `appointment-status-badge status-${escapeHtml(app.status)}`;
+        const trainerName = app.trainerId?.firstName ? `${escapeHtml(app.trainerId.firstName)} ${escapeHtml(app.trainerId.lastName || '')}` : 'N/A';
+        const trainerInitial = escapeHtml(app.trainerId?.firstName?.charAt(0) || 'T');
+        const notes = escapeHtml(app.notes);
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td class="ps-4">
-                <div class="fw-bold">${date}</div>
-                <div class="text-muted small"><i class="bi bi-clock me-1"></i>${app.time}</div>
+                <div class="fw-bold">${escapeHtml(date)}</div>
+                <div class="text-muted small"><i class="bi bi-clock me-1"></i>${escapeHtml(app.time)}</div>
             </td>
             <td>
                 <div class="d-flex align-items-center gap-2">
                     <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center appt-trainer-avatar">
-                        ${app.trainerId?.firstName?.charAt(0) || 'T'}
+                        ${trainerInitial}
                     </div>
                     <span>${trainerName}</span>
                 </div>
             </td>
-            <td><span class="${statusClass}">${app.status}</span></td>
+            <td><span class="${statusClass}">${escapeHtml(app.status)}</span></td>
             <td class="d-none d-lg-table-cell">
-                <div class="text-truncate text-muted appt-notes-cell" title="${app.notes || ''}">${app.notes || '<span class="opacity-50 fst-italic">No special notes</span>'}</div>
+                <div class="text-truncate text-muted appt-notes-cell" title="${notes}">${notes || '<span class="opacity-50 fst-italic">No special notes</span>'}</div>
             </td>
             <td class="text-end pe-4">
                 <div class="btn-group">
-                    <button data-id="${app._id}" class="btn btn-sm btn-outline-primary view-btn" title="View"><i class="bi bi-eye"></i></button>
-                    <button data-id="${app._id}" class="btn btn-sm btn-outline-secondary edit-btn" title="Edit"><i class="bi bi-pencil"></i></button>
-                    <button data-id="${app._id}" class="btn btn-sm btn-outline-danger delete-btn" title="Delete"><i class="bi bi-trash"></i></button>
+                    <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-primary view-btn" title="View"><i class="bi bi-eye"></i></button>
+                    <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-secondary edit-btn" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-danger delete-btn" title="Delete"><i class="bi bi-trash"></i></button>
                 </div>
             </td>`;
         tbody.appendChild(row);
@@ -175,15 +180,21 @@ async function viewAppointment(id) {
         const appointment = await authFetch(`${window.API_BASE}/api/v1/appointments/${id}`);
 
         const detailsDiv = document.getElementById('appointmentDetails');
+        const trainerDisplay = appointment.trainerId
+            ? `${escapeHtml(appointment.trainerId.firstName)} ${escapeHtml(appointment.trainerId.lastName)}`
+            : 'N/A';
+        const clientDisplay = appointment.clientId
+            ? `${escapeHtml(appointment.clientId.firstName)} ${escapeHtml(appointment.clientId.lastName)}`
+            : 'N/A';
         detailsDiv.innerHTML = `
-            <p><strong>Date:</strong> ${new Date(appointment.date).toLocaleDateString()}</p>
-            <p><strong>Time:</strong> ${appointment.time}</p>
-            <p><strong>Trainer:</strong> ${appointment.trainerId ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}` : 'N/A'}</p>
-            <p><strong>Status:</strong> ${appointment.status}</p>
-            <p><strong>Client:</strong> ${appointment.clientId ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}` : 'N/A'}</p>
-            <p><strong>Notes:</strong> ${appointment.notes || 'N/A'}</p>
-            <p><strong>Created At:</strong> ${new Date(appointment.createdAt).toLocaleString()}</p>
-            <p><strong>Updated At:</strong> ${new Date(appointment.updatedAt).toLocaleString()}</p>`;
+            <p><strong>Date:</strong> ${escapeHtml(new Date(appointment.date).toLocaleDateString())}</p>
+            <p><strong>Time:</strong> ${escapeHtml(appointment.time)}</p>
+            <p><strong>Trainer:</strong> ${trainerDisplay}</p>
+            <p><strong>Status:</strong> ${escapeHtml(appointment.status)}</p>
+            <p><strong>Client:</strong> ${clientDisplay}</p>
+            <p><strong>Notes:</strong> ${escapeHtml(appointment.notes) || 'N/A'}</p>
+            <p><strong>Created At:</strong> ${escapeHtml(new Date(appointment.createdAt).toLocaleString())}</p>
+            <p><strong>Updated At:</strong> ${escapeHtml(new Date(appointment.updatedAt).toLocaleString())}</p>`;
 
         new bootstrap.Modal(document.getElementById('appointmentModal')).show();
     } catch (err) {

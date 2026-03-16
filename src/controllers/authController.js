@@ -150,16 +150,14 @@ const authController = {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
-    if (!user) {
-      throw new AuthenticationError(`No account found for email: ${email}`);
+    // SECURITY: Use a generic error for both "user not found" and "wrong password"
+    // to prevent user enumeration attacks.
+    if (!user || !(await user.comparePassword(password))) {
+      throw new AuthenticationError('Invalid email or password.');
     }
 
     if (!user.isEmailVerified) {
       throw new ValidationError('Please verify your email before logging in');
-    }
-
-    if (!(await user.comparePassword(password))) {
-      throw new AuthenticationError('Incorrect password');
     }
 
     const token = jwt.sign(

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
-const { authLimiter } = require('../middleware/rateLimiter');
+const { authLimiter, signupLimiter } = require('../middleware/rateLimiter');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 
@@ -13,7 +13,8 @@ const { handleValidationErrors } = require('../middleware/inputValidator');
  *     summary: Register a new user account
  *     tags: [Authentication]
  */
-router.post('/signup', 
+router.post('/signup',
+    signupLimiter,
     [
         body('firstName').trim().notEmpty().withMessage('First name is required'),
         body('lastName').trim().notEmpty().withMessage('Last name is required'),
@@ -105,7 +106,8 @@ router.post('/consent', auth, authController.grantConsent);
  *         schema:
  *           type: string
  */
-router.get('/email-status/:messageId', authController.getEmailStatus);
+// Auth-gated: only authenticated users (admins) should query email delivery status
+router.get('/email-status/:messageId', auth, authController.getEmailStatus);
 
 module.exports = router;
 

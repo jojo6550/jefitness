@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const WorkoutSetSchema = new mongoose.Schema({
   setNumber: { type: Number, required: true, min: 1 },
@@ -218,7 +219,8 @@ UserSchema.methods.comparePassword = function(candidatePassword) {
 // OTP Methods
 // --------------------
 UserSchema.methods.generateOTP = function() {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+  // SECURITY: Use CSPRNG — Math.random() is not cryptographically secure
+  return crypto.randomInt(100000, 1000000).toString(); // 6-digit
 };
 
 UserSchema.methods.hashOTP = async function(otp) {

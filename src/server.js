@@ -7,7 +7,7 @@ const helmet = require('helmet');
 const path = require('path');
 const morgan = require('morgan');
 const fs = require('fs');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 
 
 // API Documentation imports
@@ -19,7 +19,7 @@ const { startSubscriptionCleanupJob } = require('./jobs');
 
 dotenv.config();
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 10000;
 
 const app = express();
 
@@ -55,9 +55,12 @@ app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 app.use(optionsHandler);
 
-// Request logging
-app.use(requestLogger);
-app.use(morgan('combined'));
+// Request logging — use morgan in development for colorized output, custom logger in production
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+} else {
+  app.use(requestLogger);
+}
 
 
 // Body parsing
@@ -305,14 +308,11 @@ app.get('/:page', (req, res, next) => {
     return next();
   }
   
-  // Check if the file exists
-  if (fs.existsSync(resolvedPath)) {
-    res.type('html');
-    return res.sendFile(resolvedPath);
-  }
-  
-  // If file doesn't exist, pass to next handler (404)
-  next();
+  // Use async sendFile — avoids blocking the event loop with fs.existsSync
+  res.type('html');
+  res.sendFile(resolvedPath, err => {
+    if (err) next(); // File not found → fall through to 404 handler
+  });
 });
 
 // 404 handler for non-existent pages (MPA mode)
@@ -399,23 +399,20 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
 // -----------------------------
 // Backup and Archiving Jobs
 // -----------------------------
-cron.schedule('0 2 * * *', () => {
-  console.log('Starting daily database backup...');
-  exec('node scripts/backup.js', (error, stdout, stderr) => {
-    if (error) console.error(`Backup failed: ${error.message}`);
-    if (stderr) console.error(`Backup stderr: ${stderr}`);
-    if (stdout) console.log(`Backup completed: ${stdout}`);
+/** Run a Node script as a child process without spawning a shell (no injection risk) */
+function runScript(scriptPath, label) {
+  console.log(`Starting ${label}...`);
+  const child = spawn(process.execPath, [scriptPath], { stdio: 'inherit' });
+  child.on('error', err => console.error(`${label} failed to start: ${err.message}`));
+  child.on('close', code => {
+    if (code !== 0) console.error(`${label} exited with code ${code}`);
+    else console.log(`${label} completed successfully.`);
   });
-});
+}
 
-cron.schedule('0 3 1 * *', () => {
-  console.log('Starting monthly data archiving...');
-  exec('node scripts/archive.js', (error, stdout, stderr) => {
-    if (error) console.error(`Archiving failed: ${error.message}`);
-    if (stderr) console.error(`Archiving stderr: ${stderr}`);
-    if (stdout) console.log(`Archiving completed: ${stdout}`);
-  });
-});
+cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily database backup'));
+
+cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly data archiving'));
 
 // -----------------------------
 // GDPR/HIPAA Compliance Jobs
@@ -434,14 +431,7 @@ cron.schedule('0 1 1 */6 *', async () => {
 // -----------------------------
 // Canceled Subscriptions Cleanup Job
 // -----------------------------
-cron.schedule('0 2 * * 0', () => {
-  console.log('Starting weekly canceled subscriptions cleanup...');
-  exec('node scripts/cleanup-canceled-subscriptions.js', (error, stdout, stderr) => {
-    if (error) console.error(`Canceled subscriptions cleanup failed: ${error.message}`);
-    if (stderr) console.error(`Cleanup stderr: ${stderr}`);
-    if (stdout) console.log(`Cleanup completed: ${stdout}`);
-  });
-});
+cron.schedule('0 2 * * 0', () => runScript('scripts/cleanup-canceled-subscriptions.js', 'Weekly canceled subscriptions cleanup'));
 
 // -----------------------------
 // Memory Monitoring and Cleanup
