@@ -437,15 +437,14 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       success_url: successUrl,
       cancel_url: cancelUrl,
       // Allow customer to update payment method
-      billing_address_collection: 'required',
-      subscription_data: {
-        // Automatically apply proration for existing subscriptions
-        proration_behavior: 'create_prorations'
-      }
+      billing_address_collection: 'required'
+      // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor
     });
 
+    console.log(`✅ Subscription checkout session created successfully: ${session.id}`);
     return session;
   } catch (error) {
+    console.error(`❌ createCheckoutSession error [${plan}]:`, error.message);
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
