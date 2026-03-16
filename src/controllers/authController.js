@@ -3,11 +3,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Client } = require('node-mailjet');
 const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const logger = require('../services/logger');
 
 /**
  * Lazy initialization of Mailjet client
  */
-let mailjet = null;
 const getMailjetClient = () => {
   if (!mailjet && process.env.MAILJET_API_KEY && process.env.MAILJET_SECRET_KEY) {
     mailjet = new Client({
@@ -225,8 +225,8 @@ const authController = {
       throw new ValidationError('MessageID required');
     }
 
-    const mailjet = getMailjetClient();
-    if (!mailjet) {
+    const mailjetClient = getMailjetClient();
+    if (!mailjetClient) {
       return res.status(503).json({
         success: false,
         message: 'Email service unavailable'
@@ -255,8 +255,8 @@ const authController = {
 
 // Send OTP email helper
 async function sendOTPEmail(email, otp) {
-  const mailjet = getMailjetClient();
-  if (!mailjet) {
+  const mailjetClient = getMailjetClient();
+  if (!mailjetClient) {
     logger.warn('Mailjet not configured. Cannot send OTP email.');
     return; // Don't fail signup, log warning
   }
@@ -300,56 +300,6 @@ async function sendOTPEmail(email, otp) {
       otp: otp.substring(0, 2) + '***'
     });
   }
-}
-
-module.exports = authController;
-  const mailjet = getMailjetClient();
-  if (!mailjet) {
-    console.warn('Mailjet not configured. Cannot send OTP email.');
-    return; // Don't fail signup, log warning
-  }
-
-
-  const request = await mailjet
-    .post("send", { 'version': 'v3.1' })
-    .request({
-      "Messages": [{
-        "From": {
-          "Email": "no-reply@jefitness.com",
-          "Name": "JE Fitness"
-        },
-        "To": [{
-          "Email": email,
-          "Name": `${email}`
-        }],
-        "Subject": "Your JE Fitness Verification Code",
-        "HTMLPart": `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Welcome to JE Fitness!</h2>
-            <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
-            <p>This code expires in 10 minutes.</p>
-            <hr>
-            <p>If you didn't request this, please ignore this email.</p>
-          </div>
-        `
-      }]
-    });
-
-  if (request.response?.status !== 200) {
-    console.error('Mailjet OTP send failed:', {
-      status: request.response?.status,
-      body: request.body,
-      error: request.ErrorMessage
-    });
-  } else {
-    const messageId = request.body?.Messages?.[0]?.['MessageID'];
-    console.log('OTP email sent successfully. Track:', {
-      messageId,
-      to: email,
-      otp: otp.substring(0, 2) + '***'  // Partial for logs
-    });
-  }
-
 }
 
 module.exports = authController;

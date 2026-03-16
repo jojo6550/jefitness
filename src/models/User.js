@@ -281,6 +281,7 @@ UserSchema.methods.getSubscriptionInfo = async function() {
 // Encryption
 // --------------------
 const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptionConfig');
+const { logger } = require('../services/logger');
 
   if (isEncryptionEnabled()) {
     try {

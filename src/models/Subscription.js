@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { cancelSubscription } = require('../services/stripe');
+const { logger } = require('../services/logger');
 
 /**
  * Stripe-backed subscription ONLY
