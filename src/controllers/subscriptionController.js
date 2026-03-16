@@ -91,23 +91,78 @@ const subscriptionController = {
   }),
 
   /**
-   * Verify checkout session
+   * Verify checkout session — also proactively upserts the subscription so
+   * the user is never stuck in "not yet active" limbo if the webhook is delayed.
    */
   verifyCheckoutSession: asyncHandler(async (req, res) => {
     const { sessionId } = req.params;
     const stripeService = require('../services/stripe');
-    
+    const { PLAN_MAP } = require('../config/subscriptionConstants');
+
     const session = await stripeService.getCheckoutSession(sessionId);
-    
+
     if (session.payment_status !== 'paid' || session.mode !== 'subscription') {
       return res.status(400).json({ success: false, error: 'Session not completed' });
     }
 
-    // Get user subscription
-    const Subscription = require('../models/Subscription');
-    const subscription = await Subscription.findOne({ 
-      stripeSubscriptionId: session.subscription 
+    // Try to find existing DB record first
+    let subscription = await Subscription.findOne({
+      stripeSubscriptionId: session.subscription
     });
+
+    // If webhook hasn't fired yet, create the record proactively from Stripe data
+    if (!subscription) {
+      try {
+        const stripe = stripeService.getStripe();
+        const stripeSub = stripe ? await stripe.subscriptions.retrieve(session.subscription) : null;
+
+        if (stripeSub) {
+          const user = await User.findOne({ stripeCustomerId: session.customer });
+          if (user) {
+            const priceItem = stripeSub.items?.data[0];
+            const priceId = priceItem?.price?.id;
+            const plan = PLAN_MAP[priceId] || 'unknown-plan';
+            const billingEnv = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+
+            subscription = await Subscription.findOneAndUpdate(
+              { stripeSubscriptionId: stripeSub.id },
+              {
+                $set: {
+                  userId: user._id,
+                  stripeCustomerId: stripeSub.customer,
+                  stripeSubscriptionId: stripeSub.id,
+                  plan,
+                  stripePriceId: priceId,
+                  currentPeriodStart: stripeSub.current_period_start
+                    ? new Date(stripeSub.current_period_start * 1000)
+                    : new Date(),
+                  currentPeriodEnd: stripeSub.current_period_end
+                    ? new Date(stripeSub.current_period_end * 1000)
+                    : new Date(Date.now() + 30 * 86400000),
+                  status: stripeSub.status,
+                  cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
+                  canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+                  amount: priceItem?.price?.unit_amount || 0,
+                  currency: priceItem?.price?.currency || 'jmd',
+                  billingEnvironment: billingEnv,
+                  checkoutSessionId: sessionId
+                }
+              },
+              { upsert: true, new: true }
+            );
+
+            // Sync subscription ID onto the User document
+            await User.findByIdAndUpdate(user._id, {
+              $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv }
+            });
+
+            console.log(`✅ [verifyCheckout] Subscription upserted proactively: ${subscription._id} | plan: ${subscription.plan} | status: ${subscription.status}`);
+          }
+        }
+      } catch (proactiveErr) {
+        console.error('[verifyCheckout] Proactive upsert failed:', proactiveErr.message);
+      }
+    }
 
     if (!subscription) {
       return res.json({ success: true, data: null });
@@ -115,11 +170,10 @@ const subscriptionController = {
 
     // Compute daysLeft
     const now = new Date();
-    const periodEnd = subscription.currentPeriodEnd;
-    const daysLeft = Math.ceil((periodEnd - now) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((subscription.currentPeriodEnd - now) / (1000 * 60 * 60 * 24));
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: {
         ...subscription.toObject(),
         daysLeft: Math.max(0, daysLeft)

@@ -277,13 +277,13 @@ async function loadUserSubscriptions() {
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
-    if (userSubscriptions.length > 0) {
-      // Hide plans, show active sub summary
+    // Use hasActiveSubscription() — not just length — so canceled subs fall through to plans
+    if (hasActiveSubscription()) {
       safeHide(getElement('plansSection'));
       safeShow(activeSubscriptionSection);
       renderActiveSubscriptionSummary();
     } else {
-      // Show plans, hide active sub
+      // No active sub (or sub is canceled/expired) — show plans so user can re-subscribe
       safeShow(getElement('plansSection'));
       safeHide(activeSubscriptionSection);
     }
@@ -358,10 +358,11 @@ function renderActiveSubscriptionSummary() {
   // Use backend-computed daysLeft (primary), fallback to local calc
   const computedDaysLeft = Math.ceil((parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)) - new Date()) / 86400000);
   const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : computedDaysLeft;
+  const isCanceled = sub.status === 'canceled';
   const isExpired = daysLeft <= 0;
   const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
-  const statusClass = isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active');
-  const statusText = isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE');
+  const statusClass = isCanceled ? 'expired' : (isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active'));
+  const statusText = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
 
   activeSubscriptionSummary.innerHTML = `
     <div class="row g-4 align-items-center">
@@ -398,9 +399,13 @@ function renderActiveSubscriptionSummary() {
           <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
+          ${!isCanceled ? `
           <button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
             <i class="bi bi-trash me-2"></i>Cancel Plan
-          </button>
+          </button>` : `
+          <button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+            <i class="bi bi-x-circle me-2"></i>Plan Canceled
+          </button>`}
         </div>
       </div>
     </div>

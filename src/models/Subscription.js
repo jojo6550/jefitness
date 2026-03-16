@@ -51,7 +51,8 @@ const SubscriptionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ['active', 'past_due', 'canceled', 'unpaid', 'paused'],
+      // All possible Stripe subscription statuses
+      enum: ['active', 'trialing', 'incomplete', 'incomplete_expired', 'past_due', 'canceled', 'unpaid', 'paused'],
       required: true,
       index: true
     },
