@@ -212,7 +212,7 @@ const authController = {
       success: true,
       data: request.body.Messages[0]
     });
-  };
+  })
 };
 
 
