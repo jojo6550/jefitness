@@ -83,5 +83,21 @@ router.post('/resend-otp',
  */
 router.post('/logout', auth, authController.logout);
 
+/**
+ * @swagger
+ * /api/v1/auth/email-status/{messageId}:
+ *   get:
+ *     summary: Check email delivery status (for debugging)
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ */
+router.get('/email-status/:messageId', authController.getEmailStatus);
+
 module.exports = router;
+
 

@@ -136,7 +136,7 @@ const authController = {
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
     if (!user) {
-      throw new AuthenticationError('Invalid credentials');
+      throw new AuthenticationError(`No account found for email: ${email}`);
     }
 
     if (!user.isEmailVerified) {
@@ -144,7 +144,7 @@ const authController = {
     }
 
     if (!(await user.comparePassword(password))) {
-      throw new AuthenticationError('Invalid credentials');
+      throw new AuthenticationError('Incorrect password');
     }
 
     const token = jwt.sign(
@@ -176,8 +176,45 @@ const authController = {
     await incrementUserTokenVersion(req.user.id);
     
     res.json({ success: true, message: 'Logged out successfully' });
-  })
+  }),
+
+  /**
+   * Check Mailjet message delivery status
+   */
+  getEmailStatus: asyncHandler(async (req, res) => {
+    const { messageId } = req.params;
+
+    if (!messageId) {
+      throw new ValidationError('MessageID required');
+    }
+
+    const mailjet = getMailjetClient();
+    if (!mailjet) {
+      return res.status(503).json({
+        success: false,
+        message: 'Email service unavailable'
+      });
+    }
+
+    const request = await mailjet
+      .get(`send/${messageId}`, { 'version': 'v3.1' })
+      .request();
+
+    if (request.response?.status !== 200) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found or service error',
+        status: request.response?.status
+      });
+    }
+
+    res.json({
+      success: true,
+      data: request.body.Messages[0]
+    });
+  };
 };
+
 
 // Send OTP email helper
 async function sendOTPEmail(email, otp) {
@@ -186,6 +223,7 @@ async function sendOTPEmail(email, otp) {
     console.warn('Mailjet not configured. Cannot send OTP email.');
     return; // Don't fail signup, log warning
   }
+
 
   const request = await mailjet
     .post("send", { 'version': 'v3.1' })
@@ -212,12 +250,21 @@ async function sendOTPEmail(email, otp) {
       }]
     });
 
-  if (request.StatusCode !== 200) {
-    console.error('Failed to send OTP email:', request);
+  if (request.response?.status !== 200) {
+    console.error('Mailjet OTP send failed:', {
+      status: request.response?.status,
+      body: request.body,
+      error: request.ErrorMessage
+    });
+  } else {
+    const messageId = request.body?.Messages?.[0]?.['MessageID'];
+    console.log('OTP email sent successfully. Track:', {
+      messageId,
+      to: email,
+      otp: otp.substring(0, 2) + '***'  // Partial for logs
+    });
   }
+
 }
-
-module.exports = authController;
-
 
 module.exports = authController;

@@ -83,28 +83,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await window.API.auth.login(email, password);
         const { token, user } = data.data || data;
         localStorage.setItem('token', token);
-        localStorage.setItem('userRole', user.role);
+        
+        // Ensure role is set, default to 'user' for safety
+        const userRole = user.role || 'user';
+        localStorage.setItem('userRole', userRole);
+        console.log('Login success: Set role:', userRole);  // DEBUG: Log role
 
         // Show welcome back toast
         const userName = user.firstName || 'User';
-        window.Toast.success(`Welcome back ${userName}!`);
+        window.Toast.success(`Welcome back ${userName}! (Role: ${userRole})`);
 
         // Check for redirect parameter
         const urlParams = new URLSearchParams(window.location.search);
         const redirectPath = urlParams.get('redirect');
+        console.log('Login redirect check: redirectPath=', redirectPath);  // DEBUG
 
         if (redirectPath) {
           // Redirect to the specified path
+          console.log('Redirecting to URL param:', redirectPath);  // DEBUG
           window.location.href = redirectPath;
         } else {
-          // Role-based redirection
-          if (user.role === 'admin') {
-            window.location.href = '/admin-dashboard';
-          } else if (user.role === 'trainer') {
-            window.location.href = '/trainer-dashboard';
-          } else {
-            window.location.href = '/dashboard';
+          // Role-based redirection using safe role
+          let redirectPathRole = '/dashboard';  // default
+          if (userRole === 'admin') {
+            redirectPathRole = '/admin-dashboard';
+          } else if (userRole === 'trainer') {
+            redirectPathRole = '/trainer-dashboard';
           }
+          console.log('Role-based redirect to:', redirectPathRole, 'for role:', userRole);  // DEBUG
+          window.location.href = redirectPathRole;
         }
       } catch (err) {
         console.error('Login error:', err);
@@ -113,7 +120,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (err.message.includes('HTTP')) {
           window.Toast.error(`Server error: ${err.message}`);
         } else {
-          window.Toast.error(err.message || 'Login failed. Please try again.');
+          // Frontend-specific errors for specific backend messages
+          if (err.message.includes('No account found')) {
+            window.Toast.error(err.message + ' Redirecting to signup...');
+            setTimeout(() => {
+              window.location.href = '/signup';
+            }, 2000);
+          } else if (err.message === 'Incorrect password') {
+            window.Toast.error('Wrong password. Try again or use Forgot Password.');
+          } else if (err.message.includes('verify your email')) {
+            window.Toast.error(err.message + ' Check your inbox.');
+          } else {
+            window.Toast.error(err.message || 'Login failed. Please try again.');
+          }
         }
       } finally {
         setLoadingState(loginButton, false);
