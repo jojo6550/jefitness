@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const path = require('path');
 const morgan = require('morgan');
 const fs = require('fs');
+const { exec } = require('child_process');
 
 
 // API Documentation imports
@@ -230,47 +231,28 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Backward compatibility - redirect old routes to v1
-// Handle OPTIONS requests for CORS preflight before redirect
-app.options('/api/auth', cors(corsOptions));
+// Backward compatibility — redirect legacy /api/* routes to /api/v1/*
+// Handle OPTIONS preflight before redirecting
+app.options('/api/auth',    cors(corsOptions));
 app.options('/api/v1/auth', cors(corsOptions));
-// Apply CORS to /api/auth route
-app.use('/api/auth', cors(corsOptions));
-app.use('/api/auth', (req, res, next) => {
-  // Manually set CORS headers for cross-origin redirects
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
+
+app.use('/api/auth', cors(corsOptions), (req, res) => {
+  res.header('Access-Control-Allow-Origin',      req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods',     'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers',     'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
+  res.header('Access-Control-Max-Age',           '86400');
   res.redirect(307, '/api/v1/auth' + req.path);
 });
 
-app.use('/api/clients', (req, res, next) => {
-  res.redirect(307, '/api/v1/clients' + req.path);
-});
-app.use('/api/logs', (req, res, next) => {
-  res.redirect(307, '/api/v1/logs' + req.path);
-});
-app.use('/api/appointments', (req, res, next) => {
-  res.redirect(307, '/api/v1/appointments' + req.path);
-});
-app.use('/api/users', (req, res, next) => {
-  res.redirect(307, '/api/v1/users' + req.path);
-});
-
-app.use('/api/notifications', (req, res, next) => {
-  res.redirect(307, '/api/v1/notifications' + req.path);
-});
-app.use('/api/medical-documents', (req, res, next) => {
-  res.redirect(307, '/api/v1/medical-documents' + req.path);
-});
-app.use('/api/trainer', (req, res, next) => {
-  res.redirect(307, '/api/v1/trainer' + req.path);
-});
-app.use('/api/users', (req, res, next) => {
-  res.redirect(307, '/api/v1/users' + req.path);
-});
+const legacyRedirect = (prefix) => (req, res) => res.redirect(307, prefix + req.path);
+app.use('/api/clients',           legacyRedirect('/api/v1/clients'));
+app.use('/api/logs',              legacyRedirect('/api/v1/logs'));
+app.use('/api/appointments',      legacyRedirect('/api/v1/appointments'));
+app.use('/api/users',             legacyRedirect('/api/v1/users'));
+app.use('/api/notifications',     legacyRedirect('/api/v1/notifications'));
+app.use('/api/medical-documents', legacyRedirect('/api/v1/medical-documents'));
+app.use('/api/trainer',           legacyRedirect('/api/v1/trainer'));
 
 // 404 handler for API routes (after all routes and redirects)
 app.use('/api', (req, res) => {
@@ -288,7 +270,7 @@ app.use('/api', (req, res) => {
 // CLEAN URLS: Redirect /pages/*.html → clean URLs
 // Ensures old links and bookmarks still work
 // ====================================================
-app.get('public/pages/:page.html', (req, res) => {
+app.get('/public/pages/:page.html', (req, res) => {
   const page = req.params.page;
   // Preserve query string (e.g., ?redirect=...)
   const query = req.originalUrl.includes('?') ? '?' + req.originalUrl.split('?')[1] : '';
@@ -419,21 +401,19 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
 // -----------------------------
 cron.schedule('0 2 * * *', () => {
   console.log('Starting daily database backup...');
-  const { exec } = require('child_process');
   exec('node scripts/backup.js', (error, stdout, stderr) => {
     if (error) console.error(`Backup failed: ${error.message}`);
     if (stderr) console.error(`Backup stderr: ${stderr}`);
-    console.log(`Backup completed: ${stdout}`);
+    if (stdout) console.log(`Backup completed: ${stdout}`);
   });
 });
 
 cron.schedule('0 3 1 * *', () => {
   console.log('Starting monthly data archiving...');
-  const { exec } = require('child_process');
   exec('node scripts/archive.js', (error, stdout, stderr) => {
     if (error) console.error(`Archiving failed: ${error.message}`);
     if (stderr) console.error(`Archiving stderr: ${stderr}`);
-    console.log(`Archiving completed: ${stdout}`);
+    if (stdout) console.log(`Archiving completed: ${stdout}`);
   });
 });
 
@@ -456,11 +436,10 @@ cron.schedule('0 1 1 */6 *', async () => {
 // -----------------------------
 cron.schedule('0 2 * * 0', () => {
   console.log('Starting weekly canceled subscriptions cleanup...');
-  const { exec } = require('child_process');
   exec('node scripts/cleanup-canceled-subscriptions.js', (error, stdout, stderr) => {
     if (error) console.error(`Canceled subscriptions cleanup failed: ${error.message}`);
     if (stderr) console.error(`Cleanup stderr: ${stderr}`);
-    console.log(`Cleanup completed: ${stdout}`);
+    if (stdout) console.log(`Cleanup completed: ${stdout}`);
   });
 });
 
@@ -486,9 +465,6 @@ setInterval(() => {
 // Only start server if this file is run directly (not required in tests)
 if (require.main === module) {
 const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-
-// Global Error Handler
-app.use(errorHandler);
 
   // Graceful shutdown handler
   const gracefulShutdown = async (signal) => {

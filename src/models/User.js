@@ -26,7 +26,7 @@ const WorkoutLogSchema = new mongoose.Schema({
   deletedAt: { type: Date }
 });
 
-// Virtual to calculate total volume on save
+// Pre-save hook: compute total lifted volume across all exercises
 WorkoutLogSchema.pre('save', function(next) {
   if (this.exercises) {
     this.totalVolume = this.exercises.reduce((total, exercise) => {
@@ -210,12 +210,8 @@ UserSchema.pre('save', async function(next) {
 // --------------------
 // Password Comparison
 // --------------------
-UserSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (err) {
-    throw err;
-  }
+UserSchema.methods.comparePassword = function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 // --------------------
@@ -287,24 +283,17 @@ const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptio
 if (isEncryptionEnabled()) {
   try {
     const encryptionConfig = getEncryptionConfig();
-    if (encryptionConfig && encryptionConfig.encryptionKey) {
-      try {
-        const key = encryptionConfig.encryptionKey;
-        let keyBuffer;
-        // Support both hex (64 chars) and base64 encryption keys
-        if (key.length === 64 && /^[0-9a-fA-F]+$/.test(key)) {
-          keyBuffer = Buffer.from(key, 'hex');
-        } else {
-          keyBuffer = Buffer.from(key, 'base64');
-        }
+    const key = encryptionConfig?.encryptionKey;
+    if (key) {
+      // Support both hex (64-char) and base64 encryption keys
+      const keyBuffer = (key.length === 64 && /^[0-9a-fA-F]+$/.test(key))
+        ? Buffer.from(key, 'hex')
+        : Buffer.from(key, 'base64');
 
-        if (keyBuffer.length === 32) {
-          UserSchema.plugin(encrypt, encryptionConfig);
-        } else {
-          console.warn(`⚠️ User model: Encryption key must be exactly 32 bytes. Found ${keyBuffer.length} bytes.`);
-        }
-      } catch (e) {
-        console.warn('⚠️ User model: Invalid encryption key format. Encryption disabled for this model.');
+      if (keyBuffer.length === 32) {
+        UserSchema.plugin(encrypt, encryptionConfig);
+      } else {
+        console.warn(`⚠️ User model: Encryption key must be 32 bytes. Found ${keyBuffer.length} bytes. Encryption disabled.`);
       }
     }
   } catch (err) {

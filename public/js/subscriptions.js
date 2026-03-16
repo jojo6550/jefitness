@@ -12,14 +12,13 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 const STRIPE_PUBLIC_KEY =
   'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
 
-const stripe = Stripe(STRIPE_PUBLIC_KEY);
-const DEBUG = true;
+const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+/** Statuses treated as "active" — DB status is the source of truth */
+const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
 
 let selectedPlanId = null;
-let cardElement = null;
 let currentSubscriptionId = null;
-// Don't cache userToken at module load - get it fresh when needed
-// let userToken = localStorage.getItem('token');
 
 let availablePlans = [];
 let userSubscriptions = [];
@@ -32,33 +31,27 @@ let isLoadingSubscriptions = false;
 const alertContainer = getElement('alertContainer');
 const plansContainer = getElement('plansContainer');
 const plansLoading = getElement('plansLoading');
-
-
-
 const activeSubscriptionSection = getElement('activeSubscriptionSection');
 const activeSubscriptionSummary = getElement('activeSubscriptionSummary');
 
 /* --------------------------------------------------
-   DOM Utilities - Safe element access
+   DOM Utilities
 -------------------------------------------------- */
 
 function getElement(id, fallback = null) {
   const el = document.getElementById(id);
-  if (!el) {
-    console.warn(`Element #${id} not found`);
-    return fallback;
-  }
-  return el;
+  if (!el) console.warn(`Element #${id} not found`);
+  return el || fallback;
 }
 
 function safeShow(el) {
-  if (!el) { console.warn('Cannot show null element'); return false; }
+  if (!el) return false;
   el.classList.remove('d-none');
   return true;
 }
 
 function safeHide(el) {
-  if (!el) { console.warn('Cannot hide null element'); return false; }
+  if (!el) return false;
   el.classList.add('d-none');
   return true;
 }
@@ -78,7 +71,6 @@ async function handleApiResponse(response) {
 
   const data = await response.json();
   if (!response.ok) {
-    // Enhanced error messages for common cases
     let errorMsg = data?.error?.message || `HTTP ${response.status}`;
     if (response.status === 400 && errorMsg.includes('price')) {
       errorMsg = 'Subscription plans temporarily unavailable. Please contact support.';
@@ -123,25 +115,32 @@ function log(...args) {
 }
 
 /**
- * Format a number as currency with commas
+ * Format a number as USD currency string.
  * @param {number} amount - Amount in dollars
- * @returns {string} Formatted currency string
+ * @returns {string} e.g. "$29.99"
  */
 function formatCurrency(amount) {
-  if (typeof amount !== 'number' || isNaN(amount)) {
-    return '$0.00';
-  }
+  if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
   return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-/* --------------------------------------------------
-   Stripe Elements
--------------------------------------------------- */
-
-function initializeStripe() {
-  // Stripe Elements no longer needed for direct checkout
-  // Note: Live mode requires HTTPS - see https://docs.stripe.com/js
-  log('Stripe initialized for session redirect (no Elements needed)');
+/**
+ * Parse a date value into a Date object, returning `fallback` on failure.
+ * Handles ISO strings, Unix timestamps (seconds or ms), and Date instances.
+ */
+function parseDate(value, fallback) {
+  if (!value) return fallback;
+  if (typeof value === 'string') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? fallback : d;
+  }
+  if (typeof value === 'number') {
+    // Stripe uses Unix seconds; JS Date uses ms
+    const timestamp = value > 10_000_000_000 ? value : value * 1000;
+    return new Date(timestamp);
+  }
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  return fallback;
 }
 
 /* --------------------------------------------------
@@ -166,7 +165,6 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  // Always render plans if no active sub; otherwise show message
   if (hasActiveSubscription()) {
     safeHide(getElement('plansSection'));
     return;
@@ -174,11 +172,10 @@ function renderPlans() {
 
   plansContainer.innerHTML = '';
 
-  // Plan duration mapping with display names
   const planDurations = {
-    '1-month': { months: 1, displayName: '1 Month' },
-    '3-month': { months: 3, displayName: '3 Months' },
-    '6-month': { months: 6, displayName: '6 Months' },
+    '1-month':  { months: 1,  displayName: '1 Month'   },
+    '3-month':  { months: 3,  displayName: '3 Months'  },
+    '6-month':  { months: 6,  displayName: '6 Months'  },
     '12-month': { months: 12, displayName: '12 Months' }
   };
 
@@ -186,20 +183,13 @@ function renderPlans() {
     const isCurrent = hasActiveSubscription(plan.id);
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
     const durationInfo = planDurations[planId] || { months: 1, displayName: '1 Month' };
-    
-    // plan.amount is total amount (in cents) for the entire subscription period
-    const actualTotalCents = plan.amount || 0;
-    const actualTotal = actualTotalCents / 100;
-    
-    // Effective monthly price = total / durationInfo.months
-    const effectiveMonthly = actualTotal / durationInfo.months;
-    
-    // Format prices for display
-    const monthlyPrice = formatCurrency(effectiveMonthly);
-    const totalPrice = formatCurrency(actualTotal);
-    
+
+    // plan.amount is total amount in cents for the entire subscription period
+    const totalDollars = (plan.amount || 0) / 100;
+    const monthlyDollars = totalDollars / durationInfo.months;
+
     const card = document.createElement('div');
-    card.className = `col-lg-3 col-md-6 col-12`;
+    card.className = 'col-lg-3 col-md-6 col-12';
     card.innerHTML = `
       <div class="card h-100 plan-card ${isCurrent ? 'disabled-plan' : ''}">
         <div class="card-body d-flex flex-column justify-content-between h-100">
@@ -208,10 +198,10 @@ function renderPlans() {
               <span class="duration-badge">${durationInfo.displayName}</span>
             </div>
             <div class="plan-price mb-2">
-              <div class="price-main">${monthlyPrice}</div>
+              <div class="price-main">${formatCurrency(monthlyDollars)}</div>
               <div class="price-period">/month</div>
             </div>
-            ${durationInfo.months > 1 ? `<div class="plan-total text-muted small">Total: ${totalPrice}</div>` : ''}
+            ${durationInfo.months > 1 ? `<div class="plan-total text-muted small">Total: ${formatCurrency(totalDollars)}</div>` : ''}
           </div>
           <button class="btn btn-primary plan-button w-100 mt-4" ${isCurrent ? 'disabled' : ''}>
             ${isCurrent ? 'Current Plan' : 'Subscribe Now'}
@@ -235,9 +225,6 @@ function renderPlans() {
 -------------------------------------------------- */
 
 function hasActiveSubscription(planId = null) {
-  // DB status is the source of truth — don't require daysLeft > 0
-  // (test subscriptions can have stale dates while status remains 'active')
-  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
   return userSubscriptions.some(sub =>
     ACTIVE_STATUSES.includes(sub.status) &&
     (!planId || sub.plan === planId)
@@ -254,16 +241,13 @@ async function refreshSubscription() {
   try {
     log('Refreshing subscription from Stripe...');
     const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/refresh`, {
-      headers: {
-        'Authorization': `Bearer ${userToken}`
-      }
+      headers: { Authorization: `Bearer ${userToken}` }
     });
 
     const data = await handleApiResponse(response);
     log('Refresh response:', data);
 
     if (data.success && data.data) {
-      // Update local state
       userSubscriptions = [data.data];
       showAlert(data.message || 'Subscription refreshed successfully!', 'success');
       renderActiveSubscriptionSummary();
@@ -289,13 +273,10 @@ async function loadUserSubscriptions() {
   }
 
   isLoadingSubscriptions = true;
-
   const userToken = localStorage.getItem('token');
   log('loadUserSubscriptions - token:', userToken ? 'present' : 'missing');
 
   if (!userToken) {
-    log('No user token found, showing plans');
-    // Show plans section
     safeShow(getElement('plansSection'));
     safeHide(activeSubscriptionSection);
     isLoadingSubscriptions = false;
@@ -307,81 +288,26 @@ async function loadUserSubscriptions() {
     const data = await SubscriptionService.getCurrentSubscription(userToken);
     log('Subscription data:', data);
 
-    // Store subscription if it exists (active, expired, or canceled)
-    userSubscriptions = data?.data?._id
-      ? [data.data]
-      : [];
+    userSubscriptions = data?.data?._id ? [data.data] : [];
 
     log('userSubscriptions after load:', userSubscriptions);
     log('hasActiveSubscription:', hasActiveSubscription());
 
-    // Use hasActiveSubscription() — not just length — so canceled subs fall through to plans
     if (hasActiveSubscription()) {
       safeHide(getElement('plansSection'));
       safeShow(activeSubscriptionSection);
       renderActiveSubscriptionSummary();
     } else {
-      // No active sub (or sub is canceled/expired) — show plans so user can re-subscribe
       safeShow(getElement('plansSection'));
       safeHide(activeSubscriptionSection);
     }
-
-
   } catch (err) {
     console.error('Load subscriptions failed:', err);
-    log('Error loading subscriptions:', err.message);
-    // Default to showing plans
     safeShow(getElement('plansSection'));
     safeHide(activeSubscriptionSection);
   } finally {
     isLoadingSubscriptions = false;
   }
-}
-
-function toggleSubscriptionTabs(activeTab = 'summary') {
-  // Safe hide all tab contents
-  const summaryTab = getElement('subscriptionSummaryTab');
-  const detailsTab = getElement('subscriptionDetailsTab');
-  const invoicesTab = getElement('invoicesTab');
-  
-  if (summaryTab) summaryTab.classList.toggle('d-none', activeTab !== 'summary');
-  if (detailsTab) detailsTab.classList.toggle('d-none', activeTab !== 'details');
-  if (invoicesTab) invoicesTab.classList.toggle('d-none', activeTab !== 'invoices');
-  
-  // Update tab buttons safely
-  document.querySelectorAll('[data-tab]').forEach(btn => {
-    if (btn.dataset.tab === activeTab) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  
-  // Default: show summary if no sub
-  if (!userSubscriptions.length) {
-    if (plansContainer) plansContainer.classList.remove('d-none');
-    safeHide(userSubscriptionsSection);
-  } else {
-    if (plansContainer) plansContainer.classList.add('d-none');
-    safeShow(userSubscriptionsSection);
-  }
-}
-
-// Global parseDate helper - moved up for use in loadUserSubscriptions()
-function parseDate(value, fallback) {
-  if (!value) return fallback;
-  if (typeof value === 'string') {
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? fallback : d;
-  }
-  if (typeof value === 'number') {
-    const timestamp = value > 10000000000 ? value : value * 1000;
-    return new Date(timestamp);
-  }
-  if (value instanceof Date && !isNaN(value.getTime())) {
-    return value;
-  }
-  return fallback;
 }
 
 function renderActiveSubscriptionSummary() {
@@ -393,19 +319,18 @@ function renderActiveSubscriptionSummary() {
   const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
   const amount = formatCurrency(sub.amount || 0);
 
-  // Use backend-computed daysLeft (primary), fallback to local calc
-  const computedDaysLeft = Math.ceil((parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)) - new Date()) / 86400000);
+  const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
+  const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
+  const computedDaysLeft = Math.ceil((periodEnd - new Date()) / 86_400_000);
   const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : computedDaysLeft;
 
-  // Use status as the source of truth — daysLeft can be 0 in Stripe test mode
-  // even for a freshly purchased active subscription (billing periods are compressed)
-  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
   const isCanceled = sub.status === 'canceled';
   const isActiveStatus = ACTIVE_STATUSES.includes(sub.status);
-  const isExpired = !isActiveStatus && !isCanceled; // only expired if status says so
+  const isExpired = !isActiveStatus && !isCanceled;
   const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
-  const statusClass = isCanceled ? 'expired' : (isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active'));
-  const statusText = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
+
+  const statusClass = isCanceled || isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active');
+  const statusText  = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
 
   activeSubscriptionSummary.innerHTML = `
     <div class="row g-4 align-items-center">
@@ -413,17 +338,16 @@ function renderActiveSubscriptionSummary() {
         <div class="subscription-summary-card">
           <div class="subscription-header">
             <h3 class="subscription-title">${planName}</h3>
-            <span class="status-badge status-${statusClass.toLowerCase()}">${statusText}</span>
+            <span class="status-badge status-${statusClass}">${statusText}</span>
           </div>
-          
           <div class="subscription-details">
             <div class="detail-item">
               <span class="detail-label">Monthly Cost</span>
               <span class="detail-value">${amount}</span>
             </div>
-          <div class="detail-item">
+            <div class="detail-item">
               <span class="detail-label">Next Billing Date</span>
-              <span class="detail-value">${parseDate(sub.currentPeriodEnd, new Date(Date.now() + 30 * 86400000)).toLocaleDateString()}</span>
+              <span class="detail-value">${periodEnd.toLocaleDateString()}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Days Remaining</span>
@@ -437,67 +361,27 @@ function renderActiveSubscriptionSummary() {
         <div class="actions-card">
           <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
           <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2" title="Refresh subscription status">
-            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status & Update Plan
+            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status &amp; Update Plan
           </button>
           <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
-          ${!isCanceled && sub.stripeSubscriptionId ? `
-          <button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
-            <i class="bi bi-trash me-2"></i>Cancel Plan
-          </button>` : 
-          (!isCanceled ? 
-            `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
-              <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
-            </button>` : 
-            `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
-              <i class="bi bi-x-circle me-2"></i>Plan Canceled
-            </button>`
-          )}
+          ${!isCanceled && sub.stripeSubscriptionId
+            ? `<button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
+                <i class="bi bi-trash me-2"></i>Cancel Plan
+               </button>`
+            : (!isCanceled
+                ? `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
+                   </button>`
+                : `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+                    <i class="bi bi-x-circle me-2"></i>Plan Canceled
+                   </button>`)
+          }
         </div>
       </div>
     </div>
   `;
-}
-
-function renderUserSubscriptions() {
-  if (!userSubscriptionsContainer) return;
-
-  userSubscriptionsContainer.innerHTML = '';
-
-  userSubscriptions.forEach(sub => {
-    const planName = (sub.plan || '').replace('-', ' ').toUpperCase();
-
-    const start = parseDate(sub.currentPeriodStart, new Date());
-    const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));
-
-    const daysLeft = Math.ceil((end - new Date()) / 86400000);
-    // Use DB status as the source of truth — not local date math.
-    // currentPeriodEnd can be stale in Stripe test mode while status remains 'active'.
-    const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
-    const expired = !ACTIVE_STATUSES.includes(sub.status);
-
-    const card = document.createElement('div');
-    card.className = 'subscription-card';
-    card.innerHTML = `
-      <h5>${planName} Plan</h5>
-      <span class="subscription-status ${expired ? 'expired' : 'active'}">
-        ${expired ? 'EXPIRED' : 'ACTIVE'}
-      </span>
-      <div>Amount: ${formatCurrency(sub.amount)}/month</div>
-      <div>Next Billing: ${end.toLocaleDateString()}</div>
-      <div>Days Left: ${expired ? 'Expired' : daysLeft}</div>
-      <div class="subscription-actions">
-        <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')">Invoices</button>
-        ${expired 
-          ? `<button class="primary" onclick="renewSubscription()">Renew Subscription</button>` 
-          : `<button class="danger" onclick="openCancelModal('${sub.stripeSubscriptionId}')">Cancel</button>`
-        }
-      </div>
-    `;
-
-    userSubscriptionsContainer.appendChild(card);
-  });
 }
 
 /* --------------------------------------------------
@@ -510,9 +394,7 @@ async function selectPlan(planId) {
   const userToken = localStorage.getItem('token');
   if (!userToken) {
     showAlert('Please log in to subscribe', 'info');
-    setTimeout(() => {
-      window.location.href = `/login?redirect=/subscriptions`;
-    }, 1500);
+    setTimeout(() => { window.location.href = '/login?redirect=/subscriptions'; }, 1500);
     return;
   }
 
@@ -523,14 +405,11 @@ async function selectPlan(planId) {
     return;
   }
 
-  // Direct redirect to checkout - no modal
   showAlert('Redirecting to secure checkout...', 'info');
   try {
     const data = await SubscriptionService.createCheckout(userToken, planId);
     if (data?.data?.url) {
-      setTimeout(() => {
-        window.location.href = data.data.url;
-      }, 800);
+      setTimeout(() => { window.location.href = data.data.url; }, 800);
     } else {
       throw new Error('Invalid checkout response');
     }
@@ -540,15 +419,13 @@ async function selectPlan(planId) {
   }
 }
 
-
-
 /* --------------------------------------------------
    Manage Subscription (Cancel, Renew, Invoices)
 -------------------------------------------------- */
 
 function openCancelModal(subscriptionId) {
   currentSubscriptionId = subscriptionId;
-  
+
   if (!currentSubscriptionId) {
     showAlert('Subscription not found', 'error');
     return;
@@ -559,24 +436,17 @@ function openCancelModal(subscriptionId) {
 }
 
 function renewSubscription() {
-  // Allow user to select a new plan and redirect to payment
   showAlert('Redirecting you to select a new plan...', 'info');
-  
-  // Clear the current subscription from view and show plans
   userSubscriptions = [];
   renderPlans();
-  toggleViews();
-  
-  // Scroll to plans section
+
   const plansSection = document.querySelector('.plans-container-wrapper');
-  if (plansSection) {
-    plansSection.scrollIntoView({ behavior: 'smooth' });
-  }
+  if (plansSection) plansSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 async function downloadInvoices(subscriptionId) {
   const userToken = localStorage.getItem('token');
-  
+
   if (!userToken) {
     showAlert('Please log in to download invoices', 'error');
     return;
@@ -590,42 +460,39 @@ async function downloadInvoices(subscriptionId) {
     );
 
     const data = await handleApiResponse(res);
-    
-    if (!data.data || data.data.length === 0) {
+
+    if (!data.data?.length) {
       showAlert('No invoices found for this subscription', 'info');
       return;
     }
 
-    // Open a modal or alert showing invoices
-    let invoiceHtml = '<div class="invoices-scroll-container">';
-    invoiceHtml += '<h5 class="mb-3">Recent Invoices</h5>';
-    
+    let invoiceHtml = '<div class="invoices-scroll-container"><h5 class="mb-3">Recent Invoices</h5>';
+
     data.data.forEach(invoice => {
       const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
+      if (!pdfUrl) return;
+
       const date = new Date(invoice.created * 1000).toLocaleDateString();
-      const amount = formatCurrency(invoice.amount_paid / 100 || invoice.total / 100);
+      const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100);
       const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
-      
-      if (pdfUrl) {
-        invoiceHtml += `
-          <div class="mb-2 p-2 border-bottom">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
-                <div class="small text-muted">${date} - ${amount} - ${status}</div>
-              </div>
-              <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
-                Download
-              </a>
+
+      invoiceHtml += `
+        <div class="mb-2 p-2 border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
+              <div class="small text-muted">${date} - ${amount} - ${status}</div>
             </div>
+            <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+              Download
+            </a>
           </div>
-        `;
-      }
+        </div>
+      `;
     });
-    
+
     invoiceHtml += '</div>';
-    
-    // Create a simple alert with invoices
+
     const alertDiv = document.createElement('div');
     alertDiv.className = 'alert alert-info alert-dismissible fade show';
     alertDiv.innerHTML = `
@@ -658,16 +525,11 @@ async function handleConfirmCancel() {
     await SubscriptionService.cancelSubscription(userToken, currentSubscriptionId);
 
     showAlert(
-      atPeriodEnd
-        ? 'Subscription will end at period end'
-        : 'Subscription canceled',
+      atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled',
       'success'
     );
 
-    bootstrap.Modal.getInstance(
-      document.getElementById('cancelConfirmModal')
-    ).hide();
-
+    bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
     document.getElementById('atPeriodEndCheck').checked = false;
     setTimeout(loadUserSubscriptions, 1000);
   } catch (err) {
@@ -681,10 +543,10 @@ async function handleConfirmCancel() {
 -------------------------------------------------- */
 
 async function handleSuccessRedirect() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const success = urlParams.get('success');
-  const sessionId = urlParams.get('session_id');
-  const canceled = urlParams.get('canceled');
+  const params = new URLSearchParams(window.location.search);
+  const success = params.get('success');
+  const sessionId = params.get('session_id');
+  const canceled = params.get('canceled');
 
   if (canceled === 'true') {
     showAlert('Subscription purchase canceled.', 'warning');
@@ -696,18 +558,13 @@ async function handleSuccessRedirect() {
       log('Verifying checkout session:', sessionId);
       showAlert('Verifying subscription purchase...', 'info');
       const data = await SubscriptionService.verifySession(localStorage.getItem('token'), sessionId);
-      
+
       if (data.success && data.data) {
         showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
         userSubscriptions = [data.data];
         safeHide(getElement('plansSection'));
         safeShow(activeSubscriptionSection);
-  renderActiveSubscriptionSummary();
-  
-  // Add event listeners for dynamic buttons (CSP safe)
-  // Event listeners already handled by global delegation, no need for setTimeout duplicate
-  
-        // Clear URL params
+        renderActiveSubscriptionSummary();
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
         showAlert('Purchase completed but subscription not yet active. Refreshing status...', 'info');
@@ -724,27 +581,23 @@ async function handleSuccessRedirect() {
 document.addEventListener('DOMContentLoaded', async () => {
   log('Subscriptions page loaded');
 
-  // Get fresh token
   const userToken = localStorage.getItem('token');
-  log('Initial token check:', userToken ? 'present' : 'missing');
 
-  initializeStripe();
-  document
-    .getElementById('confirmCancelBtn')
+  document.getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
 
-  // Fix: move focus out of the modal BEFORE Bootstrap applies aria-hidden,
-  // which would otherwise trap focus on a hidden element (accessibility violation)
+  // Move focus out of the modal before Bootstrap applies aria-hidden (accessibility)
   document.getElementById('cancelConfirmModal')
     ?.addEventListener('hide.bs.modal', () => {
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     });
 
-  // Global event delegation for all dynamic subscription buttons
+  // Global event delegation for dynamically rendered subscription buttons
   document.addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]') || (e.target.id === 'manageSubscriptionBtn' ? e.target : e.target.closest('#manageSubscriptionBtn'));
+    const btn = e.target.closest('[data-action]') ||
+      (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')
+        ? (e.target.id === 'manageSubscriptionBtn' ? e.target : e.target.closest('#manageSubscriptionBtn'))
+        : null);
 
     if (!btn) return;
 
@@ -752,20 +605,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       showAlert('Syncing with Stripe...', 'info');
       const refreshed = await refreshSubscription();
-      if (!refreshed) {
-        await loadUserSubscriptions(); // Fallback
-      }
+      if (!refreshed) await loadUserSubscriptions();
       return;
     }
 
-    const action = btn.dataset.action;
-    const subId = btn.dataset.subId;
+    const { action, subId } = btn.dataset;
+    e.preventDefault();
 
     if (action === 'download-invoices') {
-      e.preventDefault();
       await downloadInvoices(subId);
     } else if (action === 'cancel-plan') {
-      e.preventDefault();
       openCancelModal(subId);
     }
   });
