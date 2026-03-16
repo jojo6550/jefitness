@@ -146,6 +146,17 @@ function parseDate(value, fallback) {
   return fallback;
 }
 
+/**
+ * Safely format timestamp/Date/string to Date object for display.
+ * Handles backend ms timestamps, raw Stripe seconds, strings. Prevents double-multiplication bug.
+ */
+function safeFormatDate(value) {
+  if (!value || value === 0) return new Date(); // Today fallback
+  const parsed = parseDate(value, null);
+  return parsed && !isNaN(parsed.getTime()) ? parsed : new Date();
+}
+
+
 /* --------------------------------------------------
    Plans
 -------------------------------------------------- */
@@ -354,7 +365,7 @@ const amount = formatCurrency((sub.amount || 0) / 100);
             </div>
             <div class="detail-item">
               <span class="detail-label">Days Remaining</span>
-              <span class="detail-value">${isExpired ? 'Expired' : (daysLeft > 0 ? daysLeft + ' days' : 'Active')}</span>
+<span class="detail-value">${daysLeft > 0 ? `${daysLeft} days` : (daysLeft === 0 ? 'Renews Today' : 'Expired')}</span>
             </div>
           </div>
         </div>
@@ -475,7 +486,7 @@ async function downloadInvoices(subscriptionId) {
       const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
       if (!pdfUrl) return;
 
-      const date = new Date(invoice.created * 1000).toLocaleDateString();
+      const date = safeFormatDate(invoice.created).toLocaleDateString();
       const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
       const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
 

@@ -82,16 +82,29 @@ function formatDate(date) {
   });
 }
 
+/**
+ * Safely format timestamp/Date/string to Date object for invoice display.
+ * Backend sends ms timestamps. Prevents double-multiplication bug.
+ */
+function safeFormatDate(value) {
+  if (!value || value === 0) return new Date();
+  if (typeof value === 'string') {
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  if (typeof value === 'number') {
+    // Backend sends ms, Stripe raw is seconds (but backend converts)
+    // Use Number() coercion - safe for valid timestamps
+    const ts = Number(value);
+    return !isNaN(ts) ? new Date(ts) : new Date();
+  }
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  return new Date();
+}
+
 function formatInvoiceDate(date) {
   if (!date) return '-';
-  // Handle both Date objects and timestamps (Stripe returns seconds, server may convert to Date)
-  let dateObj;
-  if (typeof date === 'number') {
-    // If it's a large number (seconds), convert to milliseconds
-    dateObj = date > 10000000000 ? new Date(date) : new Date(date * 1000);
-  } else {
-    dateObj = typeof date === 'string' ? new Date(date) : date;
-  }
+  const dateObj = safeFormatDate(date);
   if (isNaN(dateObj.getTime())) return '-';
   return dateObj.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -99,6 +112,7 @@ function formatInvoiceDate(date) {
     day: 'numeric'
   });
 }
+
 
 /* --------------------------------------------------
    API Functions
@@ -273,23 +287,13 @@ function renderSubscriptionDetails() {
   const now = new Date();
   
   // Helper function to parse date values (handles strings from JSON, Date objects, and timestamps)
+  /**
+   * Parse subscription dates (periodStart/End from DB).
+   * Uses safeFormatDate internally for consistency.
+   */
   function parseDate(value, fallback) {
-    if (!value) return fallback;
-    // If it's a string (ISO format from JSON), try to parse it
-    if (typeof value === 'string') {
-      const d = new Date(value);
-      return isNaN(d.getTime()) ? fallback : d;
-    }
-    // If it's a number (timestamp in seconds), convert to Date
-    if (typeof value === 'number') {
-      const timestamp = value > 10000000000 ? value : value * 1000;
-      return new Date(timestamp);
-    }
-    // If it's already a Date object
-    if (value instanceof Date && !isNaN(value.getTime())) {
-      return value;
-    }
-    return fallback;
+    const parsed = safeFormatDate(value);
+    return parsed && !isNaN(parsed.getTime()) ? parsed : fallback;
   }
   
   // Calculate fallback period end based on plan duration
@@ -320,11 +324,14 @@ function renderSubscriptionDetails() {
   
   // Days remaining
   const daysRemainingEl = document.getElementById('daysRemaining');
-  if (daysLeft <= 0) {
+  if (daysLeft > 0) {
+    daysRemainingEl.textContent = `${daysLeft} days`;
+  } else if (daysLeft === 0) {
+    daysRemainingEl.textContent = 'Renews Today';
+    daysRemainingEl.classList.add('text-warning', 'fw-bold');
+  } else {
     daysRemainingEl.textContent = 'Expired';
     daysRemainingEl.classList.add('text-danger');
-  } else {
-    daysRemainingEl.textContent = `${daysLeft} days`;
   }
 
   // Payment method - fetch actual details
