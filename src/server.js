@@ -23,7 +23,10 @@ const PORT = process.env.PORT;
 const app = express();
 
 // WEBHOOKS - MUST come BEFORE body parsers for raw body access
-app.use('/webhooks', require('./routes/webhooks'));
+// Mounted at both /webhooks/stripe (canonical) and /webhook (Stripe CLI default forward path)
+const webhookRouter = require('./routes/webhooks');
+app.use('/webhooks', webhookRouter);
+app.use('/webhook', webhookRouter);
 
 // Initialize in-memory cache service
 const cacheService = require('./services/cache');

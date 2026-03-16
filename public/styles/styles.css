@@ -304,7 +304,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 2.5rem;
 }
 
-/* --- Trainer Specific (Modernized) --- */
+/* --- Trainer Specific (Modernized) */
 .trainer-modern-card {
     background-color: var(--bg-card) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -417,6 +417,16 @@ h1, h2, h3, h4, h5, h6 {
 .max-w-120 { max-width: 120px; }
 .max-w-80 { max-width: 80px; }
 .hidden-state { display: none; }
+
+/* CSP Fix - High z-index for toast container */
+.toast-container {
+    z-index: 9999 !important;
+}
+
+/* OTP container toggle class */
+.otp-visible {
+    display: block !important;
+}
 
 /* Cookie Banner */
 .cookie-consent-banner {

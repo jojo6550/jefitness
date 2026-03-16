@@ -13,7 +13,6 @@ class ToastManager {
             this.container = document.createElement('div');
             this.container.id = 'toast-container';
             this.container.className = 'toast-container position-fixed top-0 end-0 p-3';
-            this.container.style.zIndex = '9999';
             document.body.appendChild(this.container);
         } else {
             this.container = document.getElementById('toast-container');

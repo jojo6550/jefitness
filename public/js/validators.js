@@ -102,7 +102,7 @@ const Validators = {
     }
     if (errorDiv) {
       errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
+      errorDiv.classList.remove('d-none');
     }
   },
 
@@ -112,7 +112,7 @@ const Validators = {
       input.classList.add('is-valid');
     }
     if (errorDiv) {
-      errorDiv.style.display = 'none';
+      errorDiv.classList.add('d-none');
     }
   }
 };

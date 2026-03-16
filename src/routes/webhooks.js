@@ -32,7 +32,8 @@ const webhookMiddleware =
     : express.raw({ type: 'application/json' });
 
 // ===== ROUTE =====
-router.post('/stripe', webhookMiddleware, async (req, res) => {
+// Handler extracted so it can be registered at both /stripe and / (for CLI compatibility)
+async function handleStripeWebhook(req, res) {
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -138,7 +139,11 @@ router.post('/stripe', webhookMiddleware, async (req, res) => {
     // The error is logged for investigation.
     res.status(200).json({ received: true, processed: false, error: error.message });
   }
-});
+}
+
+// Register at /stripe (original path) and / (for Stripe CLI forwarding to /webhook)
+router.post('/stripe', webhookMiddleware, handleStripeWebhook);
+router.post('/', webhookMiddleware, handleStripeWebhook);
 
 // ===== HELPERS =====
 

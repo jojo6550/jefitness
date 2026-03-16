@@ -311,8 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (response.ok) {
           // Hide signup form and show OTP verification form
-          signupForm.style.display = 'none';
-          document.getElementById('otp-container').style.display = 'block';
+          signupForm.classList.add('d-none');
+          document.getElementById('otp-container').classList.remove('d-none');
+          document.getElementById('otp-container').classList.add('otp-visible');
           // Store email in hidden input for OTP form
           document.getElementById('otpEmail').value = email;
           // Store signup data in sessionStorage for resend functionality
@@ -513,11 +514,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (messageDiv) {
       messageDiv.textContent = msg;
       messageDiv.className = `alert alert-${type === 'error' ? 'danger' : 'info'} mt-3 text-center`;
-      messageDiv.style.display = 'block';
+      messageDiv.classList.remove('d-none');
       // Auto-hide success messages after 5 seconds
       if (type === 'success') {
         setTimeout(() => {
-          messageDiv.style.display = 'none';
+          messageDiv.classList.add('d-none');
         }, 5000);
       }
     } else {
