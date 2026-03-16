@@ -74,12 +74,21 @@ async function handleApiResponse(response) {
   if (!contentType.includes('application/json')) {
     const text = await response.text();
     console.error('Non-JSON response:', text.slice(0, 500));
-    throw new Error(`Server returned non-JSON (${response.status})`);
+    throw new Error(`Server error (${response.status}). Please try again.`);
   }
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.error?.message || `HTTP ${response.status}`);
+    // Enhanced error messages for common cases
+    let errorMsg = data?.error?.message || `HTTP ${response.status}`;
+    if (response.status === 400 && errorMsg.includes('price')) {
+      errorMsg = 'Subscription plans temporarily unavailable. Please contact support.';
+    } else if (response.status === 401) {
+      errorMsg = 'Session expired. Please log in again.';
+    } else if (response.status === 500) {
+      errorMsg = 'Server error. Please try again in a moment.';
+    }
+    throw new Error(errorMsg);
   }
 
   return data;
@@ -511,20 +520,31 @@ async function handlePaymentSubmit(e) {
   e.preventDefault();
 
   if (!selectedPlanId || !cardElement) {
-    showAlert('Payment not ready', 'error');
+    showAlert('Payment system not ready. Please refresh the page.', 'error');
     return;
   }
 
   const userToken = localStorage.getItem('token');
   if (!userToken) {
-    showAlert('Please log in to continue', 'error');
+    showAlert('Please log in to continue payment', 'error');
     return;
   }
 
   const name = document.getElementById('cardholderName').value.trim();
-
   if (!name) {
-    showAlert('Please fill in all fields', 'error');
+    showAlert('Please enter your full name', 'error');
+    return;
+  }
+
+  // Validate card
+  const { error, paymentMethod } = await stripe.createPaymentMethod({
+    type: 'card',
+    card: cardElement,
+    billing_details: { name }
+  });
+
+  if (error) {
+    showAlert(error.message, 'error');
     return;
   }
 
@@ -535,18 +555,29 @@ async function handlePaymentSubmit(e) {
   btn.disabled = true;
   text.classList.add('d-none');
   spinner.classList.remove('d-none');
+  showAlert('Creating secure checkout session...', 'info');
 
   try {
     const data = await SubscriptionService.createCheckout(userToken, selectedPlanId);
     
     if (data?.data?.url) {
-      window.location.href = data.data.url;
+      showAlert('Redirecting to secure payment...', 'success');
+      setTimeout(() => {
+        window.location.href = data.data.url;
+      }, 800);
     } else {
-      throw new Error('Failed to create checkout session');
+      throw new Error('Invalid checkout response from server');
     }
   } catch (err) {
-    console.error('Payment failed:', err);
-    showAlert(err.message, 'error');
+    console.error('Checkout failed:', err);
+    let userMsg = err.message;
+    // Specific handling for common backend errors
+    if (userMsg.includes('price') || userMsg.includes('subscription')) {
+      userMsg = 'Subscription temporarily unavailable. Plans are being updated. Please try again later or contact support.';
+    } else if (userMsg.includes('token')) {
+      userMsg = 'Authentication failed. Please refresh and log in again.';
+    }
+    showAlert(userMsg, 'error');
   } finally {
     btn.disabled = false;
     text.classList.remove('d-none');
