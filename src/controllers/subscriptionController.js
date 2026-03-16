@@ -132,8 +132,9 @@ const subscriptionController = {
    */
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
+    // Frontend sends MongoDB _id for cancel — query by _id (stripeSubscriptionId used for invoices only)
     const subscription = await Subscription.findOne({ 
-      stripeSubscriptionId: subscriptionId, 
+      _id: subscriptionId, 
       userId: req.user.id 
     });
 

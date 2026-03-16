@@ -684,12 +684,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     .getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
 
-  // Add click handler for manage subscription button / refresh
+  // Global event delegation for all dynamic subscription buttons
   document.addEventListener('click', async (e) => {
-    if (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')) {
+    const btn = e.target.closest('[data-action]') || (e.target.id === 'manageSubscriptionBtn' ? e.target : e.target.closest('#manageSubscriptionBtn'));
+
+    if (!btn) return;
+
+    if (btn.id === 'manageSubscriptionBtn') {
       e.preventDefault();
       showAlert('Refreshing subscription status...', 'info');
       await loadUserSubscriptions();
+      return;
+    }
+
+    const action = btn.dataset.action;
+    const subId = btn.dataset.subId;
+
+    if (action === 'download-invoices') {
+      e.preventDefault();
+      await downloadInvoices(subId);
+    } else if (action === 'cancel-plan') {
+      e.preventDefault();
+      openCancelModal(subId);
     }
   });
 
