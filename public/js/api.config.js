@@ -11,9 +11,16 @@ class ApiConfig {
     switch(env) {
       case 'ANDROID_EMULATOR':
         return 'http://10.0.2.2:10000';
-      case 'IOS_SIMULATOR':
+      case 'IOS_SIMULATOR': 
       case 'BROWSER':
-        return window.location.origin;
+        // Fix for VS Code Live Server HTTPS: force HTTP backend for local dev
+        const override = localStorage.getItem('api_force_local');
+        if (override === 'http://localhost:10000') {
+          console.log('API_BASE overridden to local HTTP:', override);
+          return override;
+        }
+        console.log('API_BASE set to local backend:', 'http://localhost:10000');
+        return 'http://localhost:10000';  // Fixed HTTP backend
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
@@ -86,7 +93,9 @@ class ApiConfig {
   static getDebugInfo() {
     return {
       environment: this.getEnvironment(),
+      browser_origin: window.location.origin,
       API_BASE: this.getAPI_BASE(),
+      using_local_override: !!localStorage.getItem('api_force_local'),
       platform: window.Capacitor?.getPlatform?.() || 'web',
       hostname: window.location.hostname,
       isNativePlatform: window.Capacitor?.isNativePlatform?.(),

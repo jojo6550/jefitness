@@ -2,6 +2,14 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+// Fallback: Ensure HTTP for local backend if HTTPS localhost detected
+if (window.API_BASE?.startsWith('https://localhost')) {
+  console.warn('SSL Fix: Converting HTTPS localhost → HTTP backend');
+  window.API_BASE = window.API_BASE.replace(/^https:/, 'http:');
+}
+
+console.log('Appointments - Resolved API_BASE:', window.API_BASE, window.ApiConfig?.getDebugInfo?.());
+
 // ====== State ======
 let currentViewAppointmentId = null;
 let currentEditAppointmentId = null;
