@@ -138,7 +138,7 @@ const subscriptionController = {
           }
         }
       } catch (proactiveErr) {
-        console.error('[verifyCheckout] Proactive upsert failed:', proactiveErr.message);
+        logger.error('Proactive subscription upsert failed', { error: proactiveErr.message });
       }
     }
 
@@ -178,8 +178,8 @@ const subscriptionController = {
           msg.includes('resource_missing');
 
         if (!alreadyGone) {
-          // Non-fatal — log and continue so the DB record is still updated
-          console.error('[CANCEL] Stripe cancel error (non-fatal):', stripeErr.message);
+        // Non-fatal — log and continue so the DB record is still updated
+          logger.error('Stripe cancel error (non-fatal)', { error: stripeErr.message });
         }
       }
     }
@@ -200,7 +200,7 @@ const subscriptionController = {
     try {
       await User.findByIdAndUpdate(req.user.id, { $set: { subscriptionStatus: 'canceled' } });
     } catch (userUpdateError) {
-      console.error('[CANCEL] Failed to update user record:', userUpdateError.message);
+      logger.error('Failed to update user record after cancel', { error: userUpdateError.message });
     }
 
     res.json({ success: true, message: 'Subscription canceled successfully' });
@@ -231,7 +231,7 @@ const subscriptionController = {
         if (subs.data.length > 0) stripeSub = subs.data[0];
       }
     } catch (err) {
-      console.warn(`[REFRESH] Stripe fetch failed for user ${req.user.id}:`, err.message);
+      logger.warn('Stripe subscription fetch failed', { userId: req.user.id, error: err.message });
     }
 
     if (!stripeSub) {

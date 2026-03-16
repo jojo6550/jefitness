@@ -62,7 +62,8 @@ class MonitoringService {
   setupSentry() {
     if (process.env.SENTRY_DSN) {
       const Sentry = require('@sentry/node');
-      const { nodeProfilingIntegration } = require('@sentry/profiling-node');
+const logger = require('./logger').logger;
+const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 
       Sentry.init({
         dsn: process.env.SENTRY_DSN,
@@ -75,7 +76,7 @@ class MonitoringService {
         profilesSampleRate: 1.0,
       });
 
-      this.logger.info('Sentry error monitoring initialized');
+    logger.info('Sentry error monitoring initialized');
     }
   }
 

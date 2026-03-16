@@ -112,12 +112,12 @@ SubscriptionSchema.pre('save', async function(next) {
   try {
     // Check if status is being changed to 'canceled' AND stripeSubscriptionId exists
     if (this.isModified('status') && this.status === 'canceled' && this.stripeSubscriptionId) {
-      console.log(`🔄 Canceling subscription ${this.stripeSubscriptionId} on Stripe due to DB status change`);
+      logger.info(`Canceling subscription ${this.stripeSubscriptionId} on Stripe due to DB status change`);
 
       try {
         // Cancel immediately (atPeriodEnd = false) when DB is set to canceled
         await cancelSubscription(this.stripeSubscriptionId, false);
-        console.log(`✅ Successfully canceled subscription ${this.stripeSubscriptionId} on Stripe`);
+        logger.info(`Successfully canceled subscription ${this.stripeSubscriptionId} on Stripe`);
       } catch (stripeError) {
         // If already canceled or missing, that's fine - just log it
         const msg = stripeError.message || '';
@@ -127,17 +127,17 @@ SubscriptionSchema.pre('save', async function(next) {
           stripeError.code === 'resource_missing' ||
           stripeError.code === 'subscription_already_canceled'
         ) {
-          console.log(`ℹ️ Subscription ${this.stripeSubscriptionId} already handled on Stripe - continuing`);
+          logger.info(`Subscription ${this.stripeSubscriptionId} already handled on Stripe - continuing`);
         } else {
-          console.error(`❌ Non-fatal Stripe cancel error for ${this.stripeSubscriptionId}:`, stripeError.message);
+          logger.error(`Non-fatal Stripe cancel error for ${this.stripeSubscriptionId}`, { error: stripeError.message });
         }
       }
     } else if (this.isModified('status') && this.status === 'canceled') {
-      console.log(`ℹ️ Skipping Stripe cancel - no stripeSubscriptionId for ${this._id}`);
+      logger.info(`Skipping Stripe cancel - no stripeSubscriptionId for ${this._id}`);
     }
     next();
   } catch (error) {
-    console.error('Error in subscription pre-save hook:', error);
+    logger.error('Error in subscription pre-save hook', { error: error.message });
     next(error);
   }
 });

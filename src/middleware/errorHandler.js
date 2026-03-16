@@ -3,7 +3,7 @@
  * Comprehensive error handling for all application errors
  */
 
-const { logError, logSecurityEvent } = require('../services/logger');
+const { logger, logSecurityEvent } = require('../services/logger');
 
 // Custom error class for application errors
 class AppError extends Error {
@@ -103,12 +103,12 @@ const errorHandler = (err, req, res, next) => {
   const safeLogError = () => {
     try {
       if (statusCode >= 500) {
-        console.error(`[ERROR] ${err.message}`, { ...logContext, stack: err.stack });
+        logger.error(err.message, { ...logContext, stack: err.stack });
       } else {
-        console.warn(`[WARN] ${err.message}`, logContext);
+        logger.warn(err.message, logContext);
       }
     } catch (loggingError) {
-      console.error('Error logging failed:', loggingError.message);
+      logger.error('Error logging failed', { error: loggingError.message });
     }
   };
 
@@ -121,7 +121,7 @@ const errorHandler = (err, req, res, next) => {
         { message, ...context },
         req
       ).catch(securityLogError => {
-        console.error('Security event logging failed:', securityLogError.message);
+        logger.error('Security event logging failed', { error: securityLogError.message });
       });
     }
   };

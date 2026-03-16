@@ -3,7 +3,7 @@
  * Logs all incoming requests with enhanced security event tracking
  */
 
-const { logSecurityEvent } = require('../services/logger');
+const { logger, logSecurityEvent } = require('../services/logger');
 
 /**
  * Generate unique request ID
@@ -27,7 +27,11 @@ const requestLogger = (req, res, next) => {
   const isSensitive = sensitivePaths.some(path => req.path.includes(path));
 
   if (isSensitive) {
-    console.log(`[${req.id}] ${req.method} ${req.path} - User: ${req.user?.id || 'anonymous'} - IP: ${req.ip}`);
+    logger.http(`${req.method} ${req.path}`, {
+      requestId: req.id,
+      userId: req.user?.id || 'anonymous',
+      ip: req.ip
+    });
   }
 
   // Override res.json to log responses
@@ -37,8 +41,21 @@ const requestLogger = (req, res, next) => {
     
     // Log slow requests (> 1s)
     if (duration > 1000) {
-      console.warn(`[${req.id}] Slow request: ${req.method} ${req.path} took ${duration}ms`);
+      logger.warn('Slow request detected', {
+        requestId: req.id,
+        method: req.method,
+        path: req.path,
+        duration: `${duration}ms`
+      });
     }
+
+    logger.http('HTTP response', {
+      requestId: req.id,
+      method: req.method,
+      path: req.path,
+      duration: duration,
+      statusCode: res.statusCode
+    });
 
     // Log failed authentication/authorization attempts
     if (res.statusCode === 401 || res.statusCode === 403) {
@@ -51,7 +68,7 @@ const requestLogger = (req, res, next) => {
           message: data?.error?.message || 'Access attempt failed'
         },
         req
-      ).catch(err => console.error('Failed to log security event:', err.message));
+      ).catch(err => logger.error('Failed to log security event', { error: err.message }));
     }
 
     // Add request ID to response headers

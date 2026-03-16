@@ -257,6 +257,54 @@ const authController = {
 async function sendOTPEmail(email, otp) {
   const mailjet = getMailjetClient();
   if (!mailjet) {
+    logger.warn('Mailjet not configured. Cannot send OTP email.');
+    return; // Don't fail signup, log warning
+  }
+
+  const request = await mailjet
+    .post("send", { 'version': 'v3.1' })
+    .request({
+      "Messages": [{
+        "From": {
+          "Email": "no-reply@jefitness.com",
+          "Name": "JE Fitness"
+        },
+        "To": [{
+          "Email": email,
+          "Name": `${email}`
+        }],
+        "Subject": "Your JE Fitness Verification Code",
+        "HTMLPart": `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to JE Fitness!</h2>
+            <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+            <p>This code expires in 10 minutes.</p>
+            <hr>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+        `
+      }]
+    });
+
+  if (request.response?.status !== 200) {
+    logger.error('Mailjet OTP send failed', {
+      status: request.response?.status,
+      body: request.body,
+      error: request.ErrorMessage
+    });
+  } else {
+    const messageId = request.body?.Messages?.[0]?.['MessageID'];
+    logger.info('OTP email sent successfully', {
+      messageId,
+      to: email,
+      otp: otp.substring(0, 2) + '***'
+    });
+  }
+}
+
+module.exports = authController;
+  const mailjet = getMailjetClient();
+  if (!mailjet) {
     console.warn('Mailjet not configured. Cannot send OTP email.');
     return; // Don't fail signup, log warning
   }

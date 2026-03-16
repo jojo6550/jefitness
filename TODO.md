@@ -1,31 +1,39 @@
-# Fix SSL Protocol Errors in Appointments.js
+# Structured Logging Implementation TODO
 
-## Status: ✅ Complete
+## Approved Plan Summary
+- Central Winston logger with rotation in `src/services/logger.js`
+- Replace all console.* across backend/frontend/scripts
+- Structured JSON logs with full context
+- Winston deps + daily rotation
+- Backend/DB integration for audits
 
-### Step 1: ✅ Create TODO.md (Complete)
-### Step 2: ✅ Update public/js/api.config.js with HTTP fix for local dev (Complete) 
-  - Forced 'http://localhost:10000' for BROWSER env
-  - Added localStorage override 'api_force_local'
-  - Added debug logging
+Status: [4/14] ✅✅✅✅⭕⭕⭕⭕⭕⭕⭕⭕⭕⭕
 
-### Step 3: ✅ Update public/js/appointments.js with fallback logging (Complete)
-  - Added HTTPS→HTTP replacement fallback
-  - Added API_BASE debug console.log
+## Breakdown Steps
 
-### Step 4: ✅ Test the fix
-  **Test Instructions**:
-  1. Reload appointments page 
-  2. Check console for:
-     - `API_BASE set to local backend: http://localhost:10000`
-     - `Appointments - Resolved API_BASE: http://localhost:10000`
-     - No `net::ERR_SSL_PROTOCOL_ERROR`
-  3. Verify trainers load & appointments fetch succeeds
-  4. If issues persist, run `localStorage.setItem('api_force_local', 'http://localhost:10000')` in console
+### Phase 1: Core Infrastructure [4/4] ✅✅✅✅
+- [ ] 1. Install deps: `npm i winston-daily-rotate-file`
+- [ ] 2. Create central logger.js with Winston + rotation
+- [    ] 3. Init logger in server.js (early)
+- [ ] 4. Create logs/ dir + test rotation
 
-### Changes Summary
-| File | Changes |
-|------|---------|
-| `public/js/api.config.js` | Fixed BROWSER env → HTTP localhost:10000, debug logging |
-| `public/js/appointments.js` | HTTPS fallback + API_BASE logging |
+### Phase 2: Backend Core [4/4] ✅✅✅✅
+- [ ] 5. Update middleware: requestLogger.js, errorHandler.js
+- [ ] 6. Fix server.js console.logs
+- [ ] 7. Controllers: authController.js, subscriptionController.js
+- [ ] 8. Models: User.js, Subscription.js hooks
 
-**Ready for testing!** Reload page and check console. Task complete once verified.
+### Phase 3: Full Backend Propagation [0/3]
+- [ ] 9. Services: monitoring.js, compliance.js (already partial)
+- [ ] 10. All other controllers/routes using console
+- [ ] 11. Scripts: seedPrograms.js sample + CLI logger
+
+### Phase 4: Frontend & Testing [0/3]
+- [ ] 12. public/js/ structured console logger (app.js)
+- [ ] 13. Add /api/v1/logs/stats endpoint
+- [ ] 14. Test: files/DB/console, rotation, high load
+
+**Next:** Phase 1 Step 1 → Install deps
+
+**Instructions:** Update this file as steps complete (e.g., [x]).
+

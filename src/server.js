@@ -42,6 +42,9 @@ app.set('trust proxy', 1);
 // Import security configurations
 const { nonceMiddleware, helmetOptions, optionsHandler } = require('./config/security');
 
+// Import logger FIRST (early init)
+const logger = require('./services/logger').logger;
+
 // Import middleware
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
@@ -55,12 +58,8 @@ app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 app.use(optionsHandler);
 
-// Request logging — use morgan in development for colorized output, custom logger in production
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-} else {
-  app.use(requestLogger);
-}
+// Request logging — Winston requestLogger (enhanced)
+app.use(requestLogger);
 
 
 // Body parsing
@@ -103,24 +102,29 @@ const connectDB = async () => {
       maxPoolSize: 10,
       family: 4
     });
-    console.log('MongoDB Connected successfully');
+    logger.info('MongoDB connected successfully');
 
     mongoose.set('debug', (collectionName, method, query, doc) => {
       const start = Date.now();
       setImmediate(() => {
         const duration = Date.now() - start;
         if (duration > 100) {
-          console.log(`Slow Query: ${collectionName}.${method} took ${duration}ms - Query: ${JSON.stringify(query)}`);
+          logger.warn('Slow MongoDB query detected', { 
+            collectionName, 
+            method, 
+            duration: `${duration}ms`, 
+            query: JSON.stringify(query) 
+          });
         }
       });
     });
 
-    mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
-    mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
-    mongoose.connection.on('error', (err) => console.error('MongoDB connection error:', err));
+    mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
+    mongoose.connection.on('reconnected', () => logger.info('MongoDB reconnected'));
+    mongoose.connection.on('error', (err) => logger.error('MongoDB connection error', { error: err.message, stack: err.stack }));
 
   } catch (err) {
-    console.error(`Error: ${JSON.stringify(err)} | Context: MongoDB Connection`);
+    logger.error('MongoDB connection failed', { error: err.message, stack: err.stack });
     process.exit(1);
   }
 };
@@ -381,15 +385,15 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
       });
 
       if (result.deletedCount > 0) {
-        console.log(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
+        logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
       }
       break;
     } catch (err) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(`Cleanup job failed after ${attempt} attempts: ${err.stack}`);
+        logger.error(`Cleanup job failed after ${attempt} attempts`, { error: err.stack });
       } else {
-        console.warn(`Cleanup attempt ${attempt} failed, retrying...`);
+        logger.warn(`Cleanup attempt ${attempt} failed, retrying...`);
         await new Promise(resolve => setTimeout(resolve, attempt * 2000));
       }
     }
