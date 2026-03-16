@@ -336,6 +336,58 @@ const subscriptionController = {
       data: { ...sub.toObject(), daysLeft: Math.max(0, daysLeft) },
       message: 'Subscription refreshed from Stripe'
     });
+  }),
+
+  /**
+   * Get invoices for a user's subscription
+   * Verifies user owns subscription before fetching from Stripe
+   */
+  getSubscriptionInvoices: asyncHandler(async (req, res) => {
+    const { subscriptionId } = req.params; // Stripe subscription ID (sub_xxx)
+    const Subscription = require('../models/Subscription');
+    const stripeService = require('../services/stripe');
+
+    // Verify user owns this subscription
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: subscriptionId,
+      userId: req.user.id
+    });
+
+    if (!subscription) {
+      const msg = 'Subscription not found or access denied';
+      console.warn(`[INVOICES] ${msg} | user: ${req.user.id} | sub: ${subscriptionId}`);
+      throw new NotFoundError(msg);
+    }
+
+    try {
+      const invoices = await stripeService.getSubscriptionInvoices(subscription.stripeSubscriptionId);
+      
+      // Transform for frontend (ensure required fields)
+      const formattedInvoices = invoices.map(invoice => ({
+        id: invoice.id,
+        number: invoice.number || invoice.id.slice(-8),
+        created: invoice.created * 1000, // Convert Stripe seconds to JS ms
+        status: invoice.status,
+        amount_paid: invoice.amount_paid || 0,
+        total: invoice.amount_due || 0,
+        currency: invoice.currency,
+        invoice_pdf: invoice.invoice_pdf,
+        hosted_invoice_url: invoice.hosted_invoice_url,
+        // Fallback for older invoices or test mode
+        pdf_url: invoice.invoice_pdf || invoice.hosted_invoice_url
+      })).sort((a, b) => b.created - a.created); // Newest first
+
+      console.log(`[INVOICES] ✅ Fetched ${formattedInvoices.length} invoices for sub ${subscriptionId} (user ${req.user.id})`);
+      
+      res.json({
+        success: true,
+        data: formattedInvoices
+      });
+    } catch (stripeError) {
+      console.error(`[INVOICES] Stripe error for sub ${subscriptionId}:`, stripeError.message);
+      // Graceful fallback - frontend handles empty array
+      res.json({ success: true, data: [], message: 'No invoices available' });
+    }
   })
 };
 

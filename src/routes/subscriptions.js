@@ -79,4 +79,22 @@ router.post('/cancel/:subscriptionId', auth, subscriptionController.cancel);
  */
 router.get('/refresh', auth, subscriptionController.refresh);
 
+/**
+ * @swagger
+ * /api/v1/subscriptions/{subscriptionId}/invoices:
+ *   get:
+ *     summary: Get invoices for a subscription
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: subscriptionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stripe subscription ID
+ */
+router.get('/:subscriptionId/invoices', auth, subscriptionController.getSubscriptionInvoices);
+
 module.exports = router;
