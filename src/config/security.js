@@ -25,12 +25,14 @@ const securityConfig = {
           "https://js.stripe.com"
         ],
         scriptSrcAttr: [(req, res) => `'nonce-${res.locals.cspNonce}'`],
-        styleSrc: [
+styleSrc: [
           "'self'",
+          "'unsafe-hashes'",
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
+          "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='"
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
         connectSrc: [

@@ -26,7 +26,7 @@ async function authFetch(url, options = {}) {
 // ====== Subscription Check ======
 async function checkSubscriptionStatus() {
     try {
-        const data = await authFetch(`${window.API_BASE}/api/v1/subscriptions/user/current`);
+        const data = await authFetch(`${window.API_BASE}/api/v1/subscriptions/current`);
         const sub = data.data;
 
         if (!sub) {

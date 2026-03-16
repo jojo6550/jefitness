@@ -1,12 +1,9 @@
-# OTP Email Delivery Fix
-Status: 🚀 In Progress
+# Task: Fix CSP Violation and 404 Errors on meet-your-trainer.html
 
-## Steps:
-- [x] 1. Create this TODO.md
-- [x] 2. Fix logging in authController.js (correct status check + MessageID log)
-- [x] 3. Add Mailjet message status endpoint for tracking
-- [x] 4. Fix TypeScript syntax error (removed duplicate module.exports)
-- [ ] 5. Test: Restart server, signup new email, check logs/spam
-- [ ] 6. Check DB: `node scripts/get-users.js` for pending users
-- [ ] 7. Document domain auth (SPF/DKIM for jefitness.com)
-- [ ] 8. Complete: attempt_completion
+## Steps
+- [x] Step 1: Update src/config/security.js to add CSP style-src hash
+- [x] Step 2: Fix endpoint in public/js/appointments.js 
+- [ ] Step 3: Restart server and verify fixes
+- [ ] Step 4: Test page and mark complete
+
+**Status:** Server Restarted - Ready for Testing
