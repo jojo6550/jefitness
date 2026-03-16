@@ -235,12 +235,13 @@ function renderPlans() {
 -------------------------------------------------- */
 
 function hasActiveSubscription(planId = null) {
-  return userSubscriptions.some(sub => {
-    const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : 0;
-    return (sub.status === 'active' || sub.status === 'past_due' || sub.status === 'paused' || sub.status === 'incomplete' || sub.status === 'trialing') 
-           && daysLeft > 0 
-           && (!planId || sub.plan === planId);
-  });
+  // DB status is the source of truth — don't require daysLeft > 0
+  // (test subscriptions can have stale dates while status remains 'active')
+  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+  return userSubscriptions.some(sub =>
+    ACTIVE_STATUSES.includes(sub.status) &&
+    (!planId || sub.plan === planId)
+  );
 }
 
 async function loadUserSubscriptions() {

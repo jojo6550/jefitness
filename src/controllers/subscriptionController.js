@@ -142,9 +142,10 @@ const subscriptionController = {
       throw new NotFoundError('Subscription not found');
     }
 
-    await stripeService.cancelSubscription(subscription.stripeSubscriptionId);
-    
+    // Set status — the Subscription pre-save hook will cancel on Stripe automatically
+    // (avoids a double-cancel race where explicit call + hook both hit Stripe)
     subscription.status = 'canceled';
+    subscription.canceledAt = new Date();
     await subscription.save();
 
     res.json({ success: true, message: 'Subscription canceled' });

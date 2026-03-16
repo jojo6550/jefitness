@@ -347,9 +347,18 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       return canceledSubscription;
     }
   } catch (error) {
-    // Handle specific Stripe errors
-    if (error.code === 'resource_missing' || error.message.includes('No such subscription')) {
-      throw new Error('Subscription is already canceled or does not exist');
+    // Treat all "already gone" scenarios as success — cancelSubscription must be idempotent
+    const msg = error.message || '';
+    if (
+      error.code === 'resource_missing' ||
+      error.code === 'subscription_already_canceled' ||
+      msg.includes('No such subscription') ||
+      msg.includes('already canceled') ||
+      msg.includes('already been canceled') ||
+      msg.includes('Cannot cancel')
+    ) {
+      console.log(`ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`);
+      return null;
     }
     throw new Error(`Failed to cancel subscription: ${error.message}`);
   }
