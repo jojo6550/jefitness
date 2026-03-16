@@ -133,7 +133,7 @@ const subscriptionController = {
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
     const subscription = await Subscription.findOne({ 
-      _id: subscriptionId, 
+      stripeSubscriptionId: subscriptionId, 
       userId: req.user.id 
     });
 

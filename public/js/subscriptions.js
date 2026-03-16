@@ -33,8 +33,7 @@ const alertContainer = getElement('alertContainer');
 const plansContainer = getElement('plansContainer');
 const plansLoading = getElement('plansLoading');
 
-const paymentForm = getElement('paymentForm');
-const cardErrors = getElement('cardErrors');
+
 
 const activeSubscriptionSection = getElement('activeSubscriptionSection');
 const activeSubscriptionSummary = getElement('activeSubscriptionSummary');
@@ -141,6 +140,7 @@ function formatCurrency(amount) {
 
 function initializeStripe() {
   // Stripe Elements no longer needed for direct checkout
+  // Note: Live mode requires HTTPS - see https://docs.stripe.com/js
   log('Stripe initialized for session redirect (no Elements needed)');
 }
 
@@ -394,10 +394,10 @@ function renderActiveSubscriptionSummary() {
           <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2" title="Refresh subscription status">
             <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status & Update Plan
           </button>
-          <button onclick="downloadInvoices('${sub.stripeSubscriptionId}')" class="btn btn-outline-primary w-100 mb-2 btn-sm">
+          <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
-          <button onclick="openCancelModal('${sub.stripeSubscriptionId}')" class="btn btn-outline-danger w-100 btn-sm">
+          <button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
             <i class="bi bi-trash me-2"></i>Cancel Plan
           </button>
         </div>
@@ -644,7 +644,20 @@ async function handleSuccessRedirect() {
         userSubscriptions = [data.data];
         safeHide(getElement('plansSection'));
         safeShow(activeSubscriptionSection);
-        renderActiveSubscriptionSummary();
+  renderActiveSubscriptionSummary();
+  
+  // Add event listeners for dynamic buttons (CSP safe)
+  setTimeout(() => {
+    document.querySelector('[data-action="download-invoices"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadInvoices(e.currentTarget.dataset.subId);
+    });
+    document.querySelector('[data-action="cancel-plan"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCancelModal(e.currentTarget.dataset.subId);
+    });
+  }, 100);
+  
         // Clear URL params
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
