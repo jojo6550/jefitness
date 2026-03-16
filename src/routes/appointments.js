@@ -392,9 +392,9 @@ router.put('/:id', allowOnlyFields(['trainerId', 'date', 'time', 'status', 'note
 
         // Update fields
         if (trainerId) {
-            // Validate trainer exists and is admin
+            // Validate trainer exists and has the trainer role
             const trainer = await User.findById(trainerId);
-            if (!trainer || trainer.role !== 'admin') {
+            if (!trainer || trainer.role !== 'trainer') {
                 return res.status(400).json({ msg: 'Invalid trainer' });
             }
             appointment.trainerId = trainerId;

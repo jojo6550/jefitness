@@ -28,11 +28,16 @@ async function requireActiveSubscription(req, res, next) {
             });
         }
 
-        // Query Subscription collection directly — source of truth mirrored from Stripe via webhooks
+        // Query Subscription collection directly — source of truth mirrored from Stripe via webhooks.
+        // Allow null currentPeriodEnd (Stripe test mode / manual subscriptions with no expiry date).
+        const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused'];
         const subscription = await Subscription.findOne({
             userId: req.user.id,
-            status: 'active',
-            currentPeriodEnd: { $gte: new Date() }
+            status: { $in: ACTIVE_STATUSES },
+            $or: [
+                { currentPeriodEnd: null },
+                { currentPeriodEnd: { $gte: new Date() } }
+            ]
         }).sort({ currentPeriodEnd: -1 });
 
         if (!subscription) {

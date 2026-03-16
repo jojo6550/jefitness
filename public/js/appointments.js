@@ -40,7 +40,10 @@ async function authFetch(url, options = {}) {
             if (!retry.ok) throw new Error(`HTTP ${retry.status} - ${retry.statusText}`);
             return retry.json();
         }
-        throw new Error(body.error || `HTTP 403 - Forbidden`);
+        const errMsg = typeof body.error === 'string'
+            ? body.error
+            : (body.error?.message || body.message || `HTTP 403 - Forbidden`);
+        throw new Error(errMsg);
     }
 
     if (!res.ok) throw new Error(`HTTP ${res.status} - ${res.statusText}`);
@@ -149,9 +152,9 @@ function displayAppointments(appointments) {
         tbody.appendChild(row);
     });
 
-    tbody.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', e => viewAppointment(e.target.dataset.id)));
-    tbody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => editAppointment(e.target.dataset.id)));
-    tbody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => deleteAppointment(e.target.dataset.id)));
+    tbody.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => viewAppointment(btn.dataset.id)));
+    tbody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => editAppointment(btn.dataset.id)));
+    tbody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deleteAppointment(btn.dataset.id)));
 }
 
 // ====== Show Error ======
@@ -169,7 +172,7 @@ function showError(message) {
 async function viewAppointment(id) {
     try {
         currentViewAppointmentId = id;
-        const appointment = await authFetch(`${window.API_BASE}/api/appointments/${id}`);
+        const appointment = await authFetch(`${window.API_BASE}/api/v1/appointments/${id}`);
 
         const detailsDiv = document.getElementById('appointmentDetails');
         detailsDiv.innerHTML = `
@@ -208,7 +211,10 @@ async function loadTrainersInto(selectElement, selectedId = '') {
 }
 
 // ====== Edit Appointment ======
-const editModal = new bootstrap.Modal(document.getElementById('editAppointmentModal'));
+const editModalEl = document.getElementById('editAppointmentModal');
+const editModal = new bootstrap.Modal(editModalEl);
+// Blur any focused element inside the modal after it hides to prevent aria-hidden violation
+editModalEl.addEventListener('hidden.bs.modal', () => { document.activeElement?.blur(); });
 async function editAppointment(id) {
     try {
         currentEditAppointmentId = id;
@@ -322,15 +328,22 @@ function showConfirm(message, callback) {
     if (modalBody) modalBody.textContent = message;
 
     const confirmBtn = document.getElementById('confirmActionBtn');
-    const modal = new bootstrap.Modal(confirmModalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(confirmModalEl);
 
     const onConfirm = () => {
-        callback();
-        modal.hide();
         confirmBtn.removeEventListener('click', onConfirm);
+        modal.hide();
+        callback();
     };
 
-    confirmBtn.onclick = onConfirm;
+    // Blur the button when the modal hides to prevent aria-hidden focus violation
+    const onHidden = () => {
+        confirmBtn.blur();
+        confirmModalEl.removeEventListener('hidden.bs.modal', onHidden);
+    };
+
+    confirmBtn.addEventListener('click', onConfirm);
+    confirmModalEl.addEventListener('hidden.bs.modal', onHidden);
     modal.show();
 }
 
