@@ -29,9 +29,9 @@ const webhookRouter = require('./routes/webhooks');
 app.use('/webhooks', webhookRouter);
 app.use('/webhook', webhookRouter);
 
-// Initialize in-memory cache service
-const cacheService = require('./services/cache');
-cacheService.connect();
+// Cache service DISABLED to reduce memory usage (unneeded)
+ // const cacheService = require('./services/cache');
+ // cacheService.connect();
 
 // Start background jobs
 startSubscriptionCleanupJob();
@@ -128,9 +128,9 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== 'test') {
   connectDB();
-  invalidateCache();
+  // invalidateCache(); // cache disabled
 }
 
 // -----------------------------
@@ -147,8 +147,9 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    cache: cacheService.getStats()
+    cache: { disabled: true, type: 'none', message: 'In-memory cache disabled to reduce memory usage' }
   });
+
 });
 
 // CSRF Token Endpoint
@@ -175,10 +176,8 @@ app.get('/api/v1/queue-status', auth, async (req, res) => {
   });
 });
 
-// -----------------------------
-// Cache Management Routes
-// -----------------------------
-app.use('/api', require('./routes/cache'));
+// Cache Management Routes DISABLED (cache removed)
+ // app.use('/api', require('./routes/cache'));
 
 // -----------------------------
 // Routes with API Versioning
@@ -471,9 +470,7 @@ const server = app.listen(PORT, () => console.log(`Server started on port ${PORT
     csrfProtection.stop();
     console.log('✅ CSRF protection stopped');
     
-    // Close cache service
-    cacheService.stop();
-    console.log('✅ Cache service stopped');
+    // Cache service disabled, no stop needed
     
     // Close server
     server.close(async () => {

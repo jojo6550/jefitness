@@ -119,9 +119,12 @@ function log(...args) {
  * @param {number} amount - Amount in dollars
  * @returns {string} e.g. "$29.99"
  */
-function formatCurrency(amount) {
-  if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
-  return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function formatCurrency(amount, currency = 'JMD') {
+  if (typeof amount !== 'number' || isNaN(amount)) return 'J$0.00';
+  return new Intl.NumberFormat('en-JM', { 
+    style: 'currency', 
+    currency 
+  }).format(amount);
 }
 
 /**
@@ -317,7 +320,7 @@ function renderActiveSubscriptionSummary() {
   if (!sub) return;
 
   const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
-  const amount = formatCurrency(sub.amount || 0);
+const amount = formatCurrency((sub.amount || 0) / 100);
 
   const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
   const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
@@ -343,7 +346,7 @@ function renderActiveSubscriptionSummary() {
           <div class="subscription-details">
             <div class="detail-item">
               <span class="detail-label">Monthly Cost</span>
-              <span class="detail-value">${amount}</span>
+              <span class="detail-value">${formatCurrency((sub.amount || 0) / 100, sub.currency || 'JMD')}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Next Billing Date</span>
@@ -473,7 +476,7 @@ async function downloadInvoices(subscriptionId) {
       if (!pdfUrl) return;
 
       const date = new Date(invoice.created * 1000).toLocaleDateString();
-      const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100);
+      const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
       const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
 
       invoiceHtml += `

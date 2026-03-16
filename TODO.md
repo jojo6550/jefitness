@@ -1,10 +1,17 @@
-# JE Fitness Logger Fix Progress
+# Subscription Price Display Fix - TODO
 
-## Planned Steps (Approved)
-- [x] Step 1: Create TODO.md to track progress
-- [x] Step 2: Add logger import to src/models/User.js
-- [x] Step 3: Add logger import to src/models/Subscription.js
-- [x] Step 4: Verify no other critical model files missing logger (search_files)
-- [ ] Step 5: Test server restart and confirm fix
-- [ ] Step 6: Complete task
+## Plan Breakdown (Approved ✅)
+**Target**: Fix `public/js/subscriptions.js` where subscription price shows 1800000 instead of 18000
+
+### Steps:
+- [ ] **Step 1**: Create TODO.md with plan (current step - done)
+- [x] **Step 2**: Edit `public/js/subscriptions.js` ✅
+  - `/100` fix in summary & template ✅
+  - `formatCurrency()` upgraded to Intl + JMD ✅
+  - Invoices use dynamic currency ✅
+- [ ] **Step 3**: Test display on `/pages/subscriptions.html`
+- [ ] **Step 4**: Update TODO.md with results
+- [ ] **Step 5**: Complete task with `attempt_completion`
+
+**Current Progress**: Step 1 complete ✅
 

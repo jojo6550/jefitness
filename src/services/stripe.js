@@ -55,7 +55,7 @@ async function getPlanPricing() {
       if (priceId) {
         const price = await getStripe().prices.retrieve(priceId);
         const amount = price.unit_amount;
-        const displayPrice = `$${(amount / 100).toFixed(2)}`;
+        const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount / 100);
 
         plans[planKey] = {
           amount,
@@ -90,10 +90,10 @@ async function getPlanPricing() {
  */
 function getFallbackPricing(planKey) {
   const fallbacks = {
-    '1-month': { amount: 999, displayPrice: '$9.99', duration: '1 Month' },
-    '3-month': { amount: 2799, displayPrice: '$27.99', duration: '3 Months', savings: '$2.98' },
-    '6-month': { amount: 4999, displayPrice: '$49.99', duration: '6 Months', savings: '$9.95' },
-    '12-month': { amount: 8999, displayPrice: '$89.99', duration: '12 Months', savings: '$29.89' }
+    '1-month': { amount: 999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(9.99), duration: '1 Month' },
+    '3-month': { amount: 2799, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(27.99), duration: '3 Months', savings: '$2.98' },
+    '6-month': { amount: 4999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(49.99), duration: '6 Months', savings: '$9.95' },
+    '12-month': { amount: 8999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(89.99), duration: '12 Months', savings: '$29.89' }
   };
   return fallbacks[planKey] || fallbacks['1-month'];
 }
