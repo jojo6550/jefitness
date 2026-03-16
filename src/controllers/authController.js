@@ -23,27 +23,63 @@ const getMailjetClient = () => {
  */
 const authController = {
   /**
-   * Register a new user
+   * Register a new user - Creates pending user, generates/sends OTP
    */
   signup: asyncHandler(async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
 
     let user = await User.findOne({ email: email.toLowerCase() });
     if (user) {
-      throw new ValidationError('User already exists');
+      if (user.isEmailVerified) {
+        throw new ValidationError('User already exists and verified');
+      }
+      // Allow resend for pending users
+    } else {
+      user = new User({
+        firstName,
+        lastName,
+        email: email.toLowerCase(),
+        password
+      });
+      await user.save();
     }
 
-    user = new User({
-      firstName,
-      lastName,
-      email: email.toLowerCase(),
-      password
-    });
-
+    // Generate OTP
+    const otp = user.generateOTP();
+    const hashedOTP = await user.hashOTP(otp);
+    user.emailVerificationToken = hashedOTP;
+    user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
     await user.save();
 
-    // Note: Stripe customer creation usually happens here or via webhook
-    // For now keeping it simple as per existing logic
+    // Send email
+    await sendOTPEmail(email, otp);
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully. Please check your email for the verification code.'
+    });
+  }),
+
+  /**
+   * Verify OTP and complete registration
+   */
+  verifyEmail: asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      throw new ValidationError('User not found');
+    }
+
+    const isValidOTP = await user.compareOTP(otp);
+    if (!isValidOTP) {
+      throw new ValidationError('Invalid or expired OTP');
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
 
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
@@ -51,7 +87,7 @@ const authController = {
       { expiresIn: '24h' }
     );
 
-    res.status(201).json({
+    res.json({
       success: true,
       data: {
         token,
@@ -67,13 +103,47 @@ const authController = {
   }),
 
   /**
-   * Log in user
+   * Resend OTP to user email
+   */
+  resendOtp: asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      throw new ValidationError('User not found');
+    }
+
+    // Generate new OTP
+    const otp = user.generateOTP();
+    const hashedOTP = await user.hashOTP(otp);
+    user.emailVerificationToken = hashedOTP;
+    user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendOTPEmail(email, otp);
+
+    res.json({
+      success: true,
+      message: 'Verification code resent successfully.'
+    });
+  }),
+
+  /**
+   * Log in user - Now checks email verification
    */
   login: asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      throw new AuthenticationError('Invalid credentials');
+    }
+
+    if (!user.isEmailVerified) {
+      throw new ValidationError('Please verify your email before logging in');
+    }
+
+    if (!(await user.comparePassword(password))) {
       throw new AuthenticationError('Invalid credentials');
     }
 
@@ -108,5 +178,46 @@ const authController = {
     res.json({ success: true, message: 'Logged out successfully' });
   })
 };
+
+// Send OTP email helper
+async function sendOTPEmail(email, otp) {
+  const mailjet = getMailjetClient();
+  if (!mailjet) {
+    console.warn('Mailjet not configured. Cannot send OTP email.');
+    return; // Don't fail signup, log warning
+  }
+
+  const request = await mailjet
+    .post("send", { 'version': 'v3.1' })
+    .request({
+      "Messages": [{
+        "From": {
+          "Email": "no-reply@jefitness.com",
+          "Name": "JE Fitness"
+        },
+        "To": [{
+          "Email": email,
+          "Name": `${email}`
+        }],
+        "Subject": "Your JE Fitness Verification Code",
+        "HTMLPart": `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Welcome to JE Fitness!</h2>
+            <p>Your verification code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+            <p>This code expires in 10 minutes.</p>
+            <hr>
+            <p>If you didn't request this, please ignore this email.</p>
+          </div>
+        `
+      }]
+    });
+
+  if (request.StatusCode !== 200) {
+    console.error('Failed to send OTP email:', request);
+  }
+}
+
+module.exports = authController;
+
 
 module.exports = authController;

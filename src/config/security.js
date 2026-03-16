@@ -30,8 +30,7 @@ const securityConfig = {
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com",
-          "https://cdnjs.cloudflare.com",
-          "'unsafe-inline'"
+          "https://cdnjs.cloudflare.com"
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
         connectSrc: [

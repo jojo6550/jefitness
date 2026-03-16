@@ -218,6 +218,29 @@ UserSchema.methods.comparePassword = async function(candidatePassword) {
   }
 };
 
+// --------------------
+// OTP Methods
+// --------------------
+UserSchema.methods.generateOTP = function() {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+};
+
+UserSchema.methods.hashOTP = async function(otp) {
+  const salt = await bcrypt.genSalt(10);
+  return await bcrypt.hash(otp, salt);
+};
+
+UserSchema.methods.compareOTP = async function(candidateOTP) {
+  if (!this.emailVerificationToken || !this.emailVerificationExpires) {
+    return false;
+  }
+  if (this.emailVerificationExpires < new Date()) {
+    return false; // Expired
+  }
+  return await bcrypt.compare(candidateOTP, this.emailVerificationToken);
+};
+
+
 // Indexes
 UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });

@@ -43,6 +43,39 @@ router.post('/login',
 
 /**
  * @swagger
+ * /api/v1/auth/verify-email:
+ *   post:
+ *     summary: Verify email with OTP
+ *     tags: [Authentication]
+ */
+router.post('/verify-email', 
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('otp').isLength({ min: 6, max: 6 }).isNumeric().withMessage('OTP must be 6 digits'),
+    handleValidationErrors
+  ],
+  authController.verifyEmail
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/resend-otp:
+ *   post:
+ *     summary: Resend verification OTP
+ *     tags: [Authentication]
+ */
+router.post('/resend-otp', 
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    handleValidationErrors
+  ],
+  authController.resendOtp
+);
+
+/**
+ * @swagger
  * /api/v1/auth/logout:
  *   post:
  *     summary: Logout authenticated user
@@ -51,3 +84,4 @@ router.post('/login',
 router.post('/logout', auth, authController.logout);
 
 module.exports = router;
+
