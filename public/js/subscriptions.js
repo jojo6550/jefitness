@@ -472,7 +472,10 @@ function renderUserSubscriptions() {
     const end = parseDate(sub.currentPeriodEnd, new Date(start.getTime() + 30 * 86400000));
 
     const daysLeft = Math.ceil((end - new Date()) / 86400000);
-    const expired = daysLeft <= 0;
+    // Use DB status as the source of truth — not local date math.
+    // currentPeriodEnd can be stale in Stripe test mode while status remains 'active'.
+    const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+    const expired = !ACTIVE_STATUSES.includes(sub.status);
 
     const card = document.createElement('div');
     card.className = 'subscription-card';
@@ -580,8 +583,9 @@ async function downloadInvoices(subscriptionId) {
   }
 
   try {
+    const apiBase = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
     const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/${subscriptionId}/invoices`,
+      `${apiBase}/api/v1/subscriptions/${subscriptionId}/invoices`,
       { headers: { Authorization: `Bearer ${userToken}` } }
     );
 
@@ -593,7 +597,7 @@ async function downloadInvoices(subscriptionId) {
     }
 
     // Open a modal or alert showing invoices
-    let invoiceHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+    let invoiceHtml = '<div class="invoices-scroll-container">';
     invoiceHtml += '<h5 class="mb-3">Recent Invoices</h5>';
     
     data.data.forEach(invoice => {
@@ -701,16 +705,7 @@ async function handleSuccessRedirect() {
   renderActiveSubscriptionSummary();
   
   // Add event listeners for dynamic buttons (CSP safe)
-  setTimeout(() => {
-    document.querySelector('[data-action="download-invoices"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      downloadInvoices(e.currentTarget.dataset.subId);
-    });
-    document.querySelector('[data-action="cancel-plan"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      openCancelModal(e.currentTarget.dataset.subId);
-    });
-  }, 100);
+  // Event listeners already handled by global delegation, no need for setTimeout duplicate
   
         // Clear URL params
         window.history.replaceState({}, document.title, window.location.pathname);

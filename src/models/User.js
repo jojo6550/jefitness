@@ -256,10 +256,13 @@ UserSchema.index({ 'workoutLogs.exercises.exerciseName': 1 }, { sparse: true });
 UserSchema.methods.getActiveSubscription = async function() {
   const Subscription = require('./Subscription');
   if (!this._id) return null;
+  // Use DB status as the source of truth — do not filter on currentPeriodEnd.
+  // Period dates can be stale (e.g. Stripe test mode compresses billing cycles),
+  // so date-based expiry checks can produce false negatives for active subscriptions.
+  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
   return await Subscription.findOne({
     userId: this._id,
-    status: 'active',
-    currentPeriodEnd: { $gte: new Date() }
+    status: { $in: ACTIVE_STATUSES }
   }).sort({ currentPeriodEnd: -1 });
 };
 
