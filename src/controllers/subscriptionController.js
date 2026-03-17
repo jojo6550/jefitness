@@ -81,27 +81,85 @@ const subscriptionController = {
    * "not yet active" limbo if the webhook fires late.
    */
   verifyCheckoutSession: asyncHandler(async (req, res) => {
-    const { sessionId } = req.params;
+    const sessionId = req.params.sessionId.trim();
+    
+    console.log(`[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`);
+    
+    // Validate STRIPE_SECRET_KEY
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('[VERIFY-SESSION] STRIPE_SECRET_KEY missing');
+      return res.status(500).json({
+        success: false,
+        message: "Stripe configuration error. Please contact support."
+      });
+    }
+    
+    let session;
+    try {
+      session = await stripeService.getCheckoutSession(sessionId);
+    } catch (error) {
+      console.error('[VERIFY-SESSION] Failed to fetch session:', error.message, sessionId);
+      return res.status(400).json({
+        success: false,
+        message: `Session fetch failed: ${error.message}`
+      });
+    }
 
-    const session = await stripeService.getCheckoutSession(sessionId);
-
+    if (!session) {
+      console.error('[VERIFY-SESSION] Session not found:', sessionId);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired checkout session"
+      });
+    }
+    
+    if (!session.customer) {
+      console.error('[VERIFY-SESSION] No customer in session:', sessionId);
+      return res.status(400).json({
+        success: false,
+        message: "Session missing customer information"
+      });
+    }
+    
+    if (!session.subscription) {
+      console.error('[VERIFY-SESSION] No subscription in session:', sessionId);
+      return res.status(400).json({
+        success: false,
+        message: "Session not linked to subscription"
+      });
+    }
+    
     if (session.payment_status !== 'paid' || session.mode !== 'subscription') {
-      return res.status(400).json({ success: false, error: 'Session not completed' });
+      console.log('[VERIFY-SESSION] Session invalid:', {
+        sessionId,
+        payment_status: session.payment_status,
+        mode: session.mode
+      });
+      return res.status(400).json({
+        success: false,
+        message: "Payment not completed or invalid session type"
+      });
     }
 
     let subscription = await Subscription.findOne({
       stripeSubscriptionId: session.subscription
     });
 
-    // If webhook hasn't fired yet, create the record proactively from Stripe data
+    // Proactive upsert if needed
     if (!subscription) {
       try {
+        console.log('[VERIFY-SESSION] Proactive upsert for:', session.subscription);
         const stripe = stripeService.getStripe();
-        const stripeSub = stripe ? await stripe.subscriptions.retrieve(session.subscription) : null;
+        if (!stripe) {
+          throw new Error('Stripe instance not available');
+        }
+        const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
 
         if (stripeSub) {
           const user = await User.findOne({ stripeCustomerId: session.customer });
-          if (user) {
+          if (!user) {
+          console.warn('[VERIFY-SESSION] User not found for customer:', session.customer);
+        } else {
             const priceItem = stripeSub.items?.data[0];
             const priceId   = priceItem?.price?.id;
             const billingEnv = getBillingEnv();
@@ -138,7 +196,12 @@ const subscriptionController = {
           }
         }
       } catch (proactiveErr) {
-        logger.error('Proactive subscription upsert failed', { error: proactiveErr.message });
+        console.error('[VERIFY-SESSION] Proactive upsert failed:', proactiveErr.message, {
+          stripeSubId: session.subscription,
+          customerId: session.customer,
+          sessionId
+        });
+        // Continue with existing subscription check or null
       }
     }
 

@@ -67,7 +67,7 @@ const authController = {
     await user.save();
 
     // Send email NON-BLOCKING
-    sendOTPEmail(email, otp).catch(err => logger.error('OTP email failed after signup', { email, err: err.message }));
+    sendOTPEmail(email, otp).catch(err => logger.logger.error('OTP email failed', { email, error: err.message }));
 
     res.status(201).json({
       success: true,
@@ -302,7 +302,7 @@ async function sendOTPEmail(email, otp) {
       });
     }
   } catch (error) {
-    logger.error('OTP email send error', { email, error: error.message });
+    logger.logger.error('OTP email send error', { email, error: error.message });
   }
 }
 
