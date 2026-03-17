@@ -79,6 +79,32 @@ const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = re
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Clean URL handler for frontend pages (AFTER static, BEFORE errorHandler)
+app.use((req, res, next) => {
+  // Skip API routes and docs
+  if (req.path.match(/^\/api/) || 
+      req.path === '/webhooks' || 
+      req.path === '/webhook' || 
+      req.path.match(/^\/api-docs/) ||
+      req.path.match(/^\/redoc/)) {
+    return next();
+  }
+  
+  // Match clean page URLs: alphanumeric, hyphen, underscore only
+  const pageMatch = req.path.match(/^\/([\w-]+)$/);
+  if (!pageMatch) return next();
+  
+  const pageName = pageMatch[1];
+  const htmlPath = path.join(__dirname, '..', 'public', 'pages', `${pageName}.html`);
+  
+  // Security: check file exists and prevent traversal
+  if (fs.existsSync(htmlPath) && fs.statSync(htmlPath).isFile()) {
+    return res.sendFile(htmlPath);
+  }
+  
+  next();
+});
+
 // Rate limiter
 const { apiLimiter } = require('./middleware/rateLimiter');
 
