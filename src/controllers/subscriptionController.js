@@ -156,7 +156,8 @@ const subscriptionController = {
         const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
 
         if (stripeSub) {
-          const user = await User.findOne({ stripeCustomerId: session.customer });
+          const customerId = (session.customer && typeof session.customer === 'object') ? session.customer.id : session.customer;
+          const user = await User.findOne({ stripeCustomerId: customerId });
           if (!user) {
           console.warn('[VERIFY-SESSION] User not found for customer:', session.customer);
         } else {
@@ -169,7 +170,7 @@ const subscriptionController = {
               {
                 $set: {
                   userId: user._id,
-                  stripeCustomerId: stripeSub.customer,
+                  stripeCustomerId: stripeSub.customer.id,
                   stripeSubscriptionId: stripeSub.id,
                   plan: PLAN_MAP[priceId] || 'unknown-plan',
                   stripePriceId: priceId,
