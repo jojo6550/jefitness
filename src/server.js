@@ -1,6 +1,7 @@
+require('dotenv').config();
+
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
 const cron = require('node-cron');
 const helmet = require('helmet');
@@ -9,7 +10,6 @@ const morgan = require('morgan');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
-
 // API Documentation imports
 const swaggerUi = require('swagger-ui-express');
 const redoc = require('redoc-express');
@@ -17,35 +17,27 @@ const swaggerSpec = require('./docs/swagger');
 
 const { startSubscriptionCleanupJob } = require('./jobs');
 
-dotenv.config();
-
 const PORT = process.env.PORT || 10000;
 
 const app = express();
 
-// WEBHOOKS - MUST come BEFORE body parsers for raw body access
-// Mounted at both /webhooks/stripe (canonical) and /webhook (Stripe CLI default forward path)
+// WEBHOOKS
 const webhookRouter = require('./routes/webhooks');
 app.use('/webhooks', webhookRouter);
 app.use('/webhook', webhookRouter);
 
-// Cache service DISABLED to reduce memory usage (unneeded)
- // const cacheService = require('./services/cache');
- // cacheService.connect();
-
-// Start background jobs
-startSubscriptionCleanupJob();
-
-// Trust proxy for accurate IP identification (required for Render deployment)
+// Trust proxy for Render
 app.set('trust proxy', 1);
 
-// Import security configurations
+// Security config
 const { nonceMiddleware, helmetOptions, optionsHandler } = require('./config/security');
 
-// Import logger FIRST (early init)
+const connectDB = require('../config/db');
+
+// Logger
 const logger = require('./services/logger').logger;
 
-// Import middleware
+// Middleware imports
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
 const csrfProtection = require('./middleware/csrf');
@@ -53,25 +45,23 @@ const { corsOptions } = require('./middleware/corsConfig');
 const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
 const { errorHandler } = require('./middleware/errorHandler');
 
-// Security Middlewares
+// Security middlewares
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 app.use(optionsHandler);
 
-// Request logging — Winston requestLogger (enhanced)
 app.use(requestLogger);
-
 
 // Body parsing
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 
-// Input sanitization & CSRF
+// Sanitization
 app.use(sanitizeInput);
 app.use(csrfProtection.middleware());
 app.use(cors(corsOptions));
 
-// Disable caching in development for all routes
+// Disable caching in development
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -81,119 +71,47 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Cache control middleware
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
 
-// Cache version utility
 const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = require('./utils/cacheVersion');
 
-// Serve static files
+// Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// -----------------------------
-// MongoDB Connection
-// -----------------------------
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-      family: 4
-    });
-    logger.info('MongoDB connected successfully');
-
-    mongoose.set('debug', (collectionName, method, query, doc) => {
-      const start = Date.now();
-      setImmediate(() => {
-        const duration = Date.now() - start;
-        if (duration > 100) {
-          logger.warn('Slow MongoDB query detected', { 
-            collectionName, 
-            method, 
-            duration: `${duration}ms`, 
-            query: JSON.stringify(query) 
-          });
-        }
-      });
-    });
-
-    mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
-    mongoose.connection.on('reconnected', () => logger.info('MongoDB reconnected'));
-    mongoose.connection.on('error', (err) => logger.error('MongoDB connection error', { error: err.message, stack: err.stack }));
-
-  } catch (err) {
-    logger.error('MongoDB connection failed', { error: err.message, stack: err.stack });
-    process.exit(1);
-  }
-};
-  if (process.env.NODE_ENV !== 'test') {
-  connectDB();
-  // invalidateCache(); // cache disabled
-}
-
-// -----------------------------
-// Rate Limiters
-// -----------------------------
+// Rate limiter
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-// -----------------------------
-// Health Check Endpoint
-// -----------------------------
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development',
-    cache: { disabled: true, type: 'none', message: 'In-memory cache disabled to reduce memory usage' }
+    environment: process.env.NODE_ENV || 'development'
   });
-
 });
 
-// CSRF Token Endpoint
-// Provides CSRF tokens for form submissions
+// CSRF endpoint
 app.get('/api/v1/csrf-token', (req, res) => {
-  // Token is generated by CSRF middleware for GET requests
-  res.json({ 
-    success: true,
-    token: res.locals.csrfToken,
-    message: 'Include this token in _csrf field or X-CSRF-Token header for state-changing requests'
-  });
-});
-
-// Import auth middleware before using it in routes
-const { auth } = require('./middleware/auth');
-
-// Job Queue Status Endpoint (disabled - Redis removed)
-// Note: Job queue functionality has been disabled
-app.get('/api/v1/queue-status', auth, async (req, res) => {
   res.json({
     success: true,
-    message: 'Job queue is disabled',
-    queues: {}
+    token: res.locals.csrfToken
   });
 });
 
-// Cache Management Routes DISABLED (cache removed)
- // app.use('/api', require('./routes/cache'));
+// Auth middleware
+const { auth } = require('./middleware/auth');
 
-// -----------------------------
-// Routes with API Versioning
-// -----------------------------
+// Versioning
 const versioning = require('./middleware/versioning');
 
-// Public routes (no auth, no rate limiting)
+// Routes
 app.use('/api/v1/products', versioning, require('./routes/products'));
 app.use('/api/v1/subscriptions', versioning, require('./routes/subscriptions'));
 app.use('/api/v1/programs', versioning, require('./routes/programs'));
-// Note: /webhooks is registered before express.json() above for raw body access
-
-// Auth routes
 app.use('/api/v1/auth', versioning, require('./routes/auth'));
 
-// Protected routes (with auth and rate limiting)
 app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/clients'));
 app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
 app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
@@ -203,298 +121,155 @@ app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestrict
 app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
 app.use('/api/v1/workouts', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/workouts'));
 
-// API Documentation routes (only in development)
+// Swagger docs
 if (process.env.NODE_ENV !== 'production') {
-  // Swagger UI
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    swaggerOptions: {
-      docExpansion: 'none',
-      filter: true,
-      showRequestDuration: true
-    }
-  }));
 
-  // Redoc
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
   app.get('/redoc', redoc({
     title: 'JE Fitness API Documentation',
-    specUrl: '/api-docs.json',
-    redocOptions: {
-      theme: {
-        colors: {
-          primary: {
-            main: '#007bff'
-          }
-        }
-      }
-    }
+    specUrl: '/api-docs.json'
   }));
 
-  // Raw OpenAPI JSON spec
   app.get('/api-docs.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
+    res.json(swaggerSpec);
   });
 }
 
-// Backward compatibility — redirect legacy /api/* routes to /api/v1/*
-// Handle OPTIONS preflight before redirecting
-app.options('/api/auth',    cors(corsOptions));
-app.options('/api/v1/auth', cors(corsOptions));
-
-app.use('/api/auth', cors(corsOptions), (req, res) => {
-  res.header('Access-Control-Allow-Origin',      req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods',     'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers',     'Content-Type, Authorization, X-Auth-Token, X-Requested-With');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age',           '86400');
-  res.redirect(307, '/api/v1/auth' + req.path);
-});
-
-const legacyRedirect = (prefix) => (req, res) => res.redirect(307, prefix + req.path);
-app.use('/api/clients',           legacyRedirect('/api/v1/clients'));
-app.use('/api/logs',              legacyRedirect('/api/v1/logs'));
-app.use('/api/appointments',      legacyRedirect('/api/v1/appointments'));
-app.use('/api/users',             legacyRedirect('/api/v1/users'));
-app.use('/api/notifications',     legacyRedirect('/api/v1/notifications'));
-app.use('/api/medical-documents', legacyRedirect('/api/v1/medical-documents'));
-app.use('/api/trainer',           legacyRedirect('/api/v1/trainer'));
-
-// 404 handler for API routes (after all routes and redirects)
+// 404 API
 app.use('/api', (req, res) => {
   res.status(404).json({
     success: false,
-    error: {
-      message: 'Endpoint not found',
-      path: req.path,
-      method: req.method
-    }
+    message: 'Endpoint not found'
   });
-});
-
-// ====================================================
-// CLEAN URLS: Redirect /pages/*.html → clean URLs
-// Ensures old links and bookmarks still work
-// ====================================================
-app.get('/public/pages/:page.html', (req, res) => {
-  const page = req.params.page;
-  // Preserve query string (e.g., ?redirect=...)
-  const query = req.originalUrl.includes('?') ? '?' + req.originalUrl.split('?')[1] : '';
-  res.redirect(301, `/${page}${query}`);
-});
-
-
-
-// ====================================================
-// CLEAN URLS ROUTE HANDLER
-// Maps /:page → /public/pages/${page}.html
-// Automatically works for any new page added to /public/pages
-// ====================================================
-app.get('/:page', (req, res, next) => {
-  // Extract the page parameter from the URL
-  const page = req.params.page;
-
-  // SECURITY: Only allow alphanumeric characters, hyphens, and underscores
-  if (!/^[a-zA-Z0-9_-]+$/.test(page)) {
-    return next();
-  }
-
-  // Build the full file path using path.join() for security
-  const filePath = path.join(__dirname, '..', 'public', 'pages', `${page}.html`);
-  
-  // Resolve to absolute path to ensure it's within public/pages/
-  const resolvedPath = path.resolve(filePath);
-  const allowedDir = path.resolve(path.join(__dirname, '..', 'public', 'pages'));
-  
-  // SECURITY: Ensure the resolved path is within the allowed directory
-  if (!resolvedPath.startsWith(allowedDir + path.sep) && resolvedPath !== allowedDir) {
-    return next();
-  }
-  
-  // Use async sendFile — avoids blocking the event loop with fs.existsSync
-  res.type('html');
-  res.sendFile(resolvedPath, err => {
-    if (err) next(); // File not found → fall through to 404 handler
-  });
-});
-
-// 404 handler for non-existent pages (MPA mode)
-// This serves static files from public/ directory
-// For non-existent HTML pages, respond with 404
-app.use((req, res) => {
-  res.status(404).set('Content-Type', 'text/html');
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>404 - Page Not Found | JE Fitness</title>
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    </head>
-    <body>
-      <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container">
-          <a class="navbar-brand fw-bold" href="/">JE <span style="color: #00bcd4;">FITNESS</span></a>
-        </div>
-      </nav>
-      <div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
-        <div class="text-center">
-          <h1 class="display-1 fw-bold mb-4">404</h1>
-          <h2 class="mb-4">Page Not Found</h2>
-          <p class="lead mb-4">The page you're looking for doesn't exist or has been moved.</p>
-          <div class="d-flex gap-3 justify-content-center">
-            <a href="/" class="btn btn-primary btn-lg">
-              <i class="bi bi-house me-2"></i>Go Home
-            </a>
-            <a href="/products" class="btn btn-outline-primary btn-lg">
-              <i class="bi bi-shop me-2"></i>Browse Products
-            </a>
-          </div>
-        </div>
-      </div>
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-    </html>
-  `);
 });
 
 // -----------------------------
-// Global Error Handling Middleware
-// MUST be last middleware in the chain
+// Global Error Handler
 // -----------------------------
 app.use(errorHandler);
 
 // -----------------------------
-// Cleanup Job (Unverified Users)
+// Cron Jobs
 // -----------------------------
+
 const User = require('./models/User');
+
 cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
-  const maxRetries = 3;
-  let attempt = 0;
 
-  while (attempt < maxRetries) {
-    try {
-      const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
-      const thirtyMinutesAgo = new Date(Date.now() - cleanupTime * 60 * 1000);
-      const result = await User.deleteMany({
-        isEmailVerified: false,
-        createdAt: { $lt: thirtyMinutesAgo }
-      });
+  try {
 
-      if (result.deletedCount > 0) {
-        logger.info(`Cleanup job: Deleted ${result.deletedCount} unverified accounts older than ${cleanupTime} minutes`);
-      }
-      break;
-    } catch (err) {
-      attempt++;
-      if (attempt >= maxRetries) {
-        logger.error(`Cleanup job failed after ${attempt} attempts`, { error: err.stack });
-      } else {
-        logger.warn(`Cleanup attempt ${attempt} failed, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, attempt * 2000));
-      }
+    const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
+
+    const cutoff = new Date(Date.now() - cleanupTime * 60 * 1000);
+
+    const result = await User.deleteMany({
+      isEmailVerified: false,
+      createdAt: { $lt: cutoff }
+    });
+
+    if (result.deletedCount > 0) {
+      logger.info(`Deleted ${result.deletedCount} unverified accounts`);
     }
+
+  } catch (err) {
+
+    logger.error("Cleanup job failed", err);
+
   }
+
 });
 
 // -----------------------------
-// Backup and Archiving Jobs
+// Backup jobs
 // -----------------------------
-/** Run a Node script as a child process without spawning a shell (no injection risk) */
+
 function runScript(scriptPath, label) {
+
   console.log(`Starting ${label}...`);
+
   const child = spawn(process.execPath, [scriptPath], { stdio: 'inherit' });
-  child.on('error', err => console.error(`${label} failed to start: ${err.message}`));
+
   child.on('close', code => {
-    if (code !== 0) console.error(`${label} exited with code ${code}`);
-    else console.log(`${label} completed successfully.`);
+
+    if (code !== 0) console.error(`${label} failed`);
+
+    else console.log(`${label} complete`);
+
   });
+
 }
 
-cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily database backup'));
+cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily backup'));
 
-cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly data archiving'));
+cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly archive'));
 
 // -----------------------------
-// GDPR/HIPAA Compliance Jobs
+// Server Startup
 // -----------------------------
-cron.schedule('0 1 1 */6 *', async () => {
-  console.log('Starting bi-annual data retention cleanup...');
+
+async function startServer() {
+
   try {
-    const complianceService = require('./services/compliance');
-    const result = await complianceService.performDataRetentionCleanup();
-    console.log('Data retention cleanup completed:', result);
-  } catch (error) {
-    console.error('Data retention cleanup failed:', error.message);
-  }
-});
 
-// -----------------------------
-// Canceled Subscriptions Cleanup Job
-// -----------------------------
-cron.schedule('0 2 * * 0', () => runScript('scripts/cleanup-canceled-subscriptions.js', 'Weekly canceled subscriptions cleanup'));
-
-// -----------------------------
-// Memory Monitoring and Cleanup
-// -----------------------------
-const monitoringService = require('./services/monitoring');
-
-// Periodic memory monitoring and cleanup (every 10 minutes)
-setInterval(() => {
-  const memUsage = process.memoryUsage();
-  const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-
-  console.log(`Memory usage: ${memUsagePercent.toFixed(2)}% (${Math.round(memUsage.heapUsed / 1024 / 1024)} MB used)`);
-
-  // Trigger cleanup if memory usage is high
-  if (memUsagePercent > 85) {
-    console.log('High memory usage detected, triggering cleanup...');
-    monitoringService.performMemoryCleanup();
-  }
-}, 10 * 60 * 1000); // 10 minutes
-
-// Only start server if this file is run directly (not required in tests)
-if (require.main === module) {
-const server = app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
-
-  // Graceful shutdown handler
-  const gracefulShutdown = async (signal) => {
-    console.log(`\n${signal} received, shutting down gracefully...`);
+    console.log("Connecting to MongoDB with retries...");
     
-    // Stop watching files
-    stopFileWatching();
-    
-    // Stop CSRF cleanup timer
-    csrfProtection.stop();
-    console.log('✅ CSRF protection stopped');
-    
-    // Cache service disabled, no stop needed
-    
-    // Close server
-    server.close(async () => {
-      console.log('✅ Server closed');
-      try {
-        await mongoose.connection.close();
-        console.log('✅ MongoDB connection closed');
-        process.exit(0);
-      } catch (err) {
-        console.error('❌ Error closing MongoDB connection:', err);
-        process.exit(1);
-      }
+    await connectDB();
+
+    console.log("✅ MongoDB connected successfully via connectDB");
+
+    mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
+
+    mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
+
+    mongoose.connection.on('error', err => console.error('Mongo error', err));
+
+    // Start background jobs AFTER DB
+    startSubscriptionCleanupJob();
+
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
-    
-    // Force exit after 30 seconds
-    setTimeout(() => {
-      console.error('❌ Graceful shutdown timeout, forcing exit');
-      process.exit(1);
-    }, 30000);
-  };
 
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    const gracefulShutdown = async (signal) => {
+
+      console.log(`${signal} received. Shutting down.`);
+
+      stopFileWatching();
+
+      csrfProtection.stop();
+
+      server.close(async () => {
+
+        await mongoose.connection.close();
+
+        console.log("MongoDB closed");
+
+        process.exit(0);
+
+      });
+
+    };
+
+    process.on('SIGINT', gracefulShutdown);
+    process.on('SIGTERM', gracefulShutdown);
+
+  }
+
+  catch (err) {
+
+    console.error("Failed to start server:", err);
+
+    process.exit(1);
+
+  }
+
+}
+
+if (require.main === module) {
+
+  startServer();
+
 }
 
 module.exports = app;
-
