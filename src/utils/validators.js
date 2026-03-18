@@ -73,15 +73,7 @@ const validateConfirmPassword = (password, confirmPassword) => {
   return { valid: true };
 };
 
-const validateOTP = (otp) => {
-  if (!otp) {
-    return { valid: false, error: 'Verification code is required.' };
-  }
-  if (!/^\d{6}$/.test(otp)) {
-    return { valid: false, error: 'Verification code must be 6 digits.' };
-  }
-  return { valid: true };
-};
+
 
 // Export for Node.js (server-side)
 if (typeof module !== 'undefined' && module.exports) {
@@ -91,6 +83,6 @@ if (typeof module !== 'undefined' && module.exports) {
     validatePasswordStrength,
     validateName,
     validateConfirmPassword,
-    validateOTP
+
   };
 }

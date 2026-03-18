@@ -104,9 +104,8 @@ const UserSchema = new mongoose.Schema({
     lastReset: { type: Date, default: Date.now },
     plans: [{ day: { type: String, required: true }, planTitles: [{ type: String }], notes: { type: String } }]
   },
-  isEmailVerified: { type: Boolean, default: false },
-  emailVerificationToken: { type: String },
-  emailVerificationExpires: { type: Date },
+isEmailVerified: { type: Boolean, default: true },
+
   passwordResetToken: { type: String },
   resetPasswordExpires: { type: Date },
   failedLoginAttempts: { type: Number, default: 0 },
@@ -215,34 +214,10 @@ UserSchema.methods.comparePassword = function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// --------------------
-// OTP Methods
-// --------------------
-UserSchema.methods.generateOTP = function() {
-  // SECURITY: Use CSPRNG — Math.random() is not cryptographically secure
-  return crypto.randomInt(100000, 1000000).toString(); // 6-digit
-};
-
-UserSchema.methods.hashOTP = async function(otp) {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(otp, salt);
-};
-
-UserSchema.methods.compareOTP = async function(candidateOTP) {
-  if (!this.emailVerificationToken || !this.emailVerificationExpires) {
-    return false;
-  }
-  if (this.emailVerificationExpires < new Date()) {
-    return false; // Expired
-  }
-  return await bcrypt.compare(candidateOTP, this.emailVerificationToken);
-};
-
-
 // Indexes
 UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
-UserSchema.index({ isEmailVerified: 1 });
+
 UserSchema.index({ 'assignedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'purchasedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'workoutLogs.date': -1 }, { sparse: true });

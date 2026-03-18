@@ -37,7 +37,7 @@ styleSrc: [
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
         connectSrc: [
           "'self'",
-          "https://api.mailjet.com",
+
           "https://cdn.jsdelivr.net",
           "https://api.stripe.com",
           "https://jefitnessja.com",

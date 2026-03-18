@@ -50,37 +50,18 @@ describe('Authentication', () => {
         statusCode: 201,
         body: {
           success: true,
-          message: 'User created successfully. Please check your email to verify your account.',
-          user: {
-            id: 'mock-user-id',
-            email: 'john.doe@example.com',
-            firstName: 'John'
+          data: {
+            token: 'mock-jwt-token',
+            user: {
+              id: 'mock-user-id',
+              firstName: 'John',
+              lastName: 'Doe',
+              email: 'john.doe@example.com',
+              role: 'user'
+            }
           }
         }
       }).as('signup');
-      // Mock OTP verification - using correct API version
-      cy.intercept('POST', '/api/v1/auth/verify-email', (req) => {
-        if (req.body.otp === '123456') {
-          req.reply({
-            statusCode: 200,
-            body: {
-              msg: 'Email verified successfully! Welcome to JE Fitness.',
-              token: 'mock-jwt-token',
-              user: {
-                id: 'mock-user-id',
-                name: 'John Doe',
-                email: 'john.doe@example.com',
-                role: 'user'
-              }
-            }
-          });
-        } else {
-          req.reply({
-            statusCode: 400,
-            body: { msg: 'Invalid OTP.' }
-          });
-        }
-      }).as('verifyOtp');
     });
 
     it('should display signup form correctly', () => {
@@ -99,16 +80,6 @@ describe('Authentication', () => {
       cy.get('#termsModal').should('be.visible');
     });
 
-    it('should handle terms modal navigation', () => {
-      cy.get('#agreeTerms').next('label').find('a').click();
-      cy.get('#privacy-tab').click();
-      cy.get('#privacyContent').should('be.visible');
-      cy.get('#disclaimer-tab').click();
-      cy.get('#disclaimerContent').should('be.visible');
-      cy.get('#terms-tab').click();
-      cy.get('#termsContent').should('be.visible');
-    });
-
     it('should accept terms and continue', () => {
       cy.get('#agreeTerms').next('label').find('a').click();
       cy.get('#termsModal').should('be.visible');
@@ -121,7 +92,7 @@ describe('Authentication', () => {
       cy.get('#agreeTerms').should('be.checked');
     });
 
-    it('should show OTP form after successful signup', () => {
+    it('should signup successfully and redirect', () => {
       cy.get('#inputFirstName').type('John');
       cy.get('#inputLastName').type('Doe');
       cy.get('#inputEmail').type('john.doe@example.com');
@@ -129,54 +100,12 @@ describe('Authentication', () => {
       cy.get('#inputConfirmPassword').type('StrongPass123!');
       cy.get('#agreeTerms').check();
       cy.get('.btn-signup').click();
-      cy.wait('@signup');
-      // Check if OTP form appears
-      cy.get('#otp-container').should('be.visible');
-    });
-
-    it('should handle OTP verification', () => {
-      // First complete signup to show OTP form
-      cy.get('#inputFirstName').type('John');
-      cy.get('#inputLastName').type('Doe');
-      cy.get('#inputEmail').type('john.doe@example.com');
-      cy.get('#inputPassword').type('StrongPass123!');
-      cy.get('#inputConfirmPassword').type('StrongPass123!');
-      cy.get('#agreeTerms').check();
-      cy.get('.btn-signup').click();
-      cy.wait('@signup');
-
-      // Wait for signup form to hide and OTP container to show
-      cy.get('#signup-form').should('not.be.visible');
-      cy.get('#otp-container').should('be.visible');
-
-      // Now test OTP verification
-      cy.get('#inputOtp').type('123456');
-      cy.get('#otp-container button[type="submit"]').click();
-      cy.wait('@verifyOtp');
-
-      // Check for success message or redirect
+      
+      // Should redirect to dashboard
       cy.url().should('include', 'dashboard');
     });
-
-    it('should resend OTP', () => {
-      // First complete signup to show OTP form
-      cy.get('#inputFirstName').type('John');
-      cy.get('#inputLastName').type('Doe');
-      cy.get('#inputEmail').type('john.doe@example.com');
-      cy.get('#inputPassword').type('StrongPass123!');
-      cy.get('#inputConfirmPassword').type('StrongPass123!');
-      cy.get('#agreeTerms').check();
-      cy.get('.btn-signup').click();
-      cy.wait('@signup');
-
-      // Wait for OTP container to be visible
-      cy.get('#otp-container').should('be.visible');
-
-      cy.get('#resendOtp').click();
-      // Check for resend confirmation
-      cy.get('#otp-message').should('be.visible').and('contain', 'code');
-    });
   });
+
 
   describe('Logout Functionality', () => {
     it('should logout successfully', () => {

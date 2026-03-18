@@ -85,15 +85,7 @@ const Validators = {
     return { valid: true };
   },
 
-  validateOTP(otp) {
-    if (!otp) {
-      return { valid: false, error: 'Verification code is required.' };
-    }
-    if (!/^\d{6}$/.test(otp)) {
-      return { valid: false, error: 'Verification code must be 6 digits.' };
-    }
-    return { valid: true };
-  },
+
 
   showFieldError(input, errorDiv, message) {
     if (input) {

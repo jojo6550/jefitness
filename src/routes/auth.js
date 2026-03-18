@@ -42,38 +42,9 @@ router.post('/login',
     authController.login
 );
 
-/**
- * @swagger
- * /api/v1/auth/verify-email:
- *   post:
- *     summary: Verify email with OTP
- *     tags: [Authentication]
- */
-router.post('/verify-email', 
-  authLimiter,
-  [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
-    body('otp').isLength({ min: 6, max: 6 }).isNumeric().withMessage('OTP must be 6 digits'),
-    handleValidationErrors
-  ],
-  authController.verifyEmail
-);
 
-/**
- * @swagger
- * /api/v1/auth/resend-otp:
- *   post:
- *     summary: Resend verification OTP
- *     tags: [Authentication]
- */
-router.post('/resend-otp', 
-  authLimiter,
-  [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
-    handleValidationErrors
-  ],
-  authController.resendOtp
-);
+
+
 
 /**
  * @swagger
@@ -92,22 +63,6 @@ router.post('/logout', auth, authController.logout);
  *     tags: [Authentication]
  */
 router.post('/consent', auth, authController.grantConsent);
-
-/**
- * @swagger
- * /api/v1/auth/email-status/{messageId}:
- *   get:
- *     summary: Check email delivery status (for debugging)
- *     tags: [Authentication]
- *     parameters:
- *       - in: path
- *         name: messageId
- *         required: true
- *         schema:
- *           type: string
- */
-// Auth-gated: only authenticated users (admins) should query email delivery status
-router.get('/email-status/:messageId', auth, authController.getEmailStatus);
 
 module.exports = router;
 

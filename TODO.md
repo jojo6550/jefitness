@@ -1,10 +1,29 @@
-# JE Fitness Logger Fix Task
+# TODO: Remove Mailjet/Emailing/OTP Code Cleanup
 
-## Plan Breakdown
-- [x] **Step 1**: Understand issue from error and file analysis (search_files, read_files) - **COMPLETE**
-- [x] **Step 2**: Edit `src/controllers/authController.js` - Fix logger import to destructure `{ logger }` - **COMPLETE** (confirmed via read_file, import now `const { logger } = require('../services/logger');`)
-- [ ] **Step 3**: Verify fix - nodemon restart (auto via nodemon), check no crash
-- [ ] **Step 4**: Complete task - attempt_completion
+## Status: Not Started
 
-**Status**: Edit complete. Nodemon should auto-restart server. Test signup to confirm.
+### 1. Create TODO.md [COMPLETED]
+- [x] Generate this file with task list
 
+### 2. Edit Configuration Files
+- [x] src/config/security.js: Remove Mailjet CSP entry ✅
+- [x] src/middleware/csrf.js: Remove OTP routes ✅
+
+### 3. Remove Frontend OTP Code
+- [x] public/pages/signup.html: Delete #otp-container ✅
+- [x] public/js/auth.js: Remove OTP handlers ✅
+- [x] public/js/validators.js: Delete validateOTP ✅
+
+### 4. Update Tests
+- [x] cypress/e2e/authentication.cy.js: Remove OTP tests ✅
+
+### 5. Cleanup Documentation
+- [ ] Delete TODO-OTP-EMAIL.md
+
+### 6. Verification
+- [x] search_files for "otp|verify-email|resend-otp|mailjet" → Verify 0 results
+- [ ] Test signup/login flows
+- [ ] Restart server
+- [ ] attempt_completion
+
+**Next**: Execute parallel edit_file operations.

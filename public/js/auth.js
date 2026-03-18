@@ -324,16 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json();
 
         if (response.ok) {
-          // Hide signup form and show OTP verification form
-          signupForm.classList.add('d-none');
-          document.getElementById('otp-container').classList.remove('d-none');
-          document.getElementById('otp-container').classList.add('otp-visible');
-          // Store email in hidden input for OTP form
-          document.getElementById('otpEmail').value = email;
-          // Store only the email for the resend-otp flow — NEVER store passwords in sessionStorage
-          sessionStorage.setItem('pendingVerificationEmail', email);
-          document.getElementById('otp-message').textContent = `We sent a verification code to ${email}`;
-          window.Toast.success('Signup successful! Please check your email for verification code.');
+          const { token, user } = data.data || data;
+          localStorage.setItem('token', token);
+          localStorage.setItem('userRole', user.role || 'user');
+          window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);
+          // Redirect based on role
+          let redirectPath = '/dashboard';
+          if (user.role === 'admin') redirectPath = '/admin-dashboard';
+          else if (user.role === 'trainer') redirectPath = '/trainer-dashboard';
+          setTimeout(() => window.location.href = redirectPath, 1500);
         } else {
           handleApiError(response, data, 'Signup failed');
         }
@@ -346,89 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // OTP Verification
-  const otpForm = document.getElementById('otp-form');
-  if (otpForm) {
-    otpForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('otpEmail').value;
-      const otp = document.getElementById('inputOtp').value;
 
-      try {
-        const response = await fetch(`${window.API_BASE}/api/v1/auth/verify-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, otp })
-        });
-
-        let data;
-        try {
-          data = await response.json();
-        } catch (parseError) {
-          data = undefined;
-        }
-
-        if (response.ok) {
-          if (!data) {
-            window.Toast.error('Invalid response from server. Please try again.');
-            return;
-          }
-          const { token, user } = data.data || data;
-          localStorage.setItem('token', token);
-          localStorage.setItem('userRole', user.role);
-          // Clear pending verification email from session
-          sessionStorage.removeItem('pendingVerificationEmail');
-          window.Toast.success('Email verified! Welcome to JE Fitness.');
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1500);
-        } else {
-          handleApiError(response, data, 'Verification failed');
-        }
-      } catch (err) {
-        console.error('OTP verification error:', err);
-        window.Toast.error('Network error. Please try again.');
-      }
-    });
-
-    // Resend OTP functionality
-    const resendOtpBtn = document.getElementById('resendOtp');
-    if (resendOtpBtn) {
-      resendOtpBtn.addEventListener('click', async () => {
-        // Retrieve stored email for OTP resend
-        const pendingEmail = sessionStorage.getItem('pendingVerificationEmail');
-
-        if (!pendingEmail) {
-          window.Toast.error('Session expired. Please go back and sign up again.');
-          return;
-        }
-
-        try {
-          const response = await fetch(`${window.API_BASE}/api/v1/auth/resend-otp`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: pendingEmail })
-          });
-
-          let data;
-          try {
-            data = await response.json();
-          } catch (parseError) {
-            data = undefined;
-          }
-
-          if (response.ok) {
-            window.Toast.success('OTP resent to your email.');
-          } else {
-            handleApiError(response, data, 'Failed to resend OTP');
-          }
-        } catch (err) {
-          console.error('Resend OTP error:', err);
-          window.Toast.error('Network error. Please try again.');
-        }
-      });
-    }
-  }
 
   // FORGOT PASSWORD
   if (forgotPasswordForm) {
