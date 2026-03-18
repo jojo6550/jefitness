@@ -281,7 +281,7 @@ async function sendOTPEmail(email, otp, context = 'unknown') {
     const requestBody = {
       "Messages": [{
         "From": {
-          "Email": "no-reply@jefitness.com",
+          "Email": "no-reply@jefitnessja.com",
           "Name": "JE Fitness"
         },
         "To": [{
