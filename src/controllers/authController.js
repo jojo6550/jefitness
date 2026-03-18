@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Client } = require('node-mailjet');
 const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
-const logger = require('../services/logger');
+const { logger } = require('../services/logger');
 
 /**
  * Lazy initialization of Mailjet client
@@ -67,7 +67,7 @@ const authController = {
     await user.save();
 
     // Send email NON-BLOCKING
-    sendOTPEmail(email, otp).catch(err => logger.logger.error('OTP email failed', { email, error: err.message }));
+    sendOTPEmail(email, otp).catch(err => logger.error('OTP email failed (signup)', { email, error: err.message }));
 
     res.status(201).json({
       success: true,
@@ -135,7 +135,7 @@ const authController = {
     user.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await sendOTPEmail(email, otp);
+    await sendOTPEmail(email, otp, 'resendOtp');
 
     res.json({
       success: true,
@@ -254,17 +254,31 @@ const authController = {
 
 
 // Send OTP email helper
-async function sendOTPEmail(email, otp) {
+async function sendOTPEmail(email, otp, context = 'unknown') {
+  logger.info('OTP email attempt started', { to: email, otpMasked: otp.substring(0, 2) + '***', context });
+
+  // Check Mailjet env vars
+  const hasApiKey = !!process.env.MAILJET_API_KEY;
+  const hasSecretKey = !!process.env.MAILJET_SECRET_KEY;
+  logger.info('Mailjet config check', { 
+    hasApiKey, 
+    hasSecretKey,
+    apiKeyLength: process.env.MAILJET_API_KEY ? process.env.MAILJET_API_KEY.length : 0,
+    secretKeyLength: process.env.MAILJET_SECRET_KEY ? process.env.MAILJET_SECRET_KEY.length : 0 
+  });
+
   try {
     const mailjetClient = getMailjetClient();
     if (!mailjetClient) {
-      logger.warn('Mailjet not configured - skipping OTP email to %s', email);
-      return; // Silent fail, don't throw
+      logger.error('Mailjet client not available - cannot send OTP', { to: email, context });
+      if (process.env.NODE_ENV !== 'production') {
+        throw new Error('Mailjet client missing - check API keys in .env');
+      }
+      return; 
     }
+    logger.debug('Mailjet client ready, sending request', { to: email, context });
 
-    const request = await mailjet
-    .post("send", { 'version': 'v3.1' })
-    .request({
+    const requestBody = {
       "Messages": [{
         "From": {
           "Email": "no-reply@jefitness.com",
@@ -285,24 +299,49 @@ async function sendOTPEmail(email, otp) {
           </div>
         `
       }]
+    };
+    logger.debug('Mailjet request body prepared', { to: email, messagesCount: requestBody.Messages.length, context });
+
+    const request = mailjetClient
+      .post("send", { 'version': 'v3.1' })
+      .request(requestBody);
+
+    const response = await request;
+    logger.debug('Mailjet raw response', { 
+      status: response.response?.status, 
+      bodyKeys: response.body ? Object.keys(response.body) : null, 
+      to: email, 
+      context 
     });
 
-    if (request.response?.status !== 200) {
-      logger.error('Mailjet OTP send failed', {
-        status: request.response?.status,
-        body: request.body,
-        error: request.ErrorMessage
+    if (response.response?.status !== 200) {
+      logger.error('Mailjet OTP send FAILED', {
+        status: response.response?.status,
+        body: response.body,
+        errorMessage: response.ErrorMessage,
+        to: email,
+        context
       });
     } else {
-      const messageId = request.body?.Messages?.[0]?.['MessageID'];
-      logger.info('OTP email sent successfully', {
+      const messageId = response.body?.Messages?.[0]?.['MessageID'];
+      logger.info('OTP email sent SUCCESSFULLY', {
         messageId,
         to: email,
-        otp: otp.substring(0, 2) + '***'
+        status: 200,
+        otpMasked: otp.substring(0, 2) + '***',
+        context
       });
     }
   } catch (error) {
-    logger.logger.error('OTP email send error', { email, error: error.message });
+    logger.error('OTP email send EXCEPTION', { 
+      to: email, 
+      error: error.message, 
+      stack: error.stack,
+      context 
+    });
+    if (process.env.NODE_ENV !== 'production') {
+      throw error; // Surface for testing
+    }
   }
 }
 
