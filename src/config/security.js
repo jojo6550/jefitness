@@ -40,7 +40,7 @@ styleSrc: [
           "https://api.mailjet.com",
           "https://cdn.jsdelivr.net",
           "https://api.stripe.com",
-          "https://jefitness.onrender.com",
+          "https://jefitnessja.com",
           "http://localhost:10000",
           "http://127.0.0.1:10000"
         ],
@@ -76,7 +76,7 @@ styleSrc: [
     if (req.method === 'OPTIONS') {
       const origin = req.headers.origin;
       const allowedOrigins = [
-        'https://jefitness.onrender.com',
+        'https://jefitnessja.com',
         process.env.FRONTEND_URL
       ].filter(Boolean);
       

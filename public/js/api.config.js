@@ -26,7 +26,7 @@ class ApiConfig {
       case 'PRODUCTION':
         // For custom domain jefitnessja.com, use backend URL
         if (window.location.hostname === 'jefitnessja.com') {
-          return 'https://jefitness.onrender.com';
+          return 'https://jefitnessja.com';
         }
         return window.location.origin;
       default:

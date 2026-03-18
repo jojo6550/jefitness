@@ -14,7 +14,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Define allowed origins explicitly (exact match only)
     const allowedOrigins = [
-      'https://jefitness.onrender.com', // Production backend
+      'https://jefitnessja.com', // Production backend
       'https://jefitnessja.com',        // Custom frontend domain
       process.env.FRONTEND_URL,
       ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
@@ -31,7 +31,7 @@ const corsOptions = {
         'http://localhost:10000',
         'http://localhost:5500',
         'http://localhost:5501',
-        'https://jefitness.onrender.com'
+        'https://jefitnessja.com'
       );
     }
 
@@ -66,7 +66,7 @@ const corsPreflightHandler = (req, res) => {
   
   // SECURITY: Only set Access-Control-Allow-Origin for allowed origins
   const allowedOrigins = [
-    'https://jefitness.onrender.com', // Production backend
+    'https://jefitnessja.com', // Production backend
     'https://jefitnessja.com',        // Custom frontend domain
     process.env.FRONTEND_URL,
     ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
@@ -81,7 +81,7 @@ const corsPreflightHandler = (req, res) => {
       'http://127.0.0.1:5500',
       'http://localhost:10000',
       'http://localhost:5500',
-      'https://jefitness.onrender.com'
+      'https://jefitnessja.com'
     );
   }
 

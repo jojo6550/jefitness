@@ -2,7 +2,7 @@ const { defineConfig } = require('cypress');
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'https://jefitness.onrender.com',
+    baseUrl: 'https://jefitnessja.com',
     viewportWidth: 1280,
     viewportHeight: 720,
     defaultCommandTimeout: 10000,

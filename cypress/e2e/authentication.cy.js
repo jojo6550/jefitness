@@ -37,7 +37,7 @@ describe('Authentication', () => {
       cy.get('#loginButton').click();
       // Check if redirected to dashboard or show success message
       cy.url({ timeout: 10000 }).should('satisfy', (url) => {
-        return url.includes('dashboard') || url.includes('jefitness.onrender.com');
+        return url.includes('dashboard') || url.includes('jefitnessja.com');
       });
     });
   });
@@ -186,7 +186,7 @@ describe('Authentication', () => {
       cy.get('#logoutButton').click();
       // Should redirect to home or login
       cy.url().should('satisfy', (url) => {
-        return url.includes('login') || url.includes('jefitness.onrender.com');
+        return url.includes('login') || url.includes('jefitnessja.com');
       });
     });
 
@@ -194,7 +194,7 @@ describe('Authentication', () => {
       cy.visit('/pages/dashboard.html');
       // Should redirect to login or show error
       cy.url().should('satisfy', (url) => {
-        return url.includes('login') || url.includes('jefitness.onrender.com');
+        return url.includes('login') || url.includes('jefitnessja.com');
       });
     });
   });
