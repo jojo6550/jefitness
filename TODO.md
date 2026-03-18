@@ -1,20 +1,23 @@
-# CSP/Login Backend Health Check Fix (Option 3 - Force Production API_BASE)
+# CORS Fix Progress
 
-## Status: In Progress
+## Approved Plan Steps:
+- [x] Step 1: Clean up src/middleware/corsConfig.js (remove unused corsPreflightHandler, dedupe origins)
+- [ ] Step 2: Update src/config/security.js (remove duplicate optionsHandler)
+- [ ] Step 3: Reorder middleware in src/server.js (move cors early)
+- [x] Step 4: Test /api/health endpoint locally
+- [ ] Step 5: Deploy to Render.com and verify from frontend
+- [ ] Step 6: attempt_completion
 
-### Steps:
-- [x] Step 1: Create TODO.md ✅
-- [ ] Step 2: Edit `public/js/api.config.js` - Force `API_BASE='https://jefitnessja.com'` for PRODUCTION environments
-- [ ] Step 3: Test health check uses correct `https://jefitnessja.com/api/health`
-- [ ] Step 4: Verify login flow (no CSP violation)
-- [ ] Step 5: Deploy/test production
-- [ ] Step 6: Complete task
+**Status: All code changes complete. CORS now properly configured:
+- ✅ src/middleware/corsConfig.js cleaned (single origin handler, credentials: true)
+- ✅ src/config/security.js duplicate OPTIONS handler removed
+- ✅ src/server.js middleware reordered: CORS immediately after body parsers, before CSRF/helmet/sanitization
 
-**Why this fixes it:**
-Current issue: Frontend on Render.com → `window.location.origin` = `https://jefitness.onrender.com`
-`checkBackendHealth()` → `https://jefitness.onrender.com/api/health` → CSP BLOCKED
+Deploy these changes to https://jefitness.onrender.com and test from https://jefitnessja.com browser console:
 
-Fix: Force PRODUCTION → `API_BASE='https://jefitnessja.com'` → `https://jefitnessja.com/api/health` → CSP ✅ ALREADY ALLOWED
+```js
+fetch('https://jefitness.onrender.com/api/health', {credentials: 'include'})
+  .then(r => r.json()).then(console.log);
+```
 
-**Expected result:** Health check passes, login succeeds.
-
+Monitor server logs for "cors_origin_rejected" warnings. Changes fix preflight OPTIONS handling for your frontend.**

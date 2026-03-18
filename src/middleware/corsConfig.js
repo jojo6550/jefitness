@@ -14,9 +14,8 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Define allowed origins explicitly (exact match only)
     const allowedOrigins = [
-      'https://jefitnessja.com', // Production backend
-      'https://jefitnessja.com',        // Custom frontend domain
-      process.env.FRONTEND_URL,
+      'https://jefitnessja.com',
+      process.env.FRONTEND_URL || 'https://jefitnessja.com',
       ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
     ].filter(Boolean);
     
@@ -61,47 +60,6 @@ const corsOptions = {
  * SECURITY: CORS preflight handler
  * Explicitly handles OPTIONS requests with security headers
  */
-const corsPreflightHandler = (req, res) => {
-  const origin = req.headers.origin;
-  
-  // SECURITY: Only set Access-Control-Allow-Origin for allowed origins
-  const allowedOrigins = [
-    'https://jefitnessja.com', // Production backend
-    'https://jefitnessja.com',        // Custom frontend domain
-    process.env.FRONTEND_URL,
-    ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
-  ].filter(Boolean);
-  
-  // Always allow localhost origins for development
-  const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
-  
-  if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
-    allowedOrigins.push(
-      'http://127.0.0.1:10000',
-      'http://127.0.0.1:5500',
-      'http://localhost:10000',
-      'http://localhost:5500',
-      'https://jefitnessja.com'
-    );
-  }
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Auth-Token, X-Requested-With, X-CSRF-Token');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    res.sendStatus(204);
-  } else if (!origin) {
-    // Allow requests with no origin (same-origin requests)
-    res.sendStatus(204);
-  } else {
-    console.warn(`Security event: cors_preflight_rejected | Origin: ${origin}`);
-    res.sendStatus(403);
-  }
-};
-
 module.exports = {
-  corsOptions,
-  corsPreflightHandler
+  corsOptions
 };

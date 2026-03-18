@@ -30,7 +30,7 @@ app.use('/webhook', webhookRouter);
 app.set('trust proxy', 1);
 
 // Security config
-const { nonceMiddleware, helmetOptions, optionsHandler } = require('./config/security');
+const { nonceMiddleware, helmetOptions } = require('./config/security');
 
 const connectDB = require('../config/db');
 
@@ -45,21 +45,22 @@ const { corsOptions } = require('./middleware/corsConfig');
 const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
 const { errorHandler } = require('./middleware/errorHandler');
 
-// Security middlewares
-app.use(nonceMiddleware);
-app.use(helmet(helmetOptions));
-app.use(optionsHandler);
-
-app.use(requestLogger);
-
-// Body parsing
+// Body parsing (required before CORS)
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 
-// Sanitization
+// CORS - MUST be early, before CSRF/sanitization for proper preflight handling
+app.use(cors(corsOptions));
+
+// Security middlewares (nonce, helmet after CORS)
+app.use(nonceMiddleware);
+app.use(helmet(helmetOptions));
+
+app.use(requestLogger);
+
+// Sanitization & CSRF (after CORS)
 app.use(sanitizeInput);
 app.use(csrfProtection.middleware());
-app.use(cors(corsOptions));
 
 // Disable caching in development
 if (process.env.NODE_ENV !== 'production') {

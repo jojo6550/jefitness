@@ -3,7 +3,7 @@
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '86';
+const CACHE_VERSION = '87';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
