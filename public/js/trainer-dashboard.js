@@ -101,13 +101,14 @@ function renderAppointments(appointments) {
                 </div>
                 <div class="apt-actions d-flex align-items-center gap-2">
                     <span class="apt-status status-${apt.status || 'scheduled'}">${apt.status || 'scheduled'}</span>
-                    ${(apt.status === 'scheduled' || apt.status === 'late') && currentView === 'active' ? `
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'completed')" title="Complete"><i class="bi bi-check text-success"></i></button>
-                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'late')" title="Late"><i class="bi bi-clock text-warning"></i></button>
-                            <button class="btn btn-dark border-0 py-0" onclick="updateStatus('${apt._id}', 'no_show')" title="No Show"><i class="bi bi-x text-danger"></i></button>
+                ${(apt.status === 'scheduled' || apt.status === 'late') && currentView === 'active' ? `
+                        <div class="btn-group btn-group-sm status-buttons" data-appointment-id="${apt._id}">
+                            <button class="btn btn-dark border-0 py-0 complete-btn" title="Complete"><i class="bi bi-check text-success"></i></button>
+                            <button class="btn btn-dark border-0 py-0 late-btn" title="Late"><i class="bi bi-clock text-warning"></i></button>
+                            <button class="btn btn-dark border-0 py-0 noshow-btn" title="No Show"><i class="bi bi-x text-danger"></i></button>
                         </div>
                     ` : ''}
+
                 </div>
             </div>
         `;
@@ -126,6 +127,21 @@ function setupEventListeners() {
             renderAppointments(filtered);
         });
     }
+
+    // Event delegation for status buttons (CSP safe - no inline handlers)
+    const appointmentsList = document.getElementById('appointmentsList');
+    appointmentsList.addEventListener('click', (e) => {
+        const aptId = e.target.closest('.status-buttons')?.dataset.appointmentId;
+        if (!aptId) return;
+
+        let status;
+        if (e.target.closest('.complete-btn')) status = 'completed';
+        else if (e.target.closest('.late-btn')) status = 'late';
+        else if (e.target.closest('.noshow-btn')) status = 'no_show';
+        else return;
+
+        updateStatus(aptId, status);
+    });
 
     const activeTab = document.getElementById('activeTab');
     const archiveTab = document.getElementById('archiveTab');

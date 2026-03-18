@@ -1,29 +1,10 @@
-# TODO: Remove Mailjet/Emailing/OTP Code Cleanup
+# Task Progress: Fix API_BASE logging and CSP violation in trainer-dashboard
 
-## Status: Not Started
+## TODO Steps (from approved plan):
+- [x] Step 1: Edit public/js/api.config.js to reduce/suppress repeated "API_BASE set to local backend" console logs using a flag/timestamp check.
+- [x] Step 2: Refactor public/js/trainer-dashboard.js renderAppointments() to remove inline `onclick` attributes; use event delegation with addEventListener on parent container.
+- [ ] Step 3: Test changes - verify no log spam and no CSP errors.
+- [ ] Step 4: Complete task.
 
-### 1. Create TODO.md [COMPLETED]
-- [x] Generate this file with task list
+## Status: Edits complete. Test in browser: Open public/pages/trainer-dashboard.html, check Console for no log spam / CSP errors. Reload multiple times to verify.
 
-### 2. Edit Configuration Files
-- [x] src/config/security.js: Remove Mailjet CSP entry ✅
-- [x] src/middleware/csrf.js: Remove OTP routes ✅
-
-### 3. Remove Frontend OTP Code
-- [x] public/pages/signup.html: Delete #otp-container ✅
-- [x] public/js/auth.js: Remove OTP handlers ✅
-- [x] public/js/validators.js: Delete validateOTP ✅
-
-### 4. Update Tests
-- [x] cypress/e2e/authentication.cy.js: Remove OTP tests ✅
-
-### 5. Cleanup Documentation
-- [ ] Delete TODO-OTP-EMAIL.md
-
-### 6. Verification
-- [x] search_files for "otp|verify-email|resend-otp|mailjet" → Verify 0 results
-- [ ] Test signup/login flows
-- [ ] Restart server
-- [ ] attempt_completion
-
-**Next**: Execute parallel edit_file operations.

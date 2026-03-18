@@ -19,7 +19,12 @@ class ApiConfig {
           console.log('API_BASE overridden to local HTTP:', override);
           return override;
         }
-        console.log('API_BASE set to local backend:', 'http://localhost:10000');
+// console.log suppressed to reduce spam: API_BASE set to local backend
+const localLogShown = localStorage.getItem('api_base_log_shown');
+if (!localLogShown) {
+  console.log('API_BASE set to local backend: http://localhost:10000 (log shown once per session)');
+  localStorage.setItem('api_base_log_shown', 'true');
+}
         return 'http://localhost:10000';  // Fixed HTTP backend
       case 'MOBILE_DEVICE':
         return this.getMobileDeviceURL();

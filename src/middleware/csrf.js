@@ -91,7 +91,7 @@ class CSRFProtection {
         return next(); // Webhooks use signature verification, not CSRF
       }
 
-      // Skip CSRF for public auth routes (signup, login, forgot-password, reset-password, verify-email)
+// Skip CSRF for public auth routes (signup, login, forgot-password, reset-password)
       // These endpoints need to be accessible without prior authentication
       if (req.path.startsWith('/api/v1/auth/')) {
         const publicAuthRoutes = ['/signup', '/login', '/forgot-password', '/reset-password'];
