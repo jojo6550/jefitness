@@ -30,10 +30,12 @@ if (!localLogShown) {
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
         // For custom domain jefitnessja.com, use backend URL
-        if (window.location.hostname === 'jefitnessja.com') {
-          return 'https://jefitnessja.com';
-        }
-        return window.location.origin;
+    if (window.location.hostname === 'jefitnessja.com') {
+      const base = 'https://jefitnessja.com';
+      console.log('[API_CONFIG] PRODUCTION detected. Using API_BASE:', base, 'Hostname:', window.location.hostname);
+      return base;
+    }
+    return 'https://jefitnessja.com';
       default:
         return window.location.origin;
     }

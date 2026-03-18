@@ -35,12 +35,12 @@ styleSrc: [
           "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='"
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-        connectSrc: [
+connectSrc: [
           "'self'",
-
           "https://cdn.jsdelivr.net",
           "https://api.stripe.com",
           "https://jefitnessja.com",
+          "https://jefitness.onrender.com",
           "http://localhost:10000",
           "http://127.0.0.1:10000"
         ],
