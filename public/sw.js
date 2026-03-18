@@ -3,7 +3,7 @@
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '85';
+const CACHE_VERSION = '86';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -23,7 +23,11 @@ const STATIC_ASSETS = [
   '/js/api.config.js', '/js/app.js', '/js/auth.js',
   '/js/cache-version.js', '/js/cookie-consent.js',
   '/js/toast.js', '/js/validators.js',
-  '/login', '/signup'
+  '/login', '/signup',
+  '/pages/trainer-dashboard.html',
+  '/pages/admin-dashboard.html',
+  '/pages/dashboard.html',
+  '/pages/profile.html'
 ];
 
 // ===============================
@@ -69,7 +73,14 @@ self.addEventListener('fetch', event => {
 
   // Dev mode: always fetch fresh
   if (IS_DEVELOPMENT) {
-    event.respondWith(fetch(request).catch(() => caches.match(request)));
+    event.respondWith(
+      fetch(request)
+        .catch(() => caches.match(request))
+        .catch(() => new Response('Offline - page not cached', { 
+          status: 503, 
+          statusText: 'Service Unavailable' 
+        }))
+    );
     return;
   }
 
@@ -82,7 +93,10 @@ self.addEventListener('fetch', event => {
           const cacheResponse = networkResponse.clone();
           caches.open(DYNAMIC_CACHE).then(cache => cache.put(request.url, cacheResponse));
         }
-        // Return original response directly
+        // Validate and return original response
+        if (!networkResponse || networkResponse.type !== 'basic' || networkResponse.status === 0) {
+          throw new Error('Invalid network response');
+        }
         return networkResponse;
       }).catch(() => caches.match(request))
     );

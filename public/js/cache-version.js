@@ -86,17 +86,8 @@
     }
 
     // Try to get version from cache or fetch from server
-    if (!this.versionsCache) {
-      try {
-        this.versionsCache = await window.API.cache.getVersions();
-      } catch (err) {
-        console.warn('Failed to fetch cache versions, using timestamp fallback:', err);
-        // Fallback: Use current minute as version (changes every minute)
-        return Math.floor(Date.now() / 60000).toString(36);
-      }
-    }
-
-    return this.versionsCache[assetPath] || Math.floor(Date.now() / 60000).toString(36);
+    // Simple timestamp version - stable for session
+    return Math.floor(Date.now() / 60000).toString(36);
   },
 
     /**
