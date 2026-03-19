@@ -308,37 +308,36 @@ document.addEventListener('DOMContentLoaded', () => {
       setLoadingState(signupButton, true);
 
       try {
-        const response = await fetch(`${window.API_BASE}/api/v1/auth/signup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            firstName,
-            lastName,
-            email,
-            password,
-            dataProcessingConsent: { given: true },
-            healthDataConsent: { given: true }
-          })
+        // Use consistent API method like login for better error handling and health checks
+        const data = await window.API.auth.register({
+          firstName,
+          lastName,
+          email,
+          password,
+          dataProcessingConsent: { given: true },
+          healthDataConsent: { given: true }
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          const { token, user } = data.data || data;
-          localStorage.setItem('token', token);
-          localStorage.setItem('userRole', user.role || 'user');
-          window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);
-          // Redirect based on role
-          let redirectPath = '/dashboard';
-          if (user.role === 'admin') redirectPath = '/admin-dashboard';
-          else if (user.role === 'trainer') redirectPath = '/trainer-dashboard';
-          setTimeout(() => window.location.href = redirectPath, 1500);
-        } else {
-          handleApiError(response, data, 'Signup failed');
-        }
+        
+        const { token, user } = data.data || data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('userRole', user.role || 'user');
+        window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);
+        // Redirect based on role
+        let redirectPath = '/dashboard';
+        if (user.role === 'admin') redirectPath = '/admin-dashboard';
+        else if (user.role === 'trainer') redirectPath = '/trainer-dashboard';
+        setTimeout(() => window.location.href = redirectPath, 1500);
       } catch (err) {
         console.error('Signup error:', err);
-        window.Toast.error('Network error. Please try again.');
+        if (err.message.includes('Backend service is currently unavailable') || err.message.includes('fetch')) {
+          window.Toast.error('Backend service unavailable. Please check server connection.');
+        } else if (err.message.includes('HTTP')) {
+          window.Toast.error(`Server error: ${err.message}`);
+        } else if (err.message.includes('already exists')) {
+          window.Toast.error('An account with this email already exists.');
+        } else {
+          window.Toast.error(err.message || 'Signup failed. Please try again.');
+        }
       } finally {
         setLoadingState(signupButton, false);
       }

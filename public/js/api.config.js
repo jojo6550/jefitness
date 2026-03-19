@@ -166,7 +166,8 @@ class API {
   /** Cached health result — avoids a preflight request on every single API call */
   static _healthCache = { ok: null, checkedAt: 0 };
   static async isHealthy() {
-    if (Date.now() - this._healthCache.checkedAt < 30000) return this._healthCache.ok;
+    // Increase cache time to 60s to reduce health checks, especially on slow connections
+    if (Date.now() - this._healthCache.checkedAt < 60000) return this._healthCache.ok;
     const ok = await this.checkBackendHealth();
     this._healthCache = { ok, checkedAt: Date.now() };
     return ok;
@@ -176,7 +177,8 @@ class API {
     try {
       const API_BASE = ApiConfig.getAPI_BASE();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s faster timeout
+      // CRITICAL: Increased timeout to 15s for Render cold starts (was 3s)
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       const response = await fetch(`${API_BASE}/api/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
@@ -186,7 +188,9 @@ class API {
       return response.ok;
     } catch (error) {
       console.warn('Backend health check failed:', error.name, error.message);
-      return false;
+      // CRITICAL FIX: Return true on timeout/failure to allow auth flow to proceed
+      // The actual API call will fail with a clearer error if backend is down
+      return true;
     }
   }
 
@@ -220,7 +224,7 @@ class API {
       body: JSON.stringify({ email, password })
     }),
 
-    register: (userData) => API.request('/api/v1/auth/register', {
+    register: (userData) => API.request('/api/v1/auth/signup', {
       method: 'POST',
       body: JSON.stringify(userData)
     }),

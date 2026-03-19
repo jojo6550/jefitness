@@ -15,6 +15,7 @@ const corsOptions = {
     // Define allowed origins explicitly (exact match only)
     const allowedOrigins = [
       'https://jefitnessja.com',
+      'https://www.jefitnessja.com',
       process.env.FRONTEND_URL || 'https://jefitnessja.com',
       ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
     ].filter(Boolean);
@@ -30,7 +31,8 @@ const corsOptions = {
         'http://localhost:10000',
         'http://localhost:5500',
         'http://localhost:5501',
-        'https://jefitnessja.com'
+        'https://jefitnessja.com',
+        'https://www.jefitnessja.com'
       );
     }
 
