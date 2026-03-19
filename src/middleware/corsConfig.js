@@ -12,29 +12,13 @@ const cors = require('cors');
  */
 const corsOptions = {
   origin: function (origin, callback) {
-    // Define allowed origins explicitly (exact match only)
+    // Hardcoded allowed origins ONLY - localhost:10000 and jefitnessja.com
     const allowedOrigins = [
       'https://jefitnessja.com',
       'https://www.jefitnessja.com',
-      process.env.FRONTEND_URL || 'https://jefitnessja.com',
-      ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || [])
-    ].filter(Boolean);
-    
-    // Always allow localhost origins for development
-    // Check if origin contains localhost or 127.0.0.1
-    const isLocalhostOrigin = origin && (origin.includes('localhost') || origin.includes('127.0.0.1'));
-    
-    if (isLocalhostOrigin || process.env.NODE_ENV !== 'production') {
-      allowedOrigins.push(
-        'http://127.0.0.1:10000',
-        'http://127.0.0.1:5500',
-        'http://localhost:10000',
-        'http://localhost:5500',
-        'http://localhost:5501',
-        'https://jefitnessja.com',
-        'https://www.jefitnessja.com'
-      );
-    }
+      'http://localhost:10000',
+      'http://127.0.0.1:10000'
+    ];
 
     // SECURITY: Allow requests with no origin (same-origin, server-to-server, or mobile apps)
     if (!origin) {
