@@ -1,532 +1,71 @@
 /**
- * API Configuration Module
- * Handles API endpoint configuration for different environments
- * (Browser, Android Emulator, iOS Simulator, Physical Devices, Production)
+ * Simplified API Configuration
+ * Only supports jefitnessja.com (prod) and localhost:10000 (dev)
+ * Removed all Capacitor/mobile/emulator/health check complexity
  */
 
-class ApiConfig {
-  static getAPI_BASE() {
-    const env = this.getEnvironment();
+const API_BASE = window.location.hostname === 'jefitnessja.com' 
+  ? 'https://jefitnessja.com' 
+  : 'http://localhost:10000';
+
+window.API_BASE = API_BASE;
+
+window.API = {
+  request: async (endpoint, options = {}) => {
+    const url = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
     
-    switch(env) {
-      case 'ANDROID_EMULATOR':
-        return 'http://10.0.2.2:10000';
-      case 'IOS_SIMULATOR': 
-      case 'BROWSER':
-        // Fix for VS Code Live Server HTTPS: force HTTP backend for local dev
-        const override = localStorage.getItem('api_force_local');
-        if (override === 'http://localhost:10000') {
-          console.log('API_BASE overridden to local HTTP:', override);
-          return override;
-        }
-// console.log suppressed to reduce spam: API_BASE set to local backend
-const localLogShown = localStorage.getItem('api_base_log_shown');
-if (!localLogShown) {
-  console.log('API_BASE set to local backend: http://localhost:10000 (log shown once per session)');
-  localStorage.setItem('api_base_log_shown', 'true');
-}
-        return 'http://localhost:10000';  // Fixed HTTP backend
-      case 'MOBILE_DEVICE':
-        return this.getMobileDeviceURL();
-      case 'PRODUCTION':
-        // For custom domain jefitnessja.com, use backend URL
-    const base = 'https://jefitnessja.com';
-       console.log('[API_CONFIG] PRODUCTION detected. Using API_BASE:', base, 'Hostname:', window.location.hostname);
-        return base;
-      default:
-        return window.location.origin;
-    }
-  }
-
-  static getEnvironment() {
-    // Check if running in Capacitor
-    if (window.Capacitor && window.Capacitor.isNativePlatform?.()) {
-      const platform = window.Capacitor.getPlatform?.();
-      
-      if (platform === 'android') {
-        return 'ANDROID_EMULATOR';
-      } else if (platform === 'ios') {
-        return 'IOS_SIMULATOR';
-      }
-      
-      // Check if on actual device
-      if (this.isPhysicalDevice()) {
-        return 'MOBILE_DEVICE';
-      }
-    }
-    
-    // Check if production
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return 'PRODUCTION';
-    }
-    
-    return 'BROWSER';
-  }
-
-  static isPhysicalDevice() {
-    // Check if device info indicates physical device
-    return navigator.userAgent.includes('Mobile') && !this.isEmulator();
-  }
-
-  static isEmulator() {
-    return navigator.userAgent.includes('Emulator') || 
-           navigator.userAgent.includes('Simulator');
-  }
-
-  static getMobileDeviceURL() {
-    // Fallback: prompt user or use stored IP
-    const savedIP = localStorage.getItem('device_server_ip');
-    if (savedIP) {
-      return `http://${savedIP}:10000`;
-    }
-    
-    // Try to detect local network IP
-    const hostname = window.location.hostname;
-    if (hostname && hostname !== 'localhost') {
-      return `http://${hostname}:10000`;
-    }
-    
-    return 'http://localhost:10000';
-  }
-
-  static setDeviceServerIP(ip) {
-    localStorage.setItem('device_server_ip', ip);
-    console.log(`Device server IP set to: ${ip}`);
-  }
-
-  static getDebugInfo() {
-    return {
-      environment: this.getEnvironment(),
-      browser_origin: window.location.origin,
-      API_BASE: this.getAPI_BASE(),
-      using_local_override: !!localStorage.getItem('api_force_local'),
-      platform: window.Capacitor?.getPlatform?.() || 'web',
-      hostname: window.location.hostname,
-      isNativePlatform: window.Capacitor?.isNativePlatform?.(),
-      userAgent: navigator.userAgent
+    const token = localStorage.getItem('token') || '';
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers
     };
-  }
-}
-
-/**
- * API Client
- * Unified API interface for all backend calls
- */
-class API {
-  static async request(endpoint, options = {}) {
-    const API_BASE = ApiConfig.getAPI_BASE();
-    const url = `${API_BASE}${endpoint}`;
-
-    // Add request ID header for server correlation
-    options.headers = {
-      ...options.headers,
-      'X-Request-ID': 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-    };
-
-    const defaultHeaders = {
-      'Content-Type': 'application/json'
-    };
-
-    const token = this.getToken();
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
-    }
-
-    // Check backend availability (result is cached for 30s to avoid 2× requests per call)
-    if (!await this.isHealthy()) {
-      throw new Error('Backend service is currently unavailable. Please try again later.');
-    }
 
     try {
-      const controller = new AbortController();
-      const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      
-      const fetchOptions = {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Request-ID': requestId,
-          ...defaultHeaders,
-          ...options.headers
-        },
-        signal: controller.signal,
-        ...options
-      };
-
-      const response = await fetch(url, fetchOptions);
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
 
       if (!response.ok) {
-        // CRITICAL: Always parse error response body for diagnostics
-        let errorDetails = {};
+        let errorData = {};
         try {
-          errorDetails = await response.json();
-        } catch (parseErr) {
-          console.warn(`[API] Failed to parse error response body [${endpoint}]:`, parseErr);
-        }
-
-        if (response.status === 401) {
-          this.handleUnauthorized();
-        }
-
-        // Enhanced error with server details + request correlation
-        const fullError = new Error(`HTTP ${response.status}: ${errorDetails.error?.message || response.statusText}`);
-        fullError.status = response.status;
-        fullError.requestId = requestId;
-        fullError.serverMessage = errorDetails.error?.message || 'No server details';
-        fullError.serverRequestId = errorDetails.error?.requestId;
-        fullError.responseHeaders = Object.fromEntries(response.headers.entries());
-        fullError.endpoint = endpoint;
-        fullError.apiBase = API_BASE;
-
-        // Detailed console logging with copyable debug info
-        console.group(`❌ API ERROR [${endpoint}] (${response.status})`);
-        console.error('Status:', response.status);
-        console.error('Server Message:', errorDetails.error?.message || 'No details');
-        console.error('Request ID:', requestId);
-        console.error('Server Request ID:', errorDetails.error?.requestId);
-        console.error('Debug Info:', {
-          url,
-          status: response.status,
-          headers: fullError.responseHeaders,
-          serverMessage: errorDetails.error?.message,
-          emailHash: options.body ? this.hashEmail(options.body) : 'N/A'
-        });
+          errorData = await response.json();
+        } catch {}
         
-        // Copy debug info to clipboard
-        const debugInfo = `API ERROR: ${endpoint}\nStatus: ${response.status}\nServer: ${errorDetails.error?.message || 'N/A'}\nClient ID: ${requestId}\nServer ID: ${errorDetails.error?.requestId || 'N/A'}\n`;
-        navigator.clipboard.writeText(debugInfo).then(() => {
-          console.log('📋 Debug info copied to clipboard');
-        });
-        console.groupEnd();
-
-        throw fullError;
+        const error = new Error(errorData.message || errorData.error?.message || response.statusText);
+        error.status = response.status;
+        error.response = errorData;
+        throw error;
       }
 
-      const data = await response.json();
-      return data;
+      return response.json();
     } catch (error) {
-      // Network/connectivity errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        console.error(`🌐 Network Error [${endpoint}]: Backend unreachable. Check API_BASE: ${API_BASE}`);
-        console.error('Debug:', ApiConfig.getDebugInfo());
-        throw new Error('Backend service unavailable. Check your connection.');
-      } else if (error.name === 'AbortError') {
-        throw new Error('Request timeout. Server may be slow.');
+        throw new Error(`Backend unavailable at ${API_BASE}. Check if server is running.`);
       }
-
-      // Re-throw enhanced errors with request context
-      if (!error.endpoint) {
-        error.endpoint = endpoint;
-        error.apiBase = API_BASE;
-      }
-      console.error(`💥 Unexpected API Error [${endpoint}]:`, error);
       throw error;
     }
-  }
+  },
 
-  /**
-   * Privacy-safe email hashing for debug logs (SHA-256 first 8 chars)
-   */
-  static hashEmail(bodyStr) {
-    try {
-      const emailMatch = bodyStr.match(/"email":"([^"]+)"/);
-      if (emailMatch) {
-        const email = emailMatch[1];
-        return btoa(email).slice(0, 8).toLowerCase();
-      }
-    } catch (e) {}
-    return 'unknown';
-  }
-
-  /** Cached health result — avoids a preflight request on every single API call */
-  static _healthCache = { ok: null, checkedAt: 0 };
-  static async isHealthy() {
-    // Increase cache time to 60s to reduce health checks, especially on slow connections
-    if (Date.now() - this._healthCache.checkedAt < 60000) return this._healthCache.ok;
-    const ok = await this.checkBackendHealth();
-    this._healthCache = { ok, checkedAt: Date.now() };
-    return ok;
-  }
-
-  static async checkBackendHealth() {
-    try {
-      const API_BASE = ApiConfig.getAPI_BASE();
-      const controller = new AbortController();
-      // CRITICAL: Increased timeout to 15s for Render cold starts (was 3s)
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const response = await fetch(`${API_BASE}/api/health`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      return response.ok;
-    } catch (error) {
-      console.error('[HEALTH_CHECK] Backend health check failed at', API_BASE, ':', error.name, error.message);
-      // CRITICAL FIX: Return true on timeout/failure to allow auth flow to proceed
-      // The actual API call will fail with a clearer error if backend is down
-      return true;
-    }
-  }
-
-  static getToken() {
-    return localStorage.getItem('token') || '';
-  }
-
-  static setToken(token) {
-    localStorage.setItem('token', token);
-  }
-
-  static clearToken() {
-    localStorage.removeItem('token');
-  }
-
-  static handleUnauthorized() {
-    this.clearToken();
-    localStorage.removeItem('user');
-    // Redirect to login
-    if (window.router) {
-      window.router.navigate('/');
-    } else {
-      window.location.href = '/';
-    }
-  }
-
-  // ===== Auth Endpoints =====
-  static auth = {
-    login: (email, password) => API.request('/api/v1/auth/login', {
+  // Simple auth helpers
+  auth: {
+    login: (email, password) => window.API.request('/api/v1/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password })
     }),
-
-    register: (userData) => API.request('/api/v1/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(userData)
-    }),
-
-    logout: () => API.request('/api/v1/auth/logout', {
-      method: 'POST'
-    }),
-
-    verifyEmail: (token) => API.request('/api/v1/auth/verify-email', {
-      method: 'POST',
-      body: JSON.stringify({ token })
-    }),
-
-    resendVerification: (email) => API.request('/api/v1/auth/resend-verification', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    }),
-
-    getSchedule: () => API.request('/api/v1/auth/schedule'),
-
-    updateSchedule: (schedule) => API.request('/api/v1/auth/schedule', {
-      method: 'PUT',
-      body: JSON.stringify({ schedule })
-    })
-  };
-
-  // ===== Clients Endpoints =====
-  static clients = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/clients?${params}`);
-    },
     
-    getOne: (id) => API.request(`/api/clients/${id}`),
+    signup: (data) => window.API.request('/api/v1/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
     
-    create: (data) => API.request('/api/clients', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
+    logout: () => window.API.request('/api/v1/auth/logout', { method: 'POST' })
+  },
 
-    update: (id, data) => API.request(`/api/clients/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
+  getToken: () => localStorage.getItem('token'),
+  setToken: (token) => localStorage.setItem('token', token),
+  clearToken: () => localStorage.removeItem('token')
+};
 
-    delete: (id) => API.request(`/api/clients/${id}`, {
-      method: 'DELETE'
-    })
-  };
-
-  // ===== Logs Endpoints =====
-  static logs = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/logs?${params}`);
-    },
-    
-    create: (data) => API.request('/api/logs', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => API.request(`/api/logs/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
-
-    delete: (id) => API.request(`/api/logs/${id}`, {
-      method: 'DELETE'
-    })
-  };
-
-  // ===== Users Endpoints (merged — see second definition below) =====
-
-  // ===== Programs Endpoints =====
-  static programs = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/programs?${params}`);
-    },
-    
-    getOne: (id) => API.request(`/api/programs/${id}`),
-
-    create: (data) => API.request('/api/programs', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => API.request(`/api/programs/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
-
-    delete: (id) => API.request(`/api/programs/${id}`, {
-      method: 'DELETE'
-    })
-  };
-
-  // ===== Orders Endpoints =====
-  static orders = {
-    getAll: () => API.request('/api/orders'),
-    
-    getOne: (id) => API.request(`/api/orders/${id}`),
-
-    create: (data) => API.request('/api/orders', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => API.request(`/api/orders/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    })
-  };
-
-  // ===== Cart Endpoints =====
-  static cart = {
-    get: () => API.request('/api/v1/cart'),
-
-    addItem: (itemId, quantity) => API.request('/api/v1/cart/add', {
-      method: 'POST',
-      body: JSON.stringify({ programId: itemId, quantity })
-    }),
-
-    updateItem: (itemId, quantity) => API.request(`/api/v1/cart/update/${itemId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ quantity })
-    }),
-
-    removeItem: (itemId) => API.request(`/api/v1/cart/remove/${itemId}`, {
-      method: 'DELETE'
-    }),
-
-    clear: () => API.request('/api/v1/cart/clear', {
-      method: 'DELETE'
-    })
-  };
-
-  // ===== Notifications Endpoints =====
-  static notifications = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/notifications?${params}`);
-    },
-
-    markAsRead: (id) => API.request(`/api/notifications/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ read: true })
-    }),
-
-    delete: (id) => API.request(`/api/notifications/${id}`, {
-      method: 'DELETE'
-    })
-  };
-
-  // ===== Sleep Endpoints =====
-  static sleep = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/sleep?${params}`);
-    },
-
-    create: (data) => API.request('/api/sleep', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    })
-  };
-
-  // ===== Appointments Endpoints =====
-  static appointments = {
-    getAll: (filters = {}) => {
-      const params = new URLSearchParams(filters).toString();
-      return API.request(`/api/appointments?${params}`);
-    },
-
-    getUserAppointments: () => API.request('/api/appointments/user'),
-
-    getOne: (id) => API.request(`/api/appointments/${id}`),
-
-    create: (data) => API.request('/api/appointments', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    }),
-
-    update: (id, data) => API.request(`/api/appointments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
-
-    delete: (id) => API.request(`/api/appointments/${id}`, {
-      method: 'DELETE'
-    })
-  };
-
- 
-  // ===== Cache Endpoints =====
-  static cache = {
-    getVersions: () => API.request('/api/cache-versions')
-  };
-
-  // ===== Users Endpoints =====
-  static users = {
-    getTrainers: () => API.request('/api/v1/users/trainers'),
-
-    getAdmins: () => API.request('/api/v1/users/admins'),
-
-    getProfile: () => API.request('/api/v1/users/profile'),
-
-    updateProfile: (data) => API.request('/api/v1/users/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    }),
-
-    changePassword: (oldPassword, newPassword) => API.request('/api/v1/users/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ oldPassword, newPassword })
-    }),
-
-    getAll: () => API.request('/api/v1/users'),
-
-    getOne: (id) => API.request(`/api/v1/users/${id}`),
-
-    delete: (id) => API.request(`/api/v1/users/${id}`, {
-      method: 'DELETE'
-    })
-  };
-}
-
-// Make API globally available
-window.API = API;
-window.ApiConfig = ApiConfig;
+console.log(`API configured: ${API_BASE} (${window.location.hostname})`);
