@@ -1,17 +1,15 @@
 // ===============================
-//JEFitness Service Worker (v80)
+//JEFitness Service Worker (v91)
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '90';
+const CACHE_VERSION = '91';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
 // Detect development
 const IS_DEVELOPMENT = location.hostname === 'localhost' ||
-                       location.hostname === '127.0.0.1' ||
-                       location.hostname.includes('dev') ||
-                       location.port === '10000';
+                       location.hostname === '127.0.0.1';
 
 // Files to cache immediately
 const STATIC_ASSETS = [
@@ -23,7 +21,7 @@ const STATIC_ASSETS = [
   '/js/api.config.js', '/js/app.js', '/js/auth.js',
   '/js/cache-version.js', '/js/cookie-consent.js',
   '/js/toast.js', '/js/validators.js',
-  '/login.html', '/signup.html',
+  'pages/login.html', 'paegs/signup.html',
   '/pages/trainer-dashboard.html',
   '/pages/admin-dashboard.html',
   '/pages/dashboard.html',
