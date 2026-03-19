@@ -55,8 +55,7 @@ connectSrc: [
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
-        upgradeInsecureRequests: [],
-        blockAllMixedContent: []
+        upgradeInsecureRequests: []
       }
     },
     hsts: {

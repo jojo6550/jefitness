@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { asyncHandler, AuthenticationError, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const { asyncHandler, AuthenticationError, ValidationError, NotFoundError, ExternalServiceError } = require('../middleware/errorHandler');
 const logger = require('../services/logger');
 
 

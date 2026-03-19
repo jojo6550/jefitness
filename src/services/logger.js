@@ -1,7 +1,7 @@
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const path = require('path');
-const { Log } = require('../models/Log');
+const Log = require('../models/Log');
 
 /**
  * Centralized Structured Winston Logger for JE Fitness
@@ -9,13 +9,50 @@ const { Log } = require('../models/Log');
  */
 class Logger {
   constructor() {
+    this.service = 'jefitness'; // Must be set before _createWinstonLogger uses it
     this.logger = this._createWinstonLogger();
-    this.service = 'jefitness';
   }
 
   _createWinstonLogger() {
     const logDir = path.join(__dirname, '..', '..', 'logs');
-    
+
+    const transports = [
+      // Error logs
+      new DailyRotateFile({
+        filename: path.join(logDir, 'error-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '10m',
+        maxFiles: '30d',
+        level: 'error'
+      }),
+      // Combined logs
+      new DailyRotateFile({
+        filename: path.join(logDir, 'combined-%DATE%.log'),
+        datePattern: 'YYYY-MM-DD',
+        zippedArchive: true,
+        maxSize: '20m',
+        maxFiles: '30d'
+      })
+    ];
+
+    // Console transport (dev pretty, prod JSON — visible in Render dashboard logs)
+    if (process.env.NODE_ENV !== 'production') {
+      transports.push(new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.simple()
+        )
+      }));
+    } else {
+      transports.push(new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.timestamp(),
+          winston.format.json()
+        )
+      }));
+    }
+
     return winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -24,43 +61,8 @@ class Logger {
         winston.format.json()
       ),
       defaultMeta: { service: this.service },
-      transports: [
-        // Error logs
-        new DailyRotateFile({
-          filename: path.join(logDir, 'error-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '10m',
-          maxFiles: '30d',
-          level: 'error'
-        }),
-        // Combined logs
-        new DailyRotateFile({
-          filename: path.join(logDir, 'combined-%DATE%.log'),
-          datePattern: 'YYYY-MM-DD',
-          zippedArchive: true,
-          maxSize: '20m',
-          maxFiles: '30d'
-        })
-      ]
+      transports
     });
-
-    // Console transport (dev pretty, prod minimal)
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      }));
-    } else {
-      this.logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json()
-        )
-      }));
-    }
   }
 
   info(msg, meta = {}) { 
