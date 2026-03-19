@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
+const { requireDbConnection } = require('../middleware/dbConnection');
 const { authLimiter, signupLimiter } = require('../middleware/rateLimiter');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/inputValidator');
@@ -14,6 +15,7 @@ const { handleValidationErrors } = require('../middleware/inputValidator');
  *     tags: [Authentication]
  */
 router.post('/signup',
+    requireDbConnection,
     signupLimiter,
     [
         body('firstName').trim().notEmpty().withMessage('First name is required'),
@@ -33,6 +35,7 @@ router.post('/signup',
  *     tags: [Authentication]
  */
 router.post('/login', 
+    requireDbConnection,
     authLimiter, 
     [
         body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),

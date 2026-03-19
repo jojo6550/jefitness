@@ -109,10 +109,12 @@ app.use((req, res, next) => {
 // Rate limiter
 const { apiLimiter } = require('./middleware/rateLimiter');
 
-// Health check
+// Health check with DB status
+const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
 app.get('/api/health', (req, res) => {
   res.status(200).json({
-    status: 'healthy',
+    status: isDbConnected() ? 'healthy' : 'degraded',
+    dbStatus: getDbStatus(),
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development'
