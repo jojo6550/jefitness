@@ -30,12 +30,9 @@ if (!localLogShown) {
         return this.getMobileDeviceURL();
       case 'PRODUCTION':
         // For custom domain jefitnessja.com, use backend URL
-    if (window.location.hostname === 'jefitnessja.com') {
-      const base = 'https://jefitnessja.com';
-      console.log('[API_CONFIG] PRODUCTION detected. Using API_BASE:', base, 'Hostname:', window.location.hostname);
-      return base;
-    }
-    return 'https://jefitnessja.com';
+    const base = 'https://jefitnessja.com';
+       console.log('[API_CONFIG] PRODUCTION detected. Using API_BASE:', base, 'Hostname:', window.location.hostname);
+        return base;
       default:
         return window.location.origin;
     }
@@ -264,7 +261,7 @@ class API {
       clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
-      console.warn('Backend health check failed:', error.name, error.message);
+      console.error('[HEALTH_CHECK] Backend health check failed at', API_BASE, ':', error.name, error.message);
       // CRITICAL FIX: Return true on timeout/failure to allow auth flow to proceed
       // The actual API call will fail with a clearer error if backend is down
       return true;
