@@ -120,6 +120,12 @@ class API {
     const API_BASE = ApiConfig.getAPI_BASE();
     const url = `${API_BASE}${endpoint}`;
 
+    // Add request ID header for server correlation
+    options.headers = {
+      ...options.headers,
+      'X-Request-ID': 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    };
+
     const defaultHeaders = {
       'Content-Type': 'application/json'
     };
@@ -135,32 +141,103 @@ class API {
     }
 
     try {
-      const response = await fetch(url, {
+      const controller = new AbortController();
+      const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      const fetchOptions = {
         headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId,
           ...defaultHeaders,
           ...options.headers
         },
+        signal: controller.signal,
         ...options
-      });
+      };
+
+      const response = await fetch(url, fetchOptions);
 
       if (!response.ok) {
+        // CRITICAL: Always parse error response body for diagnostics
+        let errorDetails = {};
+        try {
+          errorDetails = await response.json();
+        } catch (parseErr) {
+          console.warn(`[API] Failed to parse error response body [${endpoint}]:`, parseErr);
+        }
+
         if (response.status === 401) {
           this.handleUnauthorized();
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+        // Enhanced error with server details + request correlation
+        const fullError = new Error(`HTTP ${response.status}: ${errorDetails.error?.message || response.statusText}`);
+        fullError.status = response.status;
+        fullError.requestId = requestId;
+        fullError.serverMessage = errorDetails.error?.message || 'No server details';
+        fullError.serverRequestId = errorDetails.error?.requestId;
+        fullError.responseHeaders = Object.fromEntries(response.headers.entries());
+        fullError.endpoint = endpoint;
+        fullError.apiBase = API_BASE;
+
+        // Detailed console logging with copyable debug info
+        console.group(`❌ API ERROR [${endpoint}] (${response.status})`);
+        console.error('Status:', response.status);
+        console.error('Server Message:', errorDetails.error?.message || 'No details');
+        console.error('Request ID:', requestId);
+        console.error('Server Request ID:', errorDetails.error?.requestId);
+        console.error('Debug Info:', {
+          url,
+          status: response.status,
+          headers: fullError.responseHeaders,
+          serverMessage: errorDetails.error?.message,
+          emailHash: options.body ? this.hashEmail(options.body) : 'N/A'
+        });
+        
+        // Copy debug info to clipboard
+        const debugInfo = `API ERROR: ${endpoint}\nStatus: ${response.status}\nServer: ${errorDetails.error?.message || 'N/A'}\nClient ID: ${requestId}\nServer ID: ${errorDetails.error?.requestId || 'N/A'}\n`;
+        navigator.clipboard.writeText(debugInfo).then(() => {
+          console.log('📋 Debug info copied to clipboard');
+        });
+        console.groupEnd();
+
+        throw fullError;
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      // Don't spam logs for connection errors
+      // Network/connectivity errors
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        console.warn(`Backend connection failed [${endpoint}]: Service may be unavailable`);
-      } else {
-        console.error(`API Error [${endpoint}]:`, error);
+        console.error(`🌐 Network Error [${endpoint}]: Backend unreachable. Check API_BASE: ${API_BASE}`);
+        console.error('Debug:', ApiConfig.getDebugInfo());
+        throw new Error('Backend service unavailable. Check your connection.');
+      } else if (error.name === 'AbortError') {
+        throw new Error('Request timeout. Server may be slow.');
       }
+
+      // Re-throw enhanced errors with request context
+      if (!error.endpoint) {
+        error.endpoint = endpoint;
+        error.apiBase = API_BASE;
+      }
+      console.error(`💥 Unexpected API Error [${endpoint}]:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Privacy-safe email hashing for debug logs (SHA-256 first 8 chars)
+   */
+  static hashEmail(bodyStr) {
+    try {
+      const emailMatch = bodyStr.match(/"email":"([^"]+)"/);
+      if (emailMatch) {
+        const email = emailMatch[1];
+        return btoa(email).slice(0, 8).toLowerCase();
+      }
+    } catch (e) {}
+    return 'unknown';
   }
 
   /** Cached health result — avoids a preflight request on every single API call */
