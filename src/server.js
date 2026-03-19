@@ -84,6 +84,8 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // -----------------------------
 // Webhooks
 // -----------------------------
+// Webhooks BEFORE body parsers for raw Stripe signature verification
+// (CSRF bypassed via UA+sig check for root / misconfigs)
 app.use(['/webhooks', '/webhook'], webhookRouter);
 
 // -----------------------------

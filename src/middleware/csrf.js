@@ -85,8 +85,17 @@ class CSRFProtection {
         return next();
       }
 
-      // Skip API endpoints that use JWT auth (webhooks use signature verification)
+    // Skip API endpoints that use JWT auth (webhooks use signature verification)
       // But require CSRF for form-based state changes
+      
+      // SECURITY: Stripe webhook on root / (CLI/dashboard common misconfig)
+      if (req.method === 'POST' && req.path === '/' && 
+          req.get('User-Agent')?.includes('Stripe') && 
+          req.get('stripe-signature')) {
+        console.log(`✅ Stripe webhook on root / bypassed CSRF | IP: ${req.ip}`);
+        return next();
+      }
+      
       if (req.path.startsWith('/webhooks')) {
         return next(); // Webhooks use signature verification, not CSRF
       }

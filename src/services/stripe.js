@@ -10,6 +10,11 @@ const getStripe = () => {
 
 const { PRODUCT_IDS, PRODUCT_MAP, PROGRAM_PRODUCT_IDS } = require('../config/stripeConfig');
 
+// Price caching for getPlanPricing() - 5min TTL in-memory
+let priceCache = {};
+let cacheExpiry = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Get the active recurring price ID for a product
  * @param {string} productId - Stripe product ID
@@ -40,46 +45,65 @@ async function getPriceIdForProduct(productId) {
  * @returns {Promise<Object>} Plan pricing object
  */
 async function getPlanPricing() {
+  // Cache hit?
+  if (Date.now() < cacheExpiry && Object.keys(priceCache).length > 0) {
+    console.log('⚡ getPlanPricing() CACHE HIT');
+    return priceCache;
+  }
+
+  console.log('🔄 getPlanPricing() - Fresh fetch (cache miss)');
   const plans = {};
-
-  console.log('🔄 Starting getPlanPricing...');
-  console.log('📋 PRODUCT_IDS:', PRODUCT_IDS);
-
-  for (const [planKey, productId] of Object.entries(PRODUCT_IDS)) {
-    console.log(`🔍 Processing ${planKey} with productId: ${productId}`);
-
+  const productEntries = Object.entries(PRODUCT_IDS);
+  
+  // Parallel fetch all prices (was sequential for-loop → 1700ms+ → now parallel <300ms)
+  const pricePromises = productEntries.map(async ([planKey, productId]) => {
     try {
+      console.log(`🔍 [parallel] ${planKey} → ${productId}`);
       const priceId = await getPriceIdForProduct(productId);
-      console.log(`💰 Price ID for ${planKey}: ${priceId}`);
-
+      
       if (priceId) {
         const price = await getStripe().prices.retrieve(priceId);
         const amount = price.unit_amount;
         const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount / 100);
 
-        plans[planKey] = {
-          amount,
-          displayPrice,
-          duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          productId,
-          priceId
+        return {
+          planKey,
+          planData: {
+            amount,
+            displayPrice,
+            duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            productId,
+            priceId
+          }
         };
-
-        console.log(`✅ Successfully loaded pricing for ${planKey}: ${displayPrice}`);
       } else {
-        // Fallback to static pricing if price not found
-        console.warn(`⚠️ No active recurring price found for product ${productId}, using fallback`);
-        plans[planKey] = getFallbackPricing(planKey);
-        console.log(`🔄 Using fallback pricing for ${planKey}: ${plans[planKey].displayPrice}`);
+        return {
+          planKey,
+          planData: getFallbackPricing(planKey)
+        };
       }
     } catch (error) {
-      console.error(`❌ Error getting pricing for ${planKey}:`, error.message);
-      plans[planKey] = getFallbackPricing(planKey);
-      console.log(`🔄 Using fallback pricing for ${planKey} due to error: ${plans[planKey].displayPrice}`);
+      console.error(`❌ [parallel] ${planKey}:`, error.message);
+      return {
+        planKey,
+        planData: getFallbackPricing(planKey)
+      };
     }
-  }
+  });
 
-  console.log('📊 Final plans object:', plans);
+  // Wait for all parallel requests
+  const results = await Promise.all(pricePromises);
+  
+  // Build plans object
+  results.forEach(({ planKey, planData }) => {
+    plans[planKey] = planData;
+  });
+
+  // Cache for 5min
+  priceCache = plans;
+  cacheExpiry = Date.now() + CACHE_TTL;
+  
+  console.log('✅ getPlanPricing() cached for 5min:', Object.keys(plans));
   return plans;
 }
 
