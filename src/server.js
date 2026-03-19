@@ -2,63 +2,65 @@ require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const cron = require('node-cron');
-const helmet = require('helmet');
 const path = require('path');
-const morgan = require('morgan');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const cron = require('node-cron');
+const helmet = require('helmet');
+const cors = require('cors');
 
-// API Documentation imports
+// API Docs
 const swaggerUi = require('swagger-ui-express');
 const redoc = require('redoc-express');
 const swaggerSpec = require('./docs/swagger');
 
-const { startSubscriptionCleanupJob } = require('./jobs');
-
-const PORT = process.env.PORT || 10000;
-
-const app = express();
-
-// WEBHOOKS
-const webhookRouter = require('./routes/webhooks');
-app.use('/webhooks', webhookRouter);
-app.use('/webhook', webhookRouter);
-
-// Trust proxy for Render
-app.set('trust proxy', 1);
-
-// Security config
-const { nonceMiddleware, helmetOptions } = require('./config/security');
-
+// Utilities, DB, and jobs
 const connectDB = require('../config/db');
+const { startSubscriptionCleanupJob } = require('./jobs');
+const { logger } = require('./services/logger');
+const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = require('./utils/cacheVersion');
 
-// Logger
-const logger = require('./services/logger').logger;
-
-// Middleware imports
+// Middleware
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
 const csrfProtection = require('./middleware/csrf');
 const { corsOptions } = require('./middleware/corsConfig');
 const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
 const { errorHandler } = require('./middleware/errorHandler');
+const { apiLimiter } = require('./middleware/rateLimiter');
+const { auth } = require('./middleware/auth');
+const versioning = require('./middleware/versioning');
+const { nonceMiddleware, helmetOptions } = require('./config/security');
+const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
 
-// Body parsing (required before CORS)
+// Routers
+const webhookRouter = require('./routes/webhooks');
+
+// Models
+const User = require('./models/User');
+
+const PORT = process.env.PORT || 10000;
+const app = express();
+
+// -----------------------------
+// App Config
+// -----------------------------
+
+app.set('trust proxy', 1);
+
+// Body parsing
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 
-// CORS - MUST be early, before CSRF/sanitization for proper preflight handling
+// CORS
 app.use(cors(corsOptions));
 
-// Security middlewares (nonce, helmet after CORS)
+// Security middlewares
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 
+// Logging, sanitization, and CSRF
 app.use(requestLogger);
-
-// Sanitization & CSRF (after CORS)
 app.use(sanitizeInput);
 app.use(csrfProtection.middleware());
 
@@ -72,45 +74,40 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
+// Custom cache control
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
-
-const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = require('./utils/cacheVersion');
 
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Clean URL handler for frontend pages (AFTER static, BEFORE errorHandler)
+// -----------------------------
+// Webhooks
+// -----------------------------
+app.use(['/webhooks', '/webhook'], webhookRouter);
+
+// -----------------------------
+// Clean URL handler for frontend pages
+// -----------------------------
 app.use((req, res, next) => {
-  // Skip API routes and docs
-  if (req.path.match(/^\/api/) || 
-      req.path === '/webhooks' || 
-      req.path === '/webhook' || 
-      req.path.match(/^\/api-docs/) ||
-      req.path.match(/^\/redoc/)) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/webhook') || req.path.startsWith('/api-docs') || req.path.startsWith('/redoc')) {
     return next();
   }
-  
-  // Match clean page URLs: alphanumeric, hyphen, underscore only
-  const pageMatch = req.path.match(/^\/([\w-]+)$/);
-  if (!pageMatch) return next();
-  
-  const pageName = pageMatch[1];
-  const htmlPath = path.join(__dirname, '..', 'public', 'pages', `${pageName}.html`);
-  
-  // Security: check file exists and prevent traversal
-  if (fs.existsSync(htmlPath) && fs.statSync(htmlPath).isFile()) {
-    return res.sendFile(htmlPath);
+
+  const match = req.path.match(/^\/([\w-]+)$/);
+  if (!match) return next();
+
+  const filePath = path.join(__dirname, '..', 'public', 'pages', `${match[1]}.html`);
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
   }
-  
+
   next();
 });
 
-// Rate limiter
-const { apiLimiter } = require('./middleware/rateLimiter');
-
-// Health check with DB status
-const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
+// -----------------------------
+// Health & CSRF
+// -----------------------------
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: isDbConnected() ? 'healthy' : 'degraded',
@@ -121,57 +118,54 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// CSRF endpoint
 app.get('/api/v1/csrf-token', (req, res) => {
-  res.json({
-    success: true,
-    token: res.locals.csrfToken
-  });
+  res.json({ success: true, token: res.locals.csrfToken });
 });
 
-// Auth middleware
-const { auth } = require('./middleware/auth');
+// -----------------------------
+// API Routes
+// -----------------------------
+const apiRoutes = [
+  ['/products', require('./routes/products')],
+  ['/subscriptions', require('./routes/subscriptions')],
+  ['/programs', require('./routes/programs')],
+  ['/auth', require('./routes/auth')],
+];
 
-// Versioning
-const versioning = require('./middleware/versioning');
+apiRoutes.forEach(([route, router]) => app.use(`/api/v1${route}`, versioning, router));
 
-// Routes
-app.use('/api/v1/products', versioning, require('./routes/products'));
-app.use('/api/v1/subscriptions', versioning, require('./routes/subscriptions'));
-app.use('/api/v1/programs', versioning, require('./routes/programs'));
-app.use('/api/v1/auth', versioning, require('./routes/auth'));
+const protectedRoutes = [
+  ['/clients', require('./routes/clients')],
+  ['/logs', require('./routes/logs')],
+  ['/appointments', require('./routes/appointments')],
+  ['/users', require('./routes/users')],
+  ['/medical-documents', require('./routes/medical-documents')],
+  ['/trainer', require('./routes/trainer')],
+  ['/gdpr', require('./routes/gdpr')],
+  ['/workouts', require('./routes/workouts')],
+];
 
-app.use('/api/v1/clients', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/clients'));
-app.use('/api/v1/logs', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/logs'));
-app.use('/api/v1/appointments', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/appointments'));
-app.use('/api/v1/users', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/users'));
-app.use('/api/v1/medical-documents', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/medical-documents'));
-app.use('/api/v1/trainer', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/trainer'));
-app.use('/api/v1/gdpr', auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/gdpr'));
-app.use('/api/v1/workouts', auth, requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction, apiLimiter, versioning, require('./routes/workouts'));
+protectedRoutes.forEach(([route, router]) => {
+  const middlewares = [auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning];
+  if (['/logs', '/medical-documents', '/workouts'].includes(route)) {
+    middlewares.splice(2, 0, requireHealthDataConsent); // Insert health consent where needed
+  }
+  app.use(`/api/v1${route}`, ...middlewares, router);
+});
 
-// Swagger docs
+// -----------------------------
+// Swagger & Redoc (Dev Only)
+// -----------------------------
 if (process.env.NODE_ENV !== 'production') {
-
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-  app.get('/redoc', redoc({
-    title: 'JE Fitness API Documentation',
-    specUrl: '/api-docs.json'
-  }));
-
-  app.get('/api-docs.json', (req, res) => {
-    res.json(swaggerSpec);
-  });
+  app.get('/redoc', redoc({ title: 'JE Fitness API Documentation', specUrl: '/api-docs.json' }));
+  app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
 }
 
-// 404 API
-app.use('/api', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Endpoint not found'
-  });
-});
+// -----------------------------
+// 404 Handler for APIs
+// -----------------------------
+app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
 
 // -----------------------------
 // Global Error Handler
@@ -181,124 +175,63 @@ app.use(errorHandler);
 // -----------------------------
 // Cron Jobs
 // -----------------------------
-
-const User = require('./models/User');
-
 cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
-
   try {
-
     const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
-
     const cutoff = new Date(Date.now() - cleanupTime * 60 * 1000);
-
-    const result = await User.deleteMany({
-      isEmailVerified: false,
-      createdAt: { $lt: cutoff }
-    });
-
-    if (result.deletedCount > 0) {
-      logger.info(`Deleted ${result.deletedCount} unverified accounts`);
-    }
-
+    const result = await User.deleteMany({ isEmailVerified: false, createdAt: { $lt: cutoff } });
+    if (result.deletedCount > 0) logger.info(`Deleted ${result.deletedCount} unverified accounts`);
   } catch (err) {
-
     logger.error("Cleanup job failed", err);
-
   }
-
 });
 
-// -----------------------------
-// Backup jobs
-// -----------------------------
-
-function runScript(scriptPath, label) {
-
+const runScript = (scriptPath, label) => {
   console.log(`Starting ${label}...`);
-
   const child = spawn(process.execPath, [scriptPath], { stdio: 'inherit' });
-
-  child.on('close', code => {
-
-    if (code !== 0) console.error(`${label} failed`);
-
-    else console.log(`${label} complete`);
-
-  });
-
-}
+  child.on('close', code => code !== 0 ? console.error(`${label} failed`) : console.log(`${label} complete`));
+};
 
 cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily backup'));
-
 cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly archive'));
 
 // -----------------------------
 // Server Startup
 // -----------------------------
-
 async function startServer() {
-
   try {
-
-    console.log("Connecting to MongoDB with retries...");
-    
+    console.log("Connecting to MongoDB...");
     await connectDB();
-
-    console.log("✅ MongoDB connected successfully via connectDB");
+    console.log("✅ MongoDB connected successfully");
 
     mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
-
     mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
-
     mongoose.connection.on('error', err => console.error('Mongo error', err));
 
-    // Start background jobs AFTER DB
     startSubscriptionCleanupJob();
 
-    const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
     const gracefulShutdown = async (signal) => {
-
       console.log(`${signal} received. Shutting down.`);
-
       stopFileWatching();
-
       csrfProtection.stop();
-
       server.close(async () => {
-
         await mongoose.connection.close();
-
         console.log("MongoDB closed");
-
         process.exit(0);
-
       });
-
     };
 
     process.on('SIGINT', gracefulShutdown);
     process.on('SIGTERM', gracefulShutdown);
 
-  }
-
-  catch (err) {
-
+  } catch (err) {
     console.error("Failed to start server:", err);
-
     process.exit(1);
-
   }
-
 }
 
-if (require.main === module) {
-
-  startServer();
-
-}
+if (require.main === module) startServer();
 
 module.exports = app;
