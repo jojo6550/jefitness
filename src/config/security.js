@@ -40,7 +40,6 @@ connectSrc: [
           "https://cdn.jsdelivr.net",
           "https://api.stripe.com",
           "https://jefitnessja.com",
-          "https://jefitness.onrender.com",
           "http://localhost:10000",
           "http://127.0.0.1:10000"
         ],

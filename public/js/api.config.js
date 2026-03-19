@@ -4,7 +4,7 @@
  * Removed all Capacitor/mobile/emulator/health check complexity
  */
 
-const API_BASE = window.location.hostname === 'jefitnessja.com' 
+const API_BASE = (window.location.hostname === 'jefitnessja.com' || window.location.hostname.includes('onrender.com'))
   ? 'https://jefitnessja.com' 
   : 'http://localhost:10000';
 

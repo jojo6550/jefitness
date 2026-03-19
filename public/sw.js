@@ -3,7 +3,7 @@
 // ===============================
 
 // Cache versioning
-const CACHE_VERSION = '89';
+const CACHE_VERSION = '90';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -23,7 +23,7 @@ const STATIC_ASSETS = [
   '/js/api.config.js', '/js/app.js', '/js/auth.js',
   '/js/cache-version.js', '/js/cookie-consent.js',
   '/js/toast.js', '/js/validators.js',
-  '/login', '/signup',
+  '/login.html', '/signup.html',
   '/pages/trainer-dashboard.html',
   '/pages/admin-dashboard.html',
   '/pages/dashboard.html',
