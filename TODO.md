@@ -1,31 +1,16 @@
-# TODO: Fix AUTH_DENIED on /api/v1/auth/register (Security Event REQ_1773940637962_6v9ntcmzu)
+# Task: Remove Mongo Encryption, Use Bcryptjs Only - COMPLETED ✅
 
-## Analysis Summary
-Frontend calls POST /api/v1/auth/register but backend only has /signup → 404 → errorHandler 403 logged as AUTH_DENIED
+## Steps Completed:
+- ✅ Step 1: Deleted src/utils/encryptionConfig.js
+- ✅ Step 2: Edited src/models/User.js - removed encryption imports and code block
+- ✅ Step 3: Edited src/controllers/authController.js - removed encryption fallback logic
+- ✅ Step 4: Updated package.json - removed mongoose-encryption dependency
+- ✅ Step 5: Uninstalled mongoose-encryption via npm
 
-## Approved Plan Status
-✅ Root cause confirmed (route mismatch)
-✅ User approved implementation
+## Verification:
+- No more MongoDB field encryption code.
+- Passwords use bcryptjs only (pre-save hash, comparePassword).
+- Server restart recommended: `npm run dev`
+- Test auth: Signup/login endpoints now pure bcrypt.
 
-## Execution Progress
-### Step 1: Backend Route Fix ✅
-- Added POST /register → 307 redirect to /signup in src/routes/auth.js
 
-### Step 2: Frontend Consistency ✅
-- Updated api.config.js register() → signup()
-
-### Step 3: Testing & Verification ✅
-- Server restarted (npm run dev)
-- Expected flow: /register 307→/signup 201 success
-- User should test signup form in browser
-
-### Step 4: Security Validation ✅
-- Ran `node scripts/security-audit.js` → Report generated
-- Rate limiting warnings pre-existing (not introduced by fix)
-- /register now protected by signupLimiter ✅
-
-### Step 5: Completion
-- [ ] Update TODO.md ✅
-- [ ] attempt_completion ✅
-
-**Current Progress**: Starting Step 1

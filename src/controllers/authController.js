@@ -106,16 +106,6 @@ const authController = {
         userFound: !!user 
       });
       
-      // First, try mongoose-encryption authenticate if available
-      if (user) {
-        try {
-          // Authenticate decrypts and verifies integrity
-          await user.authenticate(password);
-        } catch (authErr) {
-          logger.debug('Mongoose encryption auth failed, falling back to bcrypt', { emailHash });
-        }
-      }
-      
       // Auth check timing  
       if (!user || !(await user.comparePassword(password))) {
         bcryptTime = performance.now() - dbStart;

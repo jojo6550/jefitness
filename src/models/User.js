@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 
@@ -251,32 +251,5 @@ UserSchema.methods.getSubscriptionInfo = async function() {
   }
   return { hasSubscription: true, plan: activeSub.plan, expiresAt: activeSub.currentPeriodEnd, displayText: `Active Plan: ${activeSub.plan}` };
 };
-
-// --------------------
-// Encryption
-// --------------------
-const { getEncryptionConfig, isEncryptionEnabled } = require('../utils/encryptionConfig');
-const { logger } = require('../services/logger');
-
-  if (isEncryptionEnabled()) {
-    try {
-      const encryptionConfig = getEncryptionConfig();
-      const key = encryptionConfig?.encryptionKey;
-      if (key) {
-        // Support both hex (64-char) and base64 encryption keys
-        const keyBuffer = (key.length === 64 && /^[0-9a-fA-F]+$/.test(key))
-          ? Buffer.from(key, 'hex')
-          : Buffer.from(key, 'base64');
-
-        if (keyBuffer.length === 32) {
-          UserSchema.plugin(encrypt, encryptionConfig);
-        } else {
-          logger.warn(`User model: Encryption key must be 32 bytes. Found ${keyBuffer.length} bytes. Encryption disabled.`);
-        }
-      }
-    } catch (err) {
-      logger.error('Failed to initialize encryption plugin for User model', { error: err.message });
-    }
-  }
 
 module.exports = mongoose.model('User', UserSchema);

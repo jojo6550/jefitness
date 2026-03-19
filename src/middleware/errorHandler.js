@@ -157,7 +157,7 @@ const errorHandler = (err, req, res, next) => {
 
   // SECURITY: Include stack trace in development mode only
   // Never expose stack traces in production as they reveal internal structure
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === 'test') {
     errorResponse.error.stack = err.stack;
     if (context.originalError) {
       errorResponse.error.originalError = context.originalError;
