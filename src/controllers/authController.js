@@ -45,6 +45,11 @@ const authController = {
     });
     await user.save();
 
+// SECURITY: Validate JWT_SECRET before signing
+    if (!process.env.JWT_SECRET) {
+      throw new ExternalServiceError('Authentication service', 'Server configuration error: JWT_SECRET missing');
+    }
+
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
       process.env.JWT_SECRET,
@@ -79,7 +84,10 @@ const authController = {
       throw new AuthenticationError('Invalid email or password.');
     }
 
-
+    // SECURITY: Validate JWT_SECRET before signing
+    if (!process.env.JWT_SECRET) {
+      throw new ExternalServiceError('Authentication service', 'Server configuration error: JWT_SECRET missing');
+    }
 
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
