@@ -27,7 +27,16 @@ router.post('/signup',
     authController.signup
 );
 
-/**
+// SECURITY FIX: Handle legacy /register calls → redirect to /signup (preserves POST/validation/rate limit)
+router.post('/register',
+    requireDbConnection,
+    signupLimiter,
+    (req, res) => {
+        res.redirect(307, '/api/v1/auth/signup');
+    }
+);
+
+ /**
  * @swagger
  * /api/v1/auth/login:
  *   post:

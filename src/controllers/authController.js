@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { asyncHandler, AuthenticationError, ValidationError, NotFoundError, ExternalServiceError } = require('../middleware/errorHandler');
-const logger = require('../services/logger');
+const { logger } = require('../services/logger');
 
 
 
@@ -94,9 +94,9 @@ const authController = {
     let dbTime = 0, bcryptTime = 0, jwtTime = 0;
     
     try {
-      // DB Query timing
+      // DB Query timing - minimal fields first
       const dbStart = performance.now();
-      const user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
+      let user = await User.findOne({ email: email.toLowerCase() }).select('+password +tokenVersion');
       dbTime = performance.now() - dbStart;
       
       logger.debug('📊 LOGIN DB QUERY', { 
@@ -105,6 +105,16 @@ const authController = {
         dbTime: dbTime.toFixed(2), 
         userFound: !!user 
       });
+      
+      // First, try mongoose-encryption authenticate if available
+      if (user) {
+        try {
+          // Authenticate decrypts and verifies integrity
+          await user.authenticate(password);
+        } catch (authErr) {
+          logger.debug('Mongoose encryption auth failed, falling back to bcrypt', { emailHash });
+        }
+      }
       
       // Auth check timing  
       if (!user || !(await user.comparePassword(password))) {

@@ -48,7 +48,7 @@ async function auth(req, res, next) {
         const tokenVersion = decoded.tokenVersion || 0;
 
         // SECURITY: Verify token version against database (restart-safe)
-        const user = await User.findById(userId).select('+tokenVersion');
+        const user = await User.findById(userId, 'tokenVersion').lean();
 
         if (!user) {
             throw new AuthenticationError('Account not found. Please sign up or log in again.');
