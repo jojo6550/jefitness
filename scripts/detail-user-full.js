@@ -27,7 +27,7 @@ const FORMAT = process.env.FORMAT || 'text';
 const SECTIONS = process.env.SECTIONS ? process.env.SECTIONS.split(',') : ['all'];
 
 async function connectDB() {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     try {
         await mongoose.connect(mongoUri);
         console.log('✅ Connected to database');

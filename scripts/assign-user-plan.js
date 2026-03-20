@@ -45,7 +45,7 @@ const VALID_PLANS = ['free', '1-month', '3-month', '6-month', '12-month'];
 
 async function listUsers() {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
@@ -87,7 +87,7 @@ async function listUsers() {
 
 async function assignPlan(email, plan, options = {}) {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
@@ -209,7 +209,7 @@ async function assignPlan(email, plan, options = {}) {
 
 async function setExpired(email) {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');

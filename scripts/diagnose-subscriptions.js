@@ -29,7 +29,7 @@ async function testCheckout() {
     }
     
     // 3. Create test user or get existing
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGO_URI);
     let user = await User.findOne({ email: 'test@checkout.local' });
     if (!user) {
       user = new User({

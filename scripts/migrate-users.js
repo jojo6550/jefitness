@@ -28,7 +28,7 @@ const getStripe = () => {
 
 async function connectDB() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,

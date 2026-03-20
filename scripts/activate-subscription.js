@@ -36,7 +36,7 @@ const VALID_PLANS = ['free', ...Object.keys(PLAN_CONFIG)];
 
 async function activateSubscription(email, plan) {
   try {
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
