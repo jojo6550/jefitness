@@ -1,32 +1,21 @@
-# Jest Tests Fix Progress
+# JE Fitness Test Fix Plan
+## Status: ✅ In Progress
 
-## Plan Status
-✅ **Approved by user**
+## Phase 1: Backend Tests (High Priority - Unblocks All)
+- [x] Step 1: Fix module resolution in `src/tests/unit/setup.js`
+- [ ] Step 2: Verify `npm test backend` passes all suites
+- [ ] Step 3: Confirm logger mock works with real exports
 
-## TODO Steps (Backend First)
+## Phase 2: Frontend Tests (products.test.js)
+- [ ] Step 1: Fix JSDOM navigation errors (window.location.assign spy)
+- [ ] Step 2: Fix localStorage spies and mock cart logic mismatches
+- [ ] Step 3: Ensure real products.js DOM event flow triggers
+- [ ] Step 4: Fix quantity clamping and validation
+- [ ] Step 5: Verify `npm test frontend` passes
 
-### Step 1: Fix Backend Setup ✅ COMPLETE
-- ✅ Edit `src/tests/unit/setup.js`: Remove duplicate `jest` declaration
-- [ ] Test: `npm test` (expect backend tests to pass)
+## Phase 3: Full Verification
+- [ ] Run `npm test` (all suites green)
+- [ ] Check coverage if available
+- [ ] Update this TODO with completion status
 
-### Step 2: Fix Frontend LocalStorage Mocking ✅ COMPLETE
-- ✅ Edit `public/tests/setup-jsdom.js`: Convert localStorage methods to proper Jest spies with mock storage
-- [ ] Test: Verify localStorage mocking works
-
-### Step 3: Fix Frontend Products Test File
-- [ ] Edit `public/tests/unit/products.test.js`: 
-  - Create mock `window.productsCart`
-  - Fix localStorage spy usage
-  - Remove JSDOM-incompatible window.location assignment
-  - Fix quantity validation test
-  - Mock product data for addToCart tests
-- [ ] Test: `npm test` (expect frontend tests to pass)
-
-### Step 4: Full Verification
-- [ ] Run `npm test` - All tests passing
-- [ ] Run `npm run test:coverage` for coverage report
-- [ ] ✅ **attempt_completion**
-
-## Current Status
-- Backend blocker identified: setup.js duplicate jest
-- Frontend issues mapped: mocking + test logic
+**Next Action:** Backend fix complete → test → frontend navigation fix

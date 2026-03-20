@@ -78,7 +78,7 @@ const mockStripeInstance = {
 };
 jest.doMock('stripe', () => jest.fn(() => mockStripeInstance));
 
-jest.doMock('../services/logger', () => ({
+jest.doMock('../../services/logger', () => ({
   logger: {
     info: jest.fn(),
     warn: jest.fn(), 
@@ -93,7 +93,7 @@ jest.doMock('../services/logger', () => ({
 jest.doMock('sanitize-html', () => jest.fn((str) => str ? str.substring(0, 100) : ''));
 
 // Mock asyncHandler - passthrough for testing
-jest.doMock('../middleware/errorHandler', () => ({
+jest.doMock('../../middleware/errorHandler', () => ({
   asyncHandler: (fn) => fn,
   AuthenticationError: jest.fn().mockImplementation(() => ({})),
   ValidationError: jest.fn().mockImplementation(() => ({})),
