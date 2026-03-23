@@ -1,10 +1,12 @@
 
-const PLAN_MAP = {
-  [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
-  [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
-  [process.env.STRIPE_PRICE_6_MONTH]: '6-month',
-  [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
-};
+// DEPRECATED: PLAN_MAP replaced with stripeService.getPlanNameFromPriceId(priceId)
+// const PLAN_MAP = {
+//   [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
+//   [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
+//   [process.env.STRIPE_PRICE_6_MONTH]: '6-month',
+//   [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
+// };
+
 
 const ALLOWED_WEBHOOK_EVENTS = [
   'customer.created',
@@ -21,6 +23,5 @@ const ALLOWED_WEBHOOK_EVENTS = [
 ];
 
 module.exports = {
-  PLAN_MAP,
   ALLOWED_WEBHOOK_EVENTS
 };

@@ -1,3 +1,5 @@
+const StripePlan = require('../models/StripePlan');
+
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
 const getStripe = () => {
@@ -15,25 +17,61 @@ let priceCache = {};
 let cacheExpiry = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+
 /**
- * Get the active recurring price ID for a product
- * @param {string} productId - Stripe product ID
+ * Get all active Stripe plans from database
+ */
+async function getStripePlans() {
+  try {
+    const plans = await StripePlan.find({ active: true, type: 'recurring' }).lean();
+    return plans;
+  } catch (error) {
+    console.error('Failed to fetch StripePlans:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Get price ID for a plan name using DB (source of truth)
+ * @param {string} plan - Plan name like '1-month', '3-month'
+ * @returns {Promise<string|null>} Stripe price ID
+ */
+async function getPriceIdForPlan(plan) {
+  try {
+    const productId = PRODUCT_IDS[plan];
+    if (!productId) {
+      console.warn(`No product ID for plan: ${plan}`);
+      return null;
+    }
+    
+    const planRecord = await StripePlan.findOne({
+      stripeProductId: productId,
+      active: true,
+      type: 'recurring'
+    }).lean();
+    
+    return planRecord ? planRecord.stripePriceId : null;
+  } catch (error) {
+    console.error(`Failed to get price ID for plan ${plan}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Get the active recurring price ID for a product (legacy, calls new DB function)
+ * @param {string} productId - Stripe product ID  
  * @returns {Promise<string|null>} Price ID or null if not found
  */
 async function getPriceIdForProduct(productId) {
+  // TODO: Deprecate in favor of getPriceIdForPlan(plan) - temporary bridge
+  const StripePlan = require('../models/StripePlan');
   try {
-    const stripe = getStripe();
-    if (!stripe) {
-      throw new Error('Stripe not initialized');
-    }
-    const prices = await stripe.prices.list({
-      product: productId,
+    const planRecord = await StripePlan.findOne({
+      stripeProductId: productId,
       active: true,
-      type: 'recurring',
-      limit: 1
-    });
-
-    return prices.data.length > 0 ? prices.data[0].id : null;
+      type: 'recurring'
+    }).lean();
+    return planRecord ? planRecord.stripePriceId : null;
   } catch (error) {
     console.error(`Failed to get price for product ${productId}:`, error.message);
     return null;
@@ -47,65 +85,80 @@ async function getPriceIdForProduct(productId) {
 async function getPlanPricing() {
   // Cache hit?
   if (Date.now() < cacheExpiry && Object.keys(priceCache).length > 0) {
-    console.log('⚡ getPlanPricing() CACHE HIT');
+    console.log('⚡ getPlanPricing() CACHE HIT (DB)');
     return priceCache;
   }
 
-  console.log('🔄 getPlanPricing() - Fresh fetch (cache miss)');
-  const plans = {};
-  const productEntries = Object.entries(PRODUCT_IDS);
+  console.log('🔄 getPlanPricing() - Fresh DB fetch');
   
-  // Parallel fetch all prices (was sequential for-loop → 1700ms+ → now parallel <300ms)
-  const pricePromises = productEntries.map(async ([planKey, productId]) => {
-    try {
-      console.log(`🔍 [parallel] ${planKey} → ${productId}`);
-      const priceId = await getPriceIdForProduct(productId);
-      
-      if (priceId) {
-        const price = await getStripe().prices.retrieve(priceId);
-        const amount = price.unit_amount;
-        const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount / 100);
+  try {
+    const plans = await getStripePlans();
+    const pricing = {};
 
-        return {
-          planKey,
-          planData: {
-            amount,
-            displayPrice,
-            duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            productId,
-            priceId
-          }
+    for (const [planKey, productId] of Object.entries(PRODUCT_IDS)) {
+      const planRecord = plans.find(p => p.stripeProductId === productId && p.active);
+      if (planRecord) {
+        const amount = planRecord.unitAmount;
+        const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: planRecord.currency || 'USD' }).format(amount / 100);
+        
+        pricing[planKey] = {
+          amount,
+          displayPrice,
+          currency: planRecord.currency,
+          duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          productId,
+          priceId: planRecord.stripePriceId
         };
+        console.log(`✅ DB Plan ${planKey}: $${(amount/100).toFixed(2)}`);
       } else {
-        return {
-          planKey,
-          planData: getFallbackPricing(planKey)
-        };
+        pricing[planKey] = getFallbackPricing(planKey);
+        console.warn(`⚠️ No DB record for ${planKey}, using fallback`);
       }
-    } catch (error) {
-      console.error(`❌ [parallel] ${planKey}:`, error.message);
-      return {
-        planKey,
-        planData: getFallbackPricing(planKey)
-      };
     }
-  });
 
-  // Wait for all parallel requests
-  const results = await Promise.all(pricePromises);
-  
-  // Build plans object
-  results.forEach(({ planKey, planData }) => {
-    plans[planKey] = planData;
-  });
-
-  // Cache for 5min
-  priceCache = plans;
-  cacheExpiry = Date.now() + CACHE_TTL;
-  
-  console.log('✅ getPlanPricing() cached for 5min:', Object.keys(plans));
-  return plans;
+    // Cache
+    priceCache = pricing;
+    cacheExpiry = Date.now() + CACHE_TTL;
+    console.log('✅ getPlanPricing() DB cached:', Object.keys(pricing));
+    return pricing;
+  } catch (error) {
+    console.error('getPlanPricing DB error:', error.message);
+    // Fallback to old logic or empty
+    return getFallbackPricingAll();
+  }
 }
+
+/**
+ * Fallback all plans pricing
+ */
+
+function getFallbackPricingAll() {
+  const fallbacks = {};
+  for (const planKey of Object.keys(PRODUCT_IDS)) {
+    fallbacks[planKey] = getFallbackPricing(planKey);
+  }
+  return fallbacks;
+}
+
+/**
+ * Get plan name from Stripe price ID using DB
+ * @param {string} priceId - Stripe price ID
+ * @returns {Promise<string>} Plan name or 'unknown-plan'
+ */
+async function getPlanNameFromPriceId(priceId) {
+  try {
+    const planRecord = await StripePlan.findOne({ stripePriceId: priceId, active: true }).lean();
+    if (planRecord) {
+      // Use nickname, lookup_key, or compute from interval
+      return planRecord.nickname || planRecord.lookupKey || `${planRecord.intervalCount}-${planRecord.interval}` || 'unknown-plan';
+    }
+    return 'unknown-plan';
+  } catch (error) {
+    console.error(`Failed to get plan name for price ${priceId}:`, error.message);
+    return 'unknown-plan';
+  }
+}
+
 
 /**
  * Fallback pricing when Stripe is unavailable or prices not found
@@ -196,10 +249,10 @@ async function createSubscription(customerId, plan) {
       throw new Error(`Invalid plan: ${plan}`);
     }
 
-    const priceId = await getPriceIdForProduct(productId);
-    console.log('priceId found:', priceId);
+    const priceId = await getPriceIdForPlan(plan);
+    console.log('priceId (DB) found:', priceId);
     if (!priceId) {
-      throw new Error(`No active recurring price found for plan: ${plan}`);
+      throw new Error(`No active recurring price found for plan: ${plan} (check StripePlan DB)`);
     }
 
     // Get customer to check default payment method
@@ -300,14 +353,9 @@ async function updateSubscription(subscriptionId, updates = {}) {
 
     // If plan is changing, update the price
     if (updates.plan) {
-      const productId = PRODUCT_IDS[updates.plan];
-      if (!productId) {
-        throw new Error(`Invalid plan: ${updates.plan}`);
-      }
-
-      const newPriceId = await getPriceIdForProduct(productId);
+      const newPriceId = await getPriceIdForPlan(updates.plan);
       if (!newPriceId) {
-        throw new Error(`No active recurring price found for plan: ${updates.plan}`);
+        throw new Error(`No active recurring price found for plan: ${updates.plan} (check StripePlan DB)`);
       }
 
       // Update subscription items
@@ -447,14 +495,9 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     if (!stripe) {
       throw new Error('Stripe not initialized');
     }
-    const productId = PRODUCT_IDS[plan];
-    if (!productId) {
-      throw new Error(`Invalid plan: ${plan}`);
-    }
-
-    const priceId = await getPriceIdForProduct(productId);
+    const priceId = await getPriceIdForPlan(plan);
     if (!priceId) {
-      throw new Error(`No active recurring price found for plan: ${plan}`);
+      throw new Error(`No active recurring price found for plan: ${plan} (check StripePlan DB)`);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -999,6 +1042,8 @@ module.exports = {
   deletePaymentMethod,
   createPaymentIntent,
   getPriceIdForProduct,
+  getPriceIdForPlan,
+  getPlanNameFromPriceId,
   getPlanPricing,
   getAllActivePrices,
   getAllProducts,
@@ -1009,3 +1054,4 @@ module.exports = {
   PRODUCT_IDS,
   PRODUCT_MAP
 };
+

@@ -1,12 +1,13 @@
-# Stripe Plans Sync TODO
+# Refactor Subscription Price Fetch - DB Source of Truth
 
-Status: [ ] In progress
+## Steps:
+- [ ] 1. Sync DB: Run \`node scripts/sync-stripe-to-db.js\`
+- [x] 1. Sync DB: Run \`node scripts/sync-stripe-to-db.js\`
+- [x] 2. Update src/services/stripe.js: Implement getStripePlans(), getPriceIdForPlan(), getPlanPricing() → DB
+- [x] 3. Refactor callers: createSubscription/createCheckout/updateSubscription → getPriceIdForPlan(plan)
+- [x] 4. Update src/controllers/subscriptionController.js: getPlanNameFromPriceId in verify/refresh
+- [x] 5. src/config/subscriptionConstants.js: Deprecated PLAN_MAP
+- [ ] 6. Test APIs/DB sync
+- [ ] 7. Frontend verification
 
-1. [x] Create src/models/StripePlan.js (Mongoose schema) ✅
-2. [x] Create scripts/sync-stripe-to-db.js (standalone sync script) ✅
-3. [x] Create scripts/cli-commands.js (CLI wrapper: sync, list, remove, add-lookup) ✅
-4. [x] Create scripts/add-webhook-support.js (webhook example) ✅
-5. [x] Update package.json (npm scripts) ✅
-6. [x] Example API route snippet for /api/plans ✅
-7. [x] Test ready: npm run sync:plans ✅
-8. [x] COMPLETE ✅
+Current: Step 6/7

@@ -1,7 +1,6 @@
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
-const { PLAN_MAP } = require('../config/subscriptionConstants');
 const { asyncHandler, ValidationError, NotFoundError } = require('../middleware/errorHandler');
 
 /** Compute daysLeft from a subscription's currentPeriodEnd, clamped to 0 */
@@ -164,6 +163,7 @@ const subscriptionController = {
             const priceItem = stripeSub.items?.data[0];
             const priceId   = priceItem?.price?.id;
             const billingEnv = getBillingEnv();
+            const planName = await stripeService.getPlanNameFromPriceId(priceId);
 
             subscription = await Subscription.findOneAndUpdate(
               { stripeSubscriptionId: stripeSub.id },
@@ -172,7 +172,7 @@ const subscriptionController = {
                   userId: user._id,
                   stripeCustomerId: stripeSub.customer.id,
                   stripeSubscriptionId: stripeSub.id,
-                  plan: PLAN_MAP[priceId] || 'unknown-plan',
+                  plan: planName,
                   stripePriceId: priceId,
                   currentPeriodStart: stripeSub.current_period_start
                     ? new Date(stripeSub.current_period_start * 1000) : new Date(),
@@ -305,12 +305,13 @@ const subscriptionController = {
     const priceItem = stripeSub.items?.data[0];
     const priceId   = priceItem?.price?.id;
     const billingEnv = getBillingEnv();
+    const planName = await stripeService.getPlanNameFromPriceId(priceId);
 
     const payload = {
       userId: user._id,
       stripeCustomerId: stripeSub.customer,
       stripeSubscriptionId: stripeSub.id,
-      plan: PLAN_MAP[priceId] || 'unknown',
+      plan: planName,
       stripePriceId: priceId,
       currentPeriodStart: stripeSub.current_period_start
         ? new Date(stripeSub.current_period_start * 1000) : new Date(),
