@@ -7,7 +7,8 @@
 - [x] 3. Refactor callers: createSubscription/createCheckout/updateSubscription → getPriceIdForPlan(plan)
 - [x] 4. Update src/controllers/subscriptionController.js: getPlanNameFromPriceId in verify/refresh
 - [x] 5. src/config/subscriptionConstants.js: Deprecated PLAN_MAP
-- [ ] 6. Test APIs/DB sync
-- [ ] 7. Frontend verification
+- [x] 6. Added unit tests: src/tests/services/stripe.test.js, src/tests/controllers/subscriptionController.test.js
+- [ ] 7. Frontend verification (manual)
 
-Current: Step 6/7
+**COMPLETED ✅ Run `npm test` to verify!**
+

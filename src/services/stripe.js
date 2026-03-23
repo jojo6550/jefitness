@@ -38,19 +38,40 @@ async function getStripePlans() {
  */
 async function getPriceIdForPlan(plan) {
   try {
-    const productId = PRODUCT_IDS[plan];
-    if (!productId) {
-      console.warn(`No product ID for plan: ${plan}`);
+    // Parse plan name '1-month' → {intervalCount: 1, interval: 'month'}
+    const match = plan.match(/^(\d+)-(\w+)$/);
+    if (!match) {
+      console.warn(`Invalid plan format: ${plan}`);
       return null;
     }
-    
+    const [, countStr, interval] = match;
+    const intervalCount = parseInt(countStr);
+
     const planRecord = await StripePlan.findOne({
-      stripeProductId: productId,
+      intervalCount,
+      interval,
       active: true,
       type: 'recurring'
     }).lean();
     
-    return planRecord ? planRecord.stripePriceId : null;
+    if (planRecord) {
+      console.log(`✅ Found plan by interval ${plan}: ${planRecord.stripePriceId}`);
+      return planRecord.stripePriceId;
+    }
+
+    // Fallback to productId
+    const productId = PRODUCT_IDS[plan];
+    if (productId) {
+      const fallbackRecord = await StripePlan.findOne({
+        stripeProductId: productId,
+        active: true,
+        type: 'recurring'
+      }).lean();
+      if (fallbackRecord) return fallbackRecord.stripePriceId;
+    }
+
+    console.warn(`No DB record for plan ${plan}`);
+    return null;
   } catch (error) {
     console.error(`Failed to get price ID for plan ${plan}:`, error.message);
     return null;
@@ -95,21 +116,23 @@ async function getPlanPricing() {
     const plans = await getStripePlans();
     const pricing = {};
 
-    for (const [planKey, productId] of Object.entries(PRODUCT_IDS)) {
-      const planRecord = plans.find(p => p.stripeProductId === productId && p.active);
-      if (planRecord) {
-        const amount = planRecord.unitAmount;
-        const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: planRecord.currency || 'USD' }).format(amount / 100);
-        
-        pricing[planKey] = {
-          amount,
-          displayPrice,
-          currency: planRecord.currency,
-          duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          productId,
-          priceId: planRecord.stripePriceId
-        };
-        console.log(`✅ DB Plan ${planKey}: $${(amount/100).toFixed(2)}`);
+    for (const planKey of Object.keys(PRODUCT_IDS)) {
+      const priceId = await getPriceIdForPlan(planKey);
+      if (priceId) {
+        const planRecord = plans.find(p => p.stripePriceId === priceId);
+        if (planRecord) {
+          const amount = planRecord.unitAmount;
+          const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: planRecord.currency || 'USD' }).format(amount / 100);
+          
+          pricing[planKey] = {
+            amount,
+            displayPrice,
+            currency: planRecord.currency,
+            duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            priceId
+          };
+          console.log(`✅ DB Plan ${planKey}: $${(amount/100).toFixed(2)}`);
+        }
       } else {
         pricing[planKey] = getFallbackPricing(planKey);
         console.warn(`⚠️ No DB record for ${planKey}, using fallback`);
@@ -123,7 +146,6 @@ async function getPlanPricing() {
     return pricing;
   } catch (error) {
     console.error('getPlanPricing DB error:', error.message);
-    // Fallback to old logic or empty
     return getFallbackPricingAll();
   }
 }
