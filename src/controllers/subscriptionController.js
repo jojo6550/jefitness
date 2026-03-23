@@ -28,35 +28,87 @@ const subscriptionController = {
    */
   createCheckout: asyncHandler(async (req, res) => {
     const { planId } = req.body;
+    console.log(`[CHECKOUT] Request: userId=${req.user.id}, planId=${planId}`);
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('+stripeCustomerId');
     if (!user) throw new ValidationError('User not found');
 
-    // Create or reuse Stripe customer
-    let { stripeCustomerId } = user;
-    if (!stripeCustomerId) {
+    console.log(`[CHECKOUT] User ${user._id}: email=${user.email}, existingCustomerId=${user.stripeCustomerId || 'NONE'}`);
+
+    let stripeCustomerId;
+    
+    // 🚀 ALWAYS REFRESH CUSTOMER - Don't trust potentially stale DB value
+    console.log(`[CHECKOUT] 🔄 Force refreshing customer via email: ${user.email}`);
+    
+    try {
       const customer = await stripeService.createOrRetrieveCustomer(
         user.email,
         null,
-        { userId: user._id.toString() }
+        { 
+          userId: user._id.toString(),
+          app: 'jefitness'
+        }
       );
+      
       stripeCustomerId = customer.id;
-      user.stripeCustomerId = stripeCustomerId;
-      await user.save();
+      console.log(`[CHECKOUT] ✅ Fresh customer: ${stripeCustomerId}`);
+      
+      // Update user record with verified customer ID (idempotent)
+      if (user.stripeCustomerId !== stripeCustomerId) {
+        user.stripeCustomerId = stripeCustomerId;
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        await user.save();
+        console.log(`[CHECKOUT] 💾 Updated user.stripeCustomerId: ${stripeCustomerId}`);
+      }
+      
+    } catch (customerError) {
+      console.error(`[CHECKOUT] ❌ Customer creation failed:`, customerError.message);
+      return res.status(400).json({
+        success: false,
+        message: `Failed to create customer account: ${customerError.message}. Please try again or contact support.`
+      });
     }
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const successUrl = `${baseUrl}/pages/subscriptions.html?success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl  = `${baseUrl}/pages/subscriptions.html?canceled=true`;
 
-    const session = await stripeService.createCheckoutSession(
-      stripeCustomerId,
-      planId,
-      successUrl,
-      cancelUrl
-    );
+    console.log(`[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`);
 
-    res.json({ success: true, data: { sessionId: session.id, url: session.url } });
+    let session;
+    try {
+      session = await stripeService.createCheckoutSession(
+        stripeCustomerId,
+        planId,
+        successUrl,
+        cancelUrl
+      );
+      console.log(`[CHECKOUT] ✅ Session created: ${session.id}`);
+    } catch (sessionError) {
+      console.error(`[CHECKOUT] ❌ Session creation failed:`, sessionError.message);
+      
+      // If customer specifically invalid, clear stale DB record
+      if (sessionError.message.includes('Customer account invalid') || sessionError.message.includes('No such customer')) {
+        console.log(`[CHECKOUT] 🧹 Clearing stale customerId from user`);
+        user.stripeCustomerId = null;
+        await user.save();
+      }
+      
+      return res.status(400).json({
+        success: false,
+        message: `Payment setup failed: ${sessionError.message}. Please refresh and try again.`
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      data: { 
+        sessionId: session.id, 
+        url: session.url,
+        customerId: stripeCustomerId,
+        planId 
+      } 
+    });
   }),
 
   /**

@@ -517,10 +517,30 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     if (!stripe) {
       throw new Error('Stripe not initialized');
     }
+
+    // ✅ DEFENSIVE: Validate customer exists before checkout
+    if (!customerId) {
+      throw new Error('Missing customer ID - please re-authenticate your account');
+    }
+    console.log(`🔍 Validating customer ${customerId} for plan ${plan}`);
+
+    try {
+      await stripe.customers.retrieve(customerId);
+      console.log(`✅ Customer ${customerId} verified`);
+    } catch (custErr) {
+      if (custErr.code === 'resource_missing') {
+        console.error(`❌ Customer not found: ${customerId} (user email lookup needed)`);
+        throw new Error(`Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`);
+      }
+      console.error(`❌ Customer validation failed:`, custErr.message);
+      throw custErr;
+    }
+
     const priceId = await getPriceIdForPlan(plan);
     if (!priceId) {
       throw new Error(`No active recurring price found for plan: ${plan} (check StripePlan DB)`);
     }
+    console.log(`💰 Using priceId: ${priceId} for plan: ${plan}`);
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -539,10 +559,10 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor
     });
 
-    console.log(`✅ Subscription checkout session created successfully: ${session.id}`);
+    console.log(`✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`);
     return session;
   } catch (error) {
-    console.error(`❌ createCheckoutSession error [${plan}]:`, error.message);
+    console.error(`❌ createCheckoutSession error [${plan}] customer[${customerId}]:`, error.message);
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
