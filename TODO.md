@@ -1,46 +1,10 @@
-# Fix Stripe Checkout Session "No such customer" Error
-Status: 🔄 In Progress | Priority: 🚨 Critical
+# TODO: Fix webhooks.test.js failure (TypeError: argument handler must be a function)
 
-## Breakdowned Steps from Approved Plan
-
-### ✅ 1. Create TODO.md [COMPLETED]
-
-### ✅ 2. Implement Defensive Customer Validation
-- ✅ Edit `src/services/stripe.js`: Added `stripe.customers.retrieve(customerId)` validation + logging in `createCheckoutSession`
-- ✅ Handle `resource_missing` with user-friendly error: "Customer account invalid"
-
-### ✅ 3. Enhance subscriptionController.createCheckout
-- ✅ Force `createOrRetrieveCustomer` call **ALWAYS** (ignore stale DB `stripeCustomerId`)
-- ✅ Comprehensive logging: userId, email, customerId at each step
-- ✅ Update user DB with verified customer ID
-- ✅ Clear stale customerId on validation failure
-- ✅ User-friendly JSON errors + session response with `customerId`, `planId`
-
-### ⏳ 4. Test Implementation
-- [ ] Run unit tests: `npm test src/tests/services/stripe.test.js`
-- [ ] Manual test: POST `/api/v1/subscriptions/checkout` with `planId: "6-month"`
-- [ ] Test affected user: `node scripts/detail-user-full.js 69bc45489755c9aa93aaa267`
-- [ ] Force `createOrRetrieveCustomer` call (ignore stale DB)
-- [ ] Validate returned customer exists before checkout
-- [ ] Save verified customerId to user
-- [ ] User-friendly error messages
-
-### ⏳ 4. Add Fallback Customer Recreation Logic
-- [ ] In controller: If validation fails → clear stale `stripeCustomerId` → recreate
-- [ ] Make idempotent (email-based lookup)
-
-### ⏳ 5. Test Implementation
-- [ ] Run unit tests: `npm test src/tests/services/stripe.test.js`
-- [ ] Manual test: POST `/api/v1/subscriptions/checkout` with `planId: "6-month"`
-- [ ] Test affected user: `node scripts/detail-user-full.js 69bc45489755c9aa93aaa267`
-
-### ⏳ 6. DB Cleanup & Prevention
-- [ ] Run diagnostic: `node scripts/diagnose-subscriptions.js 69bc45489755c9aa93aaa267`
-- [ ] Add webhook/customer validation cron job
-
-### ⏳ 7. Deploy & Monitor
-- [ ] Restart server
-- [ ] Monitor logs for `/api/v1/subscriptions/checkout`
-- [ ] attempt_completion
-
-**Next Action**: Edit `src/services/stripe.js` → Customer validation in `createCheckoutSession()`
+## Steps:
+1. [x] Analyzed error: Missing `ipKeyGenerator` import in src/middleware/inputValidator.js causing ReferenceError during require, making allowOnlyFields non-function
+2. [ ] Edit src/middleware/inputValidator.js:
+   - Add import: `const { ipKeyGenerator } = require('express-rate-limit');`
+   - Add try-catch wrappers around all console.warn calls using ipKeyGenerator(req) with fallback 'unknown'
+3. [ ] Test specific: `npm test src/tests/unit/webhooks.test.js`
+4. [ ] Test full suite: `npm test`
+5. [ ] attempt_completion
