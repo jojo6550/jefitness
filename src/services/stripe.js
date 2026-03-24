@@ -10,7 +10,7 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-const { PRODUCT_IDS, PRODUCT_MAP, PROGRAM_PRODUCT_IDS } = require('../config/stripeConfig');
+const { PRODUCT_MAP, PROGRAM_PRODUCT_IDS, DYNAMIC_PLANS } = require('../config/stripeConfig');
 
 // Price caching for getPlanPricing() - 5min TTL in-memory
 let priceCache = {};
@@ -36,44 +36,20 @@ async function getStripePlans() {
  * @param {string} plan - Plan name like '1-month', '3-month'
  * @returns {Promise<string|null>} Stripe price ID
  */
+// DEPRECATED: getPriceIdForPlan(planKey) - now dynamic discovery in getPlanPricing()
 async function getPriceIdForPlan(plan) {
+  console.warn('getPriceIdForPlan deprecated - use dynamic getPlanPricing()');
   try {
-    // Parse plan name '1-month' → {intervalCount: 1, interval: 'month'}
-    const match = plan.match(/^(\d+)-(\w+)$/);
-    if (!match) {
-      console.warn(`Invalid plan format: ${plan}`);
-      return null;
-    }
+    const match = plan.match(/^(\\d+)-(\\w+)$/);
+    if (!match) return null;
     const [, countStr, interval] = match;
     const intervalCount = parseInt(countStr);
-
-    const planRecord = await StripePlan.findOne({
-      intervalCount,
-      interval,
-      active: true,
-      type: 'recurring'
-    }).lean();
     
-    if (planRecord) {
-      console.log(`✅ Found plan by interval ${plan}: ${planRecord.stripePriceId}`);
-      return planRecord.stripePriceId;
-    }
-
-    // Fallback to productId
-    const productId = PRODUCT_IDS[plan];
-    if (productId) {
-      const fallbackRecord = await StripePlan.findOne({
-        stripeProductId: productId,
-        active: true,
-        type: 'recurring'
-      }).lean();
-      if (fallbackRecord) return fallbackRecord.stripePriceId;
-    }
-
-    console.warn(`No DB record for plan ${plan}`);
-    return null;
+    const planRecord = await StripePlan.findOne({
+      intervalCount, interval, active: true, type: 'recurring'
+    }).lean();
+    return planRecord?.stripePriceId || null;
   } catch (error) {
-    console.error(`Failed to get price ID for plan ${plan}:`, error.message);
     return null;
   }
 }
@@ -106,47 +82,64 @@ async function getPriceIdForProduct(productId) {
 async function getPlanPricing() {
   // Cache hit?
   if (Date.now() < cacheExpiry && Object.keys(priceCache).length > 0) {
-    console.log('⚡ getPlanPricing() CACHE HIT (DB)');
+    console.log('⚡ getPlanPricing() CACHE HIT (Dynamic DB)');
     return priceCache;
   }
 
-  console.log('🔄 getPlanPricing() - Fresh DB fetch');
+  console.log('🔄 getPlanPricing() - Fresh Dynamic DB scan');
   
   try {
-    const plans = await getStripePlans();
-    const pricing = {};
+    // Get ALL active recurring plans from DB (pure dynamic)
+    const plans = await StripePlan.find({ 
+      active: true, 
+      type: 'recurring' 
+    }).sort({
+      intervalCount: 1,
+      unitAmount: 1
+    }).lean();
 
-    for (const planKey of Object.keys(PRODUCT_IDS)) {
-      const priceId = await getPriceIdForPlan(planKey);
-      if (priceId) {
-        const planRecord = plans.find(p => p.stripePriceId === priceId);
-        if (planRecord) {
-          const amount = planRecord.unitAmount;
-          const displayPrice = new Intl.NumberFormat('en-US', { style: 'currency', currency: planRecord.currency || 'USD' }).format(amount / 100);
-          
-          pricing[planKey] = {
-            amount,
-            displayPrice,
-            currency: planRecord.currency,
-            duration: planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            priceId
-          };
-          console.log(`✅ DB Plan ${planKey}: $${(amount/100).toFixed(2)}`);
-        }
-      } else {
-        pricing[planKey] = getFallbackPricing(planKey);
-        console.warn(`⚠️ No DB record for ${planKey}, using fallback`);
-      }
+    if (plans.length === 0) {
+      console.warn('⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js');
+      return {};
+    }
+
+    const pricing = {};
+    for (const planRecord of plans) {
+      // Generate plan key: lookupKey > nickname > intervalCount-interval
+      const planKey = planRecord.lookupKey || 
+                     planRecord.nickname || 
+                     `${planRecord.intervalCount}-${planRecord.interval}`;
+      
+      const amount = planRecord.unitAmount;
+      const displayPrice = new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: planRecord.currency || 'USD' 
+      }).format(amount / 100);
+
+      pricing[planKey] = {
+        key: planKey,
+        name: planRecord.name || planKey,
+        amount,
+        displayPrice,
+        currency: planRecord.currency,
+        duration: planRecord.nickname || planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        priceId: planRecord.stripePriceId,
+        productId: planRecord.stripeProductId,
+        interval: planRecord.interval,
+        intervalCount: planRecord.intervalCount
+      };
+      
+      console.log(`✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`);
     }
 
     // Cache
     priceCache = pricing;
     cacheExpiry = Date.now() + CACHE_TTL;
-    console.log('✅ getPlanPricing() DB cached:', Object.keys(pricing));
+    console.log(`✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`);
     return pricing;
   } catch (error) {
-    console.error('getPlanPricing DB error:', error.message);
-    return getFallbackPricingAll();
+    console.error('getPlanPricing Dynamic DB error:', error.message);
+    return {};
   }
 }
 
@@ -155,11 +148,8 @@ async function getPlanPricing() {
  */
 
 function getFallbackPricingAll() {
-  const fallbacks = {};
-  for (const planKey of Object.keys(PRODUCT_IDS)) {
-    fallbacks[planKey] = getFallbackPricing(planKey);
-  }
-  return fallbacks;
+  console.warn('getPlanPricing fallback - empty plans object (no DB records)');
+  return {};
 }
 
 /**
@@ -1093,7 +1083,6 @@ module.exports = {
   getProductPrice,
   formatProductForFrontend,
   formatProductsForFrontend,
-  PRODUCT_IDS,
   PRODUCT_MAP
 };
 

@@ -4,13 +4,10 @@
  */
 
 const stripeConfig = {
-  // Subscription Plans
-  PRODUCT_IDS: {
-    '1-month': process.env.STRIPE_PRODUCT_1_MONTH || 'prod_TlkNETGd6OFrRf',
-    '3-month': process.env.STRIPE_PRODUCT_3_MONTH || 'prod_TlkOMtyHdhvBXQ',
-    '6-month': process.env.STRIPE_PRODUCT_6_MONTH || 'prod_TlkQ5HrbgnHXA5',
-    '12-month': process.env.STRIPE_PRODUCT_12_MONTH || 'prod_TlkRUlSilrQIu0'
-  },
+// Dynamic Plans (Pure DB)
+  // PRODUCT_IDS removed - now dynamically discovers all active recurring StripePlan records
+  // Run `node scripts/sync-stripe-to-db.js` to populate DB
+  DYNAMIC_PLANS: true,
 
   // One-time Product Purchases
   PRODUCT_MAP: {
