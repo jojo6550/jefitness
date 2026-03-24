@@ -28,7 +28,7 @@ const subscriptionController = {
    */
   createCheckout: asyncHandler(async (req, res) => {
     const { planId } = req.body;
-    console.log(`[CHECKOUT] Request: userId=${req.user.id}, planId=${planId}`);
+    console.log(`[CHECKOUT] Request: userId=${req.user.id}, planId="${planId}"`);
 
     const user = await User.findById(req.user.id).select('+stripeCustomerId');
     if (!user) throw new ValidationError('User not found');

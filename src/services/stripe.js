@@ -526,11 +526,20 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       throw custErr;
     }
 
-    const priceId = await getPriceIdForPlan(plan);
-    if (!priceId) {
-      throw new Error(`No active recurring price found for plan: ${plan} (check StripePlan DB)`);
+    // Dynamic price lookup from cached plans (matches frontend getPlans)
+    const pricing = await getPlanPricing();
+    const planData = pricing[plan];
+    if (!planData?.priceId) {
+      const available = Object.keys(pricing);
+      throw new Error(
+        `No active price found for plan "${plan}". ` +
+        `Available: ${available.length ? available.join(', ') : 'none'}. ` +
+        `Run "node scripts/sync-stripe-to-db.js" to sync Stripe → DB`
+      );
     }
-    console.log(`💰 Using priceId: ${priceId} for plan: ${plan}`);
+    const priceId = planData.priceId;
+    console.log(`✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`);
+
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -544,6 +553,11 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      metadata: {
+        plan: plan,
+        priceId: priceId.slice(-8),
+        source: 'subscription_checkout'
+      },
       // Allow customer to update payment method
       billing_address_collection: 'required'
       // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor

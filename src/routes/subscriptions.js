@@ -29,13 +29,11 @@ router.get('/plans', subscriptionController.getPlans);
  */
 router.post('/checkout', 
   auth, 
-  [
+[
     body('planId')
       .trim()
       .notEmpty()
       .withMessage('Plan ID is required')
-      .isIn(['1-month', '3-month', '6-month', '12-month'])
-      .withMessage('Invalid plan ID')
   ],
   handleValidationErrors,
   subscriptionController.createCheckout
