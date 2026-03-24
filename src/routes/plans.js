@@ -7,18 +7,49 @@ const router = express.Router();
 // GET /api/v1/plans - Frontend catalog query (no auth needed for public catalog)
 router.get('/', async (req, res) => {
   try {
-    const { lookupKey, active = 'true', sort = 'unitAmount' } = req.query;
+    const { lookupKey, active = 'true', sort = 'interval' } = req.query;
     
-    const filter = { active: active === 'true' };
-    if (lookupKey) filter.lookupKey = lookupKey;
+    const matchFilter = { active: active === 'true' };
+    if (lookupKey) matchFilter.lookupKey = lookupKey;
     
-    const plans = await StripePlan.find(filter)
-      .sort(sort === 'name' ? 'name' : 'unitAmount')
-      .lean();
+    // Compute monthsEquivalent for interval sorting (1m=1,3m=3,...,12m=12)
+    const pipeline = [
+      { $match: matchFilter },
+      {
+        $addFields: {
+          monthsEquivalent: {
+            $cond: {
+              if: { $eq: ['$interval', 'year'] },
+              then: { $multiply: ['$intervalCount', 12] },
+              else: '$intervalCount'
+            }
+          }
+        }
+      }
+    ];
+    
+    // Determine sort stage
+    let sortStage;
+    switch (sort) {
+      case 'name':
+        sortStage = { $sort: { name: 1 } };
+        break;
+      case 'unitAmount':
+        sortStage = { $sort: { unitAmount: 1 } };
+        break;
+      case 'interval':
+      default:
+        sortStage = { $sort: { monthsEquivalent: 1, unitAmount: 1 } }; // shortest first, then cheapest
+        break;
+    }
+    pipeline.push(sortStage);
+    
+    const plans = await StripePlan.aggregate(pipeline);
 
-    // Format for frontend
+    // Format for frontend (aggregate docs need manual id conversion)
     const formatted = plans.map(plan => ({
       ...plan,
+      _id: plan._id?.toString(), // Ensure string ID for frontend
       displayPrice: `$${(plan.unitAmount / 100).toFixed(2)}`,
       intervalDisplay: `${plan.interval}${plan.intervalCount > 1 ? ` x${plan.intervalCount}` : ''}`
     }));

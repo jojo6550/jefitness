@@ -67,6 +67,7 @@ const StripePlanSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Composite indexes
 StripePlanSchema.index({ active: 1, unitAmount: 1 });
 StripePlanSchema.index({ lookupKey: 1 });
 
