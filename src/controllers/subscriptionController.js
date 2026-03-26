@@ -136,8 +136,8 @@ const subscriptionController = {
               {
                 $set: {
                   currentPeriodStart: stripeSub.current_period_start
-                    ? new Date(stripeSub.current_period_start * 1000) : subscription.currentPeriodStart,
-                  currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+                    ? new Date(stripeSub.current_period_start * 1000).toUTCString() : subscription.currentPeriodStart,
+                  currentPeriodEnd: new Date(stripeSub.current_period_end * 1000).toUTCString(),
                   status: stripeSub.status
                 }
               },
@@ -256,10 +256,10 @@ const subscriptionController = {
                 plan: planName,
                 stripePriceId: priceId,
                 currentPeriodStart: stripeSub.current_period_start
-                  ? new Date(stripeSub.current_period_start * 1000) : new Date(),
+                  ? new Date(stripeSub.current_period_start * 1000).toUTCString() : new Date().toUTCString(),
                 currentPeriodEnd: stripeSub.current_period_end
-                  ? new Date(stripeSub.current_period_end * 1000)
-                  : new Date(Date.now() + 90 * 86_400_000),
+                  ? new Date(stripeSub.current_period_end * 1000).toUTCString()
+                  : new Date(Date.now() + 90 * 86_400_000).toUTCString(),
                 status: stripeSub.status,
                 cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
                 canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,

@@ -133,12 +133,12 @@ function formatCurrency(amount, currency = 'JMD') {
  */
 function parseDate(value, fallback) {
   if (!value) return fallback;
+  // Always parse as UTC to match backend storage
   if (typeof value === 'string') {
-    const d = new Date(value);
+    const d = new Date(value + 'Z'); // Force UTC interpretation
     return isNaN(d.getTime()) ? fallback : d;
   }
   if (typeof value === 'number') {
-    // Stripe uses Unix seconds; JS Date uses ms
     const timestamp = value > 10_000_000_000 ? value : value * 1000;
     return new Date(timestamp);
   }
@@ -153,7 +153,8 @@ function parseDate(value, fallback) {
 function safeFormatDate(value) {
   if (!value || value === 0) return new Date(); // Today fallback
   const parsed = parseDate(value, null);
-  return parsed && !isNaN(parsed.getTime()) ? parsed : new Date();
+  // Format as ISO date string for consistent display (YYYY-MM-DD)
+  return parsed && !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
 }
 
 
@@ -360,7 +361,7 @@ const amount = formatCurrency((sub.amount || 0) / 100);
             </div>
             <div class="detail-item">
               <span class="detail-label">Next Billing Date</span>
-              <span class="detail-value">${periodEnd.toLocaleDateString()}</span>
+            <span class="detail-value">${safeFormatDate(periodEnd)}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Days Remaining</span>
