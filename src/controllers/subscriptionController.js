@@ -2,11 +2,11 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
 const { asyncHandler, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const { daysLeftUntil } = require('../utils/dateUtils');
 
-/** Compute daysLeft from a subscription's currentPeriodEnd, clamped to 0 */
+/** Compute daysLeft from a subscription's currentPeriodEnd (midnight-normalised, clamped to 0) */
 function computeDaysLeft(subscription) {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  return Math.max(0, Math.ceil((subscription.currentPeriodEnd - new Date()) / msPerDay));
+  return daysLeftUntil(subscription.currentPeriodEnd);
 }
 
 /** Determine billing environment from Stripe secret key prefix */

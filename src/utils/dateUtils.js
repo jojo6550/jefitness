@@ -61,18 +61,24 @@ function addMonths(date, months) {
 
 /**
  * Add years to a date, accounting for leap years
+ * Feb 29 + 1 year → Feb 28 (not Mar 1)
  * @param {Date} date - Base date
  * @param {number} years - Number of years to add
  * @returns {Date} New date with years added
  */
 function addYears(date, years) {
   const result = new Date(date);
+  const dayOfMonth = result.getDate();
   result.setFullYear(result.getFullYear() + years);
+  // Clamp end-of-month overflow (e.g. Feb 29 leap → Feb 28 non-leap)
+  if (result.getDate() < dayOfMonth) {
+    result.setDate(0);
+  }
   return result;
 }
 
 /**
- * Calculate days between two dates
+ * Calculate days between two dates (midnight-normalised — DST-safe)
  * @param {Date} startDate - Start date
  * @param {Date} endDate - End date
  * @returns {number} Number of days between dates
@@ -89,8 +95,44 @@ function daysBetween(startDate, endDate) {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Calculate the next renewal date from a period-end date using StripePlan
+ * interval/intervalCount fields (anniversary logic).
+ * This mirrors what Stripe itself does when it advances a billing cycle.
+ *
+ * @param {Date}   periodEnd      - Current period end (= next bill date)
+ * @param {string} interval       - StripePlan.interval  ('month' | 'year')
+ * @param {number} [intervalCount=1] - StripePlan.intervalCount
+ * @returns {Date} Next renewal date
+ */
+function calculateNextRenewalDate(periodEnd, interval, intervalCount = 1) {
+  if (!periodEnd || !(periodEnd instanceof Date) || isNaN(periodEnd)) {
+    throw new Error('Invalid period end date provided');
+  }
+  switch (interval) {
+    case 'month': return addMonths(periodEnd, intervalCount);
+    case 'year':  return addYears(periodEnd, intervalCount);
+    default: throw new Error(`Unsupported interval: ${interval}`);
+  }
+}
+
+/**
+ * Compute the number of days left until a subscription's currentPeriodEnd.
+ * Midnight-normalised so the result matches calendar days regardless of
+ * what time of day the call is made.
+ *
+ * @param {Date} periodEnd - Subscription.currentPeriodEnd
+ * @returns {number} Days remaining, clamped to 0
+ */
+function daysLeftUntil(periodEnd) {
+  if (!periodEnd) return 0;
+  return Math.max(0, daysBetween(new Date(), periodEnd));
+}
+
 module.exports = {
   calculateSubscriptionEndDate,
+  calculateNextRenewalDate,
+  daysLeftUntil,
   addMonths,
   addYears,
   daysBetween
