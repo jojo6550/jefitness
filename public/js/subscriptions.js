@@ -335,8 +335,7 @@ const amount = formatCurrency((sub.amount || 0) / 100);
 
   const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
   const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
-  const computedDaysLeft = Math.ceil((periodEnd - new Date()) / 86_400_000);
-  const daysLeft = sub.daysLeft !== undefined ? sub.daysLeft : computedDaysLeft;
+  const daysLeft = sub.daysLeft ?? 0;
 
   const isCanceled = sub.status === 'canceled';
   const isActiveStatus = ACTIVE_STATUSES.includes(sub.status);

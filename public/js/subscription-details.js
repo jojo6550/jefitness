@@ -12,12 +12,12 @@ async function renderSubscriptionDetails() {
   const amountEl = document.getElementById('subscriptionAmount');
   // ... more DOM updates
   
-  const now = new Date();
-  const periodEnd = parseDate(sub.currentPeriodEnd, new Date(now.getTime() + 30 * 86400000));
-  const daysLeft = Math.ceil((periodEnd - now) / 86400000);
-  
-  // Status logic
-  const isExpired = daysLeft <= 0;
+  // daysLeft comes from the API (computed server-side from currentPeriodEnd in DB)
+  const daysLeft = sub.daysLeft ?? 0;
+
+  // Status logic — DB status is the source of truth
+  const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused'];
+  const isExpired = !ACTIVE_STATUSES.includes(sub.status);
   if (isExpired) {
     statusEl.className = 'badge bg-danger';
     statusEl.textContent = 'EXPIRED';
