@@ -357,18 +357,31 @@ const subscriptionController = {
     }
 
     const stripe = stripeService.getStripe();
+    const ACTIVE_STRIPE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
     let stripeSub = null;
 
     try {
       if (user.stripeSubscriptionId && stripe) {
-        stripeSub = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-      } else if (user.stripeCustomerId && stripe) {
-        const subs = await stripe.subscriptions.list({
-          customer: user.stripeCustomerId,
-          status: 'active',
-          limit: 1
-        });
-        if (subs.data.length > 0) stripeSub = subs.data[0];
+        const candidate = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+        // Only use it if it's still in an active-like state
+        if (candidate && ACTIVE_STRIPE_STATUSES.includes(candidate.status)) {
+          stripeSub = candidate;
+        }
+      }
+
+      // If stored ID is missing, stale, or canceled — find the latest active sub via customer
+      if (!stripeSub && user.stripeCustomerId && stripe) {
+        for (const status of ['active', 'trialing', 'past_due', 'paused', 'incomplete']) {
+          const subs = await stripe.subscriptions.list({
+            customer: user.stripeCustomerId,
+            status,
+            limit: 1
+          });
+          if (subs.data.length > 0) {
+            stripeSub = subs.data[0];
+            break;
+          }
+        }
       }
     } catch (err) {
       logger.warn('Stripe subscription fetch failed', { userId: req.user.id, error: err.message });

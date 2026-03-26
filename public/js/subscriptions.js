@@ -373,9 +373,6 @@ const amount = formatCurrency((sub.amount || 0) / 100);
       <div class="col-lg-4">
         <div class="actions-card">
           <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
-          <button id="manageSubscriptionBtn" class="btn btn-primary w-100 mb-2" title="Refresh subscription status">
-            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status &amp; Update Plan
-          </button>
           <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
@@ -607,20 +604,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Global event delegation for dynamically rendered subscription buttons
   document.addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-action]') ||
-      (e.target.id === 'manageSubscriptionBtn' || e.target.closest('#manageSubscriptionBtn')
-        ? (e.target.id === 'manageSubscriptionBtn' ? e.target : e.target.closest('#manageSubscriptionBtn'))
-        : null);
-
+    const btn = e.target.closest('[data-action]');
     if (!btn) return;
-
-    if (btn.id === 'manageSubscriptionBtn') {
-      e.preventDefault();
-      showAlert('Syncing with Stripe...', 'info');
-      const refreshed = await refreshSubscription();
-      if (!refreshed) await loadUserSubscriptions();
-      return;
-    }
 
     const { action, subId } = btn.dataset;
     e.preventDefault();
