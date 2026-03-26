@@ -3,7 +3,8 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { isWebhookEventProcessed, markWebhookEventProcessed } = require('../middleware/auth');
 
-const { PLAN_MAP, ALLOWED_WEBHOOK_EVENTS: ALLOWED_EVENTS_ARRAY } = require('../config/subscriptionConstants');
+const { ALLOWED_WEBHOOK_EVENTS: ALLOWED_EVENTS_ARRAY } = require('../config/subscriptionConstants');
+const { getPlanNameFromPriceId } = require('../services/stripe');
 
 const router = express.Router();
 
@@ -147,15 +148,13 @@ router.post('/', webhookMiddleware, handleStripeWebhook);
 
 // ===== HELPERS =====
 
-const getPlanFromPrice = (priceId) => PLAN_MAP[priceId] || 'unknown-plan';
-
 /**
  * Build the Subscription upsert payload from a Stripe subscription object.
  */
-function buildSubscriptionPayload(subscription) {
+async function buildSubscriptionPayload(subscription) {
   const priceItem = subscription.items?.data[0];
   const priceId = priceItem?.price?.id;
-  const plan = getPlanFromPrice(priceId);
+  const plan = await getPlanNameFromPriceId(priceId);
 
   return {
     stripeCustomerId: subscription.customer,
@@ -195,7 +194,7 @@ async function handleSubscriptionUpsert(subscription) {
     return;
   }
 
-  const payload = buildSubscriptionPayload(subscription);
+  const payload = await buildSubscriptionPayload(subscription);
 
   const doc = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
@@ -356,7 +355,7 @@ async function handleCheckoutSessionCompleted(session) {
     }
 
     if (stripeSub) {
-      const payload = buildSubscriptionPayload(stripeSub);
+      const payload = await buildSubscriptionPayload(stripeSub);
       const doc = await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: session.subscription },
         { $set: { userId: user._id, ...payload, checkoutSessionId: session.id } },

@@ -53,14 +53,14 @@ async function syncStripeToDB() {
         stripeProductId: product.id,
         name: product.name,
         description: product.description,
-        lookupKey: price.lookup_key || `${price.recurring.interval_count || 1}-${price.recurring.interval}`, // Auto-set if missing
+        lookupKey: price.lookup_key || `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
         unitAmount: price.unit_amount,
         currency: price.currency,
         interval: price.recurring.interval,
-        intervalCount: price.recurring.interval_count || 1,
+        intervalCount: Math.max(1, price.recurring.interval_count || 1),
         active: price.active,
         type: price.type,
-        nickname: price.nickname || price.lookup_key || `${price.recurring.interval_count || 1}-${price.recurring.interval}`,
+        nickname: price.nickname || price.lookup_key || `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
         metadata: { ...product.metadata, ...price.metadata },
         productImages: product.images || [],
         lastSyncedAt: new Date()
