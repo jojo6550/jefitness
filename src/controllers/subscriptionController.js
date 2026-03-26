@@ -115,10 +115,40 @@ const subscriptionController = {
    * Get the current user's most recent subscription
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    const subscription = await Subscription.findOne({ userId: req.user.id })
+    let subscription = await Subscription.findOne({ userId: req.user.id })
       .sort({ createdAt: -1 });
 
     if (!subscription) return res.json({ success: true, data: null });
+
+    // Auto-heal: if active but currentPeriodEnd is missing or in the past, re-sync from Stripe
+    const activeStatuses = ['active', 'trialing', 'past_due'];
+    const periodEndInvalid = !subscription.currentPeriodEnd ||
+      subscription.currentPeriodEnd <= new Date();
+
+    if (activeStatuses.includes(subscription.status) && periodEndInvalid && subscription.stripeSubscriptionId) {
+      try {
+        const stripe = stripeService.getStripe();
+        if (stripe) {
+          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+          if (stripeSub?.current_period_end) {
+            subscription = await Subscription.findByIdAndUpdate(
+              subscription._id,
+              {
+                $set: {
+                  currentPeriodStart: stripeSub.current_period_start
+                    ? new Date(stripeSub.current_period_start * 1000) : subscription.currentPeriodStart,
+                  currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+                  status: stripeSub.status
+                }
+              },
+              { new: true }
+            );
+          }
+        }
+      } catch (healErr) {
+        console.warn('[GET-SUBSCRIPTION] Auto-heal from Stripe failed:', healErr.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -192,70 +222,64 @@ const subscriptionController = {
       });
     }
 
-    let subscription = await Subscription.findOne({
-      stripeSubscriptionId: session.subscription
-    });
+    // Always re-fetch the subscription from Stripe on verify so period dates are
+    // guaranteed fresh (webhooks may have saved an incomplete record before
+    // Stripe finished setting up the subscription).
+    let subscription = null;
+    try {
+      console.log('[VERIFY-SESSION] Fetching subscription from Stripe:', session.subscription);
+      const stripe = stripeService.getStripe();
+      if (!stripe) throw new Error('Stripe instance not available');
 
-    // Proactive upsert if needed
-    if (!subscription) {
-      try {
-        console.log('[VERIFY-SESSION] Proactive upsert for:', session.subscription);
-        const stripe = stripeService.getStripe();
-        if (!stripe) {
-          throw new Error('Stripe instance not available');
-        }
-        const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
+      const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
 
-        if (stripeSub) {
-          const customerId = (session.customer && typeof session.customer === 'object') ? session.customer.id : session.customer;
-          const user = await User.findOne({ stripeCustomerId: customerId });
-          if (!user) {
+      if (stripeSub) {
+        const customerId = (session.customer && typeof session.customer === 'object')
+          ? session.customer.id : session.customer;
+        const user = await User.findOne({ stripeCustomerId: customerId });
+        if (!user) {
           console.warn('[VERIFY-SESSION] User not found for customer:', session.customer);
         } else {
-            const priceItem = stripeSub.items?.data[0];
-            const priceId   = priceItem?.price?.id;
-            const billingEnv = getBillingEnv();
-            const planName = await stripeService.getPlanNameFromPriceId(priceId);
+          const priceItem  = stripeSub.items?.data[0];
+          const priceId    = priceItem?.price?.id;
+          const billingEnv = getBillingEnv();
+          const planName   = await stripeService.getPlanNameFromPriceId(priceId);
 
-            subscription = await Subscription.findOneAndUpdate(
-              { stripeSubscriptionId: stripeSub.id },
-              {
-                $set: {
-                  userId: user._id,
-                  stripeCustomerId: stripeSub.customer.id,
-                  stripeSubscriptionId: stripeSub.id,
-                  plan: planName,
-                  stripePriceId: priceId,
-                  currentPeriodStart: stripeSub.current_period_start
-                    ? new Date(stripeSub.current_period_start * 1000) : new Date(),
-                  currentPeriodEnd: stripeSub.current_period_end
-                    ? new Date(stripeSub.current_period_end * 1000)
-                    : new Date(Date.now() + 30 * 86_400_000),
-                  status: stripeSub.status,
-                  cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
-                  canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
-                  amount: priceItem?.price?.unit_amount || 0,
-                  currency: priceItem?.price?.currency || 'jmd',
-                  billingEnvironment: billingEnv,
-                  checkoutSessionId: sessionId
-                }
-              },
-              { upsert: true, new: true }
-            );
+          subscription = await Subscription.findOneAndUpdate(
+            { stripeSubscriptionId: stripeSub.id },
+            {
+              $set: {
+                userId: user._id,
+                stripeCustomerId: typeof stripeSub.customer === 'object'
+                  ? stripeSub.customer.id : stripeSub.customer,
+                stripeSubscriptionId: stripeSub.id,
+                plan: planName,
+                stripePriceId: priceId,
+                currentPeriodStart: stripeSub.current_period_start
+                  ? new Date(stripeSub.current_period_start * 1000) : new Date(),
+                currentPeriodEnd: stripeSub.current_period_end
+                  ? new Date(stripeSub.current_period_end * 1000)
+                  : new Date(Date.now() + 90 * 86_400_000),
+                status: stripeSub.status,
+                cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
+                canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+                amount: priceItem?.price?.unit_amount || 0,
+                currency: priceItem?.price?.currency || 'jmd',
+                billingEnvironment: billingEnv,
+                checkoutSessionId: sessionId
+              }
+            },
+            { upsert: true, new: true }
+          );
 
-            await User.findByIdAndUpdate(user._id, {
-              $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv }
-            });
-          }
+          await User.findByIdAndUpdate(user._id, {
+            $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv }
+          });
         }
-      } catch (proactiveErr) {
-        console.error('[VERIFY-SESSION] Proactive upsert failed:', proactiveErr.message, {
-          stripeSubId: session.subscription,
-          customerId: session.customer,
-          sessionId
-        });
-        // Continue with existing subscription check or null
       }
+    } catch (fetchErr) {
+      console.error('[VERIFY-SESSION] Stripe fetch failed, falling back to DB:', fetchErr.message);
+      subscription = await Subscription.findOne({ stripeSubscriptionId: session.subscription });
     }
 
     if (!subscription) return res.json({ success: true, data: null });
