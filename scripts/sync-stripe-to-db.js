@@ -17,29 +17,30 @@ async function connectDB() {
 
 async function syncStripeToDB() {
   await connectDB();
-  
+
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecret) {
     console.error('❌ STRIPE_SECRET_KEY missing');
     process.exit(1);
   }
-  
+
   const stripe = Stripe(stripeSecret);
 
   try {
     console.log('🔄 Fetching active recurring prices from Stripe...');
-    
+
     const stripePrices = await stripe.prices.list({
       active: true,
       type: 'recurring',
       expand: ['data.product'],
-      limit: 100
+      limit: 100,
     });
 
     console.log(`📥 Found ${stripePrices.data.length} active recurring prices`);
 
     const stripePriceIds = new Set();
-    let created = 0, updated = 0;
+    let created = 0,
+      updated = 0;
 
     for (const price of stripePrices.data) {
       if (!price.product || typeof price.product !== 'object') {
@@ -53,17 +54,22 @@ async function syncStripeToDB() {
         stripeProductId: product.id,
         name: product.name,
         description: product.description,
-        lookupKey: price.lookup_key || `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
+        lookupKey:
+          price.lookup_key ||
+          `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
         unitAmount: price.unit_amount,
         currency: price.currency,
         interval: price.recurring.interval,
         intervalCount: Math.max(1, price.recurring.interval_count || 1),
         active: price.active,
         type: price.type,
-        nickname: price.nickname || price.lookup_key || `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
+        nickname:
+          price.nickname ||
+          price.lookup_key ||
+          `${Math.max(1, price.recurring.interval_count || 1)}-${price.recurring.interval}`,
         metadata: { ...product.metadata, ...price.metadata },
         productImages: product.images || [],
-        lastSyncedAt: new Date()
+        lastSyncedAt: new Date(),
       };
 
       stripePriceIds.add(price.id);
@@ -83,9 +89,12 @@ async function syncStripeToDB() {
     }
 
     // Cleanup inactive/missing
-    const dbPlans = await StripePlan.find({ stripePriceId: { $nin: Array.from(stripePriceIds) } });
-    let removed = 0, archived = 0;
-    
+    const dbPlans = await StripePlan.find({
+      stripePriceId: { $nin: Array.from(stripePriceIds) },
+    });
+    let removed = 0,
+      archived = 0;
+
     for (const plan of dbPlans) {
       if (plan.active === false) {
         archived++;
@@ -96,9 +105,12 @@ async function syncStripeToDB() {
       }
     }
 
-    console.log(`✅ Sync complete! Created: ${created}, Updated: ${updated}, Removed: ${removed}, Archived: ${archived}`);
-    console.log(`📊 Active plans in DB: ${await StripePlan.countDocuments({ active: true })}`);
-
+    console.log(
+      `✅ Sync complete! Created: ${created}, Updated: ${updated}, Removed: ${removed}, Archived: ${archived}`
+    );
+    console.log(
+      `📊 Active plans in DB: ${await StripePlan.countDocuments({ active: true })}`
+    );
   } catch (error) {
     console.error('❌ Sync error:', error.message);
     process.exit(1);

@@ -1,38 +1,41 @@
 const mongoose = require('mongoose');
 
-const AppointmentSchema = new mongoose.Schema({
+const AppointmentSchema = new mongoose.Schema(
+  {
     clientId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
     trainerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
     date: {
-        type: Date,
-        required: true
+      type: Date,
+      required: true,
     },
     time: {
-        type: String,
-        required: true
+      type: String,
+      required: true,
     },
     status: {
-        type: String,
-        enum: ['scheduled', 'completed', 'cancelled', 'no_show', 'late'],
-        default: 'scheduled'
+      type: String,
+      enum: ['scheduled', 'completed', 'cancelled', 'no_show', 'late'],
+      default: 'scheduled',
     },
     notes: {
-        type: String
+      type: String,
     },
     statusUpdatedAt: {
-        type: Date,
-        default: Date.now
-    }
-}, {
-    timestamps: true
-});
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Add indexes for efficient querying
 AppointmentSchema.index({ date: 1, time: 1 });

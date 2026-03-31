@@ -3,7 +3,7 @@
  * This centralizes validation logic to avoid duplication
  */
 
-const validateEmail = (email) => {
+const validateEmail = email => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!email) {
     return { valid: false, error: 'Email is required.' };
@@ -14,7 +14,7 @@ const validateEmail = (email) => {
   return { valid: true };
 };
 
-const validatePassword = (password) => {
+const validatePassword = password => {
   if (!password) {
     return { valid: false, error: 'Password is required.' };
   }
@@ -24,7 +24,7 @@ const validatePassword = (password) => {
   return { valid: true };
 };
 
-const validatePasswordStrength = (password) => {
+const validatePasswordStrength = password => {
   const minLength = 8;
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
@@ -73,8 +73,6 @@ const validateConfirmPassword = (password, confirmPassword) => {
   return { valid: true };
 };
 
-
-
 // Export for Node.js (server-side)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -83,6 +81,5 @@ if (typeof module !== 'undefined' && module.exports) {
     validatePasswordStrength,
     validateName,
     validateConfirmPassword,
-
   };
 }

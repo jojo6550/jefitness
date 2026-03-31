@@ -67,15 +67,14 @@ router.get('/cache-versions', async (req, res) => {
       success: true,
       versions,
       timestamp: Date.now(),
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
     });
-
   } catch (error) {
     console.error('Error generating cache versions:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate cache versions',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 });
@@ -92,14 +91,13 @@ router.get('/cache-diagnostics', (req, res) => {
       cacheType: 'in-memory-only',
       cacheVersionUtility: 'available',
       serviceWorker: 'enabled',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     },
     headers: {
       'Cache-Control': res.get('Cache-Control') || 'not set',
-      'Service-Worker-Allowed': res.get('Service-Worker-Allowed') || 'not set'
-    }
+      'Service-Worker-Allowed': res.get('Service-Worker-Allowed') || 'not set',
+    },
   });
 });
 
 module.exports = router;
-

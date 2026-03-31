@@ -12,30 +12,31 @@ const stripeService = require('../services/stripe');
 router.get('/', async (req, res) => {
   try {
     const { search, tags } = req.query;
-    
+
     // Build query
     const query = { isActive: true };
-    
+
     // Add search filter
     if (search) {
       query.$text = { $search: search };
     }
-    
+
     // Add tag filter
     if (tags) {
       const tagArray = tags.split(',').map(t => t.trim().toLowerCase());
       query.tags = { $in: tagArray };
     }
-    
+
     const programs = await Program.find(query).sort({ createdAt: -1 });
-    
+
     // Fetch Stripe pricing for each program
     const programsWithPricing = await Promise.all(
-      programs.map(async (program) => {
+      programs.map(async program => {
         try {
           const product = await stripeService.getProduct(program.stripeProductId);
-          const oneTimePrice = product.prices.find(p => p.type === 'one_time') || product.prices[0];
-          
+          const oneTimePrice =
+            product.prices.find(p => p.type === 'one_time') || product.prices[0];
+
           return {
             _id: program._id,
             title: program.title,
@@ -50,16 +51,21 @@ router.get('/', async (req, res) => {
             features: program.features,
             stripeProductId: program.stripeProductId,
             stripePriceId: program.stripePriceId,
-            price: oneTimePrice ? {
-              id: oneTimePrice.id,
-              amount: oneTimePrice.amount,
-              currency: oneTimePrice.currency,
-              formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`
-            } : null,
-            createdAt: program.createdAt
+            price: oneTimePrice
+              ? {
+                  id: oneTimePrice.id,
+                  amount: oneTimePrice.amount,
+                  currency: oneTimePrice.currency,
+                  formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`,
+                }
+              : null,
+            createdAt: program.createdAt,
           };
         } catch (error) {
-          console.error(`Error fetching price for program ${program._id}:`, error.message);
+          console.error(
+            `Error fetching price for program ${program._id}:`,
+            error.message
+          );
           return {
             _id: program._id,
             title: program.title,
@@ -75,21 +81,21 @@ router.get('/', async (req, res) => {
             stripeProductId: program.stripeProductId,
             stripePriceId: program.stripePriceId,
             price: null,
-            createdAt: program.createdAt
+            createdAt: program.createdAt,
           };
         }
       })
     );
-    
+
     res.json({
       success: true,
-      programs: programsWithPricing
+      programs: programsWithPricing,
     });
   } catch (error) {
     console.error('Error fetching programs:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch programs'
+      error: 'Failed to fetch programs',
     });
   }
 });
@@ -173,32 +179,33 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const program = await Program.findById(req.params.id);
-    
+
     if (!program) {
       return res.status(404).json({
         success: false,
-        error: 'Program not found'
+        error: 'Program not found',
       });
     }
-    
+
     // Fetch Stripe pricing
     let priceInfo = null;
     try {
       const product = await stripeService.getProduct(program.stripeProductId);
-      const oneTimePrice = product.prices.find(p => p.type === 'one_time') || product.prices[0];
-      
+      const oneTimePrice =
+        product.prices.find(p => p.type === 'one_time') || product.prices[0];
+
       if (oneTimePrice) {
         priceInfo = {
           id: oneTimePrice.id,
           amount: oneTimePrice.amount,
           currency: oneTimePrice.currency,
-          formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`
+          formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`,
         };
       }
     } catch (error) {
       console.error(`Error fetching price for program ${program._id}:`, error.message);
     }
-    
+
     res.json({
       success: true,
       program: {
@@ -216,14 +223,14 @@ router.get('/:id', async (req, res) => {
         stripeProductId: program.stripeProductId,
         stripePriceId: program.stripePriceId,
         price: priceInfo,
-        createdAt: program.createdAt
-      }
+        createdAt: program.createdAt,
+      },
     });
   } catch (error) {
     console.error('Error fetching program:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch program'
+      error: 'Failed to fetch program',
     });
   }
 });
@@ -235,69 +242,69 @@ router.get('/:id', async (req, res) => {
 router.post('/checkout', auth, async (req, res) => {
   try {
     const { programId } = req.body;
-    
+
     if (!programId) {
       return res.status(400).json({
         success: false,
-        error: 'Program ID is required'
+        error: 'Program ID is required',
       });
     }
-    
+
     // Get program details
     const program = await Program.findById(programId);
     if (!program) {
       return res.status(404).json({
         success: false,
-        error: 'Program not found'
+        error: 'Program not found',
       });
     }
-    
+
     // Get user
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'User not found',
       });
     }
-    
+
     // Check if user already purchased this program
     const alreadyPurchased = user.purchasedPrograms.some(
       p => p.programId.toString() === programId
     );
-    
+
     if (alreadyPurchased) {
       return res.status(400).json({
         success: false,
-        error: 'You have already purchased this program'
+        error: 'You have already purchased this program',
       });
     }
-    
+
     // Create or get Stripe customer
     let stripeCustomerId = user.stripeCustomerId;
     if (!stripeCustomerId) {
-      const customer = await stripeService.createOrRetrieveCustomer(
-        user.email,
-        null,
-        { userId: user._id.toString() }
-      );
+      const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
+        userId: user._id.toString(),
+      });
       stripeCustomerId = customer.id;
       user.stripeCustomerId = stripeCustomerId;
       await user.save();
     }
-    
+
     // Create checkout session
     const successUrl = `${process.env.FRONTEND_URL || 'http://localhost:5500'}/pages/my-programs.html?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.FRONTEND_URL || 'http://localhost:5500'}/pages/program-marketplace.html`;
-    
+
     const session = await stripeService.getStripe().checkout.sessions.create({
       customer: stripeCustomerId,
       payment_method_types: ['card'],
       mode: 'payment',
-      line_items: [{
-        price: program.stripePriceId,
-        quantity: 1
-      }],
+      line_items: [
+        {
+          price: program.stripePriceId,
+          quantity: 1,
+        },
+      ],
       success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
@@ -305,20 +312,20 @@ router.post('/checkout', auth, async (req, res) => {
         programId: program._id.toString(),
         programSlug: program.slug,
         userId: user._id.toString(),
-        type: 'program_purchase'
-      }
+        type: 'program_purchase',
+      },
     });
-    
+
     res.json({
       success: true,
       sessionId: session.id,
-      url: session.url
+      url: session.url,
     });
   } catch (error) {
     console.error('Error creating checkout session:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create checkout session'
+      error: error.message || 'Failed to create checkout session',
     });
   }
 });
@@ -389,7 +396,7 @@ router.get('/user/my-programs', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'User not found',
       });
     }
 
@@ -409,18 +416,18 @@ router.get('/user/my-programs', auth, async (req, res) => {
       imageUrl: p.programId.imageUrl,
       features: p.programId.features,
       purchasedAt: p.purchasedAt,
-      amountPaid: p.amountPaid
+      amountPaid: p.amountPaid,
     }));
 
     res.json({
       success: true,
-      programs
+      programs,
     });
   } catch (error) {
     console.error('Error fetching user programs:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch your programs'
+      error: 'Failed to fetch your programs',
     });
   }
 });
@@ -437,25 +444,25 @@ router.get('/user/access/:slug', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'User not found',
       });
     }
 
     // Check if user has purchased this program
-    const hasAccess = user.purchasedPrograms.some(p =>
-      p.programId && p.programId.slug === slug
+    const hasAccess = user.purchasedPrograms.some(
+      p => p.programId && p.programId.slug === slug
     );
 
     res.json({
       success: true,
       hasAccess,
-      slug
+      slug,
     });
   } catch (error) {
     console.error('Error checking program access:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to check program access'
+      error: 'Failed to check program access',
     });
   }
 });

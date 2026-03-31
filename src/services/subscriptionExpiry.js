@@ -17,7 +17,7 @@ async function checkExpiredSubscriptions() {
     // Find users with active subscriptions that have expired
     const expiredUsers = await User.find({
       subscriptionStatus: 'active',
-      currentPeriodEnd: { $lt: now }
+      currentPeriodEnd: { $lt: now },
     });
 
     let updatedCount = 0;
@@ -44,7 +44,7 @@ async function checkExpiredSubscriptions() {
         userId: user._id,
         previousStatus: 'active',
         newStatus: user.subscriptionStatus,
-        expiryDate: user.currentPeriodEnd
+        expiryDate: user.currentPeriodEnd,
       });
     }
 
@@ -72,7 +72,7 @@ async function checkPastDueSubscriptions() {
 
     const pastDueUsers = await User.find({
       subscriptionStatus: 'past_due',
-      updatedAt: { $lt: thirtyDaysAgo }
+      updatedAt: { $lt: thirtyDaysAgo },
     });
 
     let cancelledCount = 0;
@@ -92,7 +92,7 @@ async function checkPastDueSubscriptions() {
       logger.info(`Past due subscription cancelled for user ${user._id}`, {
         userId: user._id,
         previousStatus: 'past_due',
-        newStatus: 'cancelled'
+        newStatus: 'cancelled',
       });
     }
 
@@ -122,7 +122,9 @@ async function runSubscriptionMaintenance() {
     const totalUpdated = expiredCount + pastDueCount;
 
     if (totalUpdated > 0) {
-      console.log(`✅ Subscription maintenance completed. Updated ${totalUpdated} subscriptions.`);
+      console.log(
+        `✅ Subscription maintenance completed. Updated ${totalUpdated} subscriptions.`
+      );
     } else {
       console.log('✅ Subscription maintenance completed. No updates needed.');
     }
@@ -138,5 +140,5 @@ async function runSubscriptionMaintenance() {
 module.exports = {
   checkExpiredSubscriptions,
   checkPastDueSubscriptions,
-  runSubscriptionMaintenance
+  runSubscriptionMaintenance,
 };

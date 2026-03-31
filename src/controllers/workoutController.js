@@ -1,5 +1,9 @@
 const User = require('../models/User');
-const { asyncHandler, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const {
+  asyncHandler,
+  ValidationError,
+  NotFoundError,
+} = require('../middleware/errorHandler');
 const sanitizeHtml = require('sanitize-html');
 const mongoose = require('mongoose');
 const { logUserAction } = require('../services/logger');
@@ -13,27 +17,43 @@ const workoutController = {
     const { workoutName, date, programId, exercises, duration, notes } = req.body;
 
     // Validation
-    if (!workoutName || !exercises || !Array.isArray(exercises) || exercises.length === 0) {
+    if (
+      !workoutName ||
+      !exercises ||
+      !Array.isArray(exercises) ||
+      exercises.length === 0
+    ) {
       throw new ValidationError('Workout name and at least one exercise are required');
     }
 
     // Sanitize and structure
     const workoutLog = {
-      workoutName: sanitizeHtml(workoutName, { allowedTags: [], allowedAttributes: {} }).substring(0, 100),
+      workoutName: sanitizeHtml(workoutName, {
+        allowedTags: [],
+        allowedAttributes: {},
+      }).substring(0, 100),
       date: date ? new Date(date) : new Date(),
       programId: programId || undefined,
       exercises: exercises.map(exercise => ({
-        exerciseName: sanitizeHtml(exercise.exerciseName, { allowedTags: [], allowedAttributes: {} }).substring(0, 100),
+        exerciseName: sanitizeHtml(exercise.exerciseName, {
+          allowedTags: [],
+          allowedAttributes: {},
+        }).substring(0, 100),
         sets: exercise.sets.map(set => ({
           setNumber: set.setNumber,
           reps: set.reps,
           weight: set.weight,
           rpe: set.rpe,
-          completed: set.completed !== undefined ? set.completed : true
-        }))
+          completed: set.completed !== undefined ? set.completed : true,
+        })),
       })),
       duration,
-      notes: notes ? sanitizeHtml(notes, { allowedTags: [], allowedAttributes: {} }).substring(0, 500) : undefined
+      notes: notes
+        ? sanitizeHtml(notes, { allowedTags: [], allowedAttributes: {} }).substring(
+            0,
+            500
+          )
+        : undefined,
     };
 
     const user = await User.findById(userId);
@@ -81,8 +101,8 @@ const workoutController = {
         totalPages: Math.ceil(sortedWorkouts.length / limit),
         totalWorkouts: sortedWorkouts.length,
         hasNextPage: endIndex < sortedWorkouts.length,
-        hasPrevPage: page > 1
-      }
+        hasPrevPage: page > 1,
+      },
     });
   }),
 
@@ -153,7 +173,11 @@ const workoutController = {
 
     const workoutsWithExercise = user.workoutLogs
       .filter(log => !log.deletedAt)
-      .filter(log => log.exercises.some(ex => ex.exerciseName.toLowerCase() === exerciseName.toLowerCase()))
+      .filter(log =>
+        log.exercises.some(
+          ex => ex.exerciseName.toLowerCase() === exerciseName.toLowerCase()
+        )
+      )
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, limit);
 
@@ -161,14 +185,26 @@ const workoutController = {
       return res.json({
         success: true,
         exerciseName,
-        data: { sessions: [], maxWeight: 0, totalSets: 0, totalReps: 0, averageVolume: 0, frequency: 0 }
+        data: {
+          sessions: [],
+          maxWeight: 0,
+          totalSets: 0,
+          totalReps: 0,
+          averageVolume: 0,
+          frequency: 0,
+        },
       });
     }
 
     const sessions = workoutsWithExercise.map(workout => {
-      const exercise = workout.exercises.find(ex => ex.exerciseName.toLowerCase() === exerciseName.toLowerCase());
+      const exercise = workout.exercises.find(
+        ex => ex.exerciseName.toLowerCase() === exerciseName.toLowerCase()
+      );
       const maxWeight = Math.max(...exercise.sets.map(s => s.weight));
-      const totalVolume = exercise.sets.reduce((sum, set) => sum + (set.reps * set.weight), 0);
+      const totalVolume = exercise.sets.reduce(
+        (sum, set) => sum + set.reps * set.weight,
+        0
+      );
       const totalReps = exercise.sets.reduce((sum, set) => sum + set.reps, 0);
 
       return {
@@ -177,14 +213,15 @@ const workoutController = {
         maxWeight,
         totalVolume,
         sets: exercise.sets.length,
-        totalReps
+        totalReps,
       };
     });
 
     const maxWeight = Math.max(...sessions.map(s => s.maxWeight));
     const totalSets = sessions.reduce((sum, s) => sum + s.sets, 0);
     const totalReps = sessions.reduce((sum, s) => sum + s.totalReps, 0);
-    const averageVolume = sessions.reduce((sum, s) => sum + s.totalVolume, 0) / sessions.length;
+    const averageVolume =
+      sessions.reduce((sum, s) => sum + s.totalVolume, 0) / sessions.length;
 
     const dateRange = new Date() - new Date(sessions[sessions.length - 1].date);
     const weeks = dateRange / (1000 * 60 * 60 * 24 * 7);
@@ -199,8 +236,8 @@ const workoutController = {
         totalSets,
         totalReps,
         averageVolume: Math.round(averageVolume),
-        frequency: frequency.toFixed(2)
-      }
+        frequency: frequency.toFixed(2),
+      },
     });
   }),
 
@@ -220,11 +257,19 @@ const workoutController = {
     if (activeWorkouts.length === 0) {
       return res.json({
         success: true,
-        stats: { totalWorkouts: 0, lastWorkout: null, mostTrainedExercise: null, weeklyVolume: 0, totalVolume: 0 }
+        stats: {
+          totalWorkouts: 0,
+          lastWorkout: null,
+          mostTrainedExercise: null,
+          weeklyVolume: 0,
+          totalVolume: 0,
+        },
       });
     }
 
-    const sortedWorkouts = [...activeWorkouts].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedWorkouts = [...activeWorkouts].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
     const lastWorkout = sortedWorkouts[0];
 
     const sevenDaysAgo = new Date();
@@ -240,11 +285,15 @@ const workoutController = {
       });
     });
 
-    const mostTrainedExercise = Object.keys(exerciseCount).length > 0
-      ? Object.entries(exerciseCount).sort((a, b) => b[1] - a[1])[0][0]
-      : null;
+    const mostTrainedExercise =
+      Object.keys(exerciseCount).length > 0
+        ? Object.entries(exerciseCount).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
 
-    const totalVolume = activeWorkouts.reduce((sum, log) => sum + (log.totalVolume || 0), 0);
+    const totalVolume = activeWorkouts.reduce(
+      (sum, log) => sum + (log.totalVolume || 0),
+      0
+    );
 
     res.json({
       success: true,
@@ -254,14 +303,14 @@ const workoutController = {
           workoutName: lastWorkout.workoutName,
           date: lastWorkout.date,
           duration: lastWorkout.duration,
-          totalVolume: lastWorkout.totalVolume
+          totalVolume: lastWorkout.totalVolume,
         },
         mostTrainedExercise,
         weeklyVolume: Math.round(weeklyVolume),
-        totalVolume: Math.round(totalVolume)
-      }
+        totalVolume: Math.round(totalVolume),
+      },
     });
-  })
+  }),
 };
 
 module.exports = workoutController;

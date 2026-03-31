@@ -20,7 +20,7 @@ const startSubscriptionCleanupJob = () => {
 
       const expiredSubscriptions = await Subscription.find({
         status: { $in: ['active', 'past_due'] },
-        currentPeriodEnd: { $lt: now }
+        currentPeriodEnd: { $lt: now },
       });
 
       if (!expiredSubscriptions.length) {
@@ -28,7 +28,9 @@ const startSubscriptionCleanupJob = () => {
         return;
       }
 
-      console.log(`📑 Found ${expiredSubscriptions.length} potentially expired subscriptions to verify.`);
+      console.log(
+        `📑 Found ${expiredSubscriptions.length} potentially expired subscriptions to verify.`
+      );
 
       const stripe = stripeService.getStripe();
 
@@ -37,7 +39,9 @@ const startSubscriptionCleanupJob = () => {
         // be stale (e.g. Stripe test mode compresses billing cycles).
         if (stripe && sub.stripeSubscriptionId) {
           try {
-            const stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId);
+            const stripeSub = await stripe.subscriptions.retrieve(
+              sub.stripeSubscriptionId
+            );
 
             if (STRIPE_ACTIVE_STATUSES.includes(stripeSub.status)) {
               // Stripe says still active — sync dates and skip cancellation.
@@ -52,17 +56,21 @@ const startSubscriptionCleanupJob = () => {
                     currentPeriodEnd: stripeSub.current_period_end
                       ? new Date(stripeSub.current_period_end * 1000)
                       : sub.currentPeriodEnd,
-                    lastWebhookEventAt: new Date()
-                  }
+                    lastWebhookEventAt: new Date(),
+                  },
                 },
                 { runValidators: false }
               );
-              console.log(`ℹ️ Subscription ${sub._id} is still ${stripeSub.status} in Stripe — period dates synced.`);
+              console.log(
+                `ℹ️ Subscription ${sub._id} is still ${stripeSub.status} in Stripe — period dates synced.`
+              );
               continue;
             }
 
             // Stripe confirms inactive — safe to mark canceled.
-            console.log(`✅ Stripe confirms subscription ${sub._id} is ${stripeSub.status} — marking canceled.`);
+            console.log(
+              `✅ Stripe confirms subscription ${sub._id} is ${stripeSub.status} — marking canceled.`
+            );
           } catch (stripeErr) {
             // Cannot reach Stripe — skip rather than incorrectly canceling.
             console.warn(
@@ -77,17 +85,19 @@ const startSubscriptionCleanupJob = () => {
         sub.statusHistory.push({
           status: 'canceled',
           changedAt: now,
-          reason: `Automatically canceled after Stripe verification (period end: ${sub.currentPeriodEnd})`
+          reason: `Automatically canceled after Stripe verification (period end: ${sub.currentPeriodEnd})`,
         });
 
         await sub.save();
-        console.log(`✅ Subscription ${sub._id} for user ${sub.userId} marked as canceled.`);
+        console.log(
+          `✅ Subscription ${sub._id} for user ${sub.userId} marked as canceled.`
+        );
       }
     } catch (error) {
       console.error('❌ Error in subscription cleanup job:', error);
       logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
         jobName: 'subscriptionCleanup',
-        error: error.message
+        error: error.message,
       });
     }
   });

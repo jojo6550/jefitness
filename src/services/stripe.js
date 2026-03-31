@@ -10,13 +10,16 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-const { PRODUCT_MAP, PROGRAM_PRODUCT_IDS, DYNAMIC_PLANS } = require('../config/stripeConfig');
+const {
+  PRODUCT_MAP,
+  PROGRAM_PRODUCT_IDS,
+  DYNAMIC_PLANS,
+} = require('../config/stripeConfig');
 
 // Price caching for getPlanPricing() - 5min TTL in-memory
 let priceCache = {};
 let cacheExpiry = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
 
 /**
  * Get all active Stripe plans from database
@@ -44,9 +47,12 @@ async function getPriceIdForPlan(plan) {
     if (!match) return null;
     const [, countStr, interval] = match;
     const intervalCount = parseInt(countStr);
-    
+
     const planRecord = await StripePlan.findOne({
-      intervalCount, interval, active: true, type: 'recurring'
+      intervalCount,
+      interval,
+      active: true,
+      type: 'recurring',
     }).lean();
     return planRecord?.stripePriceId || null;
   } catch (error) {
@@ -56,7 +62,7 @@ async function getPriceIdForPlan(plan) {
 
 /**
  * Get the active recurring price ID for a product (legacy, calls new DB function)
- * @param {string} productId - Stripe product ID  
+ * @param {string} productId - Stripe product ID
  * @returns {Promise<string|null>} Price ID or null if not found
  */
 async function getPriceIdForProduct(productId) {
@@ -66,7 +72,7 @@ async function getPriceIdForProduct(productId) {
     const planRecord = await StripePlan.findOne({
       stripeProductId: productId,
       active: true,
-      type: 'recurring'
+      type: 'recurring',
     }).lean();
     return planRecord ? planRecord.stripePriceId : null;
   } catch (error) {
@@ -87,33 +93,38 @@ async function getPlanPricing() {
   }
 
   console.log('🔄 getPlanPricing() - Fresh Dynamic DB scan');
-  
+
   try {
     // Get ALL active recurring plans from DB (pure dynamic)
-    const plans = await StripePlan.find({ 
-      active: true, 
-      type: 'recurring' 
-    }).sort({
-      intervalCount: 1,
-      unitAmount: 1
-    }).lean();
+    const plans = await StripePlan.find({
+      active: true,
+      type: 'recurring',
+    })
+      .sort({
+        intervalCount: 1,
+        unitAmount: 1,
+      })
+      .lean();
 
     if (plans.length === 0) {
-      console.warn('⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js');
+      console.warn(
+        '⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js'
+      );
       return {};
     }
 
     const pricing = {};
     for (const planRecord of plans) {
       // Generate plan key: lookupKey > nickname > intervalCount-interval
-      const planKey = planRecord.lookupKey || 
-                     planRecord.nickname || 
-                     `${planRecord.intervalCount}-${planRecord.interval}`;
-      
+      const planKey =
+        planRecord.lookupKey ||
+        planRecord.nickname ||
+        `${planRecord.intervalCount}-${planRecord.interval}`;
+
       const amount = planRecord.unitAmount;
-      const displayPrice = new Intl.NumberFormat('en-US', { 
-        style: 'currency', 
-        currency: planRecord.currency || 'USD' 
+      const displayPrice = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: planRecord.currency || 'USD',
       }).format(amount / 100);
 
       pricing[planKey] = {
@@ -122,20 +133,26 @@ async function getPlanPricing() {
         amount,
         displayPrice,
         currency: planRecord.currency,
-        duration: planRecord.nickname || planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        duration:
+          planRecord.nickname ||
+          planKey.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
         priceId: planRecord.stripePriceId,
         productId: planRecord.stripeProductId,
         interval: planRecord.interval,
-        intervalCount: planRecord.intervalCount
+        intervalCount: planRecord.intervalCount,
       };
-      
-      console.log(`✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`);
+
+      console.log(
+        `✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`
+      );
     }
 
     // Cache
     priceCache = pricing;
     cacheExpiry = Date.now() + CACHE_TTL;
-    console.log(`✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`);
+    console.log(
+      `✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`
+    );
     return pricing;
   } catch (error) {
     console.error('getPlanPricing Dynamic DB error:', error.message);
@@ -181,7 +198,10 @@ function derivePlanName(planRecord) {
  */
 async function getPlanNameFromPriceId(priceId) {
   try {
-    const planRecord = await StripePlan.findOne({ stripePriceId: priceId, active: true }).lean();
+    const planRecord = await StripePlan.findOne({
+      stripePriceId: priceId,
+      active: true,
+    }).lean();
     if (planRecord) {
       return derivePlanName(planRecord);
     }
@@ -192,7 +212,6 @@ async function getPlanNameFromPriceId(priceId) {
   }
 }
 
-
 /**
  * Fallback pricing when Stripe is unavailable or prices not found
  * @param {string} planKey - Plan key
@@ -200,10 +219,41 @@ async function getPlanNameFromPriceId(priceId) {
  */
 function getFallbackPricing(planKey) {
   const fallbacks = {
-    '1-month': { amount: 999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(9.99), duration: '1 Month' },
-    '3-month': { amount: 2799, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(27.99), duration: '3 Months', savings: '$2.98' },
-    '6-month': { amount: 4999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(49.99), duration: '6 Months', savings: '$9.95' },
-    '12-month': { amount: 8999, displayPrice: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(89.99), duration: '12 Months', savings: '$29.89' }
+    '1-month': {
+      amount: 999,
+      displayPrice: new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(9.99),
+      duration: '1 Month',
+    },
+    '3-month': {
+      amount: 2799,
+      displayPrice: new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(27.99),
+      duration: '3 Months',
+      savings: '$2.98',
+    },
+    '6-month': {
+      amount: 4999,
+      displayPrice: new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(49.99),
+      duration: '6 Months',
+      savings: '$9.95',
+    },
+    '12-month': {
+      amount: 8999,
+      displayPrice: new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+      }).format(89.99),
+      duration: '12 Months',
+      savings: '$29.89',
+    },
   };
   return fallbacks[planKey] || fallbacks['1-month'];
 }
@@ -224,7 +274,7 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
     // Check if customer already exists with this email
     const existingCustomers = await stripe.customers.list({
       email: email,
-      limit: 1
+      limit: 1,
     });
 
     let customer;
@@ -239,7 +289,7 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
         try {
           await stripe.paymentMethods.attach(paymentMethodId, { customer: customer.id });
           await stripe.customers.update(customer.id, {
-            invoice_settings: { default_payment_method: paymentMethodId }
+            invoice_settings: { default_payment_method: paymentMethodId },
           });
         } catch (attachError) {
           // Payment method might already be attached, ignore error
@@ -253,10 +303,10 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
         ...(paymentMethodId && {
           payment_method: paymentMethodId,
           invoice_settings: {
-            default_payment_method: paymentMethodId
-          }
+            default_payment_method: paymentMethodId,
+          },
         }),
-        metadata: metadata
+        metadata: metadata,
       });
     }
 
@@ -285,7 +335,9 @@ async function createSubscription(customerId, plan) {
     const priceId = await getPriceIdForPlan(plan);
     console.log('priceId (DB) found:', priceId);
     if (!priceId) {
-      throw new Error(`No active recurring price found for plan: ${plan} (check StripePlan DB)`);
+      throw new Error(
+        `No active recurring price found for plan: ${plan} (check StripePlan DB)`
+      );
     }
 
     // Get customer to check default payment method
@@ -296,13 +348,15 @@ async function createSubscription(customerId, plan) {
 
     const subscriptionData = {
       customer: customerId,
-      items: [{
-        price: priceId
-      }],
+      items: [
+        {
+          price: priceId,
+        },
+      ],
       // Expand to get latest invoice and payment intent details
       expand: ['latest_invoice.payment_intent'],
       // Allow incomplete payment - customer can complete it later
-      payment_behavior: 'allow_incomplete'
+      payment_behavior: 'allow_incomplete',
     };
 
     // Set default payment method if available
@@ -310,9 +364,17 @@ async function createSubscription(customerId, plan) {
       subscriptionData.default_payment_method = defaultPaymentMethod;
     }
 
-    console.log('Creating subscription with data:', JSON.stringify(subscriptionData, null, 2));
+    console.log(
+      'Creating subscription with data:',
+      JSON.stringify(subscriptionData, null, 2)
+    );
     const subscription = await getStripe().subscriptions.create(subscriptionData);
-    console.log('Subscription created successfully:', subscription.id, 'status:', subscription.status);
+    console.log(
+      'Subscription created successfully:',
+      subscription.id,
+      'status:',
+      subscription.status
+    );
 
     return subscription;
   } catch (error) {
@@ -337,7 +399,7 @@ async function getCustomerSubscriptions(customerId, status = 'all') {
       customer: customerId,
       status: status === 'all' ? undefined : status,
       expand: ['data.latest_invoice', 'data.default_payment_method'],
-      limit: 100
+      limit: 100,
     });
 
     return subscriptions.data;
@@ -358,7 +420,7 @@ async function getSubscription(subscriptionId) {
       throw new Error('Stripe not initialized');
     }
     const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-      expand: ['latest_invoice.payment_intent', 'default_payment_method']
+      expand: ['latest_invoice.payment_intent', 'default_payment_method'],
     });
 
     return subscription;
@@ -380,7 +442,7 @@ async function updateSubscription(subscriptionId, updates = {}) {
       throw new Error('Stripe not initialized');
     }
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    
+
     // Prepare update object
     const updateData = {};
 
@@ -388,14 +450,18 @@ async function updateSubscription(subscriptionId, updates = {}) {
     if (updates.plan) {
       const newPriceId = await getPriceIdForPlan(updates.plan);
       if (!newPriceId) {
-        throw new Error(`No active recurring price found for plan: ${updates.plan} (check StripePlan DB)`);
+        throw new Error(
+          `No active recurring price found for plan: ${updates.plan} (check StripePlan DB)`
+        );
       }
 
       // Update subscription items
-      updateData.items = [{
-        id: subscription.items.data[0].id,
-        price: newPriceId
-      }];
+      updateData.items = [
+        {
+          id: subscription.items.data[0].id,
+          price: newPriceId,
+        },
+      ];
 
       // Proration - charge or credit for the difference immediately
       updateData.proration_behavior = 'create_prorations';
@@ -441,10 +507,9 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
 
     if (atPeriodEnd) {
       // Cancel at period end
-      const updatedSubscription = await stripe.subscriptions.update(
-        subscriptionId,
-        { cancel_at_period_end: true }
-      );
+      const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
       return updatedSubscription;
     } else {
       // Cancel immediately
@@ -462,7 +527,9 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       msg.includes('already been canceled') ||
       msg.includes('Cannot cancel')
     ) {
-      console.log(`ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`);
+      console.log(
+        `ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`
+      );
       return null;
     }
     throw new Error(`Failed to cancel subscription: ${error.message}`);
@@ -480,10 +547,9 @@ async function resumeSubscription(subscriptionId) {
     if (!stripe) {
       throw new Error('Stripe not initialized');
     }
-    const resumedSubscription = await stripe.subscriptions.update(
-      subscriptionId,
-      { cancel_at_period_end: false }
-    );
+    const resumedSubscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: false,
+    });
 
     return resumedSubscription;
   } catch (error) {
@@ -505,7 +571,7 @@ async function getSubscriptionInvoices(subscriptionId) {
     const invoices = await stripe.invoices.list({
       subscription: subscriptionId,
       limit: 100,
-      expand: ['data.payment_intent']
+      expand: ['data.payment_intent'],
     });
 
     return invoices.data;
@@ -541,7 +607,9 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     } catch (custErr) {
       if (custErr.code === 'resource_missing') {
         console.error(`❌ Customer not found: ${customerId} (user email lookup needed)`);
-        throw new Error(`Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`);
+        throw new Error(
+          `Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`
+        );
       }
       console.error(`❌ Customer validation failed:`, custErr.message);
       throw custErr;
@@ -554,13 +622,14 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       const available = Object.keys(pricing);
       throw new Error(
         `No active price found for plan "${plan}". ` +
-        `Available: ${available.length ? available.join(', ') : 'none'}. ` +
-        `Run "node scripts/sync-stripe-to-db.js" to sync Stripe → DB`
+          `Available: ${available.length ? available.join(', ') : 'none'}. ` +
+          `Run "node scripts/sync-stripe-to-db.js" to sync Stripe → DB`
       );
     }
     const priceId = planData.priceId;
-    console.log(`✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`);
-
+    console.log(
+      `✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`
+    );
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -569,25 +638,30 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       line_items: [
         {
           price: priceId,
-          quantity: 1
-        }
+          quantity: 1,
+        },
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         plan: plan,
         priceId: priceId.slice(-8),
-        source: 'subscription_checkout'
+        source: 'subscription_checkout',
       },
       // Allow customer to update payment method
-      billing_address_collection: 'required'
+      billing_address_collection: 'required',
       // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor
     });
 
-    console.log(`✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`);
+    console.log(
+      `✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`
+    );
     return session;
   } catch (error) {
-    console.error(`❌ createCheckoutSession error [${plan}] customer[${customerId}]:`, error.message);
+    console.error(
+      `❌ createCheckoutSession error [${plan}] customer[${customerId}]:`,
+      error.message
+    );
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
@@ -600,7 +674,12 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
  * @param {string} cancelUrl - URL to redirect if payment is canceled
  * @returns {Promise<Object>} Checkout session object
  */
-async function createProgramCheckoutSession(customerId, programId, successUrl, cancelUrl) {
+async function createProgramCheckoutSession(
+  customerId,
+  programId,
+  successUrl,
+  cancelUrl
+) {
   try {
     const stripe = getStripe();
     if (!stripe) {
@@ -614,9 +693,13 @@ async function createProgramCheckoutSession(customerId, programId, successUrl, c
     }
 
     // Use program slug to find product ID from environment
-    const productId = PROGRAM_PRODUCT_IDS[program.slug] || process.env[`STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')}`];
+    const productId =
+      PROGRAM_PRODUCT_IDS[program.slug] ||
+      process.env[`STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')}`];
     if (!productId) {
-      throw new Error(`No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`);
+      throw new Error(
+        `No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`
+      );
     }
 
     const priceId = await getPriceIdForProduct(productId);
@@ -631,16 +714,16 @@ async function createProgramCheckoutSession(customerId, programId, successUrl, c
       line_items: [
         {
           price: priceId,
-          quantity: 1
-        }
+          quantity: 1,
+        },
       ],
       success_url: successUrl,
       cancel_url: cancelUrl,
       billing_address_collection: 'required',
       metadata: {
         programId: programId,
-        programSlug: program.slug
-      }
+        programSlug: program.slug,
+      },
     });
 
     return session;
@@ -663,7 +746,7 @@ async function getPaymentMethods(customerId) {
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: 'card',
-      limit: 100
+      limit: 100,
     });
 
     return paymentMethods.data;
@@ -703,7 +786,7 @@ async function createPaymentIntent(customerId, amount, currency = 'jmd') {
       amount,
       currency,
       customer: customerId,
-      payment_method_types: ['card']
+      payment_method_types: ['card'],
     });
 
     return paymentIntent;
@@ -725,7 +808,7 @@ async function getAllActivePrices() {
     const prices = await stripe.prices.list({
       active: true,
       type: 'recurring',
-      limit: 100
+      limit: 100,
     });
 
     // Get unique product IDs
@@ -748,7 +831,7 @@ async function getAllActivePrices() {
       productName: productMap[price.product]?.name || 'Unknown Product',
       interval: price.recurring.interval,
       amount: price.unit_amount / 100, // Convert cents to dollars
-      currency: price.currency
+      currency: price.currency,
     }));
 
     // Sort by interval (monthly first, then yearly), then by amount
@@ -810,13 +893,13 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
 
       lineItems.push({
         price: productInfo.priceId,
-        quantity: item.quantity
+        quantity: item.quantity,
       });
 
       validatedItems.push({
         productKey: item.productKey,
         name: productInfo.name,
-        quantity: item.quantity
+        quantity: item.quantity,
       });
     }
 
@@ -843,11 +926,15 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
         itemCount: validatedItems.length.toString(),
         // Store cart items as JSON string
         items: JSON.stringify(validatedItems),
-        environment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production'
-      }
+        environment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production',
+      },
     });
 
-    console.log(`✅ Product checkout session created: ${session.id} for customer: ${customerId}`);
+    console.log(
+      `✅ Product checkout session created: ${session.id} for customer: ${customerId}`
+    );
     console.log(`📦 Items: ${validatedItems.length}`);
 
     return session;
@@ -870,7 +957,7 @@ async function getCheckoutSession(sessionId) {
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['payment_intent', 'customer']
+      expand: ['payment_intent', 'customer'],
     });
 
     return session;
@@ -895,7 +982,7 @@ async function getOrCreateProductCustomer(email, name = null) {
     // Check if customer already exists
     const existingCustomers = await stripe.customers.list({
       email: email,
-      limit: 1
+      limit: 1,
     });
 
     if (existingCustomers.data.length > 0) {
@@ -908,8 +995,8 @@ async function getOrCreateProductCustomer(email, name = null) {
       email: email,
       name: name || undefined,
       metadata: {
-        source: 'jefitness_product_purchase'
-      }
+        source: 'jefitness_product_purchase',
+      },
     });
 
     console.log(`✅ Created new customer: ${customer.id}`);
@@ -935,16 +1022,16 @@ async function getAllProducts(activeOnly = true) {
     const products = await stripe.products.list({
       active: activeOnly,
       limit: 100,
-      expand: ['data.default_price']
+      expand: ['data.default_price'],
     });
 
     // For each product, get its active prices
     const productsWithPrices = await Promise.all(
-      products.data.map(async (product) => {
+      products.data.map(async product => {
         const prices = await stripe.prices.list({
           product: product.id,
           active: true,
-          limit: 100
+          limit: 100,
         });
 
         return {
@@ -960,8 +1047,8 @@ async function getAllProducts(activeOnly = true) {
             amount: price.unit_amount,
             currency: price.currency,
             type: price.type,
-            recurring: price.recurring || null
-          }))
+            recurring: price.recurring || null,
+          })),
         };
       })
     );
@@ -986,14 +1073,14 @@ async function getProduct(productId) {
 
     // Fetch the product
     const product = await stripe.products.retrieve(productId, {
-      expand: ['default_price']
+      expand: ['default_price'],
     });
 
     // Get all prices for this product
     const prices = await stripe.prices.list({
       product: productId,
       active: true,
-      limit: 100
+      limit: 100,
     });
 
     return {
@@ -1009,8 +1096,8 @@ async function getProduct(productId) {
         amount: price.unit_amount,
         currency: price.currency,
         type: price.type,
-        recurring: price.recurring || null
-      }))
+        recurring: price.recurring || null,
+      })),
     };
   } catch (error) {
     throw new Error(`Failed to fetch product: ${error.message}`);
@@ -1026,13 +1113,14 @@ async function getProduct(productId) {
 async function getProductPrice(productId, quantity = 1) {
   try {
     const product = await getProduct(productId);
-    
+
     if (!product || !product.prices || product.prices.length === 0) {
       throw new Error(`No active prices found for product: ${productId}`);
     }
 
     // Use the default price or first available price
-    const defaultPrice = product.prices.find(p => p.type === 'one_time') || product.prices[0];
+    const defaultPrice =
+      product.prices.find(p => p.type === 'one_time') || product.prices[0];
 
     return {
       productId: product.id,
@@ -1044,7 +1132,7 @@ async function getProductPrice(productId, quantity = 1) {
       quantity: quantity,
       totalAmount: defaultPrice.amount * quantity,
       formattedUnitPrice: `$${(defaultPrice.amount / 100).toFixed(2)}`,
-      formattedTotal: `$${((defaultPrice.amount * quantity) / 100).toFixed(2)}`
+      formattedTotal: `$${((defaultPrice.amount * quantity) / 100).toFixed(2)}`,
     };
   } catch (error) {
     throw new Error(`Failed to get product price: ${error.message}`);
@@ -1058,11 +1146,12 @@ async function getProductPrice(productId, quantity = 1) {
  */
 function formatProductForFrontend(product) {
   if (!product) return null;
-  
+
   // Find the one-time price (for product purchases)
-  const oneTimePrice = product.prices && product.prices.length > 0 
-    ? product.prices.find(p => p.type === 'one_time') || product.prices[0]
-    : null;
+  const oneTimePrice =
+    product.prices && product.prices.length > 0
+      ? product.prices.find(p => p.type === 'one_time') || product.prices[0]
+      : null;
 
   return {
     id: product.id,
@@ -1070,12 +1159,12 @@ function formatProductForFrontend(product) {
     description: product.description,
     priceId: oneTimePrice?.id,
     price: oneTimePrice?.amount,
-    formattedPrice: oneTimePrice?.amount 
-      ? `$${(oneTimePrice.amount / 100).toFixed(2)}` 
+    formattedPrice: oneTimePrice?.amount
+      ? `$${(oneTimePrice.amount / 100).toFixed(2)}`
       : 'N/A',
     currency: oneTimePrice?.currency || 'jmd',
     images: product.images,
-    metadata: product.metadata
+    metadata: product.metadata,
   };
 }
 
@@ -1118,6 +1207,5 @@ module.exports = {
   getProductPrice,
   formatProductForFrontend,
   formatProductsForFrontend,
-  PRODUCT_MAP
+  PRODUCT_MAP,
 };
-

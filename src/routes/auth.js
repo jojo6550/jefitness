@@ -14,49 +14,45 @@ const { handleValidationErrors } = require('../middleware/inputValidator');
  *     summary: Register a new user account
  *     tags: [Authentication]
  */
-router.post('/signup',
-    requireDbConnection,
-    signupLimiter,
-    [
-        body('firstName').trim().notEmpty().withMessage('First name is required'),
-        body('lastName').trim().notEmpty().withMessage('Last name is required'),
-        body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
-        body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 chars'),
-        handleValidationErrors
-    ],
-    authController.signup
+router.post(
+  '/signup',
+  requireDbConnection,
+  signupLimiter,
+  [
+    body('firstName').trim().notEmpty().withMessage('First name is required'),
+    body('lastName').trim().notEmpty().withMessage('Last name is required'),
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 chars'),
+    handleValidationErrors,
+  ],
+  authController.signup
 );
 
 // SECURITY FIX: Handle legacy /register calls → redirect to /signup (preserves POST/validation/rate limit)
-router.post('/register',
-    requireDbConnection,
-    signupLimiter,
-    (req, res) => {
-        res.redirect(307, '/api/v1/auth/signup');
-    }
-);
+router.post('/register', requireDbConnection, signupLimiter, (req, res) => {
+  res.redirect(307, '/api/v1/auth/signup');
+});
 
- /**
+/**
  * @swagger
  * /api/v1/auth/login:
  *   post:
  *     summary: Login user
  *     tags: [Authentication]
  */
-router.post('/login', 
-    requireDbConnection,
-    authLimiter, 
-    [
-        body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
-        body('password').notEmpty().withMessage('Password is required'),
-        handleValidationErrors
-    ],
-    authController.login
+router.post(
+  '/login',
+  requireDbConnection,
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('password').notEmpty().withMessage('Password is required'),
+    handleValidationErrors,
+  ],
+  authController.login
 );
-
-
-
-
 
 /**
  * @swagger
@@ -77,5 +73,3 @@ router.post('/logout', auth, authController.logout);
 router.post('/consent', auth, authController.grantConsent);
 
 module.exports = router;
-
-

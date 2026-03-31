@@ -105,28 +105,28 @@ describe('calculateSubscriptionEndDate', () => {
   it('1-month: March 31 → April 30 (no overflow into May)', () => {
     const result = calculateSubscriptionEndDate('1-month', march31);
     expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(3);  // April (0-indexed)
+    expect(result.getMonth()).toBe(3); // April (0-indexed)
     expect(result.getDate()).toBe(30);
   });
 
   it('3-month: March 31 → June 30', () => {
     const result = calculateSubscriptionEndDate('3-month', march31);
     expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(5);  // June
+    expect(result.getMonth()).toBe(5); // June
     expect(result.getDate()).toBe(30);
   });
 
   it('6-month: March 31 → September 30', () => {
     const result = calculateSubscriptionEndDate('6-month', march31);
     expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(8);  // September
+    expect(result.getMonth()).toBe(8); // September
     expect(result.getDate()).toBe(30);
   });
 
   it('12-month: March 31, 2026 → March 31, 2027', () => {
     const result = calculateSubscriptionEndDate('12-month', march31);
     expect(result.getFullYear()).toBe(2027);
-    expect(result.getMonth()).toBe(2);  // March
+    expect(result.getMonth()).toBe(2); // March
     expect(result.getDate()).toBe(31);
   });
 
@@ -134,7 +134,7 @@ describe('calculateSubscriptionEndDate', () => {
     const jan31 = new Date(2026, 0, 31);
     const result = calculateSubscriptionEndDate('1-month', jan31);
     expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(1);  // February
+    expect(result.getMonth()).toBe(1); // February
     expect(result.getDate()).toBe(28);
   });
 
@@ -142,7 +142,7 @@ describe('calculateSubscriptionEndDate', () => {
     const leapDay = new Date(2024, 1, 29); // Feb 29, 2024
     const result = calculateSubscriptionEndDate('12-month', leapDay);
     expect(result.getFullYear()).toBe(2025);
-    expect(result.getMonth()).toBe(1);  // February
+    expect(result.getMonth()).toBe(1); // February
     expect(result.getDate()).toBe(28);
   });
 
@@ -164,5 +164,5 @@ describe('calculateSubscriptionEndDate', () => {
 // ---------------------------------------------------------------------------
 
 afterAll(async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await new Promise(resolve => setTimeout(resolve, 300));
 });

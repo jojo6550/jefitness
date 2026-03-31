@@ -1,9 +1,9 @@
 /**
  * Job Processors (Stub)
- * 
+ *
  * This is a stub implementation since the job queue using Bull/Redis has been removed.
  * These processors are no longer needed.
- * 
+ *
  * For production use, consider implementing async processing using:
  * - MongoDB change streams
  * - Cloud functions (AWS Lambda, Google Cloud Functions)
@@ -49,6 +49,5 @@ module.exports = {
   fileProcessingProcessor,
   reportProcessor,
   cleanupProcessor,
-  webhookProcessor
+  webhookProcessor,
 };
-

@@ -18,14 +18,23 @@ const swaggerSpec = require('./docs/swagger');
 const connectDB = require('../config/db');
 const { startSubscriptionCleanupJob } = require('./jobs');
 const { logger } = require('./services/logger');
-const { getFileHash, invalidateCache, startFileWatching, stopFileWatching } = require('./utils/cacheVersion');
+const {
+  getFileHash,
+  invalidateCache,
+  startFileWatching,
+  stopFileWatching,
+} = require('./utils/cacheVersion');
 
 // Middleware
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
 const csrfProtection = require('./middleware/csrf');
 const { corsOptions } = require('./middleware/corsConfig');
-const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./middleware/consent');
+const {
+  requireDataProcessingConsent,
+  requireHealthDataConsent,
+  checkDataRestriction,
+} = require('./middleware/consent');
 const { errorHandler } = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { auth } = require('./middleware/auth');
@@ -92,7 +101,12 @@ app.use(['/webhooks', '/webhook'], webhookRouter);
 // Clean URL handler for frontend pages
 // -----------------------------
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/webhook') || req.path.startsWith('/api-docs') || req.path.startsWith('/redoc')) {
+  if (
+    req.path.startsWith('/api') ||
+    req.path.startsWith('/webhook') ||
+    req.path.startsWith('/api-docs') ||
+    req.path.startsWith('/redoc')
+  ) {
     return next();
   }
 
@@ -116,7 +130,7 @@ app.get('/api/health', (req, res) => {
     dbStatus: getDbStatus(),
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
@@ -148,7 +162,13 @@ const protectedRoutes = [
 ];
 
 protectedRoutes.forEach(([route, router]) => {
-  const middlewares = [auth, requireDataProcessingConsent, checkDataRestriction, apiLimiter, versioning];
+  const middlewares = [
+    auth,
+    requireDataProcessingConsent,
+    checkDataRestriction,
+    apiLimiter,
+    versioning,
+  ];
   if (['/logs', '/medical-documents', '/workouts'].includes(route)) {
     middlewares.splice(2, 0, requireHealthDataConsent); // Insert health consent where needed
   }
@@ -160,14 +180,19 @@ protectedRoutes.forEach(([route, router]) => {
 // -----------------------------
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/redoc', redoc({ title: 'JE Fitness API Documentation', specUrl: '/api-docs.json' }));
+  app.get(
+    '/redoc',
+    redoc({ title: 'JE Fitness API Documentation', specUrl: '/api-docs.json' })
+  );
   app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
 }
 
 // -----------------------------
 // 404 Handler for APIs
 // -----------------------------
-app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'Endpoint not found' }));
+app.use('/api', (req, res) =>
+  res.status(404).json({ success: false, message: 'Endpoint not found' })
+);
 
 // -----------------------------
 // Global Error Handler
@@ -181,17 +206,23 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
   try {
     const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
     const cutoff = new Date(Date.now() - cleanupTime * 60 * 1000);
-    const result = await User.deleteMany({ isEmailVerified: false, createdAt: { $lt: cutoff } });
-    if (result.deletedCount > 0) logger.info(`Deleted ${result.deletedCount} unverified accounts`);
+    const result = await User.deleteMany({
+      isEmailVerified: false,
+      createdAt: { $lt: cutoff },
+    });
+    if (result.deletedCount > 0)
+      logger.info(`Deleted ${result.deletedCount} unverified accounts`);
   } catch (err) {
-    logger.error("Cleanup job failed", err);
+    logger.error('Cleanup job failed', err);
   }
 });
 
 const runScript = (scriptPath, label) => {
   console.log(`Starting ${label}...`);
   const child = spawn(process.execPath, [scriptPath], { stdio: 'inherit' });
-  child.on('close', code => code !== 0 ? console.error(`${label} failed`) : console.log(`${label} complete`));
+  child.on('close', code =>
+    code !== 0 ? console.error(`${label} failed`) : console.log(`${label} complete`)
+  );
 };
 
 cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily backup'));
@@ -202,9 +233,9 @@ cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly archiv
 // -----------------------------
 async function startServer() {
   try {
-    console.log("Connecting to MongoDB...");
+    console.log('Connecting to MongoDB...');
     await connectDB();
-    console.log("✅ MongoDB connected successfully");
+    console.log('✅ MongoDB connected successfully');
 
     mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
     mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
@@ -214,22 +245,21 @@ async function startServer() {
 
     const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
-    const gracefulShutdown = async (signal) => {
+    const gracefulShutdown = async signal => {
       console.log(`${signal} received. Shutting down.`);
       stopFileWatching();
       csrfProtection.stop();
       server.close(async () => {
         await mongoose.connection.close();
-        console.log("MongoDB closed");
+        console.log('MongoDB closed');
         process.exit(0);
       });
     };
 
     process.on('SIGINT', gracefulShutdown);
     process.on('SIGTERM', gracefulShutdown);
-
   } catch (err) {
-    console.error("Failed to start server:", err);
+    console.error('Failed to start server:', err);
     process.exit(1);
   }
 }

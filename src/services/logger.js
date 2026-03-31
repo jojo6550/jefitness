@@ -24,7 +24,7 @@ class Logger {
         zippedArchive: true,
         maxSize: '10m',
         maxFiles: '30d',
-        level: 'error'
+        level: 'error',
       }),
       // Combined logs
       new DailyRotateFile({
@@ -32,25 +32,29 @@ class Logger {
         datePattern: 'YYYY-MM-DD',
         zippedArchive: true,
         maxSize: '20m',
-        maxFiles: '30d'
-      })
+        maxFiles: '30d',
+      }),
     ];
 
     // Console transport (dev pretty, prod JSON — visible in Render dashboard logs)
     if (process.env.NODE_ENV !== 'production') {
-      transports.push(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      }));
+      transports.push(
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+          ),
+        })
+      );
     } else {
-      transports.push(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.json()
-        )
-      }));
+      transports.push(
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.json()
+          ),
+        })
+      );
     }
 
     return winston.createLogger({
@@ -61,34 +65,34 @@ class Logger {
         winston.format.json()
       ),
       defaultMeta: { service: this.service },
-      transports
+      transports,
     });
   }
 
-  info(msg, meta = {}) { 
+  info(msg, meta = {}) {
     const fullMeta = { level: 'info', ...meta };
     this.logger.info(msg, fullMeta);
     this._logToDBIfAudit('info', msg, fullMeta);
   }
 
-  warn(msg, meta = {}) { 
+  warn(msg, meta = {}) {
     const fullMeta = { level: 'warn', ...meta };
     this.logger.warn(msg, fullMeta);
     this._logToDBIfAudit('warn', msg, fullMeta);
   }
 
-  error(msg, meta = {}) { 
+  error(msg, meta = {}) {
     const fullMeta = { level: 'error', ...meta };
     this.logger.error(msg, fullMeta);
     this._asyncLogToDB('error', msg, fullMeta);
   }
 
-  debug(msg, meta = {}) { 
+  debug(msg, meta = {}) {
     const fullMeta = { level: 'debug', ...meta };
     this.logger.debug(msg, fullMeta);
   }
 
-  http(msg, meta = {}) { 
+  http(msg, meta = {}) {
     const fullMeta = { level: 'http', ...meta };
     this.logger.http(msg, fullMeta);
   }
@@ -100,7 +104,7 @@ class Logger {
       userId,
       action,
       details,
-      ...(req ? this._reqContext(req) : {})
+      ...(req ? this._reqContext(req) : {}),
     });
   }
 
@@ -109,7 +113,7 @@ class Logger {
       category: 'admin',
       userId: adminId,
       action,
-      details
+      details,
     });
   }
 
@@ -120,7 +124,7 @@ class Logger {
       userId,
       severity: this._getSecuritySeverity(eventType),
       ...details,
-      ...(req ? this._reqContext(req) : {})
+      ...(req ? this._reqContext(req) : {}),
     };
 
     this.warn(`Security Event: ${eventType}`, securityMeta);
@@ -139,7 +143,7 @@ class Logger {
       userAgent: req.get('User-Agent'),
       method: req.method,
       path: req.path,
-      requestId: req.id
+      requestId: req.id,
     };
   }
 
@@ -152,7 +156,9 @@ class Logger {
   }
 
   _isCriticalSecurityEvent(eventType) {
-    return ['AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH'].includes(eventType);
+    return ['AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH'].includes(
+      eventType
+    );
   }
 
   async _asyncLogToDB(level, message, meta) {
@@ -177,7 +183,7 @@ class Logger {
           ip: meta.ip,
           userAgent: meta.userAgent,
           requestId: meta.requestId,
-          metadata: meta
+          metadata: meta,
         });
       }
     } catch (dbErr) {
@@ -202,6 +208,5 @@ module.exports = {
   logUserAction: loggerInstance.logUserAction.bind(loggerInstance),
   logAdminAction: loggerInstance.logAdminAction.bind(loggerInstance),
   logSecurityEvent: loggerInstance.logSecurityEvent.bind(loggerInstance),
-  Log // Export model for direct use
+  Log, // Export model for direct use
 };
-

@@ -1,7 +1,11 @@
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
-const { asyncHandler, ValidationError, NotFoundError } = require('../middleware/errorHandler');
+const {
+  asyncHandler,
+  ValidationError,
+  NotFoundError,
+} = require('../middleware/errorHandler');
 const { daysLeftUntil, calculateNextRenewalDate } = require('../utils/dateUtils');
 const StripePlan = require('../models/StripePlan');
 
@@ -34,47 +38,48 @@ const subscriptionController = {
     const user = await User.findById(req.user.id).select('+stripeCustomerId');
     if (!user) throw new ValidationError('User not found');
 
-    console.log(`[CHECKOUT] User ${user._id}: email=${user.email}, existingCustomerId=${user.stripeCustomerId || 'NONE'}`);
+    console.log(
+      `[CHECKOUT] User ${user._id}: email=${user.email}, existingCustomerId=${user.stripeCustomerId || 'NONE'}`
+    );
 
     let stripeCustomerId;
-    
+
     // 🚀 ALWAYS REFRESH CUSTOMER - Don't trust potentially stale DB value
     console.log(`[CHECKOUT] 🔄 Force refreshing customer via email: ${user.email}`);
-    
+
     try {
-      const customer = await stripeService.createOrRetrieveCustomer(
-        user.email,
-        null,
-        { 
-          userId: user._id.toString(),
-          app: 'jefitness'
-        }
-      );
-      
+      const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
+        userId: user._id.toString(),
+        app: 'jefitness',
+      });
+
       stripeCustomerId = customer.id;
       console.log(`[CHECKOUT] ✅ Fresh customer: ${stripeCustomerId}`);
-      
+
       // Update user record with verified customer ID (idempotent)
       if (user.stripeCustomerId !== stripeCustomerId) {
         user.stripeCustomerId = stripeCustomerId;
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production';
         await user.save();
         console.log(`[CHECKOUT] 💾 Updated user.stripeCustomerId: ${stripeCustomerId}`);
       }
-      
     } catch (customerError) {
       console.error(`[CHECKOUT] ❌ Customer creation failed:`, customerError.message);
       return res.status(400).json({
         success: false,
-        message: `Failed to create customer account: ${customerError.message}. Please try again or contact support.`
+        message: `Failed to create customer account: ${customerError.message}. Please try again or contact support.`,
       });
     }
 
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const successUrl = `${baseUrl}/pages/subscriptions.html?success=true&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl  = `${baseUrl}/pages/subscriptions.html?canceled=true`;
+    const cancelUrl = `${baseUrl}/pages/subscriptions.html?canceled=true`;
 
-    console.log(`[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`);
+    console.log(
+      `[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`
+    );
 
     let session;
     try {
@@ -87,28 +92,31 @@ const subscriptionController = {
       console.log(`[CHECKOUT] ✅ Session created: ${session.id}`);
     } catch (sessionError) {
       console.error(`[CHECKOUT] ❌ Session creation failed:`, sessionError.message);
-      
+
       // If customer specifically invalid, clear stale DB record
-      if (sessionError.message.includes('Customer account invalid') || sessionError.message.includes('No such customer')) {
+      if (
+        sessionError.message.includes('Customer account invalid') ||
+        sessionError.message.includes('No such customer')
+      ) {
         console.log(`[CHECKOUT] 🧹 Clearing stale customerId from user`);
         user.stripeCustomerId = null;
         await user.save();
       }
-      
+
       return res.status(400).json({
         success: false,
-        message: `Payment setup failed: ${sessionError.message}. Please refresh and try again.`
+        message: `Payment setup failed: ${sessionError.message}. Please refresh and try again.`,
       });
     }
 
-    res.json({ 
-      success: true, 
-      data: { 
-        sessionId: session.id, 
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
         url: session.url,
         customerId: stripeCustomerId,
-        planId 
-      } 
+        planId,
+      },
     });
   }),
 
@@ -119,36 +127,44 @@ const subscriptionController = {
     // Prefer the most recent active subscription; fall back to most recently created.
     let subscription = await Subscription.findOne({
       userId: req.user.id,
-      status: { $in: ['active', 'trialing', 'past_due', 'paused', 'incomplete'] }
+      status: { $in: ['active', 'trialing', 'past_due', 'paused', 'incomplete'] },
     }).sort({ utcCreatedAt: -1 });
 
     if (!subscription) {
-      subscription = await Subscription.findOne({ userId: req.user.id })
-        .sort({ utcCreatedAt: -1 });
+      subscription = await Subscription.findOne({ userId: req.user.id }).sort({
+        utcCreatedAt: -1,
+      });
     }
 
     if (!subscription) return res.json({ success: true, data: null });
 
     // Auto-heal: if active but currentPeriodEnd is missing or in the past, re-sync from Stripe
     const activeStatuses = ['active', 'trialing', 'past_due'];
-    const periodEndInvalid = !subscription.currentPeriodEnd ||
-      subscription.currentPeriodEnd <= new Date();
+    const periodEndInvalid =
+      !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date();
 
-    if (activeStatuses.includes(subscription.status) && periodEndInvalid && subscription.stripeSubscriptionId) {
+    if (
+      activeStatuses.includes(subscription.status) &&
+      periodEndInvalid &&
+      subscription.stripeSubscriptionId
+    ) {
       try {
         const stripe = stripeService.getStripe();
         if (stripe) {
-          const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
+          const stripeSub = await stripe.subscriptions.retrieve(
+            subscription.stripeSubscriptionId
+          );
           if (stripeSub?.current_period_end) {
             subscription = await Subscription.findByIdAndUpdate(
               subscription._id,
               {
                 $set: {
                   currentPeriodStart: stripeSub.current_period_start
-                    ? new Date(stripeSub.current_period_start * 1000) : subscription.currentPeriodStart,
+                    ? new Date(stripeSub.current_period_start * 1000)
+                    : subscription.currentPeriodStart,
                   currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
-                  status: stripeSub.status
-                }
+                  status: stripeSub.status,
+                },
               },
               { new: true }
             );
@@ -161,7 +177,7 @@ const subscriptionController = {
 
     res.json({
       success: true,
-      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) }
+      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) },
     });
   }),
 
@@ -172,26 +188,32 @@ const subscriptionController = {
    */
   verifyCheckoutSession: asyncHandler(async (req, res) => {
     const sessionId = req.params.sessionId.trim();
-    
-    console.log(`[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`);
-    
+
+    console.log(
+      `[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`
+    );
+
     // Validate STRIPE_SECRET_KEY
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('[VERIFY-SESSION] STRIPE_SECRET_KEY missing');
       return res.status(500).json({
         success: false,
-        message: "Stripe configuration error. Please contact support."
+        message: 'Stripe configuration error. Please contact support.',
       });
     }
-    
+
     let session;
     try {
       session = await stripeService.getCheckoutSession(sessionId);
     } catch (error) {
-      console.error('[VERIFY-SESSION] Failed to fetch session:', error.message, sessionId);
+      console.error(
+        '[VERIFY-SESSION] Failed to fetch session:',
+        error.message,
+        sessionId
+      );
       return res.status(400).json({
         success: false,
-        message: `Session fetch failed: ${error.message}`
+        message: `Session fetch failed: ${error.message}`,
       });
     }
 
@@ -199,35 +221,35 @@ const subscriptionController = {
       console.error('[VERIFY-SESSION] Session not found:', sessionId);
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired checkout session"
+        message: 'Invalid or expired checkout session',
       });
     }
-    
+
     if (!session.customer) {
       console.error('[VERIFY-SESSION] No customer in session:', sessionId);
       return res.status(400).json({
         success: false,
-        message: "Session missing customer information"
+        message: 'Session missing customer information',
       });
     }
-    
+
     if (!session.subscription) {
       console.error('[VERIFY-SESSION] No subscription in session:', sessionId);
       return res.status(400).json({
         success: false,
-        message: "Session not linked to subscription"
+        message: 'Session not linked to subscription',
       });
     }
-    
+
     if (session.payment_status !== 'paid' || session.mode !== 'subscription') {
       console.log('[VERIFY-SESSION] Session invalid:', {
         sessionId,
         payment_status: session.payment_status,
-        mode: session.mode
+        mode: session.mode,
       });
       return res.status(400).json({
         success: false,
-        message: "Payment not completed or invalid session type"
+        message: 'Payment not completed or invalid session type',
       });
     }
 
@@ -236,39 +258,50 @@ const subscriptionController = {
     // Stripe finished setting up the subscription).
     let subscription = null;
     try {
-      console.log('[VERIFY-SESSION] Fetching subscription from Stripe:', session.subscription);
+      console.log(
+        '[VERIFY-SESSION] Fetching subscription from Stripe:',
+        session.subscription
+      );
       const stripe = stripeService.getStripe();
       if (!stripe) throw new Error('Stripe instance not available');
 
       const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
 
       if (stripeSub) {
-        const customerId = (session.customer && typeof session.customer === 'object')
-          ? session.customer.id : session.customer;
+        const customerId =
+          session.customer && typeof session.customer === 'object'
+            ? session.customer.id
+            : session.customer;
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (!user) {
           console.warn('[VERIFY-SESSION] User not found for customer:', session.customer);
         } else {
-          const priceItem  = stripeSub.items?.data[0];
-          const priceId    = priceItem?.price?.id;
+          const priceItem = stripeSub.items?.data[0];
+          const priceId = priceItem?.price?.id;
           const billingEnv = getBillingEnv();
-          const planName   = await stripeService.getPlanNameFromPriceId(priceId);
+          const planName = await stripeService.getPlanNameFromPriceId(priceId);
 
           // Resolve period dates from Stripe; fall back to plan-interval arithmetic
           // if Stripe hasn't set current_period_end yet (e.g. subscription still initialising).
           const periodStart = stripeSub.current_period_start
-            ? new Date(stripeSub.current_period_start * 1000) : new Date();
+            ? new Date(stripeSub.current_period_start * 1000)
+            : new Date();
           let periodEnd;
           if (stripeSub.current_period_end) {
             periodEnd = new Date(stripeSub.current_period_end * 1000);
           } else {
-            const planRecord = await StripePlan.findOne({ stripePriceId: priceId, active: true }).lean();
+            const planRecord = await StripePlan.findOne({
+              stripePriceId: priceId,
+              active: true,
+            }).lean();
             periodEnd = calculateNextRenewalDate(
               periodStart,
               planRecord?.interval || 'month',
               planRecord?.intervalCount || 1
             );
-            console.warn(`[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}×${planRecord?.intervalCount}): ${periodEnd.toISOString()}`);
+            console.warn(
+              `[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}×${planRecord?.intervalCount}): ${periodEnd.toISOString()}`
+            );
           }
 
           subscription = await Subscription.findOneAndUpdate(
@@ -276,8 +309,10 @@ const subscriptionController = {
             {
               $set: {
                 userId: user._id,
-                stripeCustomerId: typeof stripeSub.customer === 'object'
-                  ? stripeSub.customer.id : stripeSub.customer,
+                stripeCustomerId:
+                  typeof stripeSub.customer === 'object'
+                    ? stripeSub.customer.id
+                    : stripeSub.customer,
                 stripeSubscriptionId: stripeSub.id,
                 plan: planName,
                 stripePriceId: priceId,
@@ -285,31 +320,38 @@ const subscriptionController = {
                 currentPeriodEnd: periodEnd,
                 status: stripeSub.status,
                 cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
-                canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+                canceledAt: stripeSub.canceled_at
+                  ? new Date(stripeSub.canceled_at * 1000)
+                  : null,
                 amount: priceItem?.price?.unit_amount || 0,
                 currency: priceItem?.price?.currency || 'jmd',
                 billingEnvironment: billingEnv,
-                checkoutSessionId: sessionId
-              }
+                checkoutSessionId: sessionId,
+              },
             },
             { upsert: true, new: true }
           );
 
           await User.findByIdAndUpdate(user._id, {
-            $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv }
+            $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
           });
         }
       }
     } catch (fetchErr) {
-      console.error('[VERIFY-SESSION] Stripe fetch failed, falling back to DB:', fetchErr.message);
-      subscription = await Subscription.findOne({ stripeSubscriptionId: session.subscription });
+      console.error(
+        '[VERIFY-SESSION] Stripe fetch failed, falling back to DB:',
+        fetchErr.message
+      );
+      subscription = await Subscription.findOne({
+        stripeSubscriptionId: session.subscription,
+      });
     }
 
     if (!subscription) return res.json({ success: true, data: null });
 
     res.json({
       success: true,
-      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) }
+      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) },
     });
   }),
 
@@ -321,7 +363,7 @@ const subscriptionController = {
 
     const subscription = await Subscription.findOne({
       _id: subscriptionId,
-      userId: req.user.id
+      userId: req.user.id,
     });
 
     if (!subscription) {
@@ -341,7 +383,7 @@ const subscriptionController = {
           msg.includes('resource_missing');
 
         if (!alreadyGone) {
-        // Non-fatal — log and continue so the DB record is still updated
+          // Non-fatal — log and continue so the DB record is still updated
           logger.error('Stripe cancel error (non-fatal)', { error: stripeErr.message });
         }
       }
@@ -353,17 +395,27 @@ const subscriptionController = {
     await Subscription.findByIdAndUpdate(
       subscription._id,
       {
-        $set:  { status: 'canceled', canceledAt: now },
-        $push: { statusHistory: { status: 'canceled', changedAt: now, reason: 'User requested cancellation' } }
+        $set: { status: 'canceled', canceledAt: now },
+        $push: {
+          statusHistory: {
+            status: 'canceled',
+            changedAt: now,
+            reason: 'User requested cancellation',
+          },
+        },
       },
       { runValidators: false }
     );
 
     // Best-effort user record sync
     try {
-      await User.findByIdAndUpdate(req.user.id, { $set: { subscriptionStatus: 'canceled' } });
+      await User.findByIdAndUpdate(req.user.id, {
+        $set: { subscriptionStatus: 'canceled' },
+      });
     } catch (userUpdateError) {
-      logger.error('Failed to update user record after cancel', { error: userUpdateError.message });
+      logger.error('Failed to update user record after cancel', {
+        error: userUpdateError.message,
+      });
     }
 
     res.json({ success: true, message: 'Subscription canceled successfully' });
@@ -373,14 +425,26 @@ const subscriptionController = {
    * Force-sync subscription status from Stripe
    */
   refresh: asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id).select('stripeSubscriptionId stripeCustomerId');
+    const user = await User.findById(req.user.id).select(
+      'stripeSubscriptionId stripeCustomerId'
+    );
 
     if (!user.stripeSubscriptionId && !user.stripeCustomerId) {
-      return res.json({ success: true, data: null, message: 'No Stripe subscription linked to account' });
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No Stripe subscription linked to account',
+      });
     }
 
     const stripe = stripeService.getStripe();
-    const ACTIVE_STRIPE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+    const ACTIVE_STRIPE_STATUSES = [
+      'active',
+      'trialing',
+      'past_due',
+      'paused',
+      'incomplete',
+    ];
     let stripeSub = null;
 
     try {
@@ -398,7 +462,7 @@ const subscriptionController = {
           const subs = await stripe.subscriptions.list({
             customer: user.stripeCustomerId,
             status,
-            limit: 1
+            limit: 1,
           });
           if (subs.data.length > 0) {
             stripeSub = subs.data[0];
@@ -407,15 +471,22 @@ const subscriptionController = {
         }
       }
     } catch (err) {
-      logger.warn('Stripe subscription fetch failed', { userId: req.user.id, error: err.message });
+      logger.warn('Stripe subscription fetch failed', {
+        userId: req.user.id,
+        error: err.message,
+      });
     }
 
     if (!stripeSub) {
-      return res.json({ success: true, data: null, message: 'No active Stripe subscription found' });
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No active Stripe subscription found',
+      });
     }
 
     const priceItem = stripeSub.items?.data[0];
-    const priceId   = priceItem?.price?.id;
+    const priceId = priceItem?.price?.id;
     const billingEnv = getBillingEnv();
     const planName = await stripeService.getPlanNameFromPriceId(priceId);
 
@@ -426,16 +497,18 @@ const subscriptionController = {
       plan: planName,
       stripePriceId: priceId,
       currentPeriodStart: stripeSub.current_period_start
-        ? new Date(stripeSub.current_period_start * 1000) : new Date(),
+        ? new Date(stripeSub.current_period_start * 1000)
+        : new Date(),
       currentPeriodEnd: stripeSub.current_period_end
-        ? new Date(stripeSub.current_period_end * 1000) : null,
+        ? new Date(stripeSub.current_period_end * 1000)
+        : null,
       status: stripeSub.status,
       cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
       canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
       amount: priceItem?.price?.unit_amount || 0,
       currency: priceItem?.price?.currency || 'jmd',
       billingEnvironment: billingEnv,
-      lastWebhookEventAt: new Date()
+      lastWebhookEventAt: new Date(),
     };
 
     const sub = await Subscription.findOneAndUpdate(
@@ -445,13 +518,13 @@ const subscriptionController = {
     );
 
     await User.findByIdAndUpdate(user._id, {
-      $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv }
+      $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
     });
 
     res.json({
       success: true,
       data: { ...sub.toObject(), daysLeft: computeDaysLeft(sub) },
-      message: 'Subscription refreshed from Stripe'
+      message: 'Subscription refreshed from Stripe',
     });
   }),
 
@@ -464,7 +537,7 @@ const subscriptionController = {
 
     const subscription = await Subscription.findOne({
       stripeSubscriptionId: subscriptionId,
-      userId: req.user.id
+      userId: req.user.id,
     });
 
     if (!subscription) {
@@ -472,7 +545,9 @@ const subscriptionController = {
     }
 
     try {
-      const invoices = await stripeService.getSubscriptionInvoices(subscription.stripeSubscriptionId);
+      const invoices = await stripeService.getSubscriptionInvoices(
+        subscription.stripeSubscriptionId
+      );
 
       const formattedInvoices = invoices
         .map(invoice => ({
@@ -485,17 +560,20 @@ const subscriptionController = {
           currency: invoice.currency,
           invoice_pdf: invoice.invoice_pdf,
           hosted_invoice_url: invoice.hosted_invoice_url,
-          pdf_url: invoice.invoice_pdf || invoice.hosted_invoice_url
+          pdf_url: invoice.invoice_pdf || invoice.hosted_invoice_url,
         }))
         .sort((a, b) => b.created - a.created); // Newest first
 
       res.json({ success: true, data: formattedInvoices });
     } catch (stripeError) {
-      console.error(`[INVOICES] Stripe error for sub ${subscriptionId}:`, stripeError.message);
+      console.error(
+        `[INVOICES] Stripe error for sub ${subscriptionId}:`,
+        stripeError.message
+      );
       // Graceful fallback — frontend handles an empty array
       res.json({ success: true, data: [], message: 'No invoices available' });
     }
-  })
+  }),
 };
 
 module.exports = subscriptionController;

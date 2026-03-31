@@ -5,7 +5,11 @@
  */
 
 const { auth } = require('./auth');
-const { requireDataProcessingConsent, requireHealthDataConsent, checkDataRestriction } = require('./consent');
+const {
+  requireDataProcessingConsent,
+  requireHealthDataConsent,
+  checkDataRestriction,
+} = require('./consent');
 const { apiLimiter } = require('./rateLimiter');
 const versioning = require('./versioning');
 
@@ -20,95 +24,95 @@ const versioning = require('./versioning');
  * @returns {Array} - Array of middleware functions
  */
 function createProtectedRouteMiddleware(options = {}) {
-    const {
-        requireAuth = true,
-        requireDataProcessingConsent: needDataConsent = true,
-        requireHealthDataConsent: needHealthConsent = false,
-        applyRateLimiter = true,
-        applyVersioning = true
-    } = options;
+  const {
+    requireAuth = true,
+    requireDataProcessingConsent: needDataConsent = true,
+    requireHealthDataConsent: needHealthConsent = false,
+    applyRateLimiter = true,
+    applyVersioning = true,
+  } = options;
 
-    const middleware = [];
+  const middleware = [];
 
-    // Add auth middleware if required
-    if (requireAuth) {
-        middleware.push(auth);
-    }
+  // Add auth middleware if required
+  if (requireAuth) {
+    middleware.push(auth);
+  }
 
-    // Add data processing consent if required
-    if (needDataConsent) {
-        middleware.push(requireDataProcessingConsent);
-    }
+  // Add data processing consent if required
+  if (needDataConsent) {
+    middleware.push(requireDataProcessingConsent);
+  }
 
-    // Add health data consent if required
-    if (needHealthConsent) {
-        middleware.push(requireHealthDataConsent);
-    }
+  // Add health data consent if required
+  if (needHealthConsent) {
+    middleware.push(requireHealthDataConsent);
+  }
 
-    // Always add data restriction check
-    middleware.push(checkDataRestriction);
+  // Always add data restriction check
+  middleware.push(checkDataRestriction);
 
-    // Add rate limiter (skip in test environment)
-    if (applyRateLimiter && process.env.NODE_ENV !== 'test') {
-        middleware.push(apiLimiter);
-    }
+  // Add rate limiter (skip in test environment)
+  if (applyRateLimiter && process.env.NODE_ENV !== 'test') {
+    middleware.push(apiLimiter);
+  }
 
-    // Add versioning if required
-    if (applyVersioning) {
-        middleware.push(versioning);
-    }
+  // Add versioning if required
+  if (applyVersioning) {
+    middleware.push(versioning);
+  }
 
-    return middleware;
+  return middleware;
 }
 
 /**
  * Pre-configured middleware chains for common route types
  */
 const routeMiddleware = {
-    // Standard protected route - requires auth and data processing consent
-    standard: createProtectedRouteMiddleware({
-        requireAuth: true,
-        requireDataProcessingConsent: true,
-        requireHealthDataConsent: false,
-        applyRateLimiter: true,
-        applyVersioning: true
-    }),
+  // Standard protected route - requires auth and data processing consent
+  standard: createProtectedRouteMiddleware({
+    requireAuth: true,
+    requireDataProcessingConsent: true,
+    requireHealthDataConsent: false,
+    applyRateLimiter: true,
+    applyVersioning: true,
+  }),
 
-    // Health data route - requires additional health consent
-    healthData: createProtectedRouteMiddleware({
-        requireAuth: true,
-        requireDataProcessingConsent: true,
-        requireHealthDataConsent: true,
-        applyRateLimiter: true,
-        applyVersioning: true
-    }),
+  // Health data route - requires additional health consent
+  healthData: createProtectedRouteMiddleware({
+    requireAuth: true,
+    requireDataProcessingConsent: true,
+    requireHealthDataConsent: true,
+    applyRateLimiter: true,
+    applyVersioning: true,
+  }),
 
-    // Admin route - standard with rate limiting
-    admin: createProtectedRouteMiddleware({
-        requireAuth: true,
-        requireDataProcessingConsent: true,
-        requireHealthDataConsent: false,
-        applyRateLimiter: true,
-        applyVersioning: true
-    }),
+  // Admin route - standard with rate limiting
+  admin: createProtectedRouteMiddleware({
+    requireAuth: true,
+    requireDataProcessingConsent: true,
+    requireHealthDataConsent: false,
+    applyRateLimiter: true,
+    applyVersioning: true,
+  }),
 
-    // No consent required - for routes that don't need GDPR consent
-    basic: createProtectedRouteMiddleware({
-        requireAuth: true,
-        requireDataProcessingConsent: false,
-        requireHealthDataConsent: false,
-        applyRateLimiter: true,
-        applyVersioning: true
-    }),
+  // No consent required - for routes that don't need GDPR consent
+  basic: createProtectedRouteMiddleware({
+    requireAuth: true,
+    requireDataProcessingConsent: false,
+    requireHealthDataConsent: false,
+    applyRateLimiter: true,
+    applyVersioning: true,
+  }),
 
-    // Minimal - just auth, no rate limiting (for internal/privileged routes)
-    minimal: createProtectedRouteMiddleware({
-        requireAuth: true,
-        requireDataProcessingConsent: true,
-        requireHealthDataConsent: false,
-        applyRateLimiter: false,
-        applyVersioning: true
-    })
+  // Minimal - just auth, no rate limiting (for internal/privileged routes)
+  minimal: createProtectedRouteMiddleware({
+    requireAuth: true,
+    requireDataProcessingConsent: true,
+    requireHealthDataConsent: false,
+    applyRateLimiter: false,
+    applyVersioning: true,
+  }),
 };
 
 /**
@@ -119,12 +123,12 @@ const routeMiddleware = {
  * @returns {Function} - Route module with middleware applied
  */
 function applyRouteMiddleware(router, routeType, routeModule) {
-    const middleware = routeMiddleware[routeType] || routeMiddleware.standard;
-    return middleware.concat(routeModule);
+  const middleware = routeMiddleware[routeType] || routeMiddleware.standard;
+  return middleware.concat(routeModule);
 }
 
 module.exports = {
-    createProtectedRouteMiddleware,
-    routeMiddleware,
-    applyRouteMiddleware
+  createProtectedRouteMiddleware,
+  routeMiddleware,
+  applyRouteMiddleware,
 };

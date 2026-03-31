@@ -11,28 +11,30 @@ const mongoose = require('mongoose');
  */
 const requireDbConnection = (req, res, next) => {
   const connectionState = mongoose.connection.readyState;
-  
+
   // Connection states:
   // 0 = disconnected
   // 1 = connected
   // 2 = connecting
   // 3 = disconnecting
-  
+
   if (connectionState === 1) {
     // Database is connected, proceed
     next();
   } else if (connectionState === 2 || connectionState === 3) {
     // Database is connecting or disconnecting
-    console.warn(`[DB] Database ${connectionState === 2 ? 'connecting' : 'disconnecting'}, request queued or rejected`);
-    
+    console.warn(
+      `[DB] Database ${connectionState === 2 ? 'connecting' : 'disconnecting'}, request queued or rejected`
+    );
+
     // For login/signup, we should reject - can't authenticate without DB
     if (req.path.includes('login') || req.path.includes('signup')) {
       return res.status(503).json({
         msg: 'Service temporarily unavailable. Database connection in progress.',
-        retryAfter: 10
+        retryAfter: 10,
       });
     }
-    
+
     // For other requests, wait briefly then check again
     setTimeout(() => {
       if (mongoose.connection.readyState === 1) {
@@ -40,17 +42,17 @@ const requireDbConnection = (req, res, next) => {
       } else {
         return res.status(503).json({
           msg: 'Service temporarily unavailable. Please retry.',
-          retryAfter: 10
+          retryAfter: 10,
         });
       }
     }, 1000);
   } else {
     // Database is disconnected
     console.error('[DB] Database not connected, request rejected');
-    
+
     return res.status(503).json({
       msg: 'Service temporarily unavailable. Database disconnected.',
-      retryAfter: 30
+      retryAfter: 30,
     });
   }
 };
@@ -74,6 +76,5 @@ const getDbStatus = () => {
 module.exports = {
   requireDbConnection,
   isDbConnected,
-  getDbStatus
+  getDbStatus,
 };
-

@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+reports/
+dist/
+build/
+*.log
+.env*
+**/*.min.js
+cypress/
+public/js/**/*.min.js
+

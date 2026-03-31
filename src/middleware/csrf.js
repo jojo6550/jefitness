@@ -4,7 +4,7 @@ const crypto = require('crypto');
  * CSRF Protection Middleware
  * Generates tokens for safe methods (GET, HEAD, OPTIONS)
  * Validates tokens for state-changing methods (POST, PUT, DELETE, PATCH)
- * 
+ *
  * SECURITY: Uses in-memory storage with TTL for token management
  * Tokens are single-use and expire after 1 hour
  */
@@ -23,12 +23,12 @@ class CSRFProtection {
    */
   generateToken(req) {
     const token = crypto.randomBytes(32).toString('hex');
-    
+
     this.tokens.set(token, {
       userId: req.user?.id || 'anon',
       createdAt: Date.now(),
       userAgent: req.get('User-Agent'),
-      ip: req.ip
+      ip: req.ip,
     });
 
     return token;
@@ -85,27 +85,37 @@ class CSRFProtection {
         return next();
       }
 
-    // Skip API endpoints that use JWT auth (webhooks use signature verification)
+      // Skip API endpoints that use JWT auth (webhooks use signature verification)
       // But require CSRF for form-based state changes
-      
+
       // SECURITY: Stripe webhook on root / (CLI/dashboard common misconfig)
-      if (req.method === 'POST' && req.path === '/' && 
-          req.get('User-Agent')?.includes('Stripe') && 
-          req.get('stripe-signature')) {
+      if (
+        req.method === 'POST' &&
+        req.path === '/' &&
+        req.get('User-Agent')?.includes('Stripe') &&
+        req.get('stripe-signature')
+      ) {
         console.log(`✅ Stripe webhook on root / bypassed CSRF | IP: ${req.ip}`);
         return next();
       }
-      
+
       if (req.path.startsWith('/webhooks')) {
         return next(); // Webhooks use signature verification, not CSRF
       }
 
-// Skip CSRF for public auth routes (signup, login, forgot-password, reset-password)
+      // Skip CSRF for public auth routes (signup, login, forgot-password, reset-password)
       // These endpoints need to be accessible without prior authentication
       if (req.path.startsWith('/api/v1/auth/')) {
-        const publicAuthRoutes = ['/signup', '/login', '/forgot-password', '/reset-password'];
-        const isPublicAuthRoute = publicAuthRoutes.some(route => req.path.endsWith(route) || req.path.includes(route));
-        
+        const publicAuthRoutes = [
+          '/signup',
+          '/login',
+          '/forgot-password',
+          '/reset-password',
+        ];
+        const isPublicAuthRoute = publicAuthRoutes.some(
+          route => req.path.endsWith(route) || req.path.includes(route)
+        );
+
         if (isPublicAuthRoute) {
           return next(); // Skip CSRF for public auth routes
         }
@@ -121,11 +131,13 @@ class CSRFProtection {
       const verification = this.verifyToken(req);
 
       if (!verification.valid) {
-        console.warn(`CSRF verification failed: ${verification.error} | IP: ${req.ip} | Path: ${req.path}`);
+        console.warn(
+          `CSRF verification failed: ${verification.error} | IP: ${req.ip} | Path: ${req.path}`
+        );
         return res.status(403).json({
           success: false,
           error: 'CSRF validation failed',
-          details: verification.error
+          details: verification.error,
         });
       }
 

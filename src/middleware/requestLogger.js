@@ -30,22 +30,22 @@ const requestLogger = (req, res, next) => {
     logger.http(`${req.method} ${req.path}`, {
       requestId: req.id,
       userId: req.user?.id || 'anonymous',
-      ip: req.ip
+      ip: req.ip,
     });
   }
 
   // Override res.json to log responses
   const originalJson = res.json.bind(res);
-  res.json = function(data) {
+  res.json = function (data) {
     const duration = Date.now() - req.startTime;
-    
+
     // Log slow requests (> 1s)
     if (duration > 1000) {
       logger.warn('Slow request detected', {
         requestId: req.id,
         method: req.method,
         path: req.path,
-        duration: `${duration}ms`
+        duration: `${duration}ms`,
       });
     }
 
@@ -54,7 +54,7 @@ const requestLogger = (req, res, next) => {
       method: req.method,
       path: req.path,
       duration: duration,
-      statusCode: res.statusCode
+      statusCode: res.statusCode,
     });
 
     // Log failed authentication/authorization attempts
@@ -65,10 +65,12 @@ const requestLogger = (req, res, next) => {
         {
           path: req.path,
           method: req.method,
-          message: data?.error?.message || 'Access attempt failed'
+          message: data?.error?.message || 'Access attempt failed',
         },
         req
-      ).catch(err => logger.error('Failed to log security event', { error: err.message }));
+      ).catch(err =>
+        logger.error('Failed to log security event', { error: err.message })
+      );
     }
 
     // Add request ID to response headers
@@ -82,5 +84,5 @@ const requestLogger = (req, res, next) => {
 
 module.exports = {
   requestLogger,
-  generateRequestId
+  generateRequestId,
 };

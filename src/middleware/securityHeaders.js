@@ -27,7 +27,10 @@ const securityHeaders = (req, res, next) => {
 
   // Strict Transport Security (HSTS)
   if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains; preload'
+    );
   }
 
   // Cache control for sensitive endpoints

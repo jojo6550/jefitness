@@ -26,7 +26,7 @@ function getFileHash(filePath) {
     }
 
     const fullPath = path.join(process.cwd(), 'public', filePath);
-    
+
     // Check if file exists
     if (!fs.existsSync(fullPath)) {
       console.warn(`Cache version: File not found: ${filePath}`);
@@ -137,5 +137,5 @@ module.exports = {
   versionedUrl,
   invalidateCache,
   startFileWatching,
-  stopFileWatching
+  stopFileWatching,
 };

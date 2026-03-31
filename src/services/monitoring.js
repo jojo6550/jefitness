@@ -16,7 +16,7 @@ class MonitoringService {
       responseTimes: [],
       uptime: process.uptime(),
       memoryUsage: process.memoryUsage(),
-      systemLoad: os.loadavg()
+      systemLoad: os.loadavg(),
     };
 
     // Initialize monitoring intervals
@@ -45,12 +45,14 @@ class MonitoringService {
 
     // If we're not in production then log to the `console` with a simple format
     if (process.env.NODE_ENV !== 'production') {
-      logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      }));
+      logger.add(
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+          ),
+        })
+      );
     }
 
     return logger;
@@ -62,8 +64,8 @@ class MonitoringService {
   setupSentry() {
     if (process.env.SENTRY_DSN) {
       const Sentry = require('@sentry/node');
-const logger = require('./logger').logger;
-const { nodeProfilingIntegration } = require('@sentry/profiling-node');
+      const logger = require('./logger').logger;
+      const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 
       Sentry.init({
         dsn: process.env.SENTRY_DSN,
@@ -76,7 +78,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
         profilesSampleRate: 1.0,
       });
 
-    logger.info('Sentry error monitoring initialized');
+      logger.info('Sentry error monitoring initialized');
     }
   }
 
@@ -127,7 +129,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
         method,
         path,
         responseTime,
-        statusCode
+        statusCode,
       });
     }
   }
@@ -141,13 +143,13 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
     this.logger.error('Application error', {
       error: error.message,
       stack: error.stack,
-      ...context
+      ...context,
     });
 
     // Send to Sentry if configured
     if (global.Sentry) {
       global.Sentry.captureException(error, {
-        tags: context
+        tags: context,
       });
     }
   }
@@ -159,7 +161,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
     this.logger.warn('Security event', {
       event,
       ...details,
-      severity: this.getSecuritySeverity(event)
+      severity: this.getSecuritySeverity(event),
     });
 
     // Send critical security events to alerting system
@@ -167,7 +169,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       this.sendAlert('CRITICAL_SECURITY_EVENT', {
         event,
         details,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -187,7 +189,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       'mass_data_export',
       'suspicious_activity',
       'encryption_key_compromised',
-      'bulk_data_deletion'
+      'bulk_data_deletion',
     ];
     return breachEvents.includes(event);
   }
@@ -203,7 +205,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       event,
       details,
       timestamp: new Date().toISOString(),
-      severity: 'CRITICAL'
+      severity: 'CRITICAL',
     });
 
     // Immediate containment actions
@@ -249,7 +251,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       details,
       timestamp: new Date().toISOString(),
       affectedData: this.identifyAffectedData(event, details),
-      riskAssessment: this.assessBreachRisk(event, details)
+      riskAssessment: this.assessBreachRisk(event, details),
     };
 
     // Send to compliance team
@@ -260,24 +262,30 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'data_breach_alert',
-            ...breachNotification
-          })
+            ...breachNotification,
+          }),
         });
         this.logger.info('Data breach notification sent to compliance team');
       } catch (error) {
-        this.logger.error('Failed to send breach notification to compliance team', { error: error.message });
+        this.logger.error('Failed to send breach notification to compliance team', {
+          error: error.message,
+        });
       }
     }
 
     // Send to supervisory authority if required (within 72 hours for GDPR)
     if (this.requiresSupervisoryNotification(event, details)) {
-      this.logger.warn('BREACH REQUIRES SUPERVISORY AUTHORITY NOTIFICATION', { breachId });
+      this.logger.warn('BREACH REQUIRES SUPERVISORY AUTHORITY NOTIFICATION', {
+        breachId,
+      });
       // Implement supervisory authority notification logic
     }
 
     // Notify affected data subjects if high risk
     if (breachNotification.riskAssessment === 'high') {
-      this.logger.warn('HIGH RISK BREACH - DATA SUBJECT NOTIFICATION REQUIRED', { breachId });
+      this.logger.warn('HIGH RISK BREACH - DATA SUBJECT NOTIFICATION REQUIRED', {
+        breachId,
+      });
       // Implement data subject notification logic
     }
   }
@@ -290,7 +298,9 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       const complianceService = require('./compliance');
       await complianceService.logDataBreach(breachId, event, details);
     } catch (error) {
-      this.logger.error('Failed to log breach in compliance system', { error: error.message });
+      this.logger.error('Failed to log breach in compliance system', {
+        error: error.message,
+      });
     }
   }
 
@@ -323,8 +333,11 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
    */
   assessBreachRisk(event, details) {
     // High risk if health data or large number of individuals affected
-    if (details.healthData || details.medicalRecords ||
-        (details.affectedUsers && details.affectedUsers > 100)) {
+    if (
+      details.healthData ||
+      details.medicalRecords ||
+      (details.affectedUsers && details.affectedUsers > 100)
+    ) {
       return 'high';
     }
 
@@ -352,14 +365,10 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       'brute_force_attempt',
       'data_breach',
       'unauthorized_access',
-      'sql_injection_attempt'
+      'sql_injection_attempt',
     ];
 
-    const highEvents = [
-      'failed_login',
-      'suspicious_activity',
-      'rate_limit_exceeded'
-    ];
+    const highEvents = ['failed_login', 'suspicious_activity', 'rate_limit_exceeded'];
 
     if (criticalEvents.includes(event)) return 'critical';
     if (highEvents.includes(event)) return 'high';
@@ -370,9 +379,11 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
    * Log performance summary
    */
   logPerformanceSummary() {
-    const avgResponseTime = this.metrics.responseTimes.length > 0
-      ? this.metrics.responseTimes.reduce((a, b) => a + b, 0) / this.metrics.responseTimes.length
-      : 0;
+    const avgResponseTime =
+      this.metrics.responseTimes.length > 0
+        ? this.metrics.responseTimes.reduce((a, b) => a + b, 0) /
+          this.metrics.responseTimes.length
+        : 0;
 
     const memoryUsageMB = Math.round(this.metrics.memoryUsage.heapUsed / 1024 / 1024);
 
@@ -382,7 +393,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       avgResponseTime: Math.round(avgResponseTime),
       memoryUsageMB,
       systemLoad: this.metrics.systemLoad,
-      uptime: Math.round(this.metrics.uptime / 3600) + ' hours'
+      uptime: Math.round(this.metrics.uptime / 3600) + ' hours',
     });
   }
 
@@ -390,14 +401,15 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
    * Check for alert conditions
    */
   checkAlerts() {
-    const errorRate = this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0;
+    const errorRate =
+      this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0;
 
     // Alert on high error rate
     if (errorRate > 5) {
       this.sendAlert('HIGH_ERROR_RATE', {
         errorRate: errorRate.toFixed(2) + '%',
         totalRequests: this.metrics.requests,
-        totalErrors: this.metrics.errors
+        totalErrors: this.metrics.errors,
       });
     }
 
@@ -408,12 +420,12 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
     if (this.metrics.systemLoad[0] > os.cpus().length) {
       this.sendAlert('HIGH_SYSTEM_LOAD', {
         loadAverage: this.metrics.systemLoad[0].toFixed(2),
-        cpuCount: os.cpus().length
+        cpuCount: os.cpus().length,
       });
     }
   }
 
-// performMemoryCleanup method removed to eliminate memory cleanup logs
+  // performMemoryCleanup method removed to eliminate memory cleanup logs
 
   /**
    * Send alert to external monitoring service
@@ -421,7 +433,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
   sendAlert(alertType, data) {
     this.logger.error('ALERT TRIGGERED', {
       alertType,
-      ...data
+      ...data,
     });
 
     // In production, this would integrate with:
@@ -439,8 +451,8 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
           alertType,
           ...data,
           service: 'je-fitness',
-          environment: process.env.NODE_ENV || 'development'
-        })
+          environment: process.env.NODE_ENV || 'development',
+        }),
       }).catch(err => {
         this.logger.error('Failed to send alert webhook', { error: err.message });
       });
@@ -458,7 +470,7 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
       memory: this.metrics.memoryUsage,
       load: this.metrics.systemLoad,
       requests: this.metrics.requests,
-      errors: this.metrics.errors
+      errors: this.metrics.errors,
     };
   }
 
@@ -468,10 +480,15 @@ const { nodeProfilingIntegration } = require('@sentry/profiling-node');
   getMetrics() {
     return {
       ...this.metrics,
-      averageResponseTime: this.metrics.responseTimes.length > 0
-        ? this.metrics.responseTimes.reduce((a, b) => a + b, 0) / this.metrics.responseTimes.length
-        : 0,
-      errorRate: this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests) * 100 : 0
+      averageResponseTime:
+        this.metrics.responseTimes.length > 0
+          ? this.metrics.responseTimes.reduce((a, b) => a + b, 0) /
+            this.metrics.responseTimes.length
+          : 0,
+      errorRate:
+        this.metrics.requests > 0
+          ? (this.metrics.errors / this.metrics.requests) * 100
+          : 0,
     };
   }
 }

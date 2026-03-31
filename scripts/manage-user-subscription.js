@@ -18,16 +18,21 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 // Import models and services
 const User = require('../src/models/User');
 const Subscription = require('../src/models/Subscription');
-const { createOrRetrieveCustomer, createSubscription, updateSubscription, cancelSubscription } = require('../src/services/stripe');
+const {
+  createOrRetrieveCustomer,
+  createSubscription,
+  updateSubscription,
+  cancelSubscription,
+} = require('../src/services/stripe');
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 function question(prompt) {
-  return new Promise((resolve) => {
-    rl.question(prompt, (answer) => {
+  return new Promise(resolve => {
+    rl.question(prompt, answer => {
       resolve(answer.trim());
     });
   });
@@ -35,17 +40,22 @@ function question(prompt) {
 
 async function connectDB() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri =
+      process.env.MONGO_URI ||
+      process.env.MONGO_URI ||
+      'mongodb://localhost:27017/jefitness';
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
-      family: 4
+      family: 4,
     });
     console.log('✅ Connected to database');
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    console.error('💡 Make sure MongoDB is running and MONGO_URI is set in your .env file');
+    console.error(
+      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file'
+    );
     process.exit(1);
   }
 }
@@ -63,7 +73,7 @@ async function displayMenu(currentPlan) {
     { key: '1-month', name: '1 Month', description: 'Monthly subscription' },
     { key: '3-month', name: '3 Month', description: 'Quarterly subscription' },
     { key: '6-month', name: '6 Month', description: 'Semi-annual subscription' },
-    { key: '12-month', name: '12 Month', description: 'Annual subscription' }
+    { key: '12-month', name: '12 Month', description: 'Annual subscription' },
   ];
 
   plans.forEach((plan, index) => {
@@ -83,14 +93,16 @@ async function createStripeSubscription(user, plan) {
     const customer = await createOrRetrieveCustomer(user.email, null, {
       userId: user._id.toString(),
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
     });
 
     console.log('✅ Stripe customer created/retrieved:', customer.id);
 
     // Update user with customer ID
     user.stripeCustomerId = customer.id;
-    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+      ? 'test'
+      : 'production';
     await user.save();
 
     console.log('🔄 Creating subscription...');
@@ -106,19 +118,29 @@ async function createStripeSubscription(user, plan) {
     user.subscription.plan = plan;
     user.subscription.stripePriceId = subscription.items.data[0]?.price.id;
     user.subscription.stripeSubscriptionId = subscription.id;
-    user.subscription.currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null;
-    user.subscription.currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null;
+    user.subscription.currentPeriodStart = subscription.current_period_start
+      ? new Date(subscription.current_period_start * 1000)
+      : null;
+    user.subscription.currentPeriodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000)
+      : null;
 
     await user.save();
 
     // Create subscription record in database
-    const currentPeriodStart = subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : new Date();
-    const currentPeriodEnd = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
+    const currentPeriodStart = subscription.current_period_start
+      ? new Date(subscription.current_period_start * 1000)
+      : new Date();
+    const currentPeriodEnd = subscription.current_period_end
+      ? new Date(subscription.current_period_end * 1000)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
 
     // Validate currency - default to 'jmd' if not supported
     const allowedCurrencies = ['jmd', 'eur', 'gbp'];
     const stripeCurrency = subscription.items.data[0]?.price.currency || 'jmd';
-    const currency = allowedCurrencies.includes(stripeCurrency.toLowerCase()) ? stripeCurrency.toLowerCase() : 'jmd';
+    const currency = allowedCurrencies.includes(stripeCurrency.toLowerCase())
+      ? stripeCurrency.toLowerCase()
+      : 'jmd';
 
     const subscriptionRecord = new Subscription({
       userId: user._id,
@@ -132,7 +154,7 @@ async function createStripeSubscription(user, plan) {
       cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       amount: subscription.items.data[0]?.price.unit_amount || 0, // Amount in cents
       currency: currency,
-      billingEnvironment: user.billingEnvironment
+      billingEnvironment: user.billingEnvironment,
     });
 
     await subscriptionRecord.save();
@@ -140,7 +162,6 @@ async function createStripeSubscription(user, plan) {
     console.log('✅ Database records updated');
 
     return { subscription, customer };
-
   } catch (error) {
     console.error('❌ Failed to create subscription:', error.message);
     throw error;
@@ -172,12 +193,11 @@ async function changeUserPlan(user, selectedPlan) {
 
     await user.save();
     console.log('✅ User updated to free tier');
-
   } else {
     // Paid plan - update existing subscription
     try {
       const updatedSubscription = await updateSubscription(user.stripeSubscriptionId, {
-        plan: selectedPlan.key
+        plan: selectedPlan.key,
       });
 
       console.log('✅ Stripe subscription updated successfully');
@@ -186,8 +206,12 @@ async function changeUserPlan(user, selectedPlan) {
       user.subscriptionType = selectedPlan.key;
       user.subscriptionStatus = updatedSubscription.status;
       user.stripePriceId = updatedSubscription.items.data[0]?.price.id;
-      user.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : null;
-      user.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : null;
+      user.currentPeriodStart = updatedSubscription.current_period_start
+        ? new Date(updatedSubscription.current_period_start * 1000)
+        : null;
+      user.currentPeriodEnd = updatedSubscription.current_period_end
+        ? new Date(updatedSubscription.current_period_end * 1000)
+        : null;
       user.cancelAtPeriodEnd = updatedSubscription.cancel_at_period_end || false;
 
       await user.save();
@@ -195,18 +219,27 @@ async function changeUserPlan(user, selectedPlan) {
       // Update subscription record if exists
       const subscriptionRecord = await Subscription.findOne({
         stripeSubscriptionId: user.stripeSubscriptionId,
-        userId: user._id
+        userId: user._id,
       });
 
       if (subscriptionRecord) {
         subscriptionRecord.plan = selectedPlan.key;
         subscriptionRecord.status = updatedSubscription.status;
         subscriptionRecord.stripePriceId = updatedSubscription.items.data[0]?.price.id;
-        subscriptionRecord.currentPeriodStart = updatedSubscription.current_period_start ? new Date(updatedSubscription.current_period_start * 1000) : new Date();
-        subscriptionRecord.currentPeriodEnd = updatedSubscription.current_period_end ? new Date(updatedSubscription.current_period_end * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
-        subscriptionRecord.cancelAtPeriodEnd = updatedSubscription.cancel_at_period_end || false;
-        subscriptionRecord.amount = updatedSubscription.items.data[0]?.price.unit_amount || subscriptionRecord.amount;
-        subscriptionRecord.currency = updatedSubscription.items.data[0]?.price.currency || subscriptionRecord.currency;
+        subscriptionRecord.currentPeriodStart = updatedSubscription.current_period_start
+          ? new Date(updatedSubscription.current_period_start * 1000)
+          : new Date();
+        subscriptionRecord.currentPeriodEnd = updatedSubscription.current_period_end
+          ? new Date(updatedSubscription.current_period_end * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default to 30 days from now
+        subscriptionRecord.cancelAtPeriodEnd =
+          updatedSubscription.cancel_at_period_end || false;
+        subscriptionRecord.amount =
+          updatedSubscription.items.data[0]?.price.unit_amount ||
+          subscriptionRecord.amount;
+        subscriptionRecord.currency =
+          updatedSubscription.items.data[0]?.price.currency ||
+          subscriptionRecord.currency;
         subscriptionRecord.updatedAt = new Date();
 
         await subscriptionRecord.save();
@@ -217,7 +250,6 @@ async function changeUserPlan(user, selectedPlan) {
       console.log(`📊 New plan: ${selectedPlan.name}`);
       console.log(`📅 Status: ${updatedSubscription.status}`);
       console.log(`💰 Price ID: ${updatedSubscription.items.data[0]?.price.id}`);
-
     } catch (stripeError) {
       console.error('❌ Stripe update failed:', stripeError.message);
 
@@ -234,7 +266,9 @@ async function changeUserPlan(user, selectedPlan) {
 
 async function main() {
   console.log('\n🔄 Manage User Subscription Script\n');
-  console.log('This script creates new subscriptions or changes existing subscription plans.\n');
+  console.log(
+    'This script creates new subscriptions or changes existing subscription plans.\n'
+  );
 
   // Get arguments
   const email = process.argv[2];
@@ -243,8 +277,12 @@ async function main() {
   if (!email) {
     console.log('❌ Usage: node scripts/manage-user-subscription.js <email> [plan]');
     console.log('💡 Examples:');
-    console.log('   node scripts/manage-user-subscription.js user@example.com 1-month  # Create/change to 1-month plan');
-    console.log('   node scripts/manage-user-subscription.js user@example.com         # Interactive menu');
+    console.log(
+      '   node scripts/manage-user-subscription.js user@example.com 1-month  # Create/change to 1-month plan'
+    );
+    console.log(
+      '   node scripts/manage-user-subscription.js user@example.com         # Interactive menu'
+    );
     process.exit(1);
   }
 
@@ -278,7 +316,13 @@ async function main() {
         console.log(`❌ Invalid plan. Must be one of: ${validPlans.join(', ')}`);
         process.exit(1);
       }
-      selectedPlan = { key: planArg, name: planArg === 'free' ? 'Free' : planArg.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) };
+      selectedPlan = {
+        key: planArg,
+        name:
+          planArg === 'free'
+            ? 'Free'
+            : planArg.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      };
     } else {
       // Display interactive menu
       const plans = await displayMenu(user.subscription.plan || 'free');
@@ -306,8 +350,13 @@ async function main() {
     const action = hasActiveSubscription ? 'change' : 'create';
 
     // Confirm action
-    const actionText = action === 'create' ? `Create ${selectedPlan.name} subscription` : `Change plan to ${selectedPlan.name}`;
-    const confirm = await question(`\n⚠️  ${actionText} for ${user.firstName} ${user.lastName}? (yes/no): `);
+    const actionText =
+      action === 'create'
+        ? `Create ${selectedPlan.name} subscription`
+        : `Change plan to ${selectedPlan.name}`;
+    const confirm = await question(
+      `\n⚠️  ${actionText} for ${user.firstName} ${user.lastName}? (yes/no): `
+    );
     if (confirm.toLowerCase() !== 'yes') {
       console.log('❌ Operation cancelled');
       process.exit(0);
@@ -316,7 +365,9 @@ async function main() {
     if (action === 'create') {
       // Validate required account fields for new subscriptions
       if (!user.firstName?.trim() || !user.lastName?.trim() || !user.email?.trim()) {
-        console.log('❌ User account is incomplete. Missing required fields: firstName, lastName, or email');
+        console.log(
+          '❌ User account is incomplete. Missing required fields: firstName, lastName, or email'
+        );
         process.exit(1);
       }
 
@@ -332,12 +383,10 @@ async function main() {
 
       const periodEnd = new Date(result.subscription.current_period_end * 1000);
       console.log(`📅 Current period ends: ${periodEnd.toLocaleDateString()}`);
-
     } else {
       // Change existing subscription plan
       await changeUserPlan(user, selectedPlan);
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);

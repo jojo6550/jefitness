@@ -66,9 +66,9 @@ function sanitizeValue(value) {
       const sanitized = sanitizeHtml(value, {
         allowedTags: [],
         allowedAttributes: {},
-        disallowedTagsMode: 'discard'
+        disallowedTagsMode: 'discard',
       }).trim();
-      
+
       // SECURITY: Additional protection against script injection
       return sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
     } catch (error) {
@@ -89,7 +89,7 @@ const sanitizeStrict = (fields = []) => {
         if (req.body && req.body[field]) {
           req.body[field] = sanitizeHtml(req.body[field], {
             allowedTags: [],
-            allowedAttributes: {}
+            allowedAttributes: {},
           });
         }
       });
@@ -98,7 +98,7 @@ const sanitizeStrict = (fields = []) => {
       console.error('Strict sanitization error:', error);
       res.status(400).json({
         success: false,
-        error: { message: 'Invalid input format' }
+        error: { message: 'Invalid input format' },
       });
     }
   };
@@ -108,5 +108,5 @@ module.exports = {
   sanitizeInput,
   sanitizeStrict,
   sanitizeValue,
-  sanitizeObject
+  sanitizeObject,
 };

@@ -31,7 +31,7 @@ const addLogEntry = (level, category, message) => {
     message,
     user: null,
     ip: null,
-    userAgent: null
+    userAgent: null,
   };
   realtimeLogs.push(logEntry);
   // Keep only the last MAX_LOGS entries
@@ -41,19 +41,19 @@ const addLogEntry = (level, category, message) => {
 };
 
 // Override console methods to capture logs
-console.log = function(...args) {
+console.log = function (...args) {
   const message = args.join(' ');
   addLogEntry('info', 'app', message);
   originalConsoleLog.apply(console, args);
 };
 
-console.error = function(...args) {
+console.error = function (...args) {
   const message = args.join(' ');
   addLogEntry('error', 'error', message);
   originalConsoleError.apply(console, args);
 };
 
-console.warn = function(...args) {
+console.warn = function (...args) {
   const message = args.join(' ');
   addLogEntry('warn', 'warn', message);
   originalConsoleWarn.apply(console, args);
@@ -98,8 +98,8 @@ router.get('/', (req, res) => {
         totalPages: totalPages,
         totalLogs: totalLogs,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     });
   } catch (error) {
     console.error('Error fetching logs:', error);
@@ -114,7 +114,7 @@ router.get('/stats', (req, res) => {
       total: realtimeLogs.length,
       byLevel: {},
       byCategory: {},
-      recentErrors: realtimeLogs.filter(log => log.level === 'error').slice(0, 10)
+      recentErrors: realtimeLogs.filter(log => log.level === 'error').slice(0, 10),
     };
 
     realtimeLogs.forEach(log => {
@@ -146,9 +146,12 @@ router.get('/export', (req, res) => {
 
     // Create CSV content
     const csvHeaders = 'Timestamp,Level,Category,Message,User,IP,User Agent\n';
-    const csvContent = exportLogs.map(log =>
-      `"${log.timestamp}","${log.level}","${log.category}","${log.message.replace(/"/g, '""')}","${log.user || ''}","${log.ip || ''}","${log.userAgent || ''}"`
-    ).join('\n');
+    const csvContent = exportLogs
+      .map(
+        log =>
+          `"${log.timestamp}","${log.level}","${log.category}","${log.message.replace(/"/g, '""')}","${log.user || ''}","${log.ip || ''}","${log.userAgent || ''}"`
+      )
+      .join('\n');
 
     const csv = csvHeaders + csvContent;
 
@@ -168,7 +171,7 @@ Object.defineProperty(router, 'realtimeLogs', {
   },
   set(value) {
     realtimeLogs = value;
-  }
+  },
 });
 
 module.exports = router;

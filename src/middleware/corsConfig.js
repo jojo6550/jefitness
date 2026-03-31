@@ -17,7 +17,7 @@ const corsOptions = {
       'https://jefitnessja.com',
       'https://www.jefitnessja.com',
       'http://localhost:10000',
-      'http://127.0.0.1:10000'
+      'http://127.0.0.1:10000',
     ];
 
     // SECURITY: Allow requests with no origin (same-origin, server-to-server, or mobile apps)
@@ -25,7 +25,7 @@ const corsOptions = {
       callback(null, true);
       return;
     }
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -35,11 +35,23 @@ const corsOptions = {
   },
   credentials: true, // SECURITY: Allow credentials (cookies, auth headers) for authenticated requests
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Auth-Token', 'X-Requested-With', 'X-CSRF-Token'],
-  exposedHeaders: ['X-Total-Count', 'X-Page-Count', 'RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Auth-Token',
+    'X-Requested-With',
+    'X-CSRF-Token',
+  ],
+  exposedHeaders: [
+    'X-Total-Count',
+    'X-Page-Count',
+    'RateLimit-Limit',
+    'RateLimit-Remaining',
+    'RateLimit-Reset',
+  ],
   maxAge: 86400, // SECURITY: Cache preflight for 24 hours to reduce overhead
   preflightContinue: false, // SECURITY: Don't pass preflight to route handlers
-  optionsSuccessStatus: 204 // SECURITY: Use 204 for OPTIONS instead of 200
+  optionsSuccessStatus: 204, // SECURITY: Use 204 for OPTIONS instead of 200
 };
 
 /**
@@ -47,5 +59,5 @@ const corsOptions = {
  * Explicitly handles OPTIONS requests with security headers
  */
 module.exports = {
-  corsOptions
+  corsOptions,
 };

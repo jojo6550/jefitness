@@ -45,12 +45,12 @@ async function main() {
         // Fix mongoose timestamps (most likely cause)
         if (sub.createdAt) {
           // Reconstruct UTC timestamp from local Date (shift back by server TZ offset)
-          const originalUTC = sub.createdAt.getTime() - (5 * 60 * 60 * 1000); // Jamaica UTC-5
+          const originalUTC = sub.createdAt.getTime() - 5 * 60 * 60 * 1000; // Jamaica UTC-5
           sub.createdAt = new Date(originalUTC);
           needsUpdate = true;
         }
         if (sub.updatedAt) {
-          const originalUTC = sub.updatedAt.getTime() - (5 * 60 * 60 * 1000); // Jamaica UTC-5
+          const originalUTC = sub.updatedAt.getTime() - 5 * 60 * 60 * 1000; // Jamaica UTC-5
           sub.updatedAt = new Date(originalUTC);
           needsUpdate = true;
         }
@@ -69,7 +69,6 @@ async function main() {
     console.log('\n🎉 MIGRATION COMPLETE');
     console.log(`✅ Fixed: ${fixedCount} subscriptions`);
     console.log(`❌ Errors: ${errorCount}`);
-    
   } catch (error) {
     console.error('Migration failed:', error);
     process.exit(1);
@@ -80,4 +79,3 @@ async function main() {
 }
 
 main().catch(console.error);
-

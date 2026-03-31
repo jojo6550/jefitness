@@ -1,11 +1,11 @@
 /**
  * Script to assign or change user subscription plans/tiers
- * 
+ *
  * Usage:
  *   node scripts/assign-user-plan.js --email user@example.com --plan 1-month
  *   node scripts/assign-user-plan.js --email user@example.com --plan free
  *   node scripts/assign-user-plan.js --list-users
- * 
+ *
  * Options:
  *   --email     User's email address (required unless --list-users)
  *   --plan      Plan to assign: free, 1-month, 3-month, 6-month, 12-month
@@ -23,7 +23,7 @@ const { getPlanPricing } = require('../src/services/stripe');
 async function getPlanPricingData() {
   try {
     const pricing = await getPlanPricing();
-    const planPricing = { 'free': 0 };
+    const planPricing = { free: 0 };
     Object.keys(pricing).forEach(plan => {
       planPricing[plan] = pricing[plan].amount / 100; // Convert cents to dollars
     });
@@ -32,11 +32,11 @@ async function getPlanPricingData() {
     console.error('Failed to fetch pricing from Stripe, using fallback:', error.message);
     // Fallback pricing if Stripe is unavailable
     return {
-      'free': 0,
+      free: 0,
       '1-month': 29.99,
       '3-month': 79.99,
       '6-month': 149.99,
-      '12-month': 279.99
+      '12-month': 279.99,
     };
   }
 }
@@ -45,12 +45,18 @@ const VALID_PLANS = ['free', '1-month', '3-month', '6-month', '12-month'];
 
 async function listUsers() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri =
+      process.env.MONGO_URI ||
+      process.env.MONGO_URI ||
+      'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
 
-    const users = await User.find({}, 'email firstName lastName subscription.isActive subscription.plan stripeSubscriptionId currentPeriodEnd')
+    const users = await User.find(
+      {},
+      'email firstName lastName subscription.isActive subscription.plan stripeSubscriptionId currentPeriodEnd'
+    )
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -62,7 +68,9 @@ async function listUsers() {
       const email = user.email.padEnd(35);
       const plan = (user.subscription?.plan || 'none').padEnd(12);
       const active = user.subscription?.isActive ? '✅' : '❌';
-      const stripeSub = user.stripeSubscriptionId ? user.stripeSubscriptionId.substring(0, 15) + '...' : 'N/A';
+      const stripeSub = user.stripeSubscriptionId
+        ? user.stripeSubscriptionId.substring(0, 15) + '...'
+        : 'N/A';
       console.log(`${email} | ${plan} | ${active} | ${stripeSub}`);
     }
 
@@ -75,7 +83,6 @@ async function listUsers() {
         console.log(`  ${plan}: $${price}`);
       }
     });
-
   } catch (error) {
     console.error('❌ Error listing users:', error);
     process.exit(1);
@@ -87,7 +94,10 @@ async function listUsers() {
 
 async function assignPlan(email, plan, options = {}) {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri =
+      process.env.MONGO_URI ||
+      process.env.MONGO_URI ||
+      'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
@@ -107,7 +117,9 @@ async function assignPlan(email, plan, options = {}) {
     }
 
     console.log(`Found user: ${user.firstName} ${user.lastName} (${user.email})`);
-    console.log(`Current subscription: ${user.subscription?.plan || 'none'}, isActive: ${user.subscription?.isActive || false}`);
+    console.log(
+      `Current subscription: ${user.subscription?.plan || 'none'}, isActive: ${user.subscription?.isActive || false}`
+    );
     console.log(`\nAssigning to plan: ${plan} ($${PLAN_PRICING[plan] || 'N/A'})`);
 
     // Calculate subscription period
@@ -132,13 +144,16 @@ async function assignPlan(email, plan, options = {}) {
         periodEnd.setMonth(periodEnd.getMonth() + 1);
         user.subscription.isActive = true;
         user.subscription.plan = '1-month';
-        user.subscription.stripePriceId = process.env.STRIPE_PRICE_1_MONTH || 'price_1month';
+        user.subscription.stripePriceId =
+          process.env.STRIPE_PRICE_1_MONTH || 'price_1month';
         user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
         user.subscription.currentPeriodStart = now;
         user.subscription.currentPeriodEnd = periodEnd;
         user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
         user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production';
         console.log(`✅ User assigned to 1-month plan`);
         console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
         break;
@@ -148,13 +163,16 @@ async function assignPlan(email, plan, options = {}) {
         periodEnd.setMonth(periodEnd.getMonth() + 3);
         user.subscription.isActive = true;
         user.subscription.plan = '3-month';
-        user.subscription.stripePriceId = process.env.STRIPE_PRICE_3_MONTH || 'price_3month';
+        user.subscription.stripePriceId =
+          process.env.STRIPE_PRICE_3_MONTH || 'price_3month';
         user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
         user.subscription.currentPeriodStart = now;
         user.subscription.currentPeriodEnd = periodEnd;
         user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
         user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production';
         console.log(`✅ User assigned to 3-month plan`);
         console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
         break;
@@ -164,13 +182,16 @@ async function assignPlan(email, plan, options = {}) {
         periodEnd.setMonth(periodEnd.getMonth() + 6);
         user.subscription.isActive = true;
         user.subscription.plan = '6-month';
-        user.subscription.stripePriceId = process.env.STRIPE_PRICE_6_MONTH || 'price_6month';
+        user.subscription.stripePriceId =
+          process.env.STRIPE_PRICE_6_MONTH || 'price_6month';
         user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
         user.subscription.currentPeriodStart = now;
         user.subscription.currentPeriodEnd = periodEnd;
         user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
         user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production';
         console.log(`✅ User assigned to 6-month plan`);
         console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
         break;
@@ -180,13 +201,16 @@ async function assignPlan(email, plan, options = {}) {
         periodEnd.setFullYear(periodEnd.getFullYear() + 1);
         user.subscription.isActive = true;
         user.subscription.plan = '12-month';
-        user.subscription.stripePriceId = process.env.STRIPE_PRICE_12_MONTH || 'price_12month';
+        user.subscription.stripePriceId =
+          process.env.STRIPE_PRICE_12_MONTH || 'price_12month';
         user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
         user.subscription.currentPeriodStart = now;
         user.subscription.currentPeriodEnd = periodEnd;
         user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
         user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+          ? 'test'
+          : 'production';
         console.log(`✅ User assigned to 12-month plan`);
         console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
         break;
@@ -196,8 +220,9 @@ async function assignPlan(email, plan, options = {}) {
     console.log(`\n📋 Updated subscription status:`);
     console.log(`   Plan: ${user.subscription.plan || 'none'}`);
     console.log(`   isActive: ${user.subscription.isActive}`);
-    console.log(`   Period End: ${user.subscription.currentPeriodEnd?.toISOString() || 'N/A'}`);
-
+    console.log(
+      `   Period End: ${user.subscription.currentPeriodEnd?.toISOString() || 'N/A'}`
+    );
   } catch (error) {
     console.error('❌ Error assigning plan:', error);
     process.exit(1);
@@ -209,7 +234,10 @@ async function assignPlan(email, plan, options = {}) {
 
 async function setExpired(email) {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri =
+      process.env.MONGO_URI ||
+      process.env.MONGO_URI ||
+      'mongodb://localhost:27017/jefitness';
     console.log(`Connecting to MongoDB at ${mongoUri}...`);
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB\n');
@@ -227,7 +255,6 @@ async function setExpired(email) {
 
     console.log(`✅ Set subscription as expired for: ${user.email}`);
     console.log(`   Period End: ${pastDate.toISOString()}`);
-
   } catch (error) {
     console.error('❌ Error setting expired:', error);
     process.exit(1);
@@ -243,7 +270,7 @@ const options = {
   email: null,
   plan: null,
   listUsers: args.includes('--list-users'),
-  setExpired: args.includes('--set-expired')
+  setExpired: args.includes('--set-expired'),
 };
 
 // Extract values
@@ -296,4 +323,3 @@ Examples:
 `);
   process.exit(1);
 }
-

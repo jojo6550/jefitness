@@ -5,7 +5,8 @@ const express = require('express');
 // 🔒 ENV SETUP
 // --------------------
 process.env.NODE_ENV = 'test';
-process.env.STRIPE_WEBHOOK_SECRET = 'whsec_4c5978863ce9b952c5f9f7a48da28b6136a1b8d63191a99262064360bfac29a8';
+process.env.STRIPE_WEBHOOK_SECRET =
+  'whsec_4c5978863ce9b952c5f9f7a48da28b6136a1b8d63191a99262064360bfac29a8';
 // --------------------
 // 🧪 MOCK STRIPE
 // --------------------
@@ -112,9 +113,7 @@ describe('Stripe Webhook Tests', () => {
   // --------------------
   describe('Signature Verification', () => {
     it('returns 400 if signature missing', async () => {
-      const res = await request(app)
-        .post('/webhooks/stripe')
-        .send(Buffer.from('{}'));
+      const res = await request(app).post('/webhooks/stripe').send(Buffer.from('{}'));
 
       expect(res.statusCode).toBe(400);
     });
@@ -204,5 +203,5 @@ describe('Stripe Webhook Tests', () => {
 // 🧹 CLEANUP
 // --------------------
 afterAll(async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await new Promise(resolve => setTimeout(resolve, 300));
 });

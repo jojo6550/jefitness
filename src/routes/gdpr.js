@@ -12,33 +12,32 @@ const complianceService = require('../services/compliance');
 const monitoringService = require('../services/monitoring');
 const UserActionLog = require('../models/UserActionLog');
 
-
 /**
  * Get user's consent status
  * GET /api/v1/gdpr/consent
  * Note: Auth is applied at router level in server.js
  */
 router.get('/consent', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const consentStatus = await complianceService.getConsentStatus(userId);
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const consentStatus = await complianceService.getConsentStatus(userId);
 
-        res.json({
-            success: true,
-            data: consentStatus
-        });
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'get_consent_status',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json({
+      success: true,
+      data: consentStatus,
+    });
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'get_consent_status',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve consent status'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve consent status',
+    });
+  }
 });
 
 /**
@@ -47,30 +46,30 @@ router.get('/consent', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/consent/data-processing', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.grantDataProcessingConsent(
-            userId,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.grantDataProcessingConsent(
+      userId,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'grant_data_processing_consent',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'grant_data_processing_consent',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to grant data processing consent'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to grant data processing consent',
+    });
+  }
 });
 
 /**
@@ -79,32 +78,32 @@ router.post('/consent/data-processing', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/consent/health-data', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { purpose } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { purpose } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.grantHealthDataConsent(
-            userId,
-            purpose,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.grantHealthDataConsent(
+      userId,
+      purpose,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'grant_health_data_consent',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'grant_health_data_consent',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to grant health data processing consent'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to grant health data processing consent',
+    });
+  }
 });
 
 /**
@@ -113,30 +112,30 @@ router.post('/consent/health-data', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/consent/marketing', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.grantMarketingConsent(
-            userId,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.grantMarketingConsent(
+      userId,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'grant_marketing_consent',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'grant_marketing_consent',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to grant marketing consent'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to grant marketing consent',
+    });
+  }
 });
 
 /**
@@ -145,41 +144,41 @@ router.post('/consent/marketing', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.delete('/consent/:consentType', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { consentType } = req.params;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { consentType } = req.params;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const validConsentTypes = ['data_processing', 'health_data', 'marketing'];
-        if (!validConsentTypes.includes(consentType)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid consent type'
-            });
-        }
-
-        const result = await complianceService.withdrawConsent(
-            userId,
-            consentType,
-            ipAddress,
-            userAgent
-        );
-
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'withdraw_consent',
-            userId: req.user.id,
-            consentType: req.params.consentType,
-            endpoint: req.path
-        });
-
-        res.status(500).json({
-            success: false,
-            error: 'Failed to withdraw consent'
-        });
+    const validConsentTypes = ['data_processing', 'health_data', 'marketing'];
+    if (!validConsentTypes.includes(consentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid consent type',
+      });
     }
+
+    const result = await complianceService.withdrawConsent(
+      userId,
+      consentType,
+      ipAddress,
+      userAgent
+    );
+
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'withdraw_consent',
+      userId: req.user.id,
+      consentType: req.params.consentType,
+      endpoint: req.path,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to withdraw consent',
+    });
+  }
 });
 
 /**
@@ -188,30 +187,30 @@ router.delete('/consent/:consentType', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/data-access', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.requestDataAccess(
-            userId,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.requestDataAccess(
+      userId,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'request_data_access',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'request_data_access',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit data access request'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit data access request',
+    });
+  }
 });
 
 /**
@@ -220,39 +219,39 @@ router.post('/data-access', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.put('/data-rectification', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { rectificationData } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { rectificationData } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        if (!rectificationData || typeof rectificationData !== 'object') {
-            return res.status(400).json({
-                success: false,
-                error: 'Rectification data is required'
-            });
-        }
-
-        const result = await complianceService.requestDataRectification(
-            userId,
-            rectificationData,
-            ipAddress,
-            userAgent
-        );
-
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'request_data_rectification',
-            userId: req.user.id,
-            endpoint: req.path
-        });
-
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit data rectification request'
-        });
+    if (!rectificationData || typeof rectificationData !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Rectification data is required',
+      });
     }
+
+    const result = await complianceService.requestDataRectification(
+      userId,
+      rectificationData,
+      ipAddress,
+      userAgent
+    );
+
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'request_data_rectification',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit data rectification request',
+    });
+  }
 });
 
 /**
@@ -261,32 +260,32 @@ router.put('/data-rectification', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.delete('/data-erasure', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { reason } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { reason } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.requestDataErasure(
-            userId,
-            reason,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.requestDataErasure(
+      userId,
+      reason,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'request_data_erasure',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'request_data_erasure',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit data erasure request'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit data erasure request',
+    });
+  }
 });
 
 /**
@@ -295,30 +294,30 @@ router.delete('/data-erasure', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/data-portability', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        const result = await complianceService.requestDataPortability(
-            userId,
-            ipAddress,
-            userAgent
-        );
+    const result = await complianceService.requestDataPortability(
+      userId,
+      ipAddress,
+      userAgent
+    );
 
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'request_data_portability',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'request_data_portability',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit data portability request'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit data portability request',
+    });
+  }
 });
 
 /**
@@ -327,39 +326,39 @@ router.post('/data-portability', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/object-to-processing', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { reason } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { reason } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        if (!reason) {
-            return res.status(400).json({
-                success: false,
-                error: 'Reason for objection is required'
-            });
-        }
-
-        const result = await complianceService.objectToProcessing(
-            userId,
-            reason,
-            ipAddress,
-            userAgent
-        );
-
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'object_to_processing',
-            userId: req.user.id,
-            endpoint: req.path
-        });
-
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit processing objection'
-        });
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reason for objection is required',
+      });
     }
+
+    const result = await complianceService.objectToProcessing(
+      userId,
+      reason,
+      ipAddress,
+      userAgent
+    );
+
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'object_to_processing',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit processing objection',
+    });
+  }
 });
 
 /**
@@ -368,39 +367,39 @@ router.post('/object-to-processing', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/restrict-processing', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { reason } = req.body;
-        const ipAddress = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { reason } = req.body;
+    const ipAddress = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
 
-        if (!reason) {
-            return res.status(400).json({
-                success: false,
-                error: 'Reason for restriction is required'
-            });
-        }
-
-        const result = await complianceService.requestProcessingRestriction(
-            userId,
-            reason,
-            ipAddress,
-            userAgent
-        );
-
-        res.json(result);
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'request_processing_restriction',
-            userId: req.user.id,
-            endpoint: req.path
-        });
-
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit processing restriction request'
-        });
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reason for restriction is required',
+      });
     }
+
+    const result = await complianceService.requestProcessingRestriction(
+      userId,
+      reason,
+      ipAddress,
+      userAgent
+    );
+
+    res.json(result);
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'request_processing_restriction',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit processing restriction request',
+    });
+  }
 });
 
 /**
@@ -409,41 +408,41 @@ router.post('/restrict-processing', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.get('/audit-log', async (req, res) => {
-    try {
-        const userId = req.user.id || req.user.user.id;
-        const { limit = 50, offset = 0 } = req.query;
+  try {
+    const userId = req.user.id || req.user.user.id;
+    const { limit = 50, offset = 0 } = req.query;
 
-        // Get total count for pagination
-        const total = await UserActionLog.countDocuments({ userId });
+    // Get total count for pagination
+    const total = await UserActionLog.countDocuments({ userId });
 
-        // Get paginated logs from UserActionLog collection
-        const auditLog = await UserActionLog.find({ userId })
-            .sort({ timestamp: -1 })
-            .limit(parseInt(limit))
-            .skip(parseInt(offset))
-            .lean();
+    // Get paginated logs from UserActionLog collection
+    const auditLog = await UserActionLog.find({ userId })
+      .sort({ timestamp: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(offset))
+      .lean();
 
-        res.json({
-            success: true,
-            data: {
-                auditLog,
-                total,
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
-        });
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'get_audit_log',
-            userId: req.user.id,
-            endpoint: req.path
-        });
+    res.json({
+      success: true,
+      data: {
+        auditLog,
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      },
+    });
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'get_audit_log',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
 
-        res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve audit log'
-        });
-    }
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve audit log',
+    });
+  }
 });
 
 /**
@@ -452,36 +451,36 @@ router.get('/audit-log', async (req, res) => {
  * Note: Auth is applied at router level in server.js
  */
 router.post('/admin/retention-cleanup', async (req, res) => {
-    try {
-        // Check if user is admin
-        const userId = req.user.id || req.user.user.id;
-        const user = await require('../models/User').findById(userId);
+  try {
+    // Check if user is admin
+    const userId = req.user.id || req.user.user.id;
+    const user = await require('../models/User').findById(userId);
 
-        if (user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                error: 'Admin access required'
-            });
-        }
-
-        const result = await complianceService.performDataRetentionCleanup();
-
-        res.json({
-            success: true,
-            data: result
-        });
-    } catch (error) {
-        monitoringService.recordError(error, {
-            context: 'admin_retention_cleanup',
-            userId: req.user.id,
-            endpoint: req.path
-        });
-
-        res.status(500).json({
-            success: false,
-            error: 'Failed to perform retention cleanup'
-        });
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Admin access required',
+      });
     }
+
+    const result = await complianceService.performDataRetentionCleanup();
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    monitoringService.recordError(error, {
+      context: 'admin_retention_cleanup',
+      userId: req.user.id,
+      endpoint: req.path,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform retention cleanup',
+    });
+  }
 });
 
 module.exports = router;

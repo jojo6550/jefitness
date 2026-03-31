@@ -8,10 +8,10 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const { lookupKey, active = 'true', sort = 'interval' } = req.query;
-    
+
     const matchFilter = { active: active === 'true' };
     if (lookupKey) matchFilter.lookupKey = lookupKey;
-    
+
     // Compute monthsEquivalent for interval sorting (1m=1,3m=3,...,12m=12)
     const pipeline = [
       { $match: matchFilter },
@@ -21,13 +21,13 @@ router.get('/', async (req, res) => {
             $cond: {
               if: { $eq: ['$interval', 'year'] },
               then: { $multiply: ['$intervalCount', 12] },
-              else: '$intervalCount'
-            }
-          }
-        }
-      }
+              else: '$intervalCount',
+            },
+          },
+        },
+      },
     ];
-    
+
     // Determine sort stage
     let sortStage;
     switch (sort) {
@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
         break;
     }
     pipeline.push(sortStage);
-    
+
     const plans = await StripePlan.aggregate(pipeline);
 
     // Format for frontend (aggregate docs need manual id conversion)
@@ -51,13 +51,13 @@ router.get('/', async (req, res) => {
       ...plan,
       _id: plan._id?.toString(), // Ensure string ID for frontend
       displayPrice: `$${(plan.unitAmount / 100).toFixed(2)}`,
-      intervalDisplay: `${plan.interval}${plan.intervalCount > 1 ? ` x${plan.intervalCount}` : ''}`
+      intervalDisplay: `${plan.interval}${plan.intervalCount > 1 ? ` x${plan.intervalCount}` : ''}`,
     }));
 
     res.json({
       success: true,
       count: formatted.length,
-      plans: formatted
+      plans: formatted,
     });
   } catch (error) {
     console.error('Plans route error:', error);
@@ -68,9 +68,9 @@ router.get('/', async (req, res) => {
 // GET /api/v1/plans/:lookupKey - Single plan by lookup_key
 router.get('/:lookupKey', async (req, res) => {
   try {
-    const plan = await StripePlan.findOne({ 
-      lookupKey: req.params.lookupKey, 
-      active: true 
+    const plan = await StripePlan.findOne({
+      lookupKey: req.params.lookupKey,
+      active: true,
     }).lean();
 
     if (!plan) {
@@ -81,8 +81,8 @@ router.get('/:lookupKey', async (req, res) => {
       success: true,
       plan: {
         ...plan,
-        displayPrice: `$${(plan.unitAmount / 100).toFixed(2)}`
-      }
+        displayPrice: `$${(plan.unitAmount / 100).toFixed(2)}`,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Server error' });

@@ -10,7 +10,8 @@ async function connectDB() {
 }
 
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_PLANS_SECRET;
+const webhookSecret =
+  process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_PLANS_SECRET;
 
 const app = express();
 app.use(express.raw({ type: 'application/json' }));
@@ -43,7 +44,7 @@ async function syncSinglePrice(priceId) {
       nickname: price.nickname || null,
       metadata: { ...product.metadata, ...price.metadata },
       productImages: product.images || [],
-      lastSyncedAt: new Date()
+      lastSyncedAt: new Date(),
     };
 
     await StripePlan.findOneAndUpdate(
@@ -57,45 +58,57 @@ async function syncSinglePrice(priceId) {
   }
 }
 
-app.post('/webhook/plans', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  let event;
+app.post(
+  '/webhook/plans',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    console.error('Webhook signature error:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature error:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    console.log(`📨 Webhook: ${event.type}`);
+
+    switch (event.type) {
+      case 'price.created':
+      case 'price.updated':
+        await syncSinglePrice(event.data.object.id);
+        break;
+      case 'price.deleted':
+        await StripePlan.updateOne(
+          { stripePriceId: event.data.object.id },
+          { active: false }
+        );
+        break;
+      case 'product.updated':
+        // Resync all prices for this product
+        const prices = await stripe.prices.list({
+          product: event.data.object.id,
+          active: true,
+        });
+        for (const price of prices.data) {
+          await syncSinglePrice(price.id);
+        }
+        break;
+    }
+
+    res.json({ received: true });
   }
-
-  console.log(`📨 Webhook: ${event.type}`);
-
-  switch (event.type) {
-    case 'price.created':
-    case 'price.updated':
-      await syncSinglePrice(event.data.object.id);
-      break;
-    case 'price.deleted':
-      await StripePlan.updateOne({ stripePriceId: event.data.object.id }, { active: false });
-      break;
-    case 'product.updated':
-      // Resync all prices for this product
-      const prices = await stripe.prices.list({ product: event.data.object.id, active: true });
-      for (const price of prices.data) {
-        await syncSinglePrice(price.id);
-      }
-      break;
-  }
-
-  res.json({ received: true });
-});
+);
 
 const port = process.env.PORT || 3001;
 app.listen(port, async () => {
   await connectDB();
   console.log(`🌐 Webhook server on port ${port}`);
   console.log('Set STRIPE_WEBHOOK_PLANS_SECRET and use ngrok http 3001 for testing');
-  console.log('Add to existing server.js: app.use("/api/webhook/plans", require("./scripts/add-webhook-support"));');
+  console.log(
+    'Add to existing server.js: app.use("/api/webhook/plans", require("./scripts/add-webhook-support"));'
+  );
 });
 
 // Graceful shutdown

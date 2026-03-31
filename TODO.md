@@ -1,14 +1,15 @@
-ins# Task Progress: Fix Mongoose Duplicate Index Warning
+# JE Fitness Linting Setup - TODO
 
-## Steps to Complete:
-- [x] Step 1: Create TODO.md with approved plan breakdown
-- [x] Step 2: Edit src/models/StripePlan.js to remove duplicate lookupKey index
+## Plan Steps (Approved):
+1. [x] Install dev dependencies (ESLint, Prettier, plugins) - Retried without non-existent eslint-plugin-express
+2. [x] Create eslint.config.js (flat config)
+3. [x] Create .prettierrc.json
+4. [x] Create .eslintignore
+5. [x] Create .prettierignore
+6. [x] Edit package.json (add lint/format scripts)
+7. [x] Optional: Setup Husky + lint-staged (skipped)
+8. [x] Run `npm run lint` and `npm run format` to verify
+9. [ ] attempt_completion
 
-- [x] Step 3: Update TODO.md after edit
-
-- [x] Step 4: Provide instructions to verify (restart server, check logs)
-
-
-- [x] Step 5: Complete task
-
+Progress will be updated after each step.
 

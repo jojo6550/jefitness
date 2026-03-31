@@ -28,17 +28,22 @@ const getStripe = () => {
 
 async function connectDB() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const mongoUri =
+      process.env.MONGO_URI ||
+      process.env.MONGO_URI ||
+      'mongodb://localhost:27017/jefitness';
     await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
-      family: 4
+      family: 4,
     });
     console.log('✅ Connected to database');
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    console.error('💡 Make sure MongoDB is running and MONGO_URI is set in your .env file');
+    console.error(
+      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file'
+    );
     process.exit(1);
   }
 }
@@ -56,12 +61,14 @@ async function createStripeCustomerForUser(user) {
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       metadata: {
-        userId: user._id.toString()
-      }
+        userId: user._id.toString(),
+      },
     });
 
     user.stripeCustomerId = customer.id;
-    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+      ? 'test'
+      : 'production';
     console.log(`✅ Created Stripe customer for ${user.email}: ${customer.id}`);
   } catch (err) {
     console.error(`❌ Stripe customer creation failed for ${user.email}:`, err.message);
@@ -109,7 +116,9 @@ async function migrateUser(user) {
   }
 
   if (user.billingEnvironment === undefined) {
-    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+    user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+      ? 'test'
+      : 'production';
     updated = true;
   }
 
@@ -117,7 +126,7 @@ async function migrateUser(user) {
   if (!user.dataProcessingConsent) {
     user.dataProcessingConsent = {
       given: false,
-      version: '1.0'
+      version: '1.0',
     };
     updated = true;
   }
@@ -126,7 +135,7 @@ async function migrateUser(user) {
     user.healthDataConsent = {
       given: false,
       version: '1.0',
-      purpose: 'fitness_tracking'
+      purpose: 'fitness_tracking',
     };
     updated = true;
   }
@@ -134,7 +143,7 @@ async function migrateUser(user) {
   if (!user.marketingConsent) {
     user.marketingConsent = {
       given: false,
-      version: '1.0'
+      version: '1.0',
     };
     updated = true;
   }
@@ -143,12 +152,10 @@ async function migrateUser(user) {
   if (!user.schedule) {
     user.schedule = {
       lastReset: new Date(),
-      plans: []
+      plans: [],
     };
     updated = true;
   }
-
-
 
   if (!user.assignedPrograms) {
     user.assignedPrograms = [];
@@ -216,7 +223,6 @@ async function main() {
     if (errorCount > 0) {
       console.log(`❌ Errors: ${errorCount} users`);
     }
-
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
     process.exit(1);

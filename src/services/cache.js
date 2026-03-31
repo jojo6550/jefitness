@@ -1,7 +1,7 @@
 /**
  * In-Memory Cache Service
  * Simple in-memory caching without Redis dependency
- * 
+ *
  * Note: Data will be lost on server restart
  * For production, consider using a distributed cache solution
  */
@@ -29,7 +29,7 @@ class CacheService {
     if (this.memoryCacheCleanupInterval) {
       clearInterval(this.memoryCacheCleanupInterval);
     }
-    
+
     this.memoryCacheCleanupInterval = setInterval(() => {
       const now = Date.now();
       let cleaned = 0;
@@ -43,7 +43,9 @@ class CacheService {
       }
 
       if (cleaned > 0) {
-        console.log(`Memory cache cleanup: Removed ${cleaned} expired entries (${this.memoryCache.size} remaining)`);
+        console.log(
+          `Memory cache cleanup: Removed ${cleaned} expired entries (${this.memoryCache.size} remaining)`
+        );
       }
     }, 60000); // Clean up every minute
   }
@@ -56,7 +58,7 @@ class CacheService {
   async get(key) {
     const expiry = this.memoryCacheTTL.get(key);
     const now = Date.now();
-    
+
     if (expiry && now > expiry) {
       // Entry expired, remove it
       this.memoryCache.delete(key);
@@ -76,7 +78,7 @@ class CacheService {
    */
   async set(key, value, ttl = 3600) {
     this.memoryCache.set(key, value);
-    this.memoryCacheTTL.set(key, Date.now() + (ttl * 1000));
+    this.memoryCacheTTL.set(key, Date.now() + ttl * 1000);
   }
 
   /**
@@ -114,7 +116,9 @@ class CacheService {
     });
 
     if (memoryDeleted > 0) {
-      console.log(`Cache invalidation: ${memoryDeleted} memory keys removed for pattern ${pattern}`);
+      console.log(
+        `Cache invalidation: ${memoryDeleted} memory keys removed for pattern ${pattern}`
+      );
     }
   }
 
@@ -135,7 +139,7 @@ class CacheService {
   getStats() {
     return {
       memoryEntries: this.memoryCache.size,
-      type: 'in-memory'
+      type: 'in-memory',
     };
   }
 
@@ -151,4 +155,3 @@ class CacheService {
 }
 
 module.exports = new CacheService();
-

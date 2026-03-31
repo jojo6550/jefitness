@@ -9,7 +9,7 @@ const mockSubscription = {
   stripeCustomerId: 'cus_test',
   stripeSubscriptionId: 'sub_test',
   plan: '1-month',
-  status: 'active'
+  status: 'active',
 };
 
 module.exports = { mockUser, mockSubscription };

@@ -8,24 +8,25 @@ const swaggerDefinition = {
   info: {
     title: 'JE Fitness API',
     version: '1.0.0',
-    description: 'REST API for JE Fitness application with authentication, user management, and fitness tracking',
+    description:
+      'REST API for JE Fitness application with authentication, user management, and fitness tracking',
     contact: {
       name: 'JE Fitness Team',
-      email: 'support@jefitness.com'
+      email: 'support@jefitness.com',
     },
     license: {
-      name: 'ISC'
-    }
+      name: 'ISC',
+    },
   },
   servers: [
     {
       url: 'http://localhost:5000/api/v1',
-      description: 'Development server'
+      description: 'Development server',
     },
     {
       url: 'https://jefitness.com/api/v1',
-      description: 'Production server'
-    }
+      description: 'Production server',
+    },
   ],
   components: {
     securitySchemes: {
@@ -33,8 +34,9 @@ const swaggerDefinition = {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"'
-      }
+        description:
+          'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
+      },
     },
     schemas: {
       User: {
@@ -42,72 +44,72 @@ const swaggerDefinition = {
         properties: {
           id: {
             type: 'string',
-            description: 'User ID'
+            description: 'User ID',
           },
           firstName: {
             type: 'string',
-            description: 'User first name'
+            description: 'User first name',
           },
           lastName: {
             type: 'string',
-            description: 'User last name'
+            description: 'User last name',
           },
           email: {
             type: 'string',
             format: 'email',
-            description: 'User email address'
+            description: 'User email address',
           },
           role: {
             type: 'string',
             enum: ['user', 'trainer', 'admin'],
-            description: 'User role'
+            description: 'User role',
           },
           dob: {
             type: 'string',
             format: 'date',
-            description: 'Date of birth'
+            description: 'Date of birth',
           },
           gender: {
             type: 'string',
-            description: 'Gender'
+            description: 'Gender',
           },
           phone: {
             type: 'string',
-            description: 'Phone number'
+            description: 'Phone number',
           },
           activityStatus: {
             type: 'string',
-            description: 'Activity status'
+            description: 'Activity status',
           },
           startWeight: {
             type: 'number',
-            description: 'Starting weight'
+            description: 'Starting weight',
           },
           currentWeight: {
             type: 'number',
-            description: 'Current weight'
+            description: 'Current weight',
           },
           goals: {
             type: 'string',
-            description: 'Fitness goals'
+            description: 'Fitness goals',
           },
           reason: {
             type: 'string',
-            description: 'Reason for joining'
+            description: 'Reason for joining',
           },
           createdAt: {
             type: 'string',
             format: 'date-time',
-            description: 'Account creation timestamp'
-          }
-        }
+            description: 'Account creation timestamp',
+          },
+        },
       },
       Error: {
         type: 'object',
         properties: {
           msg: {
             type: 'string',
-            description: 'Error message'
+            description: 'Error message',
           },
           errors: {
             type: 'array',
@@ -115,34 +117,31 @@ const swaggerDefinition = {
               type: 'object',
               properties: {
                 msg: {
-                  type: 'string'
+                  type: 'string',
                 },
                 param: {
-                  type: 'string'
+                  type: 'string',
                 },
                 location: {
-                  type: 'string'
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+                  type: 'string',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   security: [
     {
-      bearerAuth: []
-    }
-  ]
+      bearerAuth: [],
+    },
+  ],
 };
 
 const options = {
   swaggerDefinition,
-  apis: [
-    './src/routes/*.js',
-    './src/models/*.js'
-  ]
+  apis: ['./src/routes/*.js', './src/models/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

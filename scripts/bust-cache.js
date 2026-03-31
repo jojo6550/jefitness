@@ -2,9 +2,9 @@
 
 /**
  * Cache Bust Script
- * 
+ *
  * Usage: npm run cache:bust
- * 
+ *
  * This script helps you manually bust the cache by incrementing
  * the CACHE_VERSION in public/sw.js
  */

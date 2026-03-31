@@ -2,10 +2,10 @@
 
 /**
  * Backfill subscriptionStatus field for existing users
- * 
+ *
  * This script sets subscriptionStatus for users who have active subscriptions
  * but don't have the subscriptionStatus field set (e.g., users created before the field was added).
- * 
+ *
  * Run with: node scripts/backfill-subscription-status.js
  */
 
@@ -29,14 +29,16 @@ async function connectDB() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
-      family: 4
+      family: 4,
     });
 
     console.log('✅ Connected to database\n');
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
-    console.error('💡 Make sure MongoDB is running and MONGO_URI is set in your .env file');
+    console.error(
+      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file'
+    );
     return false;
   }
 }
@@ -48,25 +50,30 @@ async function backfillSubscriptionStatus() {
   const query = {
     $and: [
       { 'subscription.isActive': true },
-      { $or: [
-        { subscriptionStatus: { $exists: false } },
-        { subscriptionStatus: null },
-        { subscriptionStatus: '' }
-      ]}
-    ]
+      {
+        $or: [
+          { subscriptionStatus: { $exists: false } },
+          { subscriptionStatus: null },
+          { subscriptionStatus: '' },
+        ],
+      },
+    ],
   };
 
   const users = await User.find(query);
-  
-  console.log(`Found ${users.length} users with active subscriptions needing subscriptionStatus backfill\n`);
+
+  console.log(
+    `Found ${users.length} users with active subscriptions needing subscriptionStatus backfill\n`
+  );
 
   let updated = 0;
   let skipped = 0;
 
   for (const user of users) {
     // Check if subscription has expired
-    const hasExpired = user.subscription.currentPeriodEnd && 
-                      new Date() > user.subscription.currentPeriodEnd;
+    const hasExpired =
+      user.subscription.currentPeriodEnd &&
+      new Date() > user.subscription.currentPeriodEnd;
 
     let newStatus;
     if (hasExpired) {
@@ -121,4 +128,3 @@ process.on('SIGINT', async () => {
 });
 
 main();
-

@@ -46,9 +46,9 @@ class NotFoundError extends AppError {
 // Custom error class for database errors
 class DatabaseError extends AppError {
   constructor(message, originalError = null) {
-    super(message, 500, { 
+    super(message, 500, {
       type: 'DATABASE_ERROR',
-      originalError: originalError ? originalError.message : null
+      originalError: originalError ? originalError.message : null,
     });
   }
 }
@@ -56,9 +56,9 @@ class DatabaseError extends AppError {
 // Custom error class for external service errors
 class ExternalServiceError extends AppError {
   constructor(service, message) {
-    super(`${service} error: ${message}`, 503, { 
+    super(`${service} error: ${message}`, 503, {
       type: 'EXTERNAL_SERVICE_ERROR',
-      service
+      service,
     });
   }
 }
@@ -78,7 +78,7 @@ const errorHandler = (err, req, res, next) => {
   if (statusCode >= 500 && !err.statusCode) {
     message = 'Internal server error';
   }
-  
+
   // SECURITY: Normalize 4xx error messages to avoid leaking information
   if (statusCode === 404 && !err.statusCode) {
     message = 'Resource not found';
@@ -91,7 +91,7 @@ const errorHandler = (err, req, res, next) => {
     ip: req.ip,
     userAgent: req.get('User-Agent'),
     requestId: req.id,
-    ...context
+    ...context,
   };
 
   // Add user info if available
@@ -121,7 +121,9 @@ const errorHandler = (err, req, res, next) => {
         { message, ...context },
         req
       ).catch(securityLogError => {
-        logger.error('Security event logging failed', { error: securityLogError.message });
+        logger.error('Security event logging failed', {
+          error: securityLogError.message,
+        });
       });
     }
   };
@@ -146,8 +148,8 @@ const errorHandler = (err, req, res, next) => {
       message,
       status: statusCode,
       timestamp: new Date().toISOString(),
-      requestId: req.id
-    }
+      requestId: req.id,
+    },
   };
 
   // Include validation errors if present
@@ -173,7 +175,7 @@ const errorHandler = (err, req, res, next) => {
  * Async route wrapper to catch errors in async route handlers
  * Usage: router.get('/path', asyncHandler(async (req, res) => { ... }))
  */
-const asyncHandler = (fn) => (req, res, next) => {
+const asyncHandler = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
@@ -186,5 +188,5 @@ module.exports = {
   AuthorizationError,
   NotFoundError,
   DatabaseError,
-  ExternalServiceError
+  ExternalServiceError,
 };

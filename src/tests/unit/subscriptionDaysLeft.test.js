@@ -58,8 +58,7 @@ jest.mock('../../middleware/inputValidator', () => ({
 }));
 
 jest.mock('../../middleware/errorHandler', () => ({
-  asyncHandler: (fn) => (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next),
+  asyncHandler: fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next),
   ValidationError: class ValidationError extends Error {},
   NotFoundError: class NotFoundError extends Error {},
 }));
@@ -77,7 +76,8 @@ const app = express();
 app.use(express.json());
 app.use('/subscriptions', subscriptionRoute);
 // Generic error handler so asyncHandler errors don't crash supertest
-app.use((err, req, res, next) => {  // eslint-disable-line no-unused-vars
+app.use((err, req, res, next) => {
+  // eslint-disable-line no-unused-vars
   res.status(err.statusCode || 500).json({ success: false, error: err.message });
 });
 
@@ -211,5 +211,5 @@ describe('GET /subscriptions/current — daysLeft', () => {
 // CLEANUP
 // --------------------
 afterAll(async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await new Promise(resolve => setTimeout(resolve, 300));
 });

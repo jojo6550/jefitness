@@ -1,9 +1,17 @@
 const express = require('express');
 const { auth } = require('../middleware/auth');
-const { preventNoSQLInjection, stripDangerousFields, allowOnlyFields } = require('../middleware/inputValidator');
+const {
+  preventNoSQLInjection,
+  stripDangerousFields,
+  allowOnlyFields,
+} = require('../middleware/inputValidator');
 const Purchase = require('../models/Purchase');
 const User = require('../models/User');
-const { createProductCheckoutSession, PRODUCT_MAP, getStripe } = require('../services/stripe');
+const {
+  createProductCheckoutSession,
+  PRODUCT_MAP,
+  getStripe,
+} = require('../services/stripe');
 
 const router = express.Router();
 
@@ -26,20 +34,19 @@ router.get('/', async (req, res) => {
         products[key] = {
           ...product,
           price: priceObj.unit_amount / 100,
-          currency: priceObj.currency
+          currency: priceObj.currency,
         };
       } catch (err) {
         console.warn(`Failed to fetch price for ${key}, using default:`, err.message);
         products[key] = {
           ...product,
           price: 100.1,
-          currency: 'jmd'
+          currency: 'jmd',
         };
       }
     }
 
     res.json({ success: true, products });
-
   } catch (err) {
     console.error('Products route error:', err);
     res.status(500).json({
@@ -48,7 +55,7 @@ router.get('/', async (req, res) => {
         acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'jmd' };
         return acc;
       }, {}),
-      error: 'Failed to load products'
+      error: 'Failed to load products',
     });
   }
 });
@@ -57,17 +64,17 @@ router.get('/', async (req, res) => {
 router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res) => {
   try {
     const { items } = req.body;
-    
+
     // SECURITY: Validate items array
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'Items array is required' });
     }
-    
+
     // SECURITY: Limit number of items to prevent abuse
     if (items.length > 50) {
       return res.status(400).json({ success: false, error: 'Too many items in cart' });
     }
-    
+
     // SECURITY: Validate each item
     for (const item of items) {
       if (!item.productKey || !PRODUCT_MAP[item.productKey]) {
@@ -87,7 +94,7 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.name || undefined,
-        metadata: { userId: user._id.toString(), source: 'jefitness_product_purchase' }
+        metadata: { userId: user._id.toString(), source: 'jefitness_product_purchase' },
       });
       customerId = customer.id;
       user.stripeCustomerId = customerId;
@@ -101,7 +108,7 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
         productKey: item.productKey,
         quantity: item.quantity,
         price: null, // Price will be fetched from Stripe on server
-        productId: PRODUCT_MAP[item.productKey]?.productId
+        productId: PRODUCT_MAP[item.productKey]?.productId,
       })),
       `${req.protocol}://${req.get('host')}/pages/cart.html?success=true`,
       `${req.protocol}://${req.get('host')}/pages/products.html?canceled=true`
@@ -116,17 +123,19 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
         name: PRODUCT_MAP[item.productKey]?.name || 'Unknown',
         quantity: item.quantity,
         unitPrice: PRODUCT_MAP[item.productKey]?.defaultPrice || 1599,
-        totalPrice: (PRODUCT_MAP[item.productKey]?.defaultPrice || 1599) * item.quantity
+        totalPrice: (PRODUCT_MAP[item.productKey]?.defaultPrice || 1599) * item.quantity,
       })),
-      totalAmount: items.reduce((sum, i) => sum + (PRODUCT_MAP[i.productKey]?.defaultPrice || 1599) * i.quantity, 0),
+      totalAmount: items.reduce(
+        (sum, i) => sum + (PRODUCT_MAP[i.productKey]?.defaultPrice || 1599) * i.quantity,
+        0
+      ),
       currency: 'jmd',
-      status: 'pending'
+      status: 'pending',
     });
 
     await purchase.save();
 
     res.json({ success: true, checkoutUrl: session.url });
-
   } catch (err) {
     console.error('Checkout error:', err);
     res.status(500).json({ success: false, error: 'Failed to create checkout session' });
@@ -139,7 +148,7 @@ router.get('/purchases', auth, async (req, res) => {
     // SECURITY: Only return purchases for the authenticated user
     const purchases = await Purchase.find({
       userId: req.user.id, // IDOR protection
-      status: 'completed'
+      status: 'completed',
     }).sort({ createdAt: -1 });
 
     res.json({ success: true, purchases });

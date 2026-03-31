@@ -110,9 +110,12 @@ function calculateNextRenewalDate(periodEnd, interval, intervalCount = 1) {
     throw new Error('Invalid period end date provided');
   }
   switch (interval) {
-    case 'month': return addMonths(periodEnd, intervalCount);
-    case 'year':  return addYears(periodEnd, intervalCount);
-    default: throw new Error(`Unsupported interval: ${interval}`);
+    case 'month':
+      return addMonths(periodEnd, intervalCount);
+    case 'year':
+      return addYears(periodEnd, intervalCount);
+    default:
+      throw new Error(`Unsupported interval: ${interval}`);
   }
 }
 
@@ -135,5 +138,5 @@ module.exports = {
   daysLeftUntil,
   addMonths,
   addYears,
-  daysBetween
+  daysBetween,
 };

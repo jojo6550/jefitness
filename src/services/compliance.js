@@ -29,8 +29,8 @@ class ComplianceService {
         data: {
           dataProcessingConsent: user.dataProcessingConsent,
           healthDataConsent: user.healthDataConsent,
-          marketingConsent: user.marketingConsent
-        }
+          marketingConsent: user.marketingConsent,
+        },
       };
     } catch (error) {
       this.logger.error('Failed to get consent status', { error: error.message, userId });
@@ -47,7 +47,7 @@ class ComplianceService {
         'dataProcessingConsent.given': true,
         'dataProcessingConsent.givenAt': new Date(),
         'dataProcessingConsent.ipAddress': ipAddress,
-        'dataProcessingConsent.userAgent': userAgent
+        'dataProcessingConsent.userAgent': userAgent,
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -57,19 +57,28 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'data_processing_consent_granted', ipAddress, userAgent, {
-        consentType: 'data_processing'
-      });
+      await UserActionLog.logAction(
+        userId,
+        'data_processing_consent_granted',
+        ipAddress,
+        userAgent,
+        {
+          consentType: 'data_processing',
+        }
+      );
 
       this.logger.info('Data processing consent granted', { userId, ipAddress });
 
       return {
         success: true,
         message: 'Data processing consent granted successfully',
-        data: user.dataProcessingConsent
+        data: user.dataProcessingConsent,
       };
     } catch (error) {
-      this.logger.error('Failed to grant data processing consent', { error: error.message, userId });
+      this.logger.error('Failed to grant data processing consent', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -84,7 +93,7 @@ class ComplianceService {
         'healthDataConsent.givenAt': new Date(),
         'healthDataConsent.purpose': purpose,
         'healthDataConsent.ipAddress': ipAddress,
-        'healthDataConsent.userAgent': userAgent
+        'healthDataConsent.userAgent': userAgent,
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -94,19 +103,29 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'health_data_consent_granted', ipAddress, userAgent, {
-        consentType: 'health_data', purpose
-      });
+      await UserActionLog.logAction(
+        userId,
+        'health_data_consent_granted',
+        ipAddress,
+        userAgent,
+        {
+          consentType: 'health_data',
+          purpose,
+        }
+      );
 
       this.logger.info('Health data consent granted', { userId, purpose, ipAddress });
 
       return {
         success: true,
         message: 'Health data processing consent granted successfully',
-        data: user.healthDataConsent
+        data: user.healthDataConsent,
       };
     } catch (error) {
-      this.logger.error('Failed to grant health data consent', { error: error.message, userId });
+      this.logger.error('Failed to grant health data consent', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -121,7 +140,7 @@ class ComplianceService {
         'marketingConsent.givenAt': new Date(),
         'marketingConsent.withdrawnAt': null, // Clear any previous withdrawal
         'marketingConsent.ipAddress': ipAddress,
-        'marketingConsent.userAgent': userAgent
+        'marketingConsent.userAgent': userAgent,
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -131,19 +150,28 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'marketing_consent_granted', ipAddress, userAgent, {
-        consentType: 'marketing'
-      });
+      await UserActionLog.logAction(
+        userId,
+        'marketing_consent_granted',
+        ipAddress,
+        userAgent,
+        {
+          consentType: 'marketing',
+        }
+      );
 
       this.logger.info('Marketing consent granted', { userId, ipAddress });
 
       return {
         success: true,
         message: 'Marketing consent granted successfully',
-        data: user.marketingConsent
+        data: user.marketingConsent,
       };
     } catch (error) {
-      this.logger.error('Failed to grant marketing consent', { error: error.message, userId });
+      this.logger.error('Failed to grant marketing consent', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -155,7 +183,7 @@ class ComplianceService {
     try {
       const updateData = {
         'marketingConsent.given': false,
-        'marketingConsent.withdrawnAt': new Date()
+        'marketingConsent.withdrawnAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -165,18 +193,27 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'marketing_consent_withdrawn', ipAddress, userAgent, {
-        consentType: 'marketing'
-      });
+      await UserActionLog.logAction(
+        userId,
+        'marketing_consent_withdrawn',
+        ipAddress,
+        userAgent,
+        {
+          consentType: 'marketing',
+        }
+      );
 
       this.logger.info('Marketing consent withdrawn', { userId, ipAddress });
 
       return {
         success: true,
-        message: 'Marketing consent withdrawn successfully'
+        message: 'Marketing consent withdrawn successfully',
       };
     } catch (error) {
-      this.logger.error('Failed to withdraw marketing consent', { error: error.message, userId });
+      this.logger.error('Failed to withdraw marketing consent', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -211,17 +248,21 @@ class ComplianceService {
 
       // Log the action in UserActionLog collection
       await UserActionLog.logAction(userId, 'consent_withdrawn', ipAddress, userAgent, {
-        consentType
+        consentType,
       });
 
       this.logger.info('Consent withdrawn', { userId, consentType, ipAddress });
 
       return {
         success: true,
-        message: `${consentType} consent withdrawn successfully`
+        message: `${consentType} consent withdrawn successfully`,
       };
     } catch (error) {
-      this.logger.error('Failed to withdraw consent', { error: error.message, userId, consentType });
+      this.logger.error('Failed to withdraw consent', {
+        error: error.message,
+        userId,
+        consentType,
+      });
       throw error;
     }
   }
@@ -233,7 +274,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.accessRequested': true,
-        'dataSubjectRights.accessRequestedAt': new Date()
+        'dataSubjectRights.accessRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -243,25 +284,35 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'data_access_requested', ipAddress, userAgent, {
-        right: 'access'
-      });
+      await UserActionLog.logAction(
+        userId,
+        'data_access_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'access',
+        }
+      );
 
       // In a real implementation, this would trigger a process to collect and provide user data
       // For now, we'll mark it as provided immediately for demo purposes
       await User.findByIdAndUpdate(userId, {
-        'dataSubjectRights.accessProvidedAt': new Date()
+        'dataSubjectRights.accessProvidedAt': new Date(),
       });
 
       this.logger.info('Data access requested', { userId, ipAddress });
 
       return {
         success: true,
-        message: 'Data access request submitted successfully. You will receive your data within 30 days.',
-        requestId: `ACCESS-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Data access request submitted successfully. You will receive your data within 30 days.',
+        requestId: `ACCESS-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to request data access', { error: error.message, userId });
+      this.logger.error('Failed to request data access', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -273,7 +324,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.rectificationRequested': true,
-        'dataSubjectRights.rectificationRequestedAt': new Date()
+        'dataSubjectRights.rectificationRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -283,20 +334,35 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'data_rectification_requested', ipAddress, userAgent, {
-        right: 'rectification', rectificationData
-      });
+      await UserActionLog.logAction(
+        userId,
+        'data_rectification_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'rectification',
+          rectificationData,
+        }
+      );
 
       // In a real implementation, this would trigger a manual review process
-      this.logger.info('Data rectification requested', { userId, rectificationData, ipAddress });
+      this.logger.info('Data rectification requested', {
+        userId,
+        rectificationData,
+        ipAddress,
+      });
 
       return {
         success: true,
-        message: 'Data rectification request submitted successfully. Your request will be reviewed within 30 days.',
-        requestId: `RECT-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Data rectification request submitted successfully. Your request will be reviewed within 30 days.',
+        requestId: `RECT-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to request data rectification', { error: error.message, userId });
+      this.logger.error('Failed to request data rectification', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -308,7 +374,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.erasureRequested': true,
-        'dataSubjectRights.erasureRequestedAt': new Date()
+        'dataSubjectRights.erasureRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -318,9 +384,16 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'data_erasure_requested', ipAddress, userAgent, {
-        right: 'erasure', reason
-      });
+      await UserActionLog.logAction(
+        userId,
+        'data_erasure_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'erasure',
+          reason,
+        }
+      );
 
       // In a real implementation, this would trigger a data anonymization/deletion process
       // For demo purposes, we'll simulate completion
@@ -329,18 +402,22 @@ class ComplianceService {
         deletedAt: new Date(),
         firstName: '[DELETED]',
         lastName: '[DELETED]',
-        email: `[DELETED-${userId.slice(-6)}]@deleted.local`
+        email: `[DELETED-${userId.slice(-6)}]@deleted.local`,
       });
 
       this.logger.info('Data erasure requested', { userId, reason, ipAddress });
 
       return {
         success: true,
-        message: 'Data erasure request submitted successfully. Your data will be anonymized within 30 days.',
-        requestId: `ERASE-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Data erasure request submitted successfully. Your data will be anonymized within 30 days.',
+        requestId: `ERASE-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to request data erasure', { error: error.message, userId });
+      this.logger.error('Failed to request data erasure', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -352,7 +429,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.portabilityRequested': true,
-        'dataSubjectRights.portabilityRequestedAt': new Date()
+        'dataSubjectRights.portabilityRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -362,25 +439,35 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'data_portability_requested', ipAddress, userAgent, {
-        right: 'portability'
-      });
+      await UserActionLog.logAction(
+        userId,
+        'data_portability_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'portability',
+        }
+      );
 
       // In a real implementation, this would generate and provide a data export
       // For demo purposes, we'll mark it as completed
       await User.findByIdAndUpdate(userId, {
-        'dataSubjectRights.portabilityCompletedAt': new Date()
+        'dataSubjectRights.portabilityCompletedAt': new Date(),
       });
 
       this.logger.info('Data portability requested', { userId, ipAddress });
 
       return {
         success: true,
-        message: 'Data portability request submitted successfully. You will receive your data export within 30 days.',
-        requestId: `PORT-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Data portability request submitted successfully. You will receive your data export within 30 days.',
+        requestId: `PORT-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to request data portability', { error: error.message, userId });
+      this.logger.error('Failed to request data portability', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -392,7 +479,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.objectionRequested': true,
-        'dataSubjectRights.objectionRequestedAt': new Date()
+        'dataSubjectRights.objectionRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -402,19 +489,30 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'processing_objection_requested', ipAddress, userAgent, {
-        right: 'objection', reason
-      });
+      await UserActionLog.logAction(
+        userId,
+        'processing_objection_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'objection',
+          reason,
+        }
+      );
 
       this.logger.info('Processing objection requested', { userId, reason, ipAddress });
 
       return {
         success: true,
-        message: 'Processing objection submitted successfully. Your request will be reviewed within 30 days.',
-        requestId: `OBJ-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Processing objection submitted successfully. Your request will be reviewed within 30 days.',
+        requestId: `OBJ-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to object to processing', { error: error.message, userId });
+      this.logger.error('Failed to object to processing', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -426,7 +524,7 @@ class ComplianceService {
     try {
       const updateData = {
         'dataSubjectRights.restrictionRequested': true,
-        'dataSubjectRights.restrictionRequestedAt': new Date()
+        'dataSubjectRights.restrictionRequestedAt': new Date(),
       };
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -436,19 +534,30 @@ class ComplianceService {
       }
 
       // Log the action in UserActionLog collection
-      await UserActionLog.logAction(userId, 'processing_restriction_requested', ipAddress, userAgent, {
-        right: 'restriction', reason
-      });
+      await UserActionLog.logAction(
+        userId,
+        'processing_restriction_requested',
+        ipAddress,
+        userAgent,
+        {
+          right: 'restriction',
+          reason,
+        }
+      );
 
       this.logger.info('Processing restriction requested', { userId, reason, ipAddress });
 
       return {
         success: true,
-        message: 'Processing restriction request submitted successfully. Your request will be reviewed within 30 days.',
-        requestId: `REST-${Date.now()}-${userId.slice(-6)}`
+        message:
+          'Processing restriction request submitted successfully. Your request will be reviewed within 30 days.',
+        requestId: `REST-${Date.now()}-${userId.slice(-6)}`,
       };
     } catch (error) {
-      this.logger.error('Failed to request processing restriction', { error: error.message, userId });
+      this.logger.error('Failed to request processing restriction', {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }
@@ -467,7 +576,7 @@ class ComplianceService {
         'dataProcessingConsent.given': false,
         'healthDataConsent.given': false,
         'marketingConsent.given': false,
-        deletedAt: { $exists: false }
+        deletedAt: { $exists: false },
       });
 
       let cleanupCount = 0;
@@ -490,23 +599,27 @@ class ComplianceService {
             auditLog: {
               action: 'data_retention_cleanup',
               timestamp: new Date(),
-              details: { reason: 'retention_period_expired' }
-            }
-          }
+              details: { reason: 'retention_period_expired' },
+            },
+          },
         });
 
         cleanupCount++;
       }
 
-      this.logger.info('Data retention cleanup completed', { usersProcessed: cleanupCount });
+      this.logger.info('Data retention cleanup completed', {
+        usersProcessed: cleanupCount,
+      });
 
       return {
         success: true,
         message: `Data retention cleanup completed. ${cleanupCount} user records anonymized.`,
-        usersProcessed: cleanupCount
+        usersProcessed: cleanupCount,
       };
     } catch (error) {
-      this.logger.error('Failed to perform data retention cleanup', { error: error.message });
+      this.logger.error('Failed to perform data retention cleanup', {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -526,8 +639,8 @@ class ComplianceService {
         compliance: {
           gdpr_notification_required: this.isGdprNotificationRequired(event, details),
           hipaa_notification_required: this.isHipaaNotificationRequired(event, details),
-          affected_data_subjects: details.affectedUsers || 0
-        }
+          affected_data_subjects: details.affectedUsers || 0,
+        },
       });
 
       // If this affects users in the system, log it in their audit trails
@@ -537,7 +650,7 @@ class ComplianceService {
           UserActionLog.logAction(userId, 'data_breach_affected', null, null, {
             breachId,
             event,
-            affected: true
+            affected: true,
           })
         );
 
@@ -547,7 +660,7 @@ class ComplianceService {
       return {
         success: true,
         breachId,
-        logged: true
+        logged: true,
       };
     } catch (error) {
       this.logger.error('Failed to log data breach', { error: error.message, breachId });
@@ -563,11 +676,13 @@ class ComplianceService {
     const personalDataEvents = [
       'unauthorized_access',
       'data_breach',
-      'personal_data_compromised'
+      'personal_data_compromised',
     ];
 
-    return personalDataEvents.includes(event) &&
-           (details.personalData || details.affectedUsers > 0);
+    return (
+      personalDataEvents.includes(event) &&
+      (details.personalData || details.affectedUsers > 0)
+    );
   }
 
   /**
@@ -575,13 +690,9 @@ class ComplianceService {
    */
   isHipaaNotificationRequired(event, details) {
     // HIPAA requires notification for breaches of unsecured PHI
-    const phiEvents = [
-      'health_data_breach',
-      'medical_records_compromised'
-    ];
+    const phiEvents = ['health_data_breach', 'medical_records_compromised'];
 
-    return phiEvents.includes(event) ||
-           (details.healthData && details.affectedUsers > 0);
+    return phiEvents.includes(event) || (details.healthData && details.affectedUsers > 0);
   }
 }
 

@@ -1,9 +1,9 @@
 /**
  * Job Queue Service (Stub)
- * 
+ *
  * This is a stub implementation that logs a warning when job queue methods are called.
  * The job queue functionality was previously using Bull/Redis which has been removed.
- * 
+ *
  * For production use, consider implementing a job queue using:
  * - MongoDB-based job queue
  * - Message queues (RabbitMQ, Kafka)
@@ -28,7 +28,9 @@ class JobQueueService {
    * Register a job processor (no-op)
    */
   registerProcessor(queueName, concurrency, processor) {
-    console.warn(`⚠️ Job processor registration skipped: ${queueName} (job queue disabled)`);
+    console.warn(
+      `⚠️ Job processor registration skipped: ${queueName} (job queue disabled)`
+    );
   }
 
   /**
@@ -90,7 +92,7 @@ class JobQueueService {
       failed: 0,
       delayed: 0,
       totalJobs: 0,
-      message: 'Job queue disabled'
+      message: 'Job queue disabled',
     };
   }
 
@@ -131,4 +133,3 @@ class JobQueueService {
 }
 
 module.exports = new JobQueueService();
-

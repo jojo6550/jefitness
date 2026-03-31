@@ -19,22 +19,36 @@ const trainerController = {
         $group: {
           _id: null,
           totalAppointments: { $sum: 1 },
-          completedAppointments: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
-          scheduledAppointments: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
-          cancelledAppointments: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
-          noShowAppointments: { $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] } },
+          completedAppointments: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+          scheduledAppointments: {
+            $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] },
+          },
+          cancelledAppointments: {
+            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] },
+          },
+          noShowAppointments: {
+            $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] },
+          },
           lateAppointments: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
           uniqueClients: { $addToSet: '$clientId' },
           upcomingAppointments: {
             $push: {
               $cond: [
                 { $and: [{ $gte: ['$date', now] }, { $ne: ['$status', 'cancelled'] }] },
-                { date: '$date', time: '$time', status: '$status', clientId: '$clientId', _id: '$_id' },
-                null
-              ]
-            }
-          }
-        }
+                {
+                  date: '$date',
+                  time: '$time',
+                  status: '$status',
+                  clientId: '$clientId',
+                  _id: '$_id',
+                },
+                null,
+              ],
+            },
+          },
+        },
       },
       {
         $project: {
@@ -46,16 +60,25 @@ const trainerController = {
           lateAppointments: 1,
           uniqueClients: { $size: '$uniqueClients' },
           upcomingAppointments: {
-            $filter: { input: '$upcomingAppointments', as: 'apt', cond: { $ne: ['$$apt', null] } }
-          }
-        }
-      }
+            $filter: {
+              input: '$upcomingAppointments',
+              as: 'apt',
+              cond: { $ne: ['$$apt', null] },
+            },
+          },
+        },
+      },
     ]);
 
     const stats = statsResult[0] || {
-      totalAppointments: 0, completedAppointments: 0, scheduledAppointments: 0,
-      cancelledAppointments: 0, noShowAppointments: 0, lateAppointments: 0,
-      uniqueClients: 0, upcomingAppointments: []
+      totalAppointments: 0,
+      completedAppointments: 0,
+      scheduledAppointments: 0,
+      cancelledAppointments: 0,
+      noShowAppointments: 0,
+      lateAppointments: 0,
+      uniqueClients: 0,
+      upcomingAppointments: [],
     };
 
     const upcomingAppointmentsRaw = stats.upcomingAppointments
@@ -63,7 +86,9 @@ const trainerController = {
       .slice(0, 5);
 
     const upcomingAppointmentIds = upcomingAppointmentsRaw.map(apt => apt._id);
-    const upcomingAppointments = await Appointment.find({ _id: { $in: upcomingAppointmentIds } })
+    const upcomingAppointments = await Appointment.find({
+      _id: { $in: upcomingAppointmentIds },
+    })
       .populate('clientId', 'firstName lastName email')
       .sort({ date: 1, time: 1 })
       .lean();
@@ -73,9 +98,10 @@ const trainerController = {
       .select('firstName lastName email activityStatus')
       .lean();
 
-    const completionRate = stats.totalAppointments > 0
-      ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
-      : 0;
+    const completionRate =
+      stats.totalAppointments > 0
+        ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
+        : 0;
 
     logUserAction('view_trainer_dashboard', trainerId);
 
@@ -83,7 +109,7 @@ const trainerController = {
       overview: { ...stats, completionRate },
       upcomingAppointments,
       clients,
-      recentActivity: { lastUpdated: new Date() }
+      recentActivity: { lastUpdated: new Date() },
     });
   }),
 
@@ -92,18 +118,26 @@ const trainerController = {
    */
   getClients: asyncHandler(async (req, res) => {
     const trainerId = req.user.id;
-    const { search = '', sortBy = 'firstName', sortOrder = 'asc', page = 1, limit = 10 } = req.query;
+    const {
+      search = '',
+      sortBy = 'firstName',
+      sortOrder = 'asc',
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     const appointments = await Appointment.find({ trainerId });
     const clientIds = [...new Set(appointments.map(apt => apt.clientId.toString()))];
 
-    const searchQuery = search ? {
-      $or: [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ]
-    } : {};
+    const searchQuery = search
+      ? {
+          $or: [
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
 
     const query = { _id: { $in: clientIds }, ...searchQuery };
     const skip = (page - 1) * limit;
@@ -123,8 +157,8 @@ const trainerController = {
         totalPages: Math.ceil(totalCount / limit),
         totalClients: totalCount,
         hasNext: page * limit < totalCount,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     });
   }),
 
@@ -144,12 +178,18 @@ const trainerController = {
     if (view === 'archive') {
       baseMatch.$or = [
         { status: 'cancelled' },
-        { status: { $in: ['completed', 'no_show'] }, statusUpdatedAt: { $lt: twentyFourHoursAgo } }
+        {
+          status: { $in: ['completed', 'no_show'] },
+          statusUpdatedAt: { $lt: twentyFourHoursAgo },
+        },
       ];
     } else {
       baseMatch.$or = [
         { status: { $in: ['scheduled', 'late'] } },
-        { status: { $in: ['completed', 'no_show'] }, statusUpdatedAt: { $gte: twentyFourHoursAgo } }
+        {
+          status: { $in: ['completed', 'no_show'] },
+          statusUpdatedAt: { $gte: twentyFourHoursAgo },
+        },
       ];
     }
 
@@ -157,7 +197,12 @@ const trainerController = {
 
     const pipeline = [{ $match: baseMatch }];
     pipeline.push({
-      $lookup: { from: 'users', localField: 'clientId', foreignField: '_id', as: 'client' }
+      $lookup: {
+        from: 'users',
+        localField: 'clientId',
+        foreignField: '_id',
+        as: 'client',
+      },
     });
     pipeline.push({ $unwind: { path: '$client', preserveNullAndEmptyArrays: true } });
 
@@ -168,9 +213,9 @@ const trainerController = {
           $or: [
             { 'client.firstName': searchRegex },
             { 'client.lastName': searchRegex },
-            { 'client.email': searchRegex }
-          ]
-        }
+            { 'client.email': searchRegex },
+          ],
+        },
       });
     }
 
@@ -185,10 +230,21 @@ const trainerController = {
       { $limit: limit },
       {
         $project: {
-          _id: 1, date: 1, time: 1, status: 1, notes: 1, createdAt: 1, updatedAt: 1,
-          clientId: { _id: '$client._id', firstName: '$client.firstName', lastName: '$client.lastName', email: '$client.email' },
-          trainerId: 1
-        }
+          _id: 1,
+          date: 1,
+          time: 1,
+          status: 1,
+          notes: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          clientId: {
+            _id: '$client._id',
+            firstName: '$client.firstName',
+            lastName: '$client.lastName',
+            email: '$client.email',
+          },
+          trainerId: 1,
+        },
       }
     );
 
@@ -197,9 +253,12 @@ const trainerController = {
     res.json({
       appointments,
       pagination: {
-        currentPage: page, totalPages: Math.ceil(totalCount / limit),
-        totalAppointments: totalCount, hasNext: page * limit < totalCount, hasPrev: page > 1
-      }
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalAppointments: totalCount,
+        hasNext: page * limit < totalCount,
+        hasPrev: page > 1,
+      },
     });
   }),
 
@@ -212,7 +271,8 @@ const trainerController = {
       .populate('trainerId', 'firstName lastName email');
 
     if (!appointment) throw new NotFoundError('Appointment');
-    if (appointment.trainerId._id.toString() !== req.user.id) throw new AuthorizationError();
+    if (appointment.trainerId._id.toString() !== req.user.id)
+      throw new AuthorizationError();
 
     res.json(appointment);
   }),
@@ -250,15 +310,17 @@ const trainerController = {
     const client = await User.findById(clientId).select('-password');
     if (!client) throw new NotFoundError('Client');
 
-    const appointments = await Appointment.find({ trainerId, clientId }).sort({ date: -1 });
+    const appointments = await Appointment.find({ trainerId, clientId }).sort({
+      date: -1,
+    });
 
     res.json({
       client,
       appointmentHistory: appointments,
       appointmentCount: appointments.length,
-      completedCount: appointments.filter(apt => apt.status === 'completed').length
+      completedCount: appointments.filter(apt => apt.status === 'completed').length,
     });
-  })
+  }),
 };
 
 module.exports = trainerController;

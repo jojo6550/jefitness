@@ -10,104 +10,116 @@ const SubscriptionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true
+      index: true,
     },
 
     stripeCustomerId: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
 
     stripeSubscriptionId: {
       type: String,
       required: true,
       unique: true,
-      index: true
+      index: true,
     },
 
     plan: {
       type: String,
       enum: ['1-month', '3-month', '6-month', '12-month'],
-      required: true
+      required: true,
     },
 
     stripePriceId: {
       type: String,
-      required: true
+      required: true,
     },
 
     currentPeriodStart: {
       type: Date,
-      required: true
+      required: true,
     },
 
     currentPeriodEnd: {
       type: Date,
       required: true,
-      index: true
+      index: true,
     },
 
     status: {
       type: String,
       // All possible Stripe subscription statuses
-      enum: ['active', 'trialing', 'incomplete', 'incomplete_expired', 'past_due', 'canceled', 'unpaid', 'paused'],
+      enum: [
+        'active',
+        'trialing',
+        'incomplete',
+        'incomplete_expired',
+        'past_due',
+        'canceled',
+        'unpaid',
+        'paused',
+      ],
       required: true,
-      index: true
+      index: true,
     },
 
     canceledAt: {
       type: Date,
-      default: null
+      default: null,
     },
 
     cancelAtPeriodEnd: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     amount: {
       type: Number,
-      required: true // cents
+      required: true, // cents
     },
 
     currency: {
       type: String,
-      default: 'jmd'
+      default: 'jmd',
     },
 
     billingEnvironment: {
       type: String,
       enum: ['test', 'production'],
-      required: true
+      required: true,
     },
 
-    statusHistory: [{ 
-      status: String,
-      changedAt: { 
-        type: Date, 
-default: Date.now
+    statusHistory: [
+      {
+        status: String,
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        reason: String,
       },
-      reason: String
-    }],
-
+    ],
   },
-{ timestamps: { 
-  createdAt: 'utcCreatedAt', 
-  updatedAt: 'utcUpdatedAt' 
-}}
+  {
+    timestamps: {
+      createdAt: 'utcCreatedAt',
+      updatedAt: 'utcUpdatedAt',
+    },
+  }
 );
 
 // 🔎 Fast active lookup
 SubscriptionSchema.index({ userId: 1, status: 1, currentPeriodEnd: -1 });
 
 // Track status changes
-SubscriptionSchema.pre('save', function(next) {
+SubscriptionSchema.pre('save', function (next) {
   if (this.isModified('status')) {
     this.statusHistory.push({
       status: this.status,
       changedAt: new Date(),
-      reason: 'Status updated'
+      reason: 'Status updated',
     });
   }
   next();

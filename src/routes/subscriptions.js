@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 const subscriptionController = require('../controllers/subscriptionController');
 const { auth } = require('../middleware/auth');
-const { preventNoSQLInjection, stripDangerousFields } = require('../middleware/inputValidator');
+const {
+  preventNoSQLInjection,
+  stripDangerousFields,
+} = require('../middleware/inputValidator');
 
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/inputValidator');
@@ -27,14 +30,10 @@ router.get('/plans', subscriptionController.getPlans);
  *     summary: Create a checkout session
  *     tags: [Subscriptions]
  */
-router.post('/checkout', 
-  auth, 
-[
-    body('planId')
-      .trim()
-      .notEmpty()
-      .withMessage('Plan ID is required')
-  ],
+router.post(
+  '/checkout',
+  auth,
+  [body('planId').trim().notEmpty().withMessage('Plan ID is required')],
   handleValidationErrors,
   subscriptionController.createCheckout
 );
@@ -55,7 +54,11 @@ router.get('/current', auth, subscriptionController.getCurrentSubscription);
  *     summary: Verify checkout session completion
  *     tags: [Subscriptions]
  */
-router.post('/verify-session/:sessionId', auth, subscriptionController.verifyCheckoutSession);
+router.post(
+  '/verify-session/:sessionId',
+  auth,
+  subscriptionController.verifyCheckoutSession
+);
 
 /**
  * @swagger
@@ -93,6 +96,10 @@ router.get('/refresh', auth, subscriptionController.refresh);
  *           type: string
  *         description: Stripe subscription ID
  */
-router.get('/:subscriptionId/invoices', auth, subscriptionController.getSubscriptionInvoices);
+router.get(
+  '/:subscriptionId/invoices',
+  auth,
+  subscriptionController.getSubscriptionInvoices
+);
 
 module.exports = router;
