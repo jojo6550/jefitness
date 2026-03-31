@@ -115,8 +115,16 @@ const subscriptionController = {
    * Get the current user's most recent subscription
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    let subscription = await Subscription.findOne({ userId: req.user.id })
-      .sort({ createdAt: -1 });
+    // Prefer the most recent active subscription; fall back to most recently created.
+    let subscription = await Subscription.findOne({
+      userId: req.user.id,
+      status: { $in: ['active', 'trialing', 'past_due', 'paused', 'incomplete'] }
+    }).sort({ utcCreatedAt: -1 });
+
+    if (!subscription) {
+      subscription = await Subscription.findOne({ userId: req.user.id })
+        .sort({ utcCreatedAt: -1 });
+    }
 
     if (!subscription) return res.json({ success: true, data: null });
 
