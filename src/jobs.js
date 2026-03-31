@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+
 const Subscription = require('./models/Subscription');
 const { logSecurityEvent } = require('./services/logger');
 const stripeService = require('./services/stripe');
@@ -29,7 +30,7 @@ const startSubscriptionCleanupJob = () => {
       }
 
       console.log(
-        `📑 Found ${expiredSubscriptions.length} potentially expired subscriptions to verify.`
+        `📑 Found ${expiredSubscriptions.length} potentially expired subscriptions to verify.`,
       );
 
       const stripe = stripeService.getStripe();
@@ -40,7 +41,7 @@ const startSubscriptionCleanupJob = () => {
         if (stripe && sub.stripeSubscriptionId) {
           try {
             const stripeSub = await stripe.subscriptions.retrieve(
-              sub.stripeSubscriptionId
+              sub.stripeSubscriptionId,
             );
 
             if (STRIPE_ACTIVE_STATUSES.includes(stripeSub.status)) {
@@ -59,22 +60,22 @@ const startSubscriptionCleanupJob = () => {
                     lastWebhookEventAt: new Date(),
                   },
                 },
-                { runValidators: false }
+                { runValidators: false },
               );
               console.log(
-                `ℹ️ Subscription ${sub._id} is still ${stripeSub.status} in Stripe — period dates synced.`
+                `ℹ️ Subscription ${sub._id} is still ${stripeSub.status} in Stripe — period dates synced.`,
               );
               continue;
             }
 
             // Stripe confirms inactive — safe to mark canceled.
             console.log(
-              `✅ Stripe confirms subscription ${sub._id} is ${stripeSub.status} — marking canceled.`
+              `✅ Stripe confirms subscription ${sub._id} is ${stripeSub.status} — marking canceled.`,
             );
           } catch (stripeErr) {
             // Cannot reach Stripe — skip rather than incorrectly canceling.
             console.warn(
-              `⚠️ Could not verify subscription ${sub._id} with Stripe: ${stripeErr.message}. Skipping.`
+              `⚠️ Could not verify subscription ${sub._id} with Stripe: ${stripeErr.message}. Skipping.`,
             );
             continue;
           }
@@ -90,7 +91,7 @@ const startSubscriptionCleanupJob = () => {
 
         await sub.save();
         console.log(
-          `✅ Subscription ${sub._id} for user ${sub.userId} marked as canceled.`
+          `✅ Subscription ${sub._id} for user ${sub.userId} marked as canceled.`,
         );
       }
     } catch (error) {

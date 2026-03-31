@@ -1,6 +1,7 @@
+const mongoose = require('mongoose');
+
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const mongoose = require('mongoose');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { logUserAction } = require('../services/logger');
 

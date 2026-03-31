@@ -1,5 +1,6 @@
-const request = require('supertest');
 const express = require('express');
+
+const request = require('supertest');
 
 // --------------------
 // 🔒 ENV SETUP

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const Program = require('../models/Program');
 require('dotenv').config();
 
@@ -10,7 +11,7 @@ async function listPrograms() {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      }
+      },
     );
 
     console.log('Connected to MongoDB');

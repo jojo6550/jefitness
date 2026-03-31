@@ -1,5 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+
 const Stripe = require('stripe');
 
 const StripePlan = require('../src/models/StripePlan');
@@ -77,7 +78,7 @@ async function syncStripeToDB() {
       const result = await StripePlan.findOneAndUpdate(
         { stripePriceId: price.id },
         { $set: planData },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       if (result.upserted) {
@@ -106,10 +107,10 @@ async function syncStripeToDB() {
     }
 
     console.log(
-      `✅ Sync complete! Created: ${created}, Updated: ${updated}, Removed: ${removed}, Archived: ${archived}`
+      `✅ Sync complete! Created: ${created}, Updated: ${updated}, Removed: ${removed}, Archived: ${archived}`,
     );
     console.log(
-      `📊 Active plans in DB: ${await StripePlan.countDocuments({ active: true })}`
+      `📊 Active plans in DB: ${await StripePlan.countDocuments({ active: true })}`,
     );
   } catch (error) {
     console.error('❌ Sync error:', error.message);

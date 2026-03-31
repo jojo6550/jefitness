@@ -1,11 +1,13 @@
+const mongoose = require('mongoose');
+
+const sanitizeHtml = require('sanitize-html');
+
 const User = require('../models/User');
 const {
   asyncHandler,
   ValidationError,
   NotFoundError,
 } = require('../middleware/errorHandler');
-const sanitizeHtml = require('sanitize-html');
-const mongoose = require('mongoose');
 const { logUserAction } = require('../services/logger');
 
 const workoutController = {
@@ -51,7 +53,7 @@ const workoutController = {
       notes: notes
         ? sanitizeHtml(notes, { allowedTags: [], allowedAttributes: {} }).substring(
             0,
-            500
+            500,
           )
         : undefined,
     };

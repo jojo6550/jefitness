@@ -37,7 +37,7 @@ async function connectDB() {
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     console.error(
-      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file'
+      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file',
     );
     return false;
   }
@@ -63,7 +63,7 @@ async function backfillSubscriptionStatus() {
   const users = await User.find(query);
 
   console.log(
-    `Found ${users.length} users with active subscriptions needing subscriptionStatus backfill\n`
+    `Found ${users.length} users with active subscriptions needing subscriptionStatus backfill\n`,
   );
 
   let updated = 0;
@@ -93,7 +93,7 @@ async function backfillSubscriptionStatus() {
     }
   }
 
-  console.log(`\n📊 Summary:`);
+  console.log('\n📊 Summary:');
   console.log(`  Total users processed: ${users.length}`);
   console.log(`  Updated: ${updated}`);
   console.log(`  Skipped (already correct): ${skipped}`);

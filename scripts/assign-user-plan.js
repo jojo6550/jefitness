@@ -55,7 +55,7 @@ async function listUsers() {
 
     const users = await User.find(
       {},
-      'email firstName lastName subscription.isActive subscription.plan stripeSubscriptionId currentPeriodEnd'
+      'email firstName lastName subscription.isActive subscription.plan stripeSubscriptionId currentPeriodEnd',
     )
       .sort({ createdAt: -1 })
       .limit(50);
@@ -118,7 +118,7 @@ async function assignPlan(email, plan, options = {}) {
 
     console.log(`Found user: ${user.firstName} ${user.lastName} (${user.email})`);
     console.log(
-      `Current subscription: ${user.subscription?.plan || 'none'}, isActive: ${user.subscription?.isActive || false}`
+      `Current subscription: ${user.subscription?.plan || 'none'}, isActive: ${user.subscription?.isActive || false}`,
     );
     console.log(`\nAssigning to plan: ${plan} ($${PLAN_PRICING[plan] || 'N/A'})`);
 
@@ -127,101 +127,101 @@ async function assignPlan(email, plan, options = {}) {
     let periodEnd;
 
     switch (plan) {
-      case 'free':
-        user.subscription.isActive = false;
-        user.subscription.plan = null;
-        user.subscription.stripePriceId = null;
-        user.subscription.stripeSubscriptionId = null;
-        user.subscription.currentPeriodStart = null;
-        user.subscription.currentPeriodEnd = null;
-        user.stripeSubscriptionId = null;
-        user.subscriptionStatus = 'free';
-        console.log('✅ User moved to free tier - subscription deactivated');
-        break;
+    case 'free':
+      user.subscription.isActive = false;
+      user.subscription.plan = null;
+      user.subscription.stripePriceId = null;
+      user.subscription.stripeSubscriptionId = null;
+      user.subscription.currentPeriodStart = null;
+      user.subscription.currentPeriodEnd = null;
+      user.stripeSubscriptionId = null;
+      user.subscriptionStatus = 'free';
+      console.log('✅ User moved to free tier - subscription deactivated');
+      break;
 
-      case '1-month':
-        periodEnd = new Date(now);
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-        user.subscription.isActive = true;
-        user.subscription.plan = '1-month';
-        user.subscription.stripePriceId =
+    case '1-month':
+      periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      user.subscription.isActive = true;
+      user.subscription.plan = '1-month';
+      user.subscription.stripePriceId =
           process.env.STRIPE_PRICE_1_MONTH || 'price_1month';
-        user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
-        user.subscription.currentPeriodStart = now;
-        user.subscription.currentPeriodEnd = periodEnd;
-        user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
-        user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production';
-        console.log(`✅ User assigned to 1-month plan`);
-        console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-        break;
+      user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
+      user.subscription.currentPeriodStart = now;
+      user.subscription.currentPeriodEnd = periodEnd;
+      user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
+      user.subscriptionStatus = 'active';
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'test'
+        : 'production';
+      console.log('✅ User assigned to 1-month plan');
+      console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
+      break;
 
-      case '3-month':
-        periodEnd = new Date(now);
-        periodEnd.setMonth(periodEnd.getMonth() + 3);
-        user.subscription.isActive = true;
-        user.subscription.plan = '3-month';
-        user.subscription.stripePriceId =
+    case '3-month':
+      periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 3);
+      user.subscription.isActive = true;
+      user.subscription.plan = '3-month';
+      user.subscription.stripePriceId =
           process.env.STRIPE_PRICE_3_MONTH || 'price_3month';
-        user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
-        user.subscription.currentPeriodStart = now;
-        user.subscription.currentPeriodEnd = periodEnd;
-        user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
-        user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production';
-        console.log(`✅ User assigned to 3-month plan`);
-        console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-        break;
+      user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
+      user.subscription.currentPeriodStart = now;
+      user.subscription.currentPeriodEnd = periodEnd;
+      user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
+      user.subscriptionStatus = 'active';
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'test'
+        : 'production';
+      console.log('✅ User assigned to 3-month plan');
+      console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
+      break;
 
-      case '6-month':
-        periodEnd = new Date(now);
-        periodEnd.setMonth(periodEnd.getMonth() + 6);
-        user.subscription.isActive = true;
-        user.subscription.plan = '6-month';
-        user.subscription.stripePriceId =
+    case '6-month':
+      periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 6);
+      user.subscription.isActive = true;
+      user.subscription.plan = '6-month';
+      user.subscription.stripePriceId =
           process.env.STRIPE_PRICE_6_MONTH || 'price_6month';
-        user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
-        user.subscription.currentPeriodStart = now;
-        user.subscription.currentPeriodEnd = periodEnd;
-        user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
-        user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production';
-        console.log(`✅ User assigned to 6-month plan`);
-        console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-        break;
+      user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
+      user.subscription.currentPeriodStart = now;
+      user.subscription.currentPeriodEnd = periodEnd;
+      user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
+      user.subscriptionStatus = 'active';
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'test'
+        : 'production';
+      console.log('✅ User assigned to 6-month plan');
+      console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
+      break;
 
-      case '12-month':
-        periodEnd = new Date(now);
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-        user.subscription.isActive = true;
-        user.subscription.plan = '12-month';
-        user.subscription.stripePriceId =
+    case '12-month':
+      periodEnd = new Date(now);
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      user.subscription.isActive = true;
+      user.subscription.plan = '12-month';
+      user.subscription.stripePriceId =
           process.env.STRIPE_PRICE_12_MONTH || 'price_12month';
-        user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
-        user.subscription.currentPeriodStart = now;
-        user.subscription.currentPeriodEnd = periodEnd;
-        user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
-        user.subscriptionStatus = 'active';
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production';
-        console.log(`✅ User assigned to 12-month plan`);
-        console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
-        break;
+      user.subscription.stripeSubscriptionId = `sub_manual_${Date.now()}`;
+      user.subscription.currentPeriodStart = now;
+      user.subscription.currentPeriodEnd = periodEnd;
+      user.stripeSubscriptionId = user.subscription.stripeSubscriptionId;
+      user.subscriptionStatus = 'active';
+      user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
+        ? 'test'
+        : 'production';
+      console.log('✅ User assigned to 12-month plan');
+      console.log(`   Period: ${now.toISOString()} to ${periodEnd.toISOString()}`);
+      break;
     }
 
     await user.save();
-    console.log(`\n📋 Updated subscription status:`);
+    console.log('\n📋 Updated subscription status:');
     console.log(`   Plan: ${user.subscription.plan || 'none'}`);
     console.log(`   isActive: ${user.subscription.isActive}`);
     console.log(
-      `   Period End: ${user.subscription.currentPeriodEnd?.toISOString() || 'N/A'}`
+      `   Period End: ${user.subscription.currentPeriodEnd?.toISOString() || 'N/A'}`,
     );
   } catch (error) {
     console.error('❌ Error assigning plan:', error);

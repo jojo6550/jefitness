@@ -1,10 +1,13 @@
 const express = require('express');
+
 const router = express.Router();
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+
 const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
@@ -118,7 +121,7 @@ router.get('/get', async (req, res) => {
     }
 
     const user = await User.findById(req.user.id).select(
-      'hasMedical medicalConditions medicalDocuments'
+      'hasMedical medicalConditions medicalDocuments',
     );
 
     if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -149,7 +152,7 @@ router.post('/save-info', async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { hasMedical: !!hasMedical, medicalConditions: medicalConditions || null },
-      { new: true }
+      { new: true },
     ).select('hasMedical medicalConditions');
 
     if (!user) return res.status(404).json({ msg: 'User not found' });

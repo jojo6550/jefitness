@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const User = require('../models/User');
 require('dotenv').config();
 
@@ -16,7 +17,7 @@ async function updateUserRole(email, role) {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      }
+      },
     );
 
     console.log('Connected to MongoDB');

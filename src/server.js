@@ -5,6 +5,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+
 const cron = require('node-cron');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -12,10 +13,12 @@ const cors = require('cors');
 // API Docs
 const swaggerUi = require('swagger-ui-express');
 const redoc = require('redoc-express');
+
+const connectDB = require('../config/db');
+
 const swaggerSpec = require('./docs/swagger');
 
 // Utilities, DB, and jobs
-const connectDB = require('../config/db');
 const { startSubscriptionCleanupJob } = require('./jobs');
 const { logger } = require('./services/logger');
 const {

@@ -4,7 +4,6 @@ import n from 'eslint-plugin-n';
 import prettier from 'eslint-plugin-prettier';
 import importPlugin from 'eslint-plugin-import';
 import promisePlugin from 'eslint-plugin-promise';
-import nodePlugin from 'eslint-plugin-node';
 
 export default [
   js.configs.recommended,
@@ -20,7 +19,6 @@ export default [
       prettier,
       import: importPlugin,
       promise: promisePlugin,
-      node: nodePlugin,
     },
     rules: {
       // Prettier integration
@@ -36,7 +34,7 @@ export default [
       // Quotes, formatting
       quotes: ['error', 'single', { avoidEscape: true }],
       semi: ['error', 'always'],
-      'comma-dangle': ['error', 'es5'],
+      'comma-dangle': ['error', 'always-multiline'],
       indent: ['error', 2],
       'no-trailing-spaces': 'error',
       'eol-last': 'error',
@@ -49,14 +47,13 @@ export default [
       'import/no-unresolved': 'error',
       'import/order': ['warn', { 'newlines-between': 'always' }],
 
-      // Node specific
+      // Node specific (migrated from eslint-plugin-node)
       'n/no-unsupported-features/es-syntax': 'error',
       'n/no-unpublished-require': 'warn',
-      'node/no-missing-require': 'error',
-      'node/no-extraneous-require': 'warn',
+      'n/no-missing-require': 'error',
+      'n/no-extraneous-require': 'warn',
 
       // Express specific (manual)
-      'no-floating-promises': 'error',
     },
     settings: {
       'import/core-modules': ['express', 'mongoose'],

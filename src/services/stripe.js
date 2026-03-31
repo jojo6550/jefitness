@@ -108,7 +108,7 @@ async function getPlanPricing() {
 
     if (plans.length === 0) {
       console.warn(
-        '⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js'
+        '⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js',
       );
       return {};
     }
@@ -143,7 +143,7 @@ async function getPlanPricing() {
       };
 
       console.log(
-        `✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`
+        `✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`,
       );
     }
 
@@ -151,7 +151,7 @@ async function getPlanPricing() {
     priceCache = pricing;
     cacheExpiry = Date.now() + CACHE_TTL;
     console.log(
-      `✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`
+      `✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`,
     );
     return pricing;
   } catch (error) {
@@ -336,7 +336,7 @@ async function createSubscription(customerId, plan) {
     console.log('priceId (DB) found:', priceId);
     if (!priceId) {
       throw new Error(
-        `No active recurring price found for plan: ${plan} (check StripePlan DB)`
+        `No active recurring price found for plan: ${plan} (check StripePlan DB)`,
       );
     }
 
@@ -366,14 +366,14 @@ async function createSubscription(customerId, plan) {
 
     console.log(
       'Creating subscription with data:',
-      JSON.stringify(subscriptionData, null, 2)
+      JSON.stringify(subscriptionData, null, 2),
     );
     const subscription = await getStripe().subscriptions.create(subscriptionData);
     console.log(
       'Subscription created successfully:',
       subscription.id,
       'status:',
-      subscription.status
+      subscription.status,
     );
 
     return subscription;
@@ -451,7 +451,7 @@ async function updateSubscription(subscriptionId, updates = {}) {
       const newPriceId = await getPriceIdForPlan(updates.plan);
       if (!newPriceId) {
         throw new Error(
-          `No active recurring price found for plan: ${updates.plan} (check StripePlan DB)`
+          `No active recurring price found for plan: ${updates.plan} (check StripePlan DB)`,
         );
       }
 
@@ -483,7 +483,7 @@ async function updateSubscription(subscriptionId, updates = {}) {
 
     const updatedSubscription = await stripe.subscriptions.update(
       subscriptionId,
-      updateData
+      updateData,
     );
 
     return updatedSubscription;
@@ -528,7 +528,7 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       msg.includes('Cannot cancel')
     ) {
       console.log(
-        `ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`
+        `ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`,
       );
       return null;
     }
@@ -608,10 +608,10 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       if (custErr.code === 'resource_missing') {
         console.error(`❌ Customer not found: ${customerId} (user email lookup needed)`);
         throw new Error(
-          `Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`
+          `Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`,
         );
       }
-      console.error(`❌ Customer validation failed:`, custErr.message);
+      console.error('❌ Customer validation failed:', custErr.message);
       throw custErr;
     }
 
@@ -623,12 +623,12 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       throw new Error(
         `No active price found for plan "${plan}". ` +
           `Available: ${available.length ? available.join(', ') : 'none'}. ` +
-          `Run "node scripts/sync-stripe-to-db.js" to sync Stripe → DB`
+          'Run "node scripts/sync-stripe-to-db.js" to sync Stripe → DB'
       );
     }
     const priceId = planData.priceId;
     console.log(
-      `✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`
+      `✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`,
     );
 
     const session = await stripe.checkout.sessions.create({
@@ -654,13 +654,13 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     });
 
     console.log(
-      `✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`
+      `✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`,
     );
     return session;
   } catch (error) {
     console.error(
       `❌ createCheckoutSession error [${plan}] customer[${customerId}]:`,
-      error.message
+      error.message,
     );
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
@@ -678,7 +678,7 @@ async function createProgramCheckoutSession(
   customerId,
   programId,
   successUrl,
-  cancelUrl
+  cancelUrl,
 ) {
   try {
     const stripe = getStripe();
@@ -698,7 +698,7 @@ async function createProgramCheckoutSession(
       process.env[`STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')}`];
     if (!productId) {
       throw new Error(
-        `No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`
+        `No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`,
       );
     }
 
@@ -816,7 +816,7 @@ async function getAllActivePrices() {
 
     // Fetch product details for all products
     const products = await Promise.all(
-      productIds.map(productId => getStripe().products.retrieve(productId))
+      productIds.map(productId => getStripe().products.retrieve(productId)),
     );
 
     // Create a map of product ID to product data
@@ -933,7 +933,7 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
     });
 
     console.log(
-      `✅ Product checkout session created: ${session.id} for customer: ${customerId}`
+      `✅ Product checkout session created: ${session.id} for customer: ${customerId}`,
     );
     console.log(`📦 Items: ${validatedItems.length}`);
 
@@ -1050,7 +1050,7 @@ async function getAllProducts(activeOnly = true) {
             recurring: price.recurring || null,
           })),
         };
-      })
+      }),
     );
 
     return productsWithPrices;

@@ -1,5 +1,6 @@
 // routes/clients.js
 const express = require('express');
+
 const router = express.Router();
 const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
@@ -26,12 +27,12 @@ router.get('/', async (req, res) => {
     // Build search query
     const searchQuery = search
       ? {
-          $or: [
-            { firstName: { $regex: search, $options: 'i' } },
-            { lastName: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } },
-          ],
-        }
+        $or: [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ],
+      }
       : {};
 
     // Build status filter

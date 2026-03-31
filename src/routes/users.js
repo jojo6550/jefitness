@@ -1,6 +1,8 @@
 const express = require('express');
+
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
+
 const User = require('../models/User');
 const { requireAdmin } = require('../middleware/auth');
 const {
@@ -40,7 +42,7 @@ router.get('/trainers', async (req, res) => {
       .sort({ firstName: 1, lastName: 1 });
 
     console.log(
-      `Found ${trainers.length} trainers (page ${page} of ${Math.ceil(totalCount / limit)})`
+      `Found ${trainers.length} trainers (page ${page} of ${Math.ceil(totalCount / limit)})`,
     );
     res.json({
       success: true,
@@ -137,7 +139,7 @@ router.get('/', requireAdmin, async (req, res) => {
     // This prevents fetching workoutLogs, auditLog, etc. which can be very large
     const users = await User.find(query)
       .select(
-        '-password -emailVerificationToken -passwordResetToken -pushSubscription -workoutLogs -auditLog -medicalDocuments -purchasedPrograms -assignedPrograms'
+        '-password -emailVerificationToken -passwordResetToken -pushSubscription -workoutLogs -auditLog -medicalDocuments -purchasedPrograms -assignedPrograms',
       )
       .skip(skip)
       .limit(limit)
@@ -169,7 +171,7 @@ router.get('/profile', async (req, res) => {
   try {
     // SECURITY: Exclude sensitive fields
     const user = await User.findById(req.user.id).select(
-      '-password -emailVerificationToken -passwordResetToken -pushSubscription'
+      '-password -emailVerificationToken -passwordResetToken -pushSubscription',
     );
     if (!user) {
       return res.status(404).json({
@@ -201,7 +203,7 @@ router.get('/:id', validateObjectId('id'), async (req, res) => {
 
     // SECURITY: Exclude sensitive fields
     const user = await User.findById(req.params.id).select(
-      '-password -emailVerificationToken -passwordResetToken -pushSubscription'
+      '-password -emailVerificationToken -passwordResetToken -pushSubscription',
     );
     if (!user) {
       return res.status(404).json({
@@ -285,7 +287,7 @@ router.put(
         new: true,
         runValidators: true,
       }).select(
-        '-password -emailVerificationToken -passwordResetToken -pushSubscription'
+        '-password -emailVerificationToken -passwordResetToken -pushSubscription',
       );
 
       res.json({
@@ -299,7 +301,7 @@ router.put(
         error: 'Server error',
       });
     }
-  }
+  },
 );
 
 // SECURITY: DELETE /api/users/:id - Delete user (admin only)
@@ -336,7 +338,7 @@ router.get('/data-export', async (req, res) => {
   try {
     // SECURITY: Exclude sensitive tokens from export
     const user = await User.findById(req.user.id).select(
-      '-password -__v -emailVerificationToken -passwordResetToken -pushSubscription'
+      '-password -__v -emailVerificationToken -passwordResetToken -pushSubscription',
     );
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
@@ -373,13 +375,13 @@ router.get('/data-export', async (req, res) => {
 
     // Log the data export request for compliance
     console.log(
-      `GDPR Data Export: User ${req.user.id} requested data export at ${new Date().toISOString()}`
+      `GDPR Data Export: User ${req.user.id} requested data export at ${new Date().toISOString()}`,
     );
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="jefitness-data-export-${user._id}.json"`
+      `attachment; filename="jefitness-data-export-${user._id}.json"`,
     );
     res.json(dataExport);
   } catch (err) {
@@ -413,7 +415,7 @@ router.delete(
 
       // Log the deletion request for compliance and legal purposes
       console.log(
-        `GDPR Data Deletion: User ${req.user.id} (${user.email}) requested data deletion. Reason: ${req.body.reason}`
+        `GDPR Data Deletion: User ${req.user.id} (${user.email}) requested data deletion. Reason: ${req.body.reason}`,
       );
 
       // Instead of hard deleting, we anonymize the data to maintain referential integrity
@@ -447,7 +449,7 @@ router.delete(
       console.error('GDPR Data Deletion Error:', err.message);
       res.status(500).json({ msg: 'Server error during data deletion' });
     }
-  }
+  },
 );
 
 // GET /api/users/privacy-settings - Get current privacy settings
@@ -455,7 +457,7 @@ router.delete(
 router.get('/privacy-settings', async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
-      'privacySettings dataDeletedAt deletionReason'
+      'privacySettings dataDeletedAt deletionReason',
     );
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
@@ -494,7 +496,7 @@ router.put(
             thirdPartySharing: thirdPartySharing || false,
           },
         },
-        { new: true }
+        { new: true },
       ).select('privacySettings');
 
       if (!user) {
@@ -509,7 +511,7 @@ router.put(
       console.error('Privacy Settings Update Error:', err.message);
       res.status(500).json({ msg: 'Server error' });
     }
-  }
+  },
 );
 
 module.exports = router;

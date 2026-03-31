@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const dotenv = require('dotenv');
 
 // Load environment variables
@@ -29,7 +30,7 @@ async function setDataProcessingConsent() {
           'dataProcessingConsent.ipAddress': 'system_update',
           'dataProcessingConsent.userAgent': 'consent_migration_script',
         },
-      }
+      },
     );
 
     console.log(`Updated ${result.modifiedCount} users with data processing consent`);
@@ -45,7 +46,7 @@ async function setDataProcessingConsent() {
           'healthDataConsent.userAgent': 'consent_migration_script',
           'healthDataConsent.purpose': 'fitness_tracking',
         },
-      }
+      },
     );
 
     console.log(`Updated ${healthResult.modifiedCount} users with health data consent`);

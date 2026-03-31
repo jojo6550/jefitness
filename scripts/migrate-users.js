@@ -42,7 +42,7 @@ async function connectDB() {
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     console.error(
-      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file'
+      '💡 Make sure MongoDB is running and MONGO_URI is set in your .env file',
     );
     process.exit(1);
   }
@@ -218,7 +218,7 @@ async function main() {
       }
     }
 
-    console.log(`\n🎉 Migration completed!`);
+    console.log('\n🎉 Migration completed!');
     console.log(`✅ Successfully migrated: ${migratedCount} users`);
     if (errorCount > 0) {
       console.log(`❌ Errors: ${errorCount} users`);

@@ -1,13 +1,14 @@
 const express = require('express');
+
 const router = express.Router();
+const { body } = require('express-validator');
+
 const subscriptionController = require('../controllers/subscriptionController');
 const { auth } = require('../middleware/auth');
 const {
   preventNoSQLInjection,
   stripDangerousFields,
 } = require('../middleware/inputValidator');
-
-const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 
 // SECURITY: Apply input validation to all subscription routes

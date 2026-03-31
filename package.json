@@ -4,8 +4,8 @@
   "description": "Enhanced Security Update",
   "main": "./src/server.js",
   "scripts": {
-"lint": "eslint --config eslint.config.mjs src/**/*.js scripts/**/*.js",
-"lint:fix": "eslint --config eslint.config.mjs src/**/*.js scripts/**/*.js --fix",
+    "lint": "eslint --config eslint.config.mjs src/**/*.js scripts/**/*.js",
+    "lint:fix": "eslint --config eslint.config.mjs src/**/*.js scripts/**/*.js --fix",
     "format": "prettier --write \"src/**/*.js\" \"scripts/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\" \"scripts/**/*.js\"",
     "dev": "nodemon",
@@ -35,7 +35,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-"type": "commonjs",
+  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jojo6550/jojo6550.github.io/issues"
   },
@@ -85,7 +85,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-n": "^17.24.0",
-    "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-promise": "^7.2.1",
     "globals": "^17.4.0",

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { syncStripeToDB } = require('./sync-stripe-to-db');
+
 const StripePlan = require('../src/models/StripePlan');
+
+const { syncStripeToDB } = require('./sync-stripe-to-db');
 
 async function connectDB() {
   const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
@@ -74,7 +76,7 @@ async function main() {
 
       default:
         console.log(
-          'Commands:\n  sync\n  list\n  remove <priceId>\n  add-lookup <key> <priceId>'
+          'Commands:\n  sync\n  list\n  remove <priceId>\n  add-lookup <key> <priceId>',
         );
         process.exit(0);
     }

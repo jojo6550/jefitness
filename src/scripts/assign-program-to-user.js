@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const User = require('../models/User');
 const Program = require('../models/Program');
 require('dotenv').config();
@@ -16,7 +17,7 @@ async function assignProgramToUser(email, programId) {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      }
+      },
     );
 
     console.log('Connected to MongoDB');
@@ -35,7 +36,7 @@ async function assignProgramToUser(email, programId) {
 
     // Check if program is already assigned
     const alreadyAssigned = user.assignedPrograms.some(
-      assigned => assigned.programId.toString() === programId
+      assigned => assigned.programId.toString() === programId,
     );
 
     if (alreadyAssigned) {
@@ -53,7 +54,7 @@ async function assignProgramToUser(email, programId) {
 
     console.log(`\n✅ Successfully assigned program to ${email}`);
     console.log('='.repeat(50));
-    console.log(`📋 Program Details:`);
+    console.log('📋 Program Details:');
     console.log(`   Title: ${program.title}`);
     console.log(`   Description: ${program.description}`);
     console.log(`   Duration: ${program.duration}`);
@@ -67,7 +68,7 @@ async function assignProgramToUser(email, programId) {
     }
 
     if (program.days && program.days.length > 0) {
-      console.log(`\n🏋️  Workout Schedule:`);
+      console.log('\n🏋️  Workout Schedule:');
       program.days.forEach((day, index) => {
         console.log(`   Day ${index + 1}: ${day.dayName}`);
         if (day.exercises && day.exercises.length > 0) {
@@ -100,7 +101,7 @@ const [, , email, programId] = process.argv;
 if (!email || !programId) {
   console.error('Usage: node assign-program-to-user.js <user-email> <program-id>');
   console.error(
-    'Example: node assign-program-to-user.js user@example.com 507f1f77bcf86cd799439011'
+    'Example: node assign-program-to-user.js user@example.com 507f1f77bcf86cd799439011',
   );
   process.exit(1);
 }

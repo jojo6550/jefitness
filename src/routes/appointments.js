@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
@@ -63,7 +64,7 @@ router.get('/', async (req, res) => {
           foreignField: '_id',
           as: 'trainer',
         },
-      }
+      },
     );
 
     pipeline.push({ $unwind: '$client' }, { $unwind: '$trainer' });
@@ -183,7 +184,7 @@ router.get('/user', async (req, res) => {
     });
 
     console.log(
-      `Found ${processedAppointments.length} appointments for user: ${req.user.id}`
+      `Found ${processedAppointments.length} appointments for user: ${req.user.id}`,
     );
 
     res.json({
@@ -427,11 +428,9 @@ router.put(
           if (['completed', 'no_show', 'late'].includes(status)) {
             appointment.status = status;
           } else {
-            return res
-              .status(400)
-              .json({
-                msg: 'Trainers can only update status to completed, no_show, or late',
-              });
+            return res.status(400).json({
+              msg: 'Trainers can only update status to completed, no_show, or late',
+            });
           }
         } else if (req.user.id === appointment.clientId.toString()) {
           // Clients can only cancel
@@ -467,7 +466,7 @@ router.put(
       console.error(err.message);
       res.status(500).json({ msg: 'Server error' });
     }
-  }
+  },
 );
 
 // DELETE /api/appointments/:id - Delete appointment

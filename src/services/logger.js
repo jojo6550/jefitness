@@ -1,6 +1,8 @@
+const path = require('path');
+
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
-const path = require('path');
+
 const Log = require('../models/Log');
 
 /**

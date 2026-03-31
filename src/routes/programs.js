@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const Program = require('../models/Program');
 const User = require('../models/User');
@@ -53,18 +54,18 @@ router.get('/', async (req, res) => {
             stripePriceId: program.stripePriceId,
             price: oneTimePrice
               ? {
-                  id: oneTimePrice.id,
-                  amount: oneTimePrice.amount,
-                  currency: oneTimePrice.currency,
-                  formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`,
-                }
+                id: oneTimePrice.id,
+                amount: oneTimePrice.amount,
+                currency: oneTimePrice.currency,
+                formatted: `$${(oneTimePrice.amount / 100).toFixed(2)}`,
+              }
               : null,
             createdAt: program.createdAt,
           };
         } catch (error) {
           console.error(
             `Error fetching price for program ${program._id}:`,
-            error.message
+            error.message,
           );
           return {
             _id: program._id,
@@ -84,7 +85,7 @@ router.get('/', async (req, res) => {
             createdAt: program.createdAt,
           };
         }
-      })
+      }),
     );
 
     res.json({
@@ -270,7 +271,7 @@ router.post('/checkout', auth, async (req, res) => {
 
     // Check if user already purchased this program
     const alreadyPurchased = user.purchasedPrograms.some(
-      p => p.programId.toString() === programId
+      p => p.programId.toString() === programId,
     );
 
     if (alreadyPurchased) {
@@ -450,7 +451,7 @@ router.get('/user/access/:slug', auth, async (req, res) => {
 
     // Check if user has purchased this program
     const hasAccess = user.purchasedPrograms.some(
-      p => p.programId && p.programId.slug === slug
+      p => p.programId && p.programId.slug === slug,
     );
 
     res.json({

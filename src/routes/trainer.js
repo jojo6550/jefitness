@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const trainerController = require('../controllers/trainerController');
 const { requireTrainer } = require('../middleware/auth');
@@ -18,7 +19,7 @@ router.get(
   '/clients',
   requireTrainer,
   requireActiveSubscription,
-  trainerController.getClients
+  trainerController.getClients,
 );
 
 /**

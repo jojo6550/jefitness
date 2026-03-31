@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+
 const Subscription = require('../src/models/Subscription');
 const { logger } = require('../src/services/logger');
 

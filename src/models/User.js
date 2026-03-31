@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 
 const WorkoutSetSchema = new mongoose.Schema(
   {

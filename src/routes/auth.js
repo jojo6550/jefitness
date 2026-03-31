@@ -1,10 +1,12 @@
 const express = require('express');
+
 const router = express.Router();
+const { body } = require('express-validator');
+
 const authController = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
 const { requireDbConnection } = require('../middleware/dbConnection');
 const { authLimiter, signupLimiter } = require('../middleware/rateLimiter');
-const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 
 /**
