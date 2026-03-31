@@ -117,20 +117,6 @@ SubscriptionSchema.pre('save', function(next) {
 
 // Pre-save hook to ensure Stripe cancellation when status changes to 'canceled'
 SubscriptionSchema.pre('save', async function(next) {
-  // Convert ALL date fields to UTC before save
-  const utcConvert = (date) => date instanceof Date ? new Date(date.toUTCString()) : date;
-  
-  this.currentPeriodStart = utcConvert(this.currentPeriodStart);
-  this.currentPeriodEnd = utcConvert(this.currentPeriodEnd);
-  this.canceledAt = utcConvert(this.canceledAt);
-  
-  if (this.statusHistory) {
-    this.statusHistory = this.statusHistory.map(h => ({
-      ...h,
-      changedAt: utcConvert(h.changedAt)
-    }));
-  }
-
   try {
     // Check if status is being changed to 'canceled' AND stripeSubscriptionId exists
     if (this.isModified('status') && this.status === 'canceled' && this.stripeSubscriptionId) {

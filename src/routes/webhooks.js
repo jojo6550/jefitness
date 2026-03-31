@@ -162,14 +162,14 @@ async function buildSubscriptionPayload(subscription) {
     plan,
     stripePriceId: priceId,
     currentPeriodStart: subscription.current_period_start
-      ? new Date(subscription.current_period_start * 1000).toUTCString()
+      ? new Date(subscription.current_period_start * 1000)
       : null,
     currentPeriodEnd: subscription.current_period_end
-      ? new Date(subscription.current_period_end * 1000).toUTCString()
+      ? new Date(subscription.current_period_end * 1000)
       : null,
     status: subscription.status,
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
-    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toUTCString() : null,
+    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
     amount: priceItem?.price?.unit_amount || 0,
     currency: priceItem?.price?.currency || 'jmd',
     billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production',
@@ -228,7 +228,7 @@ async function handleSubscriptionDeleted(subscription) {
     {
       $set: {
         status: 'canceled',
-        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toUTCString() : new Date().toUTCString(),
+        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : new Date(),
         lastWebhookEventAt: new Date()
       }
     },

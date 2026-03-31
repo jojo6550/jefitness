@@ -1,8 +1,1 @@
-# Task Progress: Fix TypeScript errors in src/models/Subscription.js
-
-**✅ Step 1: Analyzed file and identified syntax errors in statusHistory array (duplicate fields, mismatched defaults)**
-
-**✅ Step 2: Applied edit_file - removed duplicate fields and standardized changedAt default**
-**✅ Step 3: Verified syntax - `node -c src/models/Subscription.js` executed successfully (no errors)**
-* Step 5: attempt_completion
-
+Issue: Subscription feature should show days remaining. I purchased a 1 year subscription, however it says its to be renewed today. I want you to use the calender to fix the issue, each period is calculated based on the input from stripe that is then given to the database. audit all related files and create a robust fix for the issue. remove all redundant code found as long as it doesnt impact functionlaity.

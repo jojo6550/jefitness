@@ -135,7 +135,8 @@ function parseDate(value, fallback) {
   if (!value) return fallback;
   // Always parse as UTC to match backend storage
   if (typeof value === 'string') {
-    const d = new Date(value + 'Z'); // Force UTC interpretation
+    const hasTimezone = /[Zz]$|[+-]\d{2}:?\d{2}$/.test(value);
+    const d = new Date(hasTimezone ? value : value + 'Z');
     return isNaN(d.getTime()) ? fallback : d;
   }
   if (typeof value === 'number') {
@@ -483,7 +484,7 @@ async function downloadInvoices(subscriptionId) {
       const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
       if (!pdfUrl) return;
 
-      const date = safeFormatDate(invoice.created).toLocaleDateString();
+      const date = parseDate(invoice.created, new Date()).toLocaleDateString();
       const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
       const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
 
