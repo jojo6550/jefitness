@@ -2,7 +2,8 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
 const { asyncHandler, ValidationError, NotFoundError } = require('../middleware/errorHandler');
-const { daysLeftUntil } = require('../utils/dateUtils');
+const { daysLeftUntil, calculateNextRenewalDate } = require('../utils/dateUtils');
+const StripePlan = require('../models/StripePlan');
 
 /** Compute daysLeft from a subscription's currentPeriodEnd (midnight-normalised, clamped to 0) */
 function computeDaysLeft(subscription) {
@@ -253,6 +254,23 @@ const subscriptionController = {
           const billingEnv = getBillingEnv();
           const planName   = await stripeService.getPlanNameFromPriceId(priceId);
 
+          // Resolve period dates from Stripe; fall back to plan-interval arithmetic
+          // if Stripe hasn't set current_period_end yet (e.g. subscription still initialising).
+          const periodStart = stripeSub.current_period_start
+            ? new Date(stripeSub.current_period_start * 1000) : new Date();
+          let periodEnd;
+          if (stripeSub.current_period_end) {
+            periodEnd = new Date(stripeSub.current_period_end * 1000);
+          } else {
+            const planRecord = await StripePlan.findOne({ stripePriceId: priceId, active: true }).lean();
+            periodEnd = calculateNextRenewalDate(
+              periodStart,
+              planRecord?.interval || 'month',
+              planRecord?.intervalCount || 1
+            );
+            console.warn(`[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}×${planRecord?.intervalCount}): ${periodEnd.toISOString()}`);
+          }
+
           subscription = await Subscription.findOneAndUpdate(
             { stripeSubscriptionId: stripeSub.id },
             {
@@ -263,11 +281,8 @@ const subscriptionController = {
                 stripeSubscriptionId: stripeSub.id,
                 plan: planName,
                 stripePriceId: priceId,
-                currentPeriodStart: stripeSub.current_period_start
-                  ? new Date(stripeSub.current_period_start * 1000) : new Date(),
-                currentPeriodEnd: stripeSub.current_period_end
-                  ? new Date(stripeSub.current_period_end * 1000)
-                  : new Date(Date.now() + 90 * 86_400_000),
+                currentPeriodStart: periodStart,
+                currentPeriodEnd: periodEnd,
                 status: stripeSub.status,
                 cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
                 canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,

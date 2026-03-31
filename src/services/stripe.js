@@ -153,6 +153,28 @@ function getFallbackPricingAll() {
 }
 
 /**
+ * Derive the internal plan name from a StripePlan record's authoritative
+ * interval data.  Stripe's nickname/lookupKey strings vary per account
+ * ('1-year', '1-month-subscription', 'annual', …) and cannot be trusted to
+ * match the Subscription schema enum.  Using interval + intervalCount instead
+ * ensures a consistent mapping regardless of how prices are named in Stripe.
+ *
+ * @param {{ interval: string, intervalCount: number }} planRecord
+ * @returns {string} One of '1-month' | '3-month' | '6-month' | '12-month' | 'unknown-plan'
+ */
+function derivePlanName(planRecord) {
+  const { interval, intervalCount = 1 } = planRecord;
+  if (interval === 'year') return '12-month';
+  if (interval === 'month') {
+    if (intervalCount <= 1) return '1-month';
+    if (intervalCount <= 3) return '3-month';
+    if (intervalCount <= 6) return '6-month';
+    return '12-month'; // 12-month billed monthly
+  }
+  return 'unknown-plan';
+}
+
+/**
  * Get plan name from Stripe price ID using DB
  * @param {string} priceId - Stripe price ID
  * @returns {Promise<string>} Plan name or 'unknown-plan'
@@ -161,8 +183,7 @@ async function getPlanNameFromPriceId(priceId) {
   try {
     const planRecord = await StripePlan.findOne({ stripePriceId: priceId, active: true }).lean();
     if (planRecord) {
-      // Use nickname, lookup_key, or compute from interval
-      return planRecord.nickname || planRecord.lookupKey || `${planRecord.intervalCount}-${planRecord.interval}` || 'unknown-plan';
+      return derivePlanName(planRecord);
     }
     return 'unknown-plan';
   } catch (error) {
