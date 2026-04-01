@@ -2,24 +2,9 @@
 
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
 
 @layer base {
-  *, *::before, *::after { box-sizing: border-box; }
-
   html { scroll-behavior: smooth; }
-
-  body {
-    @apply bg-brand-bg text-brand-text font-body antialiased;
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-wide;
-  }
-
-  a { @apply transition-colors duration-200; }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 6px; }

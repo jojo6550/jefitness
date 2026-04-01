@@ -325,6 +325,52 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Spinner (large) ── */
+.je-spinner-lg {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-width: 3px;
+}
+
+/* ── Plans description max-width ── */
+.sub-plans-desc {
+    max-width: 480px;
+}
+
+/* ── Cancel Modal overrides ── */
+.cancel-modal-header {
+    border-bottom-color: #1e1e24 !important;
+}
+.cancel-modal-title {
+    color: #ef4444;
+}
+.cancel-modal-body-text {
+    color: #94a3b8;
+}
+.cancel-modal-footer {
+    border-top-color: #1e1e24 !important;
+}
+
+/* ── Footer ── */
+.sub-footer-brand {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: .12em;
+    font-weight: 700;
+}
+.sub-footer-brand-accent {
+    color: #22d3ee;
+}
+.sub-footer-link {
+    color: #64748b;
+    font-size: 1.25rem;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.sub-footer-link:hover {
+    color: #22d3ee;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .plan-card:hover { transform: translateY(-4px); }

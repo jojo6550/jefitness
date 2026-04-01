@@ -8,152 +8,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="../dist/styles.css">
     <link rel="stylesheet" href="../styles/styles.css?v=1.0.0">
+    <link rel="stylesheet" href="../styles/dashboard.css">
 
     <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../favicons/favicon-16x16.png">
     <link rel="manifest" href="../favicons/site.webmanifest">
-
-    <style>
-        /* Dashboard-specific overrides */
-        .dash-welcome {
-            padding: 3rem 2rem 2.5rem;
-            margin-bottom: 2.5rem;
-            border-bottom: 1px solid #1e1e24;
-        }
-        .dash-welcome h1 {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            color: #f1f5f9;
-            margin-bottom: 0.4rem;
-        }
-        .dash-welcome h1 span { color: #22d3ee; }
-        .dash-welcome p {
-            color: #64748b;
-            font-size: 1rem;
-            margin: 0;
-        }
-
-        .dash-sub-alert {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 999px;
-            background: rgba(34,197,94,0.1);
-            border: 1px solid rgba(34,197,94,0.25);
-            color: #22c55e;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-top: 1rem;
-        }
-
-        /* Nav card */
-        .dash-nav-card {
-            background: #111113;
-            border: 1px solid #1e1e24;
-            border-radius: 1rem;
-            padding: 1.75rem;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-            animation: dashCardIn 0.4s ease-out both;
-        }
-        .dash-nav-card:hover {
-            transform: translateY(-6px);
-            border-color: #22d3ee55;
-            box-shadow: 0 16px 40px rgba(34,211,238,0.1), 0 4px 10px rgba(0,0,0,0.5);
-        }
-        .dash-nav-card.coming {
-            opacity: 0.45;
-            pointer-events: none;
-        }
-        .dash-card-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            display: block;
-        }
-        .dash-nav-card h3 {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            color: #f1f5f9;
-            margin-bottom: 0.5rem;
-        }
-        .dash-nav-card p {
-            color: #64748b;
-            font-size: 0.875rem;
-            flex: 1;
-            margin-bottom: 1.25rem;
-        }
-        .dash-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.55rem 1.25rem;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            font-family: 'Rajdhani', sans-serif;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            align-self: flex-start;
-        }
-        .dash-cta-cyan {
-            background: linear-gradient(135deg, #22d3ee, #0891b2);
-            color: #0a0a0b;
-        }
-        .dash-cta-cyan:hover {
-            color: #0a0a0b;
-            filter: brightness(1.1);
-            box-shadow: 0 6px 16px rgba(34,211,238,0.3);
-            transform: translateY(-1px);
-        }
-        .dash-cta-outline {
-            border: 1px solid #1e1e24;
-            color: #94a3b8;
-            background: transparent;
-        }
-        .dash-cta-outline:hover {
-            border-color: #22d3ee55;
-            color: #f1f5f9;
-        }
-        .dash-coming-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.4rem 0.85rem;
-            border-radius: 999px;
-            background: #1e1e24;
-            color: #64748b;
-            font-size: 0.75rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            align-self: flex-start;
-        }
-
-        /* Stagger animation */
-        .dash-nav-card:nth-child(1) { animation-delay: 0.05s; }
-        .dash-nav-card:nth-child(2) { animation-delay: 0.10s; }
-        .dash-nav-card:nth-child(3) { animation-delay: 0.15s; }
-        .dash-nav-card:nth-child(4) { animation-delay: 0.20s; }
-        .dash-nav-card:nth-child(5) { animation-delay: 0.25s; }
-        .dash-nav-card:nth-child(6) { animation-delay: 0.30s; }
-
-        @keyframes dashCardIn {
-            from { opacity: 0; transform: translateY(14px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 </head>
 
 <body class="dashboard-page">
@@ -199,7 +59,7 @@
             <!-- Your Profile -->
             <div class="col-md-6 col-lg-4">
                 <div class="dash-nav-card">
-                    <span class="dash-card-icon" style="color:#22d3ee;"><i class="bi bi-person-circle"></i></span>
+                    <span class="dash-card-icon dash-icon-cyan"><i class="bi bi-person-circle"></i></span>
                     <h3>Your Profile</h3>
                     <p>Manage your personal information, fitness goals, and preferences.</p>
                     <a href="/profile" class="dash-cta dash-cta-cyan">Profile <i class="bi bi-arrow-right"></i></a>
@@ -209,7 +69,7 @@
             <!-- Meet Your Trainer -->
             <div class="col-md-6 col-lg-4">
                 <div class="dash-nav-card">
-                    <span class="dash-card-icon" style="color:#f59e0b;"><i class="bi bi-person-badge"></i></span>
+                    <span class="dash-card-icon dash-icon-amber"><i class="bi bi-person-badge"></i></span>
                     <h3>Meet Your Trainer</h3>
                     <p>Connect with our expert trainers and manage your appointments.</p>
                     <a href="/meet-your-trainer" class="dash-cta dash-cta-outline">Book Session <i class="bi bi-arrow-right"></i></a>
@@ -219,7 +79,7 @@
             <!-- Subscriptions -->
             <div class="col-md-6 col-lg-4" id="subscription-card">
                 <div class="dash-nav-card">
-                    <span class="dash-card-icon" style="color:#22c55e;"><i class="bi bi-credit-card-fill"></i></span>
+                    <span class="dash-card-icon dash-icon-green"><i class="bi bi-credit-card-fill"></i></span>
                     <h3>Subscriptions</h3>
                     <p>View and manage your subscription plans and billing.</p>
                     <a href="/subscriptions" class="dash-cta dash-cta-outline">Manage <i class="bi bi-arrow-right"></i></a>
@@ -229,7 +89,7 @@
             <!-- My Programs -->
             <div class="col-md-6 col-lg-4">
                 <div class="dash-nav-card coming">
-                    <span class="dash-card-icon" style="color:#64748b;"><i class="bi bi-bookmark-check-fill"></i></span>
+                    <span class="dash-card-icon dash-icon-muted"><i class="bi bi-bookmark-check-fill"></i></span>
                     <h3>My Programs</h3>
                     <p>Access all your purchased fitness programs and track your progress.</p>
                     <span class="dash-coming-tag"><i class="bi bi-clock"></i> Coming Soon</span>
@@ -239,7 +99,7 @@
             <!-- Program Marketplace -->
             <div class="col-md-6 col-lg-4">
                 <div class="dash-nav-card coming">
-                    <span class="dash-card-icon" style="color:#64748b;"><i class="bi bi-shop-window"></i></span>
+                    <span class="dash-card-icon dash-icon-muted"><i class="bi bi-shop-window"></i></span>
                     <h3>Program Marketplace</h3>
                     <p>Browse and purchase expert-designed fitness programs.</p>
                     <span class="dash-coming-tag"><i class="bi bi-clock"></i> Coming Soon</span>
@@ -249,7 +109,7 @@
             <!-- Products -->
             <div class="col-md-6 col-lg-4">
                 <div class="dash-nav-card coming">
-                    <span class="dash-card-icon" style="color:#64748b;"><i class="bi bi-basket-fill"></i></span>
+                    <span class="dash-card-icon dash-icon-muted"><i class="bi bi-basket-fill"></i></span>
                     <h3>Products</h3>
                     <p>Browse and purchase our natural health and wellness products.</p>
                     <span class="dash-coming-tag"><i class="bi bi-clock"></i> Coming Soon</span>

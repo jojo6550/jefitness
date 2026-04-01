@@ -1,3 +1,1 @@
-redesign the @subscriptions.html subscription cards to be best practice and detailed. also  standardize the frontend of the dahsboard and all the pages. top left logo should link back to dashboard always. remove products from navbar. appointments page modal is white and hard to read if there is content. the confirmation is also pure white and unreadable. remvoe the view button for appoinments its redundant.
-
-overall make the css standard, infact, overhaul to use tailwind css for an overall modern look.
+Apply the same tailwind stlyes and standards to profile.html and meet your trainer html. Also make sure subscription pages match the dark theme
