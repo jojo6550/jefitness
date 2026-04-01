@@ -1,507 +1,340 @@
-/* Subscriptions Page Styles - Matches JE Fitness Theme */
+/* ── Subscriptions Page — JE Fitness Industrial Dark Theme ── */
 
-:root {
-    --primary-accent: var(--bs-primary);
-    --gradient-primary: linear-gradient(135deg, var(--bs-primary), #667eea);
-    --card-bg: rgba(255, 255, 255, 0.05);
-    --card-border: rgba(255, 255, 255, 0.1);
-    --text-primary: var(--bs-white);
-    --text-muted: var(--bs-gray-400);
+/* Eyebrow label */
+.sub-eyebrow {
+    display: inline-block;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #22d3ee;
+    margin-bottom: 0.75rem;
 }
 
-/* Section Headers */
-#plansSection h2,
-#activeSubscriptionSection h2 {
-    font-weight: 800;
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-#plansSection h2::after,
-#activeSubscriptionSection h2::after {
-    content: '';
-    display: block;
-    width: 60px;
-    height: 4px;
-    background: var(--gradient-primary);
-    border-radius: 2px;
-    margin-top: 1rem;
-}
-
-#plansSection p,
-#activeSubscriptionSection p {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    margin-bottom: 2rem;
-}
-
-/* Plans Container */
-#plansContainer {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    gap: 2rem;
-    margin-bottom: 4rem;
-}
-
-/* Plan Card Styles */
+/* ── Plan Cards ── */
 .plan-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    padding: 0;
+    background: #111113;
+    border: 1px solid #1e1e24;
+    border-radius: 1rem;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     position: relative;
     overflow: hidden;
+    animation: slideInUp 0.5s ease-out both;
 }
 
-.plan-card::before {
+.plan-card::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #22d3ee44, transparent);
+    transition: background 0.3s ease;
 }
 
 .plan-card:hover {
-    transform: translateY(-15px) scale(1.02);
-    border-color: var(--primary-accent);
-    box-shadow: 0 20px 50px rgba(13, 110, 253, 0.3);
+    transform: translateY(-8px);
+    border-color: #22d3ee66;
+    box-shadow: 0 20px 48px rgba(34,211,238,0.12), 0 4px 12px rgba(0,0,0,0.5);
 }
 
-.plan-card:hover::before {
-    opacity: 1;
+.plan-card:hover::after {
+    background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+}
+
+.plan-card.featured {
+    border-color: #f59e0b66;
+}
+
+.plan-card.featured::after {
+    background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+}
+
+.plan-card.featured:hover {
+    border-color: #f59e0b;
+    box-shadow: 0 20px 48px rgba(245,158,11,0.12), 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .plan-card.disabled-plan {
-    opacity: 0.7;
-    cursor: default;
-}
-
-.plan-card.disabled-plan:hover {
-    transform: none;
-    border-color: var(--card-border);
-    box-shadow: none;
+    opacity: 0.55;
+    pointer-events: none;
 }
 
 .plan-card .card-body {
-    padding: 2.5rem 2rem;
+    padding: 2rem 1.75rem;
 }
 
-/* Plan Duration Badge */
-.plan-duration {
-    display: inline-block;
-    margin-bottom: 1rem;
-}
-
+/* Duration badge */
 .duration-badge {
-    display: inline-block;
-    background: rgba(13, 110, 253, 0.15);
-    color: var(--primary-accent);
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    font-size: 0.875rem;
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(245,158,11,0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245,158,11,0.25);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.12em;
 }
 
-/* Plan Price */
+/* Price display */
 .plan-price {
-    margin: 1.5rem 0;
+    margin: 1.5rem 0 0.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
 }
 
 .price-main {
-    font-size: 3rem;
-    font-weight: 800;
-    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.75rem;
+    font-weight: 700;
+    color: #f1f5f9;
     line-height: 1;
 }
 
 .price-period {
-    font-size: 1rem;
-    color: var(--text-muted);
-    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-left: 0.1rem;
 }
 
 .plan-total {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
 }
 
-/* Plan Button */
-.plan-button {
-    margin-top: auto;
+/* Plan features list (optional future use) */
+.plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+}
+
+.plan-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+}
+
+.plan-features li::before {
+    content: '✓';
+    color: #22d3ee;
     font-weight: 700;
+    font-size: 0.8rem;
+}
+
+/* Plan button */
+.plan-button {
+    width: 100%;
     padding: 0.75rem 1.5rem;
-    border-radius: 50px;
-    transition: all 0.3s ease;
+    border-radius: 999px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 0.95rem;
+    border: none;
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    color: #0a0a0b;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    cursor: pointer;
 }
 
 .plan-button:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.4);
+    box-shadow: 0 8px 20px rgba(34,211,238,0.3);
+    filter: brightness(1.08);
 }
 
 .plan-button:disabled {
+    background: #1e1e24;
+    color: #64748b;
     cursor: not-allowed;
-    opacity: 0.6;
 }
 
-/* Active Subscription Section */
+/* ── Active Subscription Summary ── */
 .subscription-summary-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    padding: 2.5rem;
-    backdrop-filter: blur(10px);
+    background: #111113;
+    border: 1px solid #1e1e24;
+    border-radius: 1rem;
+    padding: 2rem;
     position: relative;
     overflow: hidden;
+    animation: slideInUp 0.5s ease-out both;
 }
 
 .subscription-summary-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--gradient-primary);
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #22d3ee, #0891b2);
 }
 
 .subscription-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
     gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .subscription-title {
+    font-family: 'Rajdhani', sans-serif;
     font-size: 1.75rem;
-    font-weight: 800;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: #f1f5f9;
     margin: 0;
+    letter-spacing: 0.05em;
 }
 
 .status-badge {
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.1em;
     white-space: nowrap;
 }
 
 .status-badge.status-active {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    background: rgba(34,197,94,0.12);
+    color: #22c55e;
+    border: 1px solid rgba(34,197,94,0.25);
 }
 
-.status-badge.status-past_due {
-    background: rgba(245, 158, 11, 0.15);
+.status-badge.status-warning {
+    background: rgba(245,158,11,0.12);
     color: #f59e0b;
-}
-
-.status-badge.status-paused {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    border: 1px solid rgba(245,158,11,0.25);
 }
 
 .status-badge.status-expired {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(239,68,68,0.12);
     color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.25);
 }
 
 .subscription-details {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #1e1e24;
 }
 
 .detail-item {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.35rem;
 }
 
 .detail-label {
-    font-size: 0.875rem;
-    color: var(--text-muted);
+    font-size: 0.7rem;
+    color: #64748b;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.1em;
 }
 
 .detail-value {
-    font-size: 1.25rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: #f1f5f9;
 }
 
-/* Actions Card */
+/* ── Actions Card ── */
 .actions-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    padding: 2rem;
-    backdrop-filter: blur(10px);
+    background: #111113;
+    border: 1px solid #1e1e24;
+    border-radius: 1rem;
+    padding: 1.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
     min-height: 100%;
+    animation: slideInUp 0.5s 0.1s ease-out both;
 }
 
 .actions-card h5 {
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
+    color: #f1f5f9;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
 }
 
 .actions-card .btn {
-    margin-bottom: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    transition: all 0.3s ease;
+    padding: 0.65rem 1rem;
+    transition: all 0.2s ease;
 }
 
-.actions-card .btn-primary {
-    background: var(--gradient-primary);
-    border: none;
-    padding: 0.875rem 1.5rem;
-    font-size: 0.95rem;
-}
-
-.actions-card .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.4);
-}
-
-.actions-card .btn-outline-primary {
-    color: var(--primary-accent);
-    border-color: var(--primary-accent);
-    font-size: 0.875rem;
-}
-
-.actions-card .btn-outline-primary:hover {
-    background-color: var(--primary-accent);
-    color: white;
-}
-
-.actions-card .btn-outline-danger {
-    color: #ef4444;
-    border-color: #ef4444;
-    font-size: 0.875rem;
-}
-
-.actions-card .btn-outline-danger:hover {
-    background-color: #ef4444;
-    color: white;
-}
-
-/* Payment Modal Enhancements (REMOVED - legacy Stripe Elements) */
-
-/* Cancel Modal */
-#cancelConfirmModal .modal-content {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-}
-
-#cancelConfirmModal .modal-header {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border: none;
-    border-radius: 20px 20px 0 0;
-}
-
-#cancelConfirmModal .modal-header .btn-close-white {
-    opacity: 0.8;
-}
-
-#cancelConfirmModal .modal-body {
-    padding: 2rem;
-    color: var(--text-primary);
-}
-
-#cancelConfirmModal .form-check-input {
-    border-color: var(--card-border);
-    background-color: rgba(255, 255, 255, 0.08);
-    accent-color: var(--primary-accent);
-}
-
-#cancelConfirmModal .form-check-input:checked {
-    background-color: var(--primary-accent);
-    border-color: var(--primary-accent);
-}
-
-#cancelConfirmModal .modal-footer {
-    border-top: 1px solid var(--card-border);
-    padding: 1.5rem 2rem;
-}
-
-#cancelConfirmModal .btn-danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border: none;
-    font-weight: 700;
-}
-
-#cancelConfirmModal .btn-danger:hover {
-    background: linear-gradient(135deg, #dc2626, #991b1b);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
-}
-
-/* Loading State */
-#plansLoading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.spinner-border {
-    width: 3rem;
-    height: 3rem;
-    border-width: 0.3em;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    #plansContainer {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
-    #plansSection h2,
-    #activeSubscriptionSection h2 {
-        font-size: 2rem;
-    }
-
-    .plan-card:hover {
-        transform: translateY(-10px) scale(1);
-    }
-
-    .subscription-summary-card,
-    .actions-card {
-        padding: 1.75rem;
-    }
-
-    .subscription-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .subscription-details {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-
-    .subscription-title {
-        font-size: 1.5rem;
-    }
-
-    .price-main {
-        font-size: 2.5rem;
-    }
-
-    #paymentModal .modal-dialog {
-        margin: 1rem;
-    }
-
-    #paymentModal .modal-body {
-        padding: 1.5rem;
-    }
-}
-
-@media (max-width: 576px) {
-    #plansSection h2,
-    #activeSubscriptionSection h2 {
-        font-size: 1.75rem;
-    }
-
-    .plan-card .card-body {
-        padding: 1.5rem 1rem;
-    }
-
-    .price-main {
-        font-size: 2rem;
-    }
-
-    .subscription-summary-card,
-    .actions-card {
-        padding: 1.5rem;
-    }
-
-    .actions-card {
-        margin-top: 1.5rem;
-    }
-}
-
-/* Animation Keyframes */
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.plan-card,
-.subscription-summary-card,
-.actions-card {
-    animation: slideInUp 0.6s ease-out;
-}
-
-/* Alert Styling */
+/* ── Alert Overrides ── */
 #alertContainer .alert {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    color: var(--text-primary);
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
+    background: #111113;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.9rem;
 }
 
 #alertContainer .alert-success {
-    border-color: rgba(16, 185, 129, 0.3);
-    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(34,197,94,0.3);
+    color: #22c55e;
+    background: rgba(34,197,94,0.08);
 }
 
-#alertContainer .alert-danger {
-    border-color: rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.1);
+#alertContainer .alert-danger,
+#alertContainer .alert-error {
+    border-color: rgba(239,68,68,0.3);
+    color: #ef4444;
+    background: rgba(239,68,68,0.08);
 }
 
 #alertContainer .alert-info {
-    border-color: rgba(59, 130, 246, 0.3);
-    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(34,211,238,0.3);
+    color: #22d3ee;
+    background: rgba(34,211,238,0.08);
 }
 
 #alertContainer .alert-warning {
-    border-color: rgba(245, 158, 11, 0.3);
-    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245,158,11,0.3);
+    color: #f59e0b;
+    background: rgba(245,158,11,0.08);
 }
 
-/* Invoices Scroll Container */
-.invoices-scroll-container {
-    max-height: 400px;
-    overflow-y: auto;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 1rem;
+/* ── Animation ── */
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .plan-card:hover { transform: translateY(-4px); }
+    .plan-card .card-body { padding: 1.5rem 1.25rem; }
+    .subscription-summary-card { padding: 1.5rem; }
+    .actions-card { padding: 1.5rem; margin-top: 1rem; }
+    .subscription-details { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 576px) {
+    .price-main { font-size: 2.25rem; }
+    .subscription-details { grid-template-columns: 1fr; }
 }

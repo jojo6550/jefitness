@@ -149,7 +149,6 @@ function displayAppointments(appointments) {
             </td>
             <td class="text-end pe-4">
                 <div class="btn-group">
-                    <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-primary view-btn" title="View"><i class="bi bi-eye"></i></button>
                     <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-secondary edit-btn" title="Edit"><i class="bi bi-pencil"></i></button>
                     <button data-id="${escapeHtml(app._id)}" class="btn btn-sm btn-outline-danger delete-btn" title="Delete"><i class="bi bi-trash"></i></button>
                 </div>
@@ -157,7 +156,6 @@ function displayAppointments(appointments) {
         tbody.appendChild(row);
     });
 
-    tbody.querySelectorAll('.view-btn').forEach(btn => btn.addEventListener('click', () => viewAppointment(btn.dataset.id)));
     tbody.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => editAppointment(btn.dataset.id)));
     tbody.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deleteAppointment(btn.dataset.id)));
 }

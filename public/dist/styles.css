@@ -747,6 +747,10 @@ a{
   box-shadow: 0 0 0 0.2rem rgba(34,211,238,0.15);
 }
 
+.je-modal label {
+  color: #94a3b8;
+}
+
 .je-modal .form-check-label {
   color: #94a3b8;
 }
@@ -854,7 +858,39 @@ a{
 
 /* ── Footer ── */
 
+.je-footer{
+  margin-top: 3rem;
+  border-top-width: 1px;
+  --tw-border-opacity: 1;
+  border-color: rgb(30 30 36 / var(--tw-border-opacity, 1));
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 17 19 / var(--tw-bg-opacity, 1));
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
 /* ── Spinner ── */
+
+.je-spinner{
+  display: inline-block;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+@keyframes spin{
+  to{
+    transform: rotate(360deg);
+  }
+}
+
+.je-spinner{
+  animation: spin 1s linear infinite;
+  border-radius: 9999px;
+  border-width: 2px;
+  border-color: rgb(30 30 36 / var(--tw-border-opacity, 1));
+  --tw-border-opacity: 1;
+  border-top-color: rgb(34 211 238 / var(--tw-border-opacity, 1));
+}
 
 /* ── Alert Container ── */
 
@@ -1101,10 +1137,6 @@ a{
 
 .mr-3{
   margin-right: 0.75rem;
-}
-
-.ms-1{
-  margin-inline-start: 0.25rem;
 }
 
 .ms-2{
@@ -2859,6 +2891,10 @@ a{
 
 .align-super{
   vertical-align: super;
+}
+
+.font-display{
+  font-family: Rajdhani, sans-serif;
 }
 
 .text-2xl{
