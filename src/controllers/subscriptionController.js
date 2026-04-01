@@ -8,6 +8,7 @@ const {
 } = require('../middleware/errorHandler');
 const { daysLeftUntil, calculateNextRenewalDate } = require('../utils/dateUtils');
 const StripePlan = require('../models/StripePlan');
+const { logger } = require('../services/logger');
 
 /** Compute daysLeft from a subscription's currentPeriodEnd (midnight-normalised, clamped to 0) */
 function computeDaysLeft(subscription) {
@@ -33,19 +34,19 @@ const subscriptionController = {
    */
   createCheckout: asyncHandler(async (req, res) => {
     const { planId } = req.body;
-    console.log(`[CHECKOUT] Request: userId=${req.user.id}, planId="${planId}"`);
+    logger.info(`[CHECKOUT] Request: userId=${req.user.id}, planId="${planId}"`);
 
     const user = await User.findById(req.user.id).select('+stripeCustomerId');
     if (!user) throw new ValidationError('User not found');
 
-    console.log(
+    logger.info(
       `[CHECKOUT] User ${user._id}: email=${user.email}, existingCustomerId=${user.stripeCustomerId || 'NONE'}`,
     );
 
     let stripeCustomerId;
 
-    // 🚀 ALWAYS REFRESH CUSTOMER - Don't trust potentially stale DB value
-    console.log(`[CHECKOUT] 🔄 Force refreshing customer via email: ${user.email}`);
+    // Always refresh customer to avoid stale DB values
+    logger.info(`[CHECKOUT] Force refreshing customer via email: ${user.email}`);
 
     try {
       const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
@@ -54,7 +55,7 @@ const subscriptionController = {
       });
 
       stripeCustomerId = customer.id;
-      console.log(`[CHECKOUT] ✅ Fresh customer: ${stripeCustomerId}`);
+      logger.info(`[CHECKOUT] Fresh customer: ${stripeCustomerId}`);
 
       // Update user record with verified customer ID (idempotent)
       if (user.stripeCustomerId !== stripeCustomerId) {
@@ -63,10 +64,10 @@ const subscriptionController = {
           ? 'test'
           : 'production';
         await user.save();
-        console.log(`[CHECKOUT] 💾 Updated user.stripeCustomerId: ${stripeCustomerId}`);
+        logger.info(`[CHECKOUT] Updated user.stripeCustomerId: ${stripeCustomerId}`);
       }
     } catch (customerError) {
-      console.error('[CHECKOUT] ❌ Customer creation failed:', customerError.message);
+      logger.error('[CHECKOUT] Customer creation failed:', { error: customerError.message });
       return res.status(400).json({
         success: false,
         message: `Failed to create customer account: ${customerError.message}. Please try again or contact support.`,
@@ -77,9 +78,7 @@ const subscriptionController = {
     const successUrl = `${baseUrl}/pages/subscriptions.html?success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${baseUrl}/pages/subscriptions.html?canceled=true`;
 
-    console.log(
-      `[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`,
-    );
+    logger.info(`[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`);
 
     let session;
     try {
@@ -89,16 +88,16 @@ const subscriptionController = {
         successUrl,
         cancelUrl,
       );
-      console.log(`[CHECKOUT] ✅ Session created: ${session.id}`);
+      logger.info(`[CHECKOUT] Session created: ${session.id}`);
     } catch (sessionError) {
-      console.error('[CHECKOUT] ❌ Session creation failed:', sessionError.message);
+      logger.error('[CHECKOUT] Session creation failed:', { error: sessionError.message });
 
       // If customer specifically invalid, clear stale DB record
       if (
         sessionError.message.includes('Customer account invalid') ||
         sessionError.message.includes('No such customer')
       ) {
-        console.log('[CHECKOUT] 🧹 Clearing stale customerId from user');
+        logger.info('[CHECKOUT] Clearing stale customerId from user');
         user.stripeCustomerId = null;
         await user.save();
       }
@@ -171,7 +170,7 @@ const subscriptionController = {
           }
         }
       } catch (healErr) {
-        console.warn('[GET-SUBSCRIPTION] Auto-heal from Stripe failed:', healErr.message);
+        logger.warn('[GET-SUBSCRIPTION] Auto-heal from Stripe failed:', { error: healErr.message });
       }
     }
 
@@ -189,13 +188,11 @@ const subscriptionController = {
   verifyCheckoutSession: asyncHandler(async (req, res) => {
     const sessionId = req.params.sessionId.trim();
 
-    console.log(
-      `[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`,
-    );
+    logger.info(`[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`);
 
     // Validate STRIPE_SECRET_KEY
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('[VERIFY-SESSION] STRIPE_SECRET_KEY missing');
+      logger.error('[VERIFY-SESSION] STRIPE_SECRET_KEY missing');
       return res.status(500).json({
         success: false,
         message: 'Stripe configuration error. Please contact support.',
@@ -206,11 +203,7 @@ const subscriptionController = {
     try {
       session = await stripeService.getCheckoutSession(sessionId);
     } catch (error) {
-      console.error(
-        '[VERIFY-SESSION] Failed to fetch session:',
-        error.message,
-        sessionId,
-      );
+      logger.error('[VERIFY-SESSION] Failed to fetch session:', { error: error.message, sessionId });
       return res.status(400).json({
         success: false,
         message: `Session fetch failed: ${error.message}`,
@@ -218,7 +211,7 @@ const subscriptionController = {
     }
 
     if (!session) {
-      console.error('[VERIFY-SESSION] Session not found:', sessionId);
+      logger.error('[VERIFY-SESSION] Session not found:', { sessionId });
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired checkout session',
@@ -226,7 +219,7 @@ const subscriptionController = {
     }
 
     if (!session.customer) {
-      console.error('[VERIFY-SESSION] No customer in session:', sessionId);
+      logger.error('[VERIFY-SESSION] No customer in session:', { sessionId });
       return res.status(400).json({
         success: false,
         message: 'Session missing customer information',
@@ -234,7 +227,7 @@ const subscriptionController = {
     }
 
     if (!session.subscription) {
-      console.error('[VERIFY-SESSION] No subscription in session:', sessionId);
+      logger.error('[VERIFY-SESSION] No subscription in session:', { sessionId });
       return res.status(400).json({
         success: false,
         message: 'Session not linked to subscription',
@@ -242,7 +235,7 @@ const subscriptionController = {
     }
 
     if (session.payment_status !== 'paid' || session.mode !== 'subscription') {
-      console.log('[VERIFY-SESSION] Session invalid:', {
+      logger.info('[VERIFY-SESSION] Session invalid:', {
         sessionId,
         payment_status: session.payment_status,
         mode: session.mode,
@@ -258,10 +251,7 @@ const subscriptionController = {
     // Stripe finished setting up the subscription).
     let subscription = null;
     try {
-      console.log(
-        '[VERIFY-SESSION] Fetching subscription from Stripe:',
-        session.subscription,
-      );
+      logger.info('[VERIFY-SESSION] Fetching subscription from Stripe:', { id: session.subscription });
       const stripe = stripeService.getStripe();
       if (!stripe) throw new Error('Stripe instance not available');
 
@@ -274,7 +264,7 @@ const subscriptionController = {
             : session.customer;
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (!user) {
-          console.warn('[VERIFY-SESSION] User not found for customer:', session.customer);
+          logger.warn('[VERIFY-SESSION] User not found for customer:', { customer: session.customer });
         } else {
           const priceItem = stripeSub.items?.data[0];
           const priceId = priceItem?.price?.id;
@@ -299,8 +289,8 @@ const subscriptionController = {
               planRecord?.interval || 'month',
               planRecord?.intervalCount || 1,
             );
-            console.warn(
-              `[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}×${planRecord?.intervalCount}): ${periodEnd.toISOString()}`,
+            logger.warn(
+              `[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}x${planRecord?.intervalCount}): ${periodEnd.toISOString()}`,
             );
           }
 
@@ -338,10 +328,7 @@ const subscriptionController = {
         }
       }
     } catch (fetchErr) {
-      console.error(
-        '[VERIFY-SESSION] Stripe fetch failed, falling back to DB:',
-        fetchErr.message,
-      );
+      logger.error('[VERIFY-SESSION] Stripe fetch failed, falling back to DB:', { error: fetchErr.message });
       subscription = await Subscription.findOne({
         stripeSubscriptionId: session.subscription,
       });
@@ -566,10 +553,7 @@ const subscriptionController = {
 
       res.json({ success: true, data: formattedInvoices });
     } catch (stripeError) {
-      console.error(
-        `[INVOICES] Stripe error for sub ${subscriptionId}:`,
-        stripeError.message,
-      );
+      logger.error(`[INVOICES] Stripe error for sub ${subscriptionId}:`, { error: stripeError.message });
       // Graceful fallback — frontend handles an empty array
       res.json({ success: true, data: [], message: 'No invoices available' });
     }

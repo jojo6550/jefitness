@@ -1,1 +1,2 @@
-Apply the same tailwind stlyes and standards to profile.html and meet your trainer html. Also make sure subscription pages match the dark theme
+task: audit the codebase and search for areas of weakness including: weak code, lack oof secruity, redundancy, complicated code that can be simplified, complicated functiosn that can be simplified. each functions should do 1 task and if it does more than one it should be made into functions that do 1 tasks. should be human readable at a glance with appropriate names. remove code that doesnt work or isnt used. employ best practices and standards. do not be afraid to split files if needed.
+

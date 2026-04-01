@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
   } catch (err) {
     console.error('Products route error:', err);
     res.status(500).json({
-      success: true,
+      success: false,
       products: Object.keys(PRODUCT_MAP).reduce((acc, key) => {
         acc[key] = { ...PRODUCT_MAP[key], price: 100.1, currency: 'jmd' };
         return acc;

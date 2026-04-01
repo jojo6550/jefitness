@@ -39,11 +39,14 @@ async function getStripePlans() {
  * @param {string} plan - Plan name like '1-month', '3-month'
  * @returns {Promise<string|null>} Stripe price ID
  */
-// DEPRECATED: getPriceIdForPlan(planKey) - now dynamic discovery in getPlanPricing()
+/**
+ * Resolve a Stripe price ID from a plan name string (e.g. '1-month', '3-month').
+ * @param {string} plan
+ * @returns {Promise<string|null>}
+ */
 async function getPriceIdForPlan(plan) {
-  console.warn('getPriceIdForPlan deprecated - use dynamic getPlanPricing()');
   try {
-    const match = plan.match(/^(\\d+)-(\\w+)$/);
+    const match = plan.match(/^(\d+)-(\w+)$/);
     if (!match) return null;
     const [, countStr, interval] = match;
     const intervalCount = parseInt(countStr);
@@ -66,7 +69,6 @@ async function getPriceIdForPlan(plan) {
  * @returns {Promise<string|null>} Price ID or null if not found
  */
 async function getPriceIdForProduct(productId) {
-  // TODO: Deprecate in favor of getPriceIdForPlan(plan) - temporary bridge
   const StripePlan = require('../models/StripePlan');
   try {
     const planRecord = await StripePlan.findOne({

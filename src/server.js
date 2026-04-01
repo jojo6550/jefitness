@@ -4,7 +4,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
 
 const cron = require('node-cron');
 const helmet = require('helmet');
@@ -219,17 +218,6 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
     logger.error('Cleanup job failed', err);
   }
 });
-
-const runScript = (scriptPath, label) => {
-  console.log(`Starting ${label}...`);
-  const child = spawn(process.execPath, [scriptPath], { stdio: 'inherit' });
-  child.on('close', code =>
-    code !== 0 ? console.error(`${label} failed`) : console.log(`${label} complete`)
-  );
-};
-
-cron.schedule('0 2 * * *', () => runScript('scripts/backup.js', 'Daily backup'));
-cron.schedule('0 3 1 * *', () => runScript('scripts/archive.js', 'Monthly archive'));
 
 // -----------------------------
 // Server Startup

@@ -1,5 +1,11 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+}
+
 
 let currentPage = 1;
 let currentSearch = '';
@@ -36,8 +42,7 @@ async function loadClients(page = 1, search = '', sortBy = 'firstName', sortOrde
             status
         });
 
-        const response = await fetch(`${window.API_BASE}
-/api/clients?${params}`, {
+        const response = await fetch(`${window.API_BASE}/api/clients?${params}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -81,16 +86,16 @@ function displayClients(clients) {
     clients.forEach(client => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.firstName || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.lastName || 'N/A'}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${client.email || 'N/A'}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${escapeHtml(client.firstName || 'N/A')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${escapeHtml(client.lastName || 'N/A')}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer user-detail" data-id="${client._id}">${escapeHtml(client.email || 'N/A')}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     client.activityStatus === 'active' ? 'bg-green-100 text-green-800' :
                     client.activityStatus === 'inactive' ? 'bg-red-100 text-red-800' :
                     'bg-gray-100 text-gray-800'
                 }">
-                    ${client.activityStatus || 'Unknown'}
+                    ${escapeHtml(client.activityStatus || 'Unknown')}
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A'}</td>
@@ -121,187 +126,197 @@ function displayClients(clients) {
     });
 }
 
-// Show user details in modal
+/** Fetch a single client's data from the API */
+async function fetchUserDetails(userId) {
+    const response = await fetch(`${window.API_BASE}/api/clients/${userId}`, {
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    const data = await response.json();
+    return data.client;
+}
+
+/** Build the Personal Information section HTML */
+function renderPersonalInfo(user) {
+    return `
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-person-fill text-blue-600 me-2"></i>Personal Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Full Name</p>
+                    <p class="text-gray-900 font-semibold">${escapeHtml(user.firstName)} ${escapeHtml(user.lastName)}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Email</p>
+                    <p class="text-gray-900 font-semibold break-all">${escapeHtml(user.email)}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Phone</p>
+                    <p class="text-gray-900 font-semibold">${escapeHtml(user.phone || '—')}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Gender</p>
+                    <p class="text-gray-900 font-semibold capitalize">${escapeHtml(user.gender || '—')}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Date of Birth</p>
+                    <p class="text-gray-900 font-semibold">${user.dob ? new Date(user.dob).toLocaleDateString() : '—'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Member Since</p>
+                    <p class="text-gray-900 font-semibold">${new Date(user.createdAt).toLocaleDateString()}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/** Build the Fitness Information section HTML */
+function renderFitnessInfo(user) {
+    const statusClass = user.activityStatus === 'active' ? 'bg-green-200 text-green-800' :
+                        user.activityStatus === 'inactive' ? 'bg-red-200 text-red-800' :
+                        'bg-yellow-200 text-yellow-800';
+    return `
+        <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-4 rounded-lg">
+            <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-bar-chart-fill text-green-600 me-2"></i>Fitness Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Current Weight</p>
+                    <p class="text-gray-900 font-semibold">${user.currentWeight ? escapeHtml(user.currentWeight) + ' lbs' : '—'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Starting Weight</p>
+                    <p class="text-gray-900 font-semibold">${user.startWeight ? escapeHtml(user.startWeight) + ' lbs' : '—'}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Activity Status</p>
+                    <p class="text-gray-900 font-semibold">
+                        <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${statusClass}">
+                            ${escapeHtml(user.activityStatus || '—')}
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Last Login</p>
+                    <p class="text-gray-900 font-semibold">${user.lastLoggedIn ? new Date(user.lastLoggedIn).toLocaleDateString() : 'Never'}</p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-sm text-gray-600 font-medium mb-2">Fitness Goals</p>
+                    <p class="text-gray-800 whitespace-pre-wrap text-sm bg-white p-3 rounded border border-gray-200">${escapeHtml(user.goals || '—')}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/** Build the Medical Information section HTML (returns empty string if no medical data) */
+function renderMedicalInfo(user) {
+    if (!user.hasMedical && !(user.medicalDocuments && user.medicalDocuments.length > 0)) return '';
+    const docsHtml = user.medicalDocuments && user.medicalDocuments.length > 0
+        ? `<div>
+            <p class="text-sm text-gray-600 font-medium mb-3">Uploaded Medical Documents</p>
+            <div class="space-y-2">
+                ${user.medicalDocuments.map(doc => `
+                    <div class="flex items-center justify-between bg-white p-3 rounded border border-red-200">
+                        <div class="flex items-center gap-2 flex-1">
+                            <i class="bi bi-file-earmark-pdf text-red-500 text-lg"></i>
+                            <div>
+                                <p class="font-medium text-sm text-gray-800">${escapeHtml(doc.originalName || doc.filename)}</p>
+                                <p class="text-xs text-gray-500">${new Date(doc.uploadedAt).toLocaleDateString()} • ${(doc.size / 1024).toFixed(2)} KB</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 hover:bg-blue-50 rounded transition doc-view-btn" data-filename="${escapeHtml(doc.filename)}">
+                                <i class="bi bi-eye me-1"></i> View
+                            </button>
+                            <button class="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 hover:bg-green-50 rounded transition doc-download-btn" data-filename="${escapeHtml(doc.filename)}">
+                                <i class="bi bi-download me-1"></i> Download
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`
+        : '<p class="text-sm text-gray-600">No medical documents uploaded</p>';
+
+    return `
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-file-medical text-red-600 me-2"></i>Medical Information</h3>
+            ${user.medicalConditions ? `
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 font-medium mb-2">Reported Conditions</p>
+                    <p class="text-gray-800 whitespace-pre-wrap text-sm bg-white p-3 rounded border border-red-200">${escapeHtml(user.medicalConditions)}</p>
+                </div>
+            ` : ''}
+            ${docsHtml}
+        </div>
+    `;
+}
+
+/** Build the Account Summary section HTML */
+function renderAccountInfo(user) {
+    return `
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-4 rounded-lg">
+            <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-info-circle-fill text-purple-600 me-2"></i>Account Summary</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-3 rounded border border-purple-200">
+                    <p class="text-xs text-gray-600 font-medium">Role</p>
+                    <p class="text-gray-900 font-semibold capitalize">${escapeHtml(user.role)}</p>
+                </div>
+                <div class="bg-white p-3 rounded border border-purple-200">
+                    <p class="text-xs text-gray-600 font-medium">Email Verified</p>
+                    <p class="text-gray-900 font-semibold">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.isEmailVerified ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                            ${user.isEmailVerified ? 'Yes' : 'No'}
+                        </span>
+                    </p>
+                </div>
+                <div class="bg-white p-3 rounded border border-purple-200">
+                    <p class="text-xs text-gray-600 font-medium">Onboarding</p>
+                    <p class="text-gray-900 font-semibold">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.onboardingCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}">
+                            ${user.onboardingCompleted ? 'Complete' : 'Pending'}
+                        </span>
+                    </p>
+                </div>
+                <div class="bg-white p-3 rounded border border-purple-200">
+                    <p class="text-xs text-gray-600 font-medium">Medical Info</p>
+                    <p class="text-gray-900 font-semibold">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.hasMedical ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}">
+                            ${user.hasMedical ? 'Yes' : 'No'}
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/** Show user details modal — fetches data then renders each section */
 async function showUserDetails(userId) {
     const modal = document.getElementById('userDetailsModal');
     const content = document.getElementById('userDetailsContent');
-    const loading = document.getElementById('userDetailsLoading');
 
-    // Show modal and clear previous content
     modal.classList.remove('hidden');
-    content.innerHTML = '<div id="userDetailsLoading" class="text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600 font-medium">Loading client details...</p></div>';
+    content.innerHTML = '<div class="text-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div><p class="mt-4 text-gray-600 font-medium">Loading client details...</p></div>';
 
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/clients/${userId}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+        const user = await fetchUserDetails(userId);
+        content.innerHTML = renderPersonalInfo(user) + renderFitnessInfo(user) + renderMedicalInfo(user) + renderAccountInfo(user);
+
+        // Attach medical document button handlers using data attributes (avoids onclick XSS)
+        content.querySelectorAll('.doc-view-btn').forEach(btn => {
+            btn.addEventListener('click', () => viewMedicalDoc(btn.dataset.filename));
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const user = data.client;
-
-        // Clear content completely before adding new data
-        content.innerHTML = '';
-
-        // Build comprehensive user profile HTML
-        let htmlContent = `
-            <!-- Personal Information -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 rounded-lg">
-                <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-person-fill text-blue-600 me-2"></i>Personal Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Full Name</p>
-                        <p class="text-gray-900 font-semibold">${user.firstName} ${user.lastName}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Email</p>
-                        <p class="text-gray-900 font-semibold break-all">${user.email}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Phone</p>
-                        <p class="text-gray-900 font-semibold">${user.phone || '—'}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Gender</p>
-                        <p class="text-gray-900 font-semibold capitalize">${user.gender || '—'}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Date of Birth</p>
-                        <p class="text-gray-900 font-semibold">${user.dob ? new Date(user.dob).toLocaleDateString() : '—'}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Member Since</p>
-                        <p class="text-gray-900 font-semibold">${new Date(user.createdAt).toLocaleDateString()}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Fitness Information -->
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-4 rounded-lg">
-                <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-bar-chart-fill text-green-600 me-2"></i>Fitness Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Current Weight</p>
-                        <p class="text-gray-900 font-semibold">${user.currentWeight ? user.currentWeight + ' lbs' : '—'}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Starting Weight</p>
-                        <p class="text-gray-900 font-semibold">${user.startWeight ? user.startWeight + ' lbs' : '—'}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Activity Status</p>
-                        <p class="text-gray-900 font-semibold">
-                            <span class="inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                                user.activityStatus === 'active' ? 'bg-green-200 text-green-800' :
-                                user.activityStatus === 'inactive' ? 'bg-red-200 text-red-800' :
-                                'bg-yellow-200 text-yellow-800'
-                            }">
-                                ${user.activityStatus || '—'}
-                            </span>
-                        </p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-600 font-medium">Last Login</p>
-                        <p class="text-gray-900 font-semibold">${user.lastLoggedIn ? new Date(user.lastLoggedIn).toLocaleDateString() : 'Never'}</p>
-                    </div>
-                    <div class="md:col-span-2">
-                        <p class="text-sm text-gray-600 font-medium mb-2">Fitness Goals</p>
-                        <p class="text-gray-800 whitespace-pre-wrap text-sm bg-white p-3 rounded border border-gray-200">${user.goals || '—'}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Medical Information Section
-        if (user.hasMedical || (user.medicalDocuments && user.medicalDocuments.length > 0)) {
-            htmlContent += `
-                <div class="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 p-4 rounded-lg">
-                    <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-file-medical text-red-600 me-2"></i>Medical Information</h3>
-                    ${user.medicalConditions ? `
-                        <div class="mb-4">
-                            <p class="text-sm text-gray-600 font-medium mb-2">Reported Conditions</p>
-                            <p class="text-gray-800 whitespace-pre-wrap text-sm bg-white p-3 rounded border border-red-200">${user.medicalConditions}</p>
-                        </div>
-                    ` : ''}
-                    ${user.medicalDocuments && user.medicalDocuments.length > 0 ? `
-                        <div>
-                            <p class="text-sm text-gray-600 font-medium mb-3">Uploaded Medical Documents</p>
-                            <div class="space-y-2">
-                                ${user.medicalDocuments.map(doc => `
-                                    <div class="flex items-center justify-between bg-white p-3 rounded border border-red-200">
-                                        <div class="flex items-center gap-2 flex-1">
-                                            <i class="bi bi-file-earmark-pdf text-red-500 text-lg"></i>
-                                            <div>
-                                                <p class="font-medium text-sm text-gray-800">${doc.originalName || doc.filename}</p>
-                                                <p class="text-xs text-gray-500">${new Date(doc.uploadedAt).toLocaleDateString()} • ${(doc.size / 1024).toFixed(2)} KB</p>
-                                            </div>
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <button class="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 hover:bg-blue-50 rounded transition" onclick="viewMedicalDoc('${doc.filename}')">
-                                                <i class="bi bi-eye me-1"></i> View
-                                            </button>
-                                            <button class="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 hover:bg-green-50 rounded transition" onclick="downloadMedicalDoc('${doc.filename}')">
-                                                <i class="bi bi-download me-1"></i> Download
-                                            </button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    ` : '<p class="text-sm text-gray-600">No medical documents uploaded</p>'}
-                </div>
-            `;
-        }
-
-        // Account Summary
-        htmlContent += `
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 border-l-4 border-purple-500 p-4 rounded-lg">
-                <h3 class="flex items-center text-lg font-bold text-gray-900 mb-4"><i class="bi bi-info-circle-fill text-purple-600 me-2"></i>Account Summary</h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white p-3 rounded border border-purple-200">
-                        <p class="text-xs text-gray-600 font-medium">Role</p>
-                        <p class="text-gray-900 font-semibold capitalize">${user.role}</p>
-                    </div>
-                    <div class="bg-white p-3 rounded border border-purple-200">
-                        <p class="text-xs text-gray-600 font-medium">Email Verified</p>
-                        <p class="text-gray-900 font-semibold">
-                            <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.isEmailVerified ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
-                                ${user.isEmailVerified ? 'Yes' : 'No'}
-                            </span>
-                        </p>
-                    </div>
-                    <div class="bg-white p-3 rounded border border-purple-200">
-                        <p class="text-xs text-gray-600 font-medium">Onboarding</p>
-                        <p class="text-gray-900 font-semibold">
-                            <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.onboardingCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800'}">
-                                ${user.onboardingCompleted ? 'Complete' : 'Pending'}
-                            </span>
-                        </p>
-                    </div>
-                    <div class="bg-white p-3 rounded border border-purple-200">
-                        <p class="text-xs text-gray-600 font-medium">Medical Info</p>
-                        <p class="text-gray-900 font-semibold">
-                            <span class="inline-block px-2 py-1 rounded text-xs font-medium ${user.hasMedical ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-800'}">
-                                ${user.hasMedical ? 'Yes' : 'No'}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        content.innerHTML = htmlContent;
+        content.querySelectorAll('.doc-download-btn').forEach(btn => {
+            btn.addEventListener('click', () => downloadMedicalDoc(btn.dataset.filename));
+        });
     } catch (error) {
         console.error('Error loading user details:', error);
-        loading.style.display = 'none';
-        content.innerHTML = `<p class="text-red-600 font-semibold">Failed to load user details. Please try again.</p>`;
+        content.innerHTML = '<p class="text-red-600 font-semibold">Failed to load user details. Please try again.</p>';
     }
 }
 
@@ -312,8 +327,7 @@ window.viewMedicalDoc = function(filename) {
         showErrorModal('No authentication token found. Please log in again.');
         return;
     }
-    const viewUrl = `${window.API_BASE}
-/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
+    const viewUrl = `${window.API_BASE}/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
     
     // Open in new tab and handle errors
     const newTab = window.open(viewUrl, '_blank');
@@ -341,8 +355,7 @@ window.closeErrorModal = function() {
 // Download medical document
 window.downloadMedicalDoc = function(filename) {
     const token = localStorage.getItem('token');
-    fetch(`${window.API_BASE}
-/api/medical-documents/download/${filename}`, {
+    fetch(`${window.API_BASE}/api/medical-documents/download/${filename}`, {
         headers: {
             'Authorization': 'Bearer ' + token
         }

@@ -151,11 +151,15 @@ function renderTagFilters() {
     }
 
     tagFilters.innerHTML = Array.from(allTags).sort().map(tag => `
-        <span class="badge bg-light text-dark border filter-chip ${selectedTags.has(tag) ? 'active' : ''}" 
-              onclick="toggleTagFilter('${tag}')">
+        <span class="badge bg-light text-dark border filter-chip ${selectedTags.has(tag) ? 'active' : ''}"
+              data-tag="${escapeHtml(tag)}">
             ${escapeHtml(tag)}
         </span>
     `).join('');
+
+    tagFilters.querySelectorAll('.filter-chip').forEach(chip => {
+        chip.addEventListener('click', () => toggleTagFilter(chip.dataset.tag));
+    });
 }
 
 // Toggle tag filter

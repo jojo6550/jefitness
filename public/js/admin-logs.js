@@ -1,3 +1,9 @@
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+}
+
 class AdminLogsManager {
     constructor() {
         this.currentPage = 1;
@@ -99,8 +105,7 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${window.API_BASE}
-/api/logs?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/logs?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -123,8 +128,7 @@ class AdminLogsManager {
     async loadLogStats() {
         try {
             const params = new URLSearchParams(this.currentFilters);
-            const response = await fetch(`${window.API_BASE}
-/api/logs/stats?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/logs/stats?${params}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
@@ -164,19 +168,19 @@ class AdminLogsManager {
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getLevelBadgeClass(log.level)}">
-                        ${log.level.toUpperCase()}
+                        ${escapeHtml(log.level.toUpperCase())}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getCategoryBadgeClass(log.category)}">
-                        ${log.category.toUpperCase()}
+                        ${escapeHtml(log.category.toUpperCase())}
                     </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title="${log.message}">
-                    ${log.message}
+                <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title="${escapeHtml(log.message)}">
+                    ${escapeHtml(log.message)}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${log.userId ? `${log.userId.firstName} ${log.userId.lastName}` : '-'}
+                    ${log.userId ? `${escapeHtml(log.userId.firstName)} ${escapeHtml(log.userId.lastName)}` : '-'}
                 </td>
             </tr>
         `).join('');
@@ -323,8 +327,7 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${window.API_BASE}
-/api/logs/export?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/logs/export?${params}`, {
                 headers: {
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 }

@@ -92,11 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const userName = user.firstName || 'User';
         window.Toast.success(`Welcome back, ${userName}!`);
 
-        // Check for redirect parameter
+        // Check for redirect parameter (must be same-origin to prevent open redirect)
         const urlParams = new URLSearchParams(window.location.search);
         const redirectPath = urlParams.get('redirect');
+        const isSafeRedirect = redirectPath && redirectPath.startsWith('/') && !redirectPath.startsWith('//');
 
-        if (redirectPath) {
+        if (isSafeRedirect) {
           window.location.href = redirectPath;
         } else {
           // Role-based redirection

@@ -6,6 +6,12 @@ function hidePageLoader() {
 
 let cart = JSON.parse(localStorage.getItem('jefitness_cart') || '[]');
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str ?? '');
+  return div.innerHTML;
+}
+
 function saveCart() {
   localStorage.setItem('jefitness_cart', JSON.stringify(cart));
   render();
@@ -46,17 +52,19 @@ function render() {
     itemCount += item.quantity;
     subtotal += item.quantity * item.price;
 
-    container.insertAdjacentHTML('beforeend', `
-      <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-        <div>
-          <strong>${item.name}</strong> × ${item.quantity}
-          <small class="text-muted">$${item.price.toFixed(2)} each</small>
-        </div>
-        <button class="btn btn-sm btn-outline-danger" onclick="removeItem('${item.productKey}')">
-          <i class="bi bi-trash"></i>
-        </button>
+    const row = document.createElement('div');
+    row.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(item.name)}</strong> × ${item.quantity}
+        <small class="text-muted">$${item.price.toFixed(2)} each</small>
       </div>
-    `);
+      <button class="btn btn-sm btn-outline-danger" data-key="${escapeHtml(item.productKey)}">
+        <i class="bi bi-trash"></i>
+      </button>
+    `;
+    row.querySelector('button').addEventListener('click', () => removeItem(item.productKey));
+    container.appendChild(row);
   });
 
   const itemCountEl = document.getElementById('summary-item-count');
@@ -93,8 +101,13 @@ async function checkout() {
     });
 
     const data = await res.json();
-    if (data.success) location.href = data.checkoutUrl;
-    else throw new Error(data.error || 'Checkout failed');
+    if (data.success) {
+      const url = data.checkoutUrl;
+      if (!url || !url.startsWith('https://checkout.stripe.com')) {
+        throw new Error('Invalid checkout URL received');
+      }
+      location.href = url;
+    } else throw new Error(data.error || 'Checkout failed');
   } catch (err) {
     console.error('Checkout failed:', err);
     alert(err.message);

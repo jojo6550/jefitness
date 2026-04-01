@@ -95,12 +95,16 @@ function showAlert(message, type = 'info') {
     warning: 'bi-exclamation-triangle'
   };
 
-  alertContainer.innerHTML = `
-    <div class="alert alert-${type} animate__animated animate__fadeIn">
-      <i class="bi ${icons[type] || icons.info} me-2"></i>
-      ${message}
-    </div>
-  `;
+  const div = document.createElement('div');
+  div.className = `alert alert-${type} animate__animated animate__fadeIn`;
+
+  const icon = document.createElement('i');
+  icon.className = `bi ${icons[type] || icons.info} me-2`;
+  div.appendChild(icon);
+  div.appendChild(document.createTextNode(message));
+
+  alertContainer.innerHTML = '';
+  alertContainer.appendChild(div);
 
   setTimeout(() => {
     const alert = alertContainer.firstElementChild;
@@ -456,59 +460,62 @@ function renewSubscription() {
   if (plansSection) plansSection.scrollIntoView({ behavior: 'smooth' });
 }
 
-async function downloadInvoices(subscriptionId) {
+/** Fetch invoices for a subscription from the API */
+async function fetchInvoices(subscriptionId) {
   const userToken = localStorage.getItem('token');
+  if (!userToken) throw new Error('Not authenticated');
+  const apiBase = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
+  const res = await fetch(
+    `${apiBase}/api/v1/subscriptions/${subscriptionId}/invoices`,
+    { headers: { Authorization: `Bearer ${userToken}` } }
+  );
+  const data = await handleApiResponse(res);
+  return data.data || [];
+}
 
-  if (!userToken) {
+/** Build the invoice list HTML from an array of invoice objects */
+function renderInvoiceList(invoices) {
+  let html = '<div class="invoices-scroll-container"><h5 class="mb-3">Recent Invoices</h5>';
+  invoices.forEach(invoice => {
+    const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
+    if (!pdfUrl) return;
+    const date = parseDate(invoice.created, new Date()).toLocaleDateString();
+    const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
+    const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
+    html += `
+      <div class="mb-2 p-2 border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
+            <div class="small text-muted">${date} - ${amount} - ${status}</div>
+          </div>
+          <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+            Download
+          </a>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  return html;
+}
+
+/** Fetch and display invoices for a subscription */
+async function downloadInvoices(subscriptionId) {
+  if (!localStorage.getItem('token')) {
     showAlert('Please log in to download invoices', 'error');
     return;
   }
-
   try {
-    const apiBase = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
-    const res = await fetch(
-      `${apiBase}/api/v1/subscriptions/${subscriptionId}/invoices`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
-    );
-
-    const data = await handleApiResponse(res);
-
-    if (!data.data?.length) {
+    const invoices = await fetchInvoices(subscriptionId);
+    if (!invoices.length) {
       showAlert('No invoices found for this subscription', 'info');
       return;
     }
-
-    let invoiceHtml = '<div class="invoices-scroll-container"><h5 class="mb-3">Recent Invoices</h5>';
-
-    data.data.forEach(invoice => {
-      const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
-      if (!pdfUrl) return;
-
-      const date = parseDate(invoice.created, new Date()).toLocaleDateString();
-      const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
-      const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
-
-      invoiceHtml += `
-        <div class="mb-2 p-2 border-bottom">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
-              <div class="small text-muted">${date} - ${amount} - ${status}</div>
-            </div>
-            <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
-              Download
-            </a>
-          </div>
-        </div>
-      `;
-    });
-
-    invoiceHtml += '</div>';
-
     const alertDiv = document.createElement('div');
     alertDiv.className = 'alert alert-info alert-dismissible fade show';
     alertDiv.innerHTML = `
-      ${invoiceHtml}
+      ${renderInvoiceList(invoices)}
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     `;
     alertContainer.innerHTML = '';

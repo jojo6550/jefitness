@@ -25,6 +25,7 @@ let productsData = {}; // full product info from backend
 async function loadPrices() {
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products`);
+    if (!res.ok) throw new Error(`Server error (${res.status})`);
     const data = await res.json();
 
     if (!data.success || !data.products) throw new Error('Products not found');
@@ -146,7 +147,11 @@ async function handleCheckout() {
     const data = await res.json();
 
     if (res.ok && data.success) {
-      window.location.href = data.checkoutUrl;
+      const url = data.checkoutUrl;
+      if (!url || !url.startsWith('https://checkout.stripe.com')) {
+        throw new Error('Invalid checkout URL received');
+      }
+      window.location.href = url;
     } else {
       throw new Error(data.error || 'Checkout failed');
     }
