@@ -2,6 +2,9 @@
 //JEFitness Service Worker (v91)
 // ===============================
 
+// Cache bypass flag (toggled via postMessage)
+let bypassCacheEnabled = false;
+
 // Cache versioning
 const CACHE_VERSION = '91';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
@@ -21,7 +24,7 @@ const STATIC_ASSETS = [
   '/js/api.config.js', '/js/app.js', '/js/auth.js',
   '/js/cache-version.js', '/js/cookie-consent.js',
   '/js/toast.js', '/js/validators.js',
-  'pages/login.html', 'paegs/signup.html',
+  '/pages/login.html', '/pages/signup.html',
   '/pages/trainer-dashboard.html',
   '/pages/admin-dashboard.html',
   '/pages/dashboard.html',
@@ -68,6 +71,20 @@ self.addEventListener('fetch', event => {
 
   // Skip APIs and external requests
   if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+
+  // Hard reload (Ctrl+Shift+R / Shift+F5) or bypass mode: fetch fresh, update cache
+  if (request.cache === 'reload' || request.cache === 'no-store' || bypassCacheEnabled) {
+    event.respondWith(
+      fetch(request).then(networkResponse => {
+        if (!bypassCacheEnabled && request.method === 'GET' && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then(c => c.put(request.url, clone));
+        }
+        return networkResponse;
+      }).catch(() => caches.match(request))
+    );
+    return;
+  }
 
   // Dev mode: always fetch fresh
   if (IS_DEVELOPMENT) {
@@ -126,6 +143,14 @@ self.addEventListener('message', event => {
     caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
     self.skipWaiting();
     console.log('[SW] Force refresh: caches cleared');
+  }
+  if (event.data?.type === 'BYPASS_CACHE') {
+    bypassCacheEnabled = true;
+    console.log('[SW] Cache bypass enabled — all requests go to network');
+  }
+  if (event.data?.type === 'ENABLE_CACHE') {
+    bypassCacheEnabled = false;
+    console.log('[SW] Cache bypass disabled — normal caching resumed');
   }
 });
 
