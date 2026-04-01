@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Subscription lock
     const subscriptionLock = document.getElementById('subscriptionLock');
-    if (subscriptionLock) subscriptionLock.style.display = hasSubscription ? 'none' : 'block';
+    if (subscriptionLock) subscriptionLock.classList.toggle('d-none', hasSubscription);
 
     // Update all booking trigger buttons
     const bookingButtons = document.querySelectorAll('[data-bs-target="#bookingModal"]');

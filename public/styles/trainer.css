@@ -1,0 +1,142 @@
+/* ── Trainer / Appointments Page — JE Fitness Industrial Dark Theme ── */
+
+/* ── Page Header ── */
+.trainer-page-header {
+    padding: 3rem 0 2rem;
+    border-bottom: 1px solid #1e1e24;
+    margin-bottom: 2.5rem;
+    text-align: center;
+}
+.trainer-page-header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #f1f5f9;
+    margin-bottom: 0.4rem;
+}
+.trainer-page-header h1 span { color: #22d3ee; }
+.trainer-page-header p {
+    color: #64748b;
+    font-size: 0.95rem;
+    margin: 0 auto;
+    max-width: 520px;
+}
+
+/* ── Trainer Cards ── */
+.trainer-modern-card {
+    background-color: #111113 !important;
+    border: 1px solid #1e1e24 !important;
+    border-radius: 1rem !important;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.trainer-modern-card:hover {
+    transform: translateY(-6px) !important;
+    border-color: rgba(34,211,238,0.33) !important;
+    box-shadow: 0 16px 40px rgba(34,211,238,0.09), 0 4px 10px rgba(0,0,0,0.5) !important;
+}
+.trainer-modern-image {
+    border-color: #1e1e24 !important;
+}
+
+/* Trainer name */
+.trainer-modern-card h3 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #f1f5f9;
+}
+
+/* Trainer title */
+.trainer-modern-card .text-primary {
+    color: #22d3ee !important;
+}
+
+/* Specialty badges */
+.trainer-modern-card .badge.bg-dark-subtle {
+    background-color: rgba(34,211,238,0.08) !important;
+    color: #22d3ee !important;
+    border-color: rgba(34,211,238,0.2) !important;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+}
+
+/* Certification text */
+.trainer-modern-card .certifications small {
+    color: #64748b;
+}
+
+/* ── Appointment Section Card ── */
+.appointment-section-card {
+    background-color: #111113 !important;
+    border: 1px solid #1e1e24 !important;
+    border-radius: 1rem !important;
+}
+
+/* Card header */
+.appointment-section-card .card-header h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #f1f5f9;
+}
+.appointment-section-card .card-header p {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+/* Table refinements */
+.custom-appointment-table {
+    color: #f1f5f9;
+}
+.custom-appointment-table thead th {
+    color: #64748b !important;
+    background-color: rgba(30,30,36,0.5) !important;
+    border-bottom-color: #1e1e24 !important;
+}
+.custom-appointment-table tbody tr {
+    border-bottom-color: #1e1e24 !important;
+}
+.custom-appointment-table tbody tr:hover {
+    background-color: rgba(255,255,255,0.02) !important;
+}
+.custom-appointment-table tbody td {
+    color: #94a3b8;
+}
+
+/* ── Subscription Lock ── */
+#subscriptionLock {
+    background-color: #111113 !important;
+    border-color: rgba(245,158,11,0.3) !important;
+    border-radius: 1rem;
+}
+#subscriptionLock h4 {
+    font-family: 'Rajdhani', sans-serif;
+    color: #f1f5f9;
+    letter-spacing: 0.04em;
+}
+
+/* ── Refresh / New Booking buttons ── */
+.appointment-section-card .btn-outline-primary {
+    border-color: rgba(34,211,238,0.3);
+    color: #22d3ee;
+    font-size: 0.8rem;
+}
+.appointment-section-card .btn-outline-primary:hover {
+    background: rgba(34,211,238,0.1);
+    border-color: #22d3ee;
+    color: #22d3ee;
+}
+.appointment-section-card .btn-primary {
+    background: linear-gradient(135deg, #22d3ee, #0891b2);
+    border: none;
+    color: #0a0a0b;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.appointment-section-card .btn-primary:hover {
+    filter: brightness(1.1);
+    color: #0a0a0b;
+}
