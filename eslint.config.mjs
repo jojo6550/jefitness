@@ -31,14 +31,6 @@ export default [
       'no-return-await': 'error',
       'consistent-return': 'error',
 
-      // Quotes, formatting
-      quotes: ['error', 'single', { avoidEscape: true }],
-      semi: ['error', 'always'],
-      'comma-dangle': ['error', 'always-multiline'],
-      indent: ['error', 2],
-      'no-trailing-spaces': 'error',
-      'eol-last': 'error',
-
       // Promises
       'promise/prefer-await-to-then': 'error',
       'promise/no-nesting': 'warn',

@@ -19,7 +19,7 @@ router.get(
   '/clients',
   requireTrainer,
   requireActiveSubscription,
-  trainerController.getClients,
+  trainerController.getClients
 );
 
 /**

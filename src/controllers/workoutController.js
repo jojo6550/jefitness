@@ -53,7 +53,7 @@ const workoutController = {
       notes: notes
         ? sanitizeHtml(notes, { allowedTags: [], allowedAttributes: {} }).substring(
             0,
-            500,
+            500
           )
         : undefined,
     };

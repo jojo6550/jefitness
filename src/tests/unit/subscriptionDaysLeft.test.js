@@ -163,7 +163,7 @@ describe('GET /subscriptions/current — daysLeft', () => {
     // Set stripeSubscriptionId to null so the auto-heal condition is false
     // (periodEndInvalid=true but stripeSubscriptionId is falsy → no Stripe call)
     mockFindOneReturning(
-      makeSub({ currentPeriodEnd: daysFromNow(-1), stripeSubscriptionId: null }),
+      makeSub({ currentPeriodEnd: daysFromNow(-1), stripeSubscriptionId: null })
     );
 
     const res = await request(app).get('/subscriptions/current');
@@ -196,7 +196,7 @@ describe('GET /subscriptions/current — daysLeft', () => {
 
   it('includes the plan and status alongside daysLeft in the response', async () => {
     mockFindOneReturning(
-      makeSub({ plan: '12-month', status: 'active', currentPeriodEnd: daysFromNow(365) }),
+      makeSub({ plan: '12-month', status: 'active', currentPeriodEnd: daysFromNow(365) })
     );
 
     const res = await request(app).get('/subscriptions/current');

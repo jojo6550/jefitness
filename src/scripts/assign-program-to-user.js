@@ -17,7 +17,7 @@ async function assignProgramToUser(email, programId) {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      },
+      }
     );
 
     console.log('Connected to MongoDB');
@@ -36,7 +36,7 @@ async function assignProgramToUser(email, programId) {
 
     // Check if program is already assigned
     const alreadyAssigned = user.assignedPrograms.some(
-      assigned => assigned.programId.toString() === programId,
+      assigned => assigned.programId.toString() === programId
     );
 
     if (alreadyAssigned) {
@@ -101,7 +101,7 @@ const [, , email, programId] = process.argv;
 if (!email || !programId) {
   console.error('Usage: node assign-program-to-user.js <user-email> <program-id>');
   console.error(
-    'Example: node assign-program-to-user.js user@example.com 507f1f77bcf86cd799439011',
+    'Example: node assign-program-to-user.js user@example.com 507f1f77bcf86cd799439011'
   );
   process.exit(1);
 }

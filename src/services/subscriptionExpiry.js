@@ -124,7 +124,7 @@ async function runSubscriptionMaintenance() {
 
     if (totalUpdated > 0) {
       console.log(
-        `✅ Subscription maintenance completed. Updated ${totalUpdated} subscriptions.`,
+        `✅ Subscription maintenance completed. Updated ${totalUpdated} subscriptions.`
       );
     } else {
       console.log('✅ Subscription maintenance completed. No updates needed.');

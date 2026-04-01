@@ -64,7 +64,7 @@ router.get('/', async (req, res) => {
           foreignField: '_id',
           as: 'trainer',
         },
-      },
+      }
     );
 
     pipeline.push({ $unwind: '$client' }, { $unwind: '$trainer' });
@@ -184,7 +184,7 @@ router.get('/user', async (req, res) => {
     });
 
     console.log(
-      `Found ${processedAppointments.length} appointments for user: ${req.user.id}`,
+      `Found ${processedAppointments.length} appointments for user: ${req.user.id}`
     );
 
     res.json({
@@ -466,7 +466,7 @@ router.put(
       console.error(err.message);
       res.status(500).json({ msg: 'Server error' });
     }
-  },
+  }
 );
 
 // DELETE /api/appointments/:id - Delete appointment

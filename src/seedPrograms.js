@@ -69,7 +69,7 @@ async function seedPrograms() {
 
       if (!stripeProductId || !stripePriceId) {
         console.warn(
-          `⚠️ Skipping ${programData.title}: Missing ${!stripeProductId ? productIdKey : priceIdKey} in environment`,
+          `⚠️ Skipping ${programData.title}: Missing ${!stripeProductId ? productIdKey : priceIdKey} in environment`
         );
         continue;
       }
@@ -84,7 +84,7 @@ async function seedPrograms() {
 
     if (programsToSeed.length === 0) {
       console.error(
-        '❌ No programs to seed. Please set environment variables for Stripe product and price IDs.',
+        '❌ No programs to seed. Please set environment variables for Stripe product and price IDs.'
       );
       console.log('\nRequired environment variables format:');
       console.log('STRIPE_PROGRAM_PRODUCT_<SLUG>=prod_xxxxx');

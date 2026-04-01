@@ -105,7 +105,7 @@ async function incrementUserTokenVersion(userId) {
     await user.save();
 
     console.log(
-      `Security event: token_version_incremented | UserId: ${userId} | NewVersion: ${user.tokenVersion}`,
+      `Security event: token_version_incremented | UserId: ${userId} | NewVersion: ${user.tokenVersion}`
     );
   } catch (err) {
     console.error(`Failed to increment token version for user ${userId}:`, err.message);
@@ -167,7 +167,7 @@ async function requireTrainer(req, res, next) {
 
     if (!user) {
       console.warn(
-        `Security event: trainer_access_denied | Reason: user_not_found | UserId: ${req.user.id}`,
+        `Security event: trainer_access_denied | Reason: user_not_found | UserId: ${req.user.id}`
       );
       return res.status(401).json({
         success: false,
@@ -178,7 +178,7 @@ async function requireTrainer(req, res, next) {
     // SECURITY: Verify role from database, not from potentially stale JWT
     if (user.role !== 'trainer') {
       console.warn(
-        `Security event: trainer_access_denied | UserId: ${req.user.id} | Role: ${user.role}`,
+        `Security event: trainer_access_denied | UserId: ${req.user.id} | Role: ${user.role}`
       );
       return res.status(403).json({
         success: false,

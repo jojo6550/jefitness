@@ -11,7 +11,7 @@ async function listPrograms() {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      },
+      }
     );
 
     console.log('Connected to MongoDB');

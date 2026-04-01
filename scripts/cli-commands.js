@@ -76,7 +76,7 @@ async function main() {
 
       default:
         console.log(
-          'Commands:\n  sync\n  list\n  remove <priceId>\n  add-lookup <key> <priceId>',
+          'Commands:\n  sync\n  list\n  remove <priceId>\n  add-lookup <key> <priceId>'
         );
         process.exit(0);
     }

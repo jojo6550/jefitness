@@ -112,7 +112,7 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
         productId: PRODUCT_MAP[item.productKey]?.productId,
       })),
       `${req.protocol}://${req.get('host')}/pages/cart.html?success=true`,
-      `${req.protocol}://${req.get('host')}/pages/products.html?canceled=true`,
+      `${req.protocol}://${req.get('host')}/pages/products.html?canceled=true`
     );
 
     const purchase = new Purchase({
@@ -128,7 +128,7 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
       })),
       totalAmount: items.reduce(
         (sum, i) => sum + (PRODUCT_MAP[i.productKey]?.defaultPrice || 1599) * i.quantity,
-        0,
+        0
       ),
       currency: 'jmd',
       status: 'pending',

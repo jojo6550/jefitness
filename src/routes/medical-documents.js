@@ -121,7 +121,7 @@ router.get('/get', async (req, res) => {
     }
 
     const user = await User.findById(req.user.id).select(
-      'hasMedical medicalConditions medicalDocuments',
+      'hasMedical medicalConditions medicalDocuments'
     );
 
     if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -152,7 +152,7 @@ router.post('/save-info', async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { hasMedical: !!hasMedical, medicalConditions: medicalConditions || null },
-      { new: true },
+      { new: true }
     ).select('hasMedical medicalConditions');
 
     if (!user) return res.status(404).json({ msg: 'User not found' });

@@ -17,7 +17,7 @@ async function updateUserRole(email, role) {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-      },
+      }
     );
 
     console.log('Connected to MongoDB');

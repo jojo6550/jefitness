@@ -32,16 +32,16 @@ router.get('/', async (req, res) => {
     // Determine sort stage
     let sortStage;
     switch (sort) {
-    case 'name':
-      sortStage = { $sort: { name: 1 } };
-      break;
-    case 'unitAmount':
-      sortStage = { $sort: { unitAmount: 1 } };
-      break;
-    case 'interval':
-    default:
-      sortStage = { $sort: { monthsEquivalent: 1, unitAmount: 1 } }; // shortest first, then cheapest
-      break;
+      case 'name':
+        sortStage = { $sort: { name: 1 } };
+        break;
+      case 'unitAmount':
+        sortStage = { $sort: { unitAmount: 1 } };
+        break;
+      case 'interval':
+      default:
+        sortStage = { $sort: { monthsEquivalent: 1, unitAmount: 1 } }; // shortest first, then cheapest
+        break;
     }
     pipeline.push(sortStage);
 

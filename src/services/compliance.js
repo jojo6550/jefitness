@@ -65,7 +65,7 @@ class ComplianceService {
         userAgent,
         {
           consentType: 'data_processing',
-        },
+        }
       );
 
       this.logger.info('Data processing consent granted', { userId, ipAddress });
@@ -112,7 +112,7 @@ class ComplianceService {
         {
           consentType: 'health_data',
           purpose,
-        },
+        }
       );
 
       this.logger.info('Health data consent granted', { userId, purpose, ipAddress });
@@ -158,7 +158,7 @@ class ComplianceService {
         userAgent,
         {
           consentType: 'marketing',
-        },
+        }
       );
 
       this.logger.info('Marketing consent granted', { userId, ipAddress });
@@ -201,7 +201,7 @@ class ComplianceService {
         userAgent,
         {
           consentType: 'marketing',
-        },
+        }
       );
 
       this.logger.info('Marketing consent withdrawn', { userId, ipAddress });
@@ -227,18 +227,18 @@ class ComplianceService {
       let updateData = {};
 
       switch (consentType) {
-      case 'data_processing':
-        updateData['dataProcessingConsent.given'] = false;
-        break;
-      case 'health_data':
-        updateData['healthDataConsent.given'] = false;
-        break;
-      case 'marketing':
-        updateData['marketingConsent.given'] = false;
-        updateData['marketingConsent.withdrawnAt'] = new Date();
-        break;
-      default:
-        throw new Error('Invalid consent type');
+        case 'data_processing':
+          updateData['dataProcessingConsent.given'] = false;
+          break;
+        case 'health_data':
+          updateData['healthDataConsent.given'] = false;
+          break;
+        case 'marketing':
+          updateData['marketingConsent.given'] = false;
+          updateData['marketingConsent.withdrawnAt'] = new Date();
+          break;
+        default:
+          throw new Error('Invalid consent type');
       }
 
       const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
@@ -292,7 +292,7 @@ class ComplianceService {
         userAgent,
         {
           right: 'access',
-        },
+        }
       );
 
       // In a real implementation, this would trigger a process to collect and provide user data
@@ -343,7 +343,7 @@ class ComplianceService {
         {
           right: 'rectification',
           rectificationData,
-        },
+        }
       );
 
       // In a real implementation, this would trigger a manual review process
@@ -393,7 +393,7 @@ class ComplianceService {
         {
           right: 'erasure',
           reason,
-        },
+        }
       );
 
       // In a real implementation, this would trigger a data anonymization/deletion process
@@ -447,7 +447,7 @@ class ComplianceService {
         userAgent,
         {
           right: 'portability',
-        },
+        }
       );
 
       // In a real implementation, this would generate and provide a data export
@@ -498,7 +498,7 @@ class ComplianceService {
         {
           right: 'objection',
           reason,
-        },
+        }
       );
 
       this.logger.info('Processing objection requested', { userId, reason, ipAddress });
@@ -543,7 +543,7 @@ class ComplianceService {
         {
           right: 'restriction',
           reason,
-        },
+        }
       );
 
       this.logger.info('Processing restriction requested', { userId, reason, ipAddress });
@@ -652,7 +652,7 @@ class ComplianceService {
             breachId,
             event,
             affected: true,
-          }),
+          })
         );
 
         await Promise.all(logPromises);
