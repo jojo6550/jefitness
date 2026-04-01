@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep \"\\\\.html$\")",
+      "Bash(grep:*)",
+      "Bash(ls -la /c/Users/josia/jefitness/*.config.js)",
+      "Bash(ls -1 /c/Users/josia/jefitness/public/pages/*.html)",
+      "Bash(npm run:*)",
+      "Bash(npx tailwindcss:*)"
+    ]
+  }
+}

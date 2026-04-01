@@ -1,3 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-brand-bg text-brand-text font-body antialiased;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-wide;
+  }
+
+  a { @apply transition-colors duration-200; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0b; }
+  ::-webkit-scrollbar-thumb { background: #1e1e24; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #22d3ee44; }
+}
+
+@layer components {
+  /* ── Navbar ── */
+  .je-navbar {
+    @apply sticky top-0 z-50 bg-brand-card border-b border-brand-border backdrop-blur-sm;
+  }
+  .je-navbar .navbar-brand {
+    @apply font-display font-bold text-xl tracking-widest text-brand-text;
+    letter-spacing: 0.12em;
+  }
+  .je-navbar .navbar-brand span.accent {
+    @apply text-brand-cyan;
+  }
+  .je-navbar .nav-link {
+    @apply text-brand-muted hover:text-brand-text transition-colors duration-200 px-3 py-2 text-sm font-medium;
+  }
+  .je-navbar .nav-link.active {
+    @apply text-brand-cyan;
+  }
+  .je-navbar .navbar-toggler {
+    @apply border-brand-border;
+  }
+  .je-navbar .navbar-toggler-icon {
+    filter: invert(1);
+  }
+
+  /* ── Cards ── */
+  .je-card {
+    @apply bg-brand-card border border-brand-border rounded-xl2 shadow-card transition-all duration-300;
+  }
+  .je-card:hover {
+    @apply border-brand-cyan shadow-glow-cyan -translate-y-1;
+  }
+
+  /* ── Dark Modal ── */
+  .je-modal .modal-content {
+    background-color: #111113;
+    color: #f1f5f9;
+    border: 1px solid #1e1e24;
+    border-radius: 1rem;
+  }
+  .je-modal .modal-header,
+  .je-modal .modal-footer {
+    border-color: #1e1e24;
+  }
+  .je-modal .form-control,
+  .je-modal .form-select {
+    background-color: #0a0a0b;
+    color: #f1f5f9;
+    border-color: #1e1e24;
+  }
+  .je-modal .form-control:focus,
+  .je-modal .form-select:focus {
+    background-color: #0a0a0b;
+    color: #f1f5f9;
+    border-color: #22d3ee;
+    box-shadow: 0 0 0 0.2rem rgba(34,211,238,0.15);
+  }
+  .je-modal label {
+    color: #94a3b8;
+  }
+  .je-modal .form-check-label {
+    color: #94a3b8;
+  }
+
+  /* ── Subscription Plan Cards ── */
+  .plan-card {
+    @apply je-card relative overflow-hidden flex flex-col;
+    animation: fade-up 0.5s ease-out both;
+  }
+  .plan-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #22d3ee44, transparent);
+    transition: background 0.3s;
+  }
+  .plan-card:hover::before {
+    background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+  }
+  .plan-card.featured {
+    @apply border-brand-amber;
+    box-shadow: 0 0 24px rgba(245,158,11,0.15);
+  }
+  .plan-card.featured::before {
+    background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+  }
+
+  /* ── Subscription Badge ── */
+  .je-badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wide;
+  }
+  .je-badge-active  { @apply bg-green-900/50 text-green-400 border border-green-800; }
+  .je-badge-free    { @apply bg-brand-border text-brand-muted border border-brand-border; }
+  .je-badge-warning { @apply bg-amber-900/50 text-amber-400 border border-amber-800; }
+  .je-badge-danger  { @apply bg-red-900/50 text-red-400 border border-red-800; }
+
+  /* ── Buttons ── */
+  .btn-cyan {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-semibold text-brand-bg bg-cyan-gradient border-0 transition-all duration-200;
+  }
+  .btn-cyan:hover {
+    @apply shadow-glow-cyan -translate-y-0.5;
+    filter: brightness(1.1);
+  }
+  .btn-outline-cyan {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-semibold text-brand-cyan border border-brand-cyan transition-all duration-200;
+    background: transparent;
+  }
+  .btn-outline-cyan:hover {
+    @apply bg-brand-cyan text-brand-bg shadow-glow-cyan;
+  }
+
+  /* ── Dashboard Nav Card ── */
+  .dash-card {
+    @apply je-card p-6 flex flex-col h-full;
+  }
+  .dash-card .dash-icon {
+    @apply text-4xl mb-4;
+  }
+  .dash-card h3 {
+    @apply text-lg font-semibold text-brand-text mb-2;
+  }
+  .dash-card p {
+    @apply text-brand-muted text-sm mb-4 flex-1;
+  }
+  .dash-card.coming-soon {
+    @apply opacity-50 pointer-events-none;
+  }
+
+  /* ── Form Controls (global dark) ── */
+  .form-control, .form-select {
+    background-color: #0a0a0b !important;
+    color: #f1f5f9 !important;
+    border-color: #1e1e24 !important;
+  }
+  .form-control:focus, .form-select:focus {
+    background-color: #0a0a0b !important;
+    color: #f1f5f9 !important;
+    border-color: #22d3ee !important;
+    box-shadow: 0 0 0 0.2rem rgba(34,211,238,0.15) !important;
+  }
+  .form-control::placeholder { color: #64748b; }
+  .form-label { color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.4rem; }
+  .form-check-label { color: #94a3b8; }
+
+  /* ── Table ── */
+  .je-table {
+    @apply w-full text-sm text-brand-text;
+  }
+  .je-table thead tr {
+    @apply border-b border-brand-border;
+  }
+  .je-table thead th {
+    @apply px-4 py-3 text-brand-muted font-medium text-xs uppercase tracking-wider;
+  }
+  .je-table tbody tr {
+    @apply border-b border-brand-border transition-colors duration-150;
+  }
+  .je-table tbody tr:hover {
+    @apply bg-brand-hover;
+  }
+  .je-table tbody td {
+    @apply px-4 py-3;
+  }
+  .je-table tbody tr:last-child {
+    @apply border-b-0;
+  }
+
+  /* ── Footer ── */
+  .je-footer {
+    @apply bg-brand-card border-t border-brand-border py-8 mt-12;
+  }
+
+  /* ── Spinner ── */
+  .je-spinner {
+    @apply inline-block w-6 h-6 border-2 border-brand-border border-t-brand-cyan rounded-full animate-spin;
+  }
+
+  /* ── Alert Container ── */
+  .je-alert-success {
+    @apply bg-green-900/30 border border-green-800 text-green-400 rounded-xl px-4 py-3 text-sm;
+  }
+  .je-alert-danger {
+    @apply bg-red-900/30 border border-red-800 text-red-400 rounded-xl px-4 py-3 text-sm;
+  }
+  .je-alert-warning {
+    @apply bg-amber-900/30 border border-amber-800 text-amber-400 rounded-xl px-4 py-3 text-sm;
+  }
+  .je-alert-info {
+    @apply bg-cyan-900/30 border border-cyan-800 text-cyan-400 rounded-xl px-4 py-3 text-sm;
+  }
+}

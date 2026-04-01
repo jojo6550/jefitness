@@ -28,8 +28,6 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/products">Products</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/cart">Cart</a></li>
                     <li class="nav-item"><a class="nav-link" href="/subscriptions">Subscription</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
                 </ul>
@@ -155,12 +153,12 @@
     </main>
 
         <!-- ====== Booking Modal ====== -->
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel">
+    <div class="modal fade je-modal" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel">
       <div class="modal-dialog">
         <div class="modal-content rounded-4 shadow">
           <div class="modal-header">
             <h5 class="modal-title fw-bold" id="bookingModalLabel">Book an Appointment</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <form id="appointmentForm">
@@ -207,18 +205,18 @@
     </div>
 
         <!-- Appointment Details Modal -->
-    <div class="modal fade" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel">
+    <div class="modal fade je-modal" id="appointmentModal" tabindex="-1" aria-labelledby="appointmentModalLabel">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content rounded-4 shadow border-0">
           <div class="modal-header border-0 pb-0">
             <h5 class="modal-title fw-bold" id="appointmentModalLabel">Appointment Details</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-4" id="appointmentDetails">
             <!-- Details will be populated here -->
           </div>
           <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light px-4 rounded-pill" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-primary px-4 rounded-pill" id="editAppointmentBtn">Edit Appointment</button>
           </div>
         </div>
@@ -226,12 +224,12 @@
     </div>
 
     <!-- Edit Appointment Modal -->
-    <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel">
+    <div class="modal fade je-modal" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 shadow border-0">
           <div class="modal-header border-0">
             <h5 class="modal-title fw-bold" id="editAppointmentModalLabel">Edit Appointment</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <form id="editAppointmentForm">

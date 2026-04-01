@@ -16,16 +16,18 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-800" href="/">JE <span class="accent">FITNESS</span></a>
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand fw-bold me-3" href="/dashboard" id="brand-link">JEFITNESS</a>
+                <span id="subscription-status-navbar" class="badge bg-secondary text-white small">Loading...</span>
+            </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item me-3"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item me-3"><a class="nav-link" href="/products">Products</a></li>
-                    <li class="nav-item me-3"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item me-3"><a class="nav-link active" href="/pages/subscriptions.html">Subscriptions</a></li>
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/subscriptions">Subscription</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#" id="logoutButton">Logout</a></li>
                 </ul>
             </div>
         </div>

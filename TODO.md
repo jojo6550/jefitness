@@ -1,18 +1,3 @@
-# ESLint Fix Task - COMPLETED ✅
+redesign the @subscriptions.html subscription cards to be best practice and detailed. also  standardize the frontend of the dahsboard and all the pages. top left logo should link back to dashboard always. remove products from navbar. appointments page modal is white and hard to read if there is content. the confirmation is also pure white and unreadable. remvoe the view button for appoinments its redundant.
 
-## Summary:
-- **Primary issues fixed**:
-  - Removed deprecated `.eslintignore` warning (file deleted, ignores in config).
-  - Fixed TypeError in eslint-plugin-node by uninstalling it (v11 incompatible with ESLint v9), removed from config, migrated rules to eslint-plugin-n (`n/no-missing-require`, `n/no-extraneous-require`).
-- **Verification**: `npm run lint` runs without crashes. Remaining issues are standard lint errors/warnings (indentation, commas, console.logs, consistent-return, etc.) - ~1241 total (862 errors, 379 warnings), 517+ auto-fixable with `npm run lint:fix`.
-- Files updated: eslint.config.mjs, TODO.md, .eslintignore (deleted), package.json (clean post-uninstall).
-
-**Next recommended steps** (run in terminal):
-```
-npm run lint:fix
-npm run format
-```
-This will auto-fix most remaining issues (indent, commas, quotes). Review console.logs and consistent-return manually if needed.
-
-**ESLint now functional!**
-
+overall make the css standard, infact, overhaul to use tailwind css for an overall modern look.
