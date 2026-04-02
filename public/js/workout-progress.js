@@ -13,8 +13,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadExercises();
     await loadWorkoutHistory();
+    await loadGoals();
 
     document.getElementById('viewProgressBtn').addEventListener('click', viewProgress);
+
+    document.getElementById('goalForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const exercise = document.getElementById('goalExercise').value.trim();
+        const targetWeight = parseFloat(document.getElementById('goalTargetWeight').value);
+        const targetDate = document.getElementById('goalTargetDate').value || undefined;
+        if (!exercise || isNaN(targetWeight)) return;
+
+        try {
+            const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ exercise, targetWeight, targetDate }),
+            });
+            if (!res.ok) throw new Error('Failed to save goal');
+            e.target.reset();
+            const collapse = bootstrap.Collapse.getInstance(document.getElementById('goalFormCollapse'));
+            if (collapse) collapse.hide();
+            await loadGoals();
+        } catch (err) {
+            console.error('Error saving goal:', err);
+        }
+    });
 });
 
 async function loadExercises() {
@@ -143,6 +167,66 @@ async function viewProgress() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-graph-up me-1"></i>View Progress';
+    }
+}
+
+async function loadGoals() {
+    const token = localStorage.getItem('token');
+    const container = document.getElementById('goalsList');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch goals');
+        const data = await res.json();
+        const goals = data.goals || [];
+
+        if (goals.length === 0) {
+            container.innerHTML = '<p class="text-muted small">No goals yet. Add one above.</p>';
+            return;
+        }
+
+        container.innerHTML = goals.map(g => {
+            const achieved = g.achieved;
+            const due = g.targetDate ? ` · Due ${new Date(g.targetDate).toLocaleDateString()}` : '';
+            return `
+                <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                    <div>
+                        <span class="${achieved ? 'text-decoration-line-through text-muted' : ''}">${g.exercise}</span>
+                        <small class="text-muted ms-2">${g.targetWeight} lbs${due}</small>
+                        ${achieved ? '<span class="badge bg-success ms-2 small">Achieved</span>' : ''}
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        ${!achieved ? `<button class="btn btn-outline-success achieve-goal-btn" data-id="${g._id}" title="Mark achieved"><i class="bi bi-check2"></i></button>` : ''}
+                        <button class="btn btn-outline-danger delete-goal-btn" data-id="${g._id}" title="Delete"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>`;
+        }).join('');
+
+        container.querySelectorAll('.achieve-goal-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals/${btn.dataset.id}/achieve`, {
+                    method: 'PUT',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) await loadGoals();
+            });
+        });
+
+        container.querySelectorAll('.delete-goal-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals/${btn.dataset.id}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) await loadGoals();
+            });
+        });
+    } catch (error) {
+        console.error('Error loading goals:', error);
+        container.innerHTML = '<p class="text-muted small">Error loading goals.</p>';
     }
 }
 

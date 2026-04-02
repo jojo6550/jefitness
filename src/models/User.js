@@ -234,6 +234,29 @@ const UserSchema = new mongoose.Schema(
     },
     dataDeletedAt: { type: Date },
     deletionReason: { type: String },
+
+    workoutGoals: [
+      {
+        exercise: { type: String, required: true, trim: true },
+        targetWeight: { type: Number, required: true, min: 0 },
+        targetDate: { type: Date },
+        createdAt: { type: Date, default: Date.now },
+        achieved: { type: Boolean, default: false },
+        achievedAt: { type: Date },
+      },
+    ],
+
+    measurements: [
+      {
+        date: { type: Date, default: Date.now },
+        weight: { type: Number, min: 0 },
+        neck: { type: Number, min: 0 },
+        waist: { type: Number, min: 0 },
+        hips: { type: Number, min: 0 },
+        chest: { type: Number, min: 0 },
+        notes: { type: String, maxlength: 200 },
+      },
+    ],
   },
   { timestamps: true }
 );

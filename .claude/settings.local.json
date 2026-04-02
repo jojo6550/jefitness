@@ -10,7 +10,10 @@
       "Bash(for f:*)",
       "Bash(do grep:*)",
       "Bash(find /c/Users/josia/jefitness/public/tests -type f -name *.js)",
-      "Bash(xargs wc:*)"
+      "Bash(xargs wc:*)",
+      "Bash(du -sh /c/Users/josia/jefitness/public/*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"require\\('resend'\\)\")"
     ]
   }
 }

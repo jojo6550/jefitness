@@ -2,15 +2,17 @@ const express = require('express');
 
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 
 const User = require('../models/User');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, incrementUserTokenVersion } = require('../middleware/auth');
 const {
   validateObjectId,
   stripDangerousFields,
   preventNoSQLInjection,
   allowOnlyFields,
 } = require('../middleware/inputValidator');
+const { logger } = require('../services/logger');
 
 // SECURITY: Apply input validation to all user routes
 router.use(preventNoSQLInjection);
@@ -270,9 +272,13 @@ router.put(
         'lastName',
         'email',
         'goals',
+        'reason',
         'phone',
         'gender',
         'dob',
+        'activityStatus',
+        'startWeight',
+        'currentWeight',
       ];
       const updateData = {};
 
@@ -476,6 +482,125 @@ router.get('/privacy-settings', async (req, res) => {
   } catch (err) {
     console.error('Privacy Settings Error:', err.message);
     res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// POST /api/users/change-password - Change password (requires current password)
+router.post(
+  '/change-password',
+  [
+    body('currentPassword').notEmpty().withMessage('Current password is required'),
+    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, error: errors.array()[0].msg });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      const user = await User.findById(req.user.id).select('+password');
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ success: false, error: 'Current password is incorrect' });
+      }
+
+      if (currentPassword === newPassword) {
+        return res.status(400).json({ success: false, error: 'New password must differ from current password' });
+      }
+
+      user.password = newPassword; // pre-save hook hashes it
+      await user.save();
+
+      // Invalidate all other sessions
+      await incrementUserTokenVersion(req.user.id);
+
+      res.json({ success: true, message: 'Password changed successfully. Please log in again.' });
+    } catch (err) {
+      logger.error('Change password error', { userId: req.user.id, error: err.message });
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
+
+// GET /api/users/measurements - Get body measurements history
+router.get('/measurements', async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('measurements');
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const sorted = (user.measurements || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    res.json({ success: true, measurements: sorted });
+  } catch (err) {
+    logger.error('Get measurements error', { userId: req.user.id, error: err.message });
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// POST /api/users/measurements - Add a body measurement entry
+router.post(
+  '/measurements',
+  allowOnlyFields(['date', 'weight', 'neck', 'waist', 'hips', 'chest', 'notes'], true),
+  [
+    body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
+    body('neck').optional().isFloat({ min: 0 }),
+    body('waist').optional().isFloat({ min: 0 }),
+    body('hips').optional().isFloat({ min: 0 }),
+    body('chest').optional().isFloat({ min: 0 }),
+    body('notes').optional().isLength({ max: 200 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, error: errors.array()[0].msg });
+      }
+
+      const { date, weight, neck, waist, hips, chest, notes } = req.body;
+      const entry = { date: date ? new Date(date) : new Date() };
+      if (weight !== undefined) entry.weight = weight;
+      if (neck !== undefined) entry.neck = neck;
+      if (waist !== undefined) entry.waist = waist;
+      if (hips !== undefined) entry.hips = hips;
+      if (chest !== undefined) entry.chest = chest;
+      if (notes !== undefined) entry.notes = notes;
+
+      const user = await User.findByIdAndUpdate(
+        req.user.id,
+        { $push: { measurements: entry } },
+        { new: true, runValidators: false }
+      ).select('measurements');
+
+      if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+      res.status(201).json({ success: true, measurements: user.measurements });
+    } catch (err) {
+      logger.error('Add measurement error', { userId: req.user.id, error: err.message });
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
+
+// DELETE /api/users/measurements/:measurementId - Remove a measurement entry
+router.delete('/measurements/:measurementId', async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $pull: { measurements: { _id: req.params.measurementId } } },
+      { new: true }
+    ).select('measurements');
+
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    res.json({ success: true, message: 'Measurement deleted' });
+  } catch (err) {
+    logger.error('Delete measurement error', { userId: req.user.id, error: err.message });
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 

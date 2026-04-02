@@ -18,7 +18,7 @@ const connectDB = require('../config/db');
 const swaggerSpec = require('./docs/swagger');
 
 // Utilities, DB, and jobs
-const { startSubscriptionCleanupJob } = require('./jobs');
+const { startSubscriptionCleanupJob, startRenewalReminderJob } = require('./jobs');
 const { logger } = require('./services/logger');
 const {
   getFileHash,
@@ -233,6 +233,7 @@ async function startServer() {
     mongoose.connection.on('error', err => console.error('Mongo error', err));
 
     startSubscriptionCleanupJob();
+    startRenewalReminderJob();
 
     const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 

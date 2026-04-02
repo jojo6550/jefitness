@@ -323,7 +323,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
     // Check if time slot is full (max 6 clients per slot)
     if (existingAppointments.length >= MAX_CLIENTS_PER_SLOT) {
-      return res.status(400).json({ msg: 'Time slot is fully booked' });
+      return res.status(409).json({ msg: 'Time slot is fully booked' });
     }
 
     // Check if this client already has an appointment at this exact date and time (across all trainers)

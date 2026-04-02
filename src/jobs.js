@@ -1,8 +1,10 @@
 const cron = require('node-cron');
 
 const Subscription = require('./models/Subscription');
-const { logSecurityEvent } = require('./services/logger');
+const User = require('./models/User');
+const { logSecurityEvent, logger } = require('./services/logger');
 const stripeService = require('./services/stripe');
+const { sendSubscriptionReminder } = require('./services/email');
 
 /** Subscription statuses considered still active in Stripe */
 const STRIPE_ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
@@ -106,4 +108,54 @@ const startSubscriptionCleanupJob = () => {
   console.log('⏰ Subscription cleanup cron job scheduled (0 0 * * *)');
 };
 
-module.exports = { startSubscriptionCleanupJob };
+/**
+ * Daily reminder job — runs at 8 AM.
+ * Sends renewal reminder emails for subscriptions expiring in 3 or 7 days.
+ */
+const startRenewalReminderJob = () => {
+  cron.schedule('0 8 * * *', async () => {
+    logger.info('🔔 Running subscription renewal reminder job...');
+    try {
+      const now = new Date();
+      const REMINDER_DAYS = [3, 7];
+
+      for (const days of REMINDER_DAYS) {
+        const windowStart = new Date(now);
+        windowStart.setDate(windowStart.getDate() + days);
+        windowStart.setHours(0, 0, 0, 0);
+
+        const windowEnd = new Date(windowStart);
+        windowEnd.setHours(23, 59, 59, 999);
+
+        const subs = await Subscription.find({
+          status: { $in: ['active', 'trialing'] },
+          cancelAtPeriodEnd: false,
+          currentPeriodEnd: { $gte: windowStart, $lte: windowEnd },
+        });
+
+        for (const sub of subs) {
+          try {
+            const user = await User.findById(sub.userId).select('firstName email privacySettings');
+            if (!user || !user.email) continue;
+            if (user.privacySettings?.marketingEmails === false) continue;
+
+            const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            });
+            await sendSubscriptionReminder(user.email, user.firstName, sub.plan, days, renewalDate);
+            logger.info(`Renewal reminder sent (${days}d)`, { userId: user._id, subId: sub._id });
+          } catch (userErr) {
+            logger.error('Failed to send renewal reminder', { subId: sub._id, error: userErr.message });
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('Renewal reminder job error', { error: err.message });
+      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', { jobName: 'renewalReminder', error: err.message });
+    }
+  });
+
+  logger.info('⏰ Renewal reminder cron job scheduled (0 8 * * *)');
+};
+
+module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob };

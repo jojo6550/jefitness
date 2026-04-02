@@ -128,4 +128,143 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     loadProfile();
+
+    // ── Body Measurements ─────────────────────────────────────────────────────
+
+    async function loadMeasurements() {
+        try {
+            const res = await fetch(`${window.API_BASE}/api/v1/users/measurements`, {
+                headers: { Authorization: 'Bearer ' + localStorage.getItem('token') },
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderMeasurements(data.measurements || []);
+        } catch (e) {
+            console.error('Failed to load measurements', e);
+        }
+    }
+
+    function renderMeasurements(measurements) {
+        const container = document.getElementById('measurementsList');
+        if (!container) return;
+        if (measurements.length === 0) {
+            container.innerHTML = '<p class="text-muted small">No measurements recorded yet.</p>';
+            return;
+        }
+        const rows = measurements.map(m => {
+            const date = m.date ? new Date(m.date).toLocaleDateString() : '—';
+            return `<tr>
+                <td>${date}</td>
+                <td>${m.weight ?? '—'}</td>
+                <td>${m.neck ?? '—'}</td>
+                <td>${m.waist ?? '—'}</td>
+                <td>${m.hips ?? '—'}</td>
+                <td>${m.chest ?? '—'}</td>
+                <td class="text-muted small">${m.notes || ''}</td>
+                <td><button class="btn btn-sm btn-outline-danger delete-meas-btn" data-id="${m._id}"><i class="bi bi-trash"></i></button></td>
+            </tr>`;
+        }).join('');
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead><tr>
+                        <th>Date</th><th>Weight</th><th>Neck</th><th>Waist</th><th>Hips</th><th>Chest</th><th>Notes</th><th></th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+        container.querySelectorAll('.delete-meas-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                try {
+                    const res = await fetch(`${window.API_BASE}/api/v1/users/measurements/${btn.dataset.id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') },
+                    });
+                    if (res.ok) {
+                        window.Toast.success('Measurement deleted.');
+                        loadMeasurements();
+                    }
+                } catch (e) {
+                    window.Toast.error('Failed to delete measurement.');
+                }
+            });
+        });
+    }
+
+    document.getElementById('measurementForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const payload = {};
+        const date = document.getElementById('measDate').value;
+        const weight = parseFloat(document.getElementById('measWeight').value);
+        const neck = parseFloat(document.getElementById('measNeck').value);
+        const waist = parseFloat(document.getElementById('measWaist').value);
+        const hips = parseFloat(document.getElementById('measHips').value);
+        const chest = parseFloat(document.getElementById('measChest').value);
+        const notes = document.getElementById('measNotes').value.trim();
+
+        if (date) payload.date = date;
+        if (!isNaN(weight)) payload.weight = weight;
+        if (!isNaN(neck)) payload.neck = neck;
+        if (!isNaN(waist)) payload.waist = waist;
+        if (!isNaN(hips)) payload.hips = hips;
+        if (!isNaN(chest)) payload.chest = chest;
+        if (notes) payload.notes = notes;
+
+        try {
+            const res = await fetch(`${window.API_BASE}/api/v1/users/measurements`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + localStorage.getItem('token'),
+                },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error('Failed to save');
+            window.Toast.success('Measurement saved.');
+            e.target.reset();
+            loadMeasurements();
+        } catch (err) {
+            window.Toast.error('Failed to save measurement.');
+        }
+    });
+
+    // ── Change Password ───────────────────────────────────────────────────────
+
+    document.getElementById('changePasswordForm')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+        if (newPassword !== confirmNewPassword) {
+            window.Toast.error('New passwords do not match.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${window.API_BASE}/api/v1/users/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: 'Bearer ' + localStorage.getItem('token'),
+                },
+                body: JSON.stringify({ currentPassword, newPassword }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update password');
+            window.Toast.success('Password updated. Please log in again.');
+            e.target.reset();
+            setTimeout(() => {
+                localStorage.removeItem('token');
+                window.location.href = '/login';
+            }, 2000);
+        } catch (err) {
+            window.Toast.error(err.message || 'Failed to update password.');
+        }
+    });
+
+    loadMeasurements();
+    // Set today's date as default for measurement form
+    const measDateInput = document.getElementById('measDate');
+    if (measDateInput) measDateInput.value = new Date().toISOString().split('T')[0];
 });
