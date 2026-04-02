@@ -373,6 +373,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Appointment table helpers (replaces CSP-blocked inline styles) */
 .appt-empty-icon { font-size: 3rem; }
+.icon-3rem { font-size: 3rem; }
+.card-narrow { max-width: 440px; width: 100%; }
 .appt-trainer-avatar { width: 32px; height: 32px; flex-shrink: 0; }
 .appt-notes-cell { max-width: 200px; }
 

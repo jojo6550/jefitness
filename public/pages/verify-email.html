@@ -14,7 +14,7 @@
 </head>
 <body class="login-page d-flex align-items-center justify-content-center min-vh-100">
 
-  <div class="card shadow-sm" style="max-width:440px;width:100%">
+  <div class="card shadow-sm card-narrow">
     <div class="card-body text-center p-5">
 
       <!-- Loading -->
@@ -25,7 +25,7 @@
 
       <!-- Success -->
       <div id="stateSuccess" class="d-none">
-        <i class="bi bi-patch-check-fill text-success" style="font-size:3rem"></i>
+        <i class="bi bi-patch-check-fill text-success" class="icon-3rem"></i>
         <h4 class="mt-3 mb-2">Email Verified!</h4>
         <p class="text-muted mb-4">Your email address has been confirmed. You can now log in.</p>
         <a href="/login" class="btn btn-primary w-100">Go to Login</a>
@@ -33,7 +33,7 @@
 
       <!-- Error -->
       <div id="stateError" class="d-none">
-        <i class="bi bi-x-circle-fill text-danger" style="font-size:3rem"></i>
+        <i class="bi bi-x-circle-fill text-danger" class="icon-3rem"></i>
         <h4 class="mt-3 mb-2">Verification Failed</h4>
         <p class="text-muted mb-1" id="errorMessage">The link is invalid or has expired.</p>
         <p class="text-muted small mb-4">Links expire after 24 hours. Request a new one below.</p>
@@ -48,7 +48,7 @@
 
       <!-- Resend success -->
       <div id="stateResent" class="d-none">
-        <i class="bi bi-envelope-check-fill text-primary" style="font-size:3rem"></i>
+        <i class="bi bi-envelope-check-fill text-primary" class="icon-3rem"></i>
         <h4 class="mt-3 mb-2">Link Sent</h4>
         <p class="text-muted mb-4">If that email exists and is unverified, a new link is on its way.</p>
         <a href="/login" class="btn btn-outline-primary w-100">Back to Login</a>
@@ -58,58 +58,6 @@
   </div>
 
   <script src="../js/api.config.js"></script>
-  <script>
-    const API_BASE = window.ApiConfig.getAPI_BASE();
-
-    function show(id) {
-      ['stateLoading', 'stateSuccess', 'stateError', 'stateResent'].forEach(s => {
-        document.getElementById(s).classList.toggle('d-none', s !== id);
-      });
-    }
-
-    async function verify() {
-      const token = new URLSearchParams(location.search).get('token');
-      if (!token) {
-        show('stateError');
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}/api/v1/auth/verify-email?token=${encodeURIComponent(token)}`);
-        const data = await res.json();
-        if (res.ok && data.success) {
-          show('stateSuccess');
-        } else {
-          document.getElementById('errorMessage').textContent = data.error || 'The link is invalid or has expired.';
-          show('stateError');
-        }
-      } catch {
-        document.getElementById('errorMessage').textContent = 'Network error. Please try again.';
-        show('stateError');
-      }
-    }
-
-    document.getElementById('resendForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const email = document.getElementById('resendEmail').value.trim();
-      const btn = document.getElementById('resendBtn');
-      btn.disabled = true;
-      btn.textContent = 'Sending…';
-
-      try {
-        await fetch(`${API_BASE}/api/v1/auth/resend-verification`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        show('stateResent');
-      } catch {
-        btn.disabled = false;
-        btn.textContent = 'Resend';
-      }
-    });
-
-    verify();
-  </script>
+  <script src="../js/verify-email.js"></script>
 </body>
 </html>
