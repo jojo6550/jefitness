@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -10,6 +11,7 @@ const {
   ExternalServiceError,
 } = require('../middleware/errorHandler');
 const { logger } = require('../services/logger');
+const { sendEmailVerification } = require('../services/email');
 
 /**
  * Auth Controller handles registration, login, and security sessions
@@ -54,7 +56,17 @@ const authController = {
         userAgent,
       },
     });
+    // Generate email verification token
+    const rawVerifyToken = crypto.randomBytes(32).toString('hex');
+    user.emailVerificationToken = crypto.createHash('sha256').update(rawVerifyToken).digest('hex');
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     await user.save();
+
+    // Send verification email (non-blocking — failure doesn't abort signup)
+    sendEmailVerification(user.email, user.firstName, rawVerifyToken).catch(err => {
+      logger.error('Failed to send verification email', { userId: user._id, error: err.message });
+    });
 
     // SECURITY: Validate JWT_SECRET before signing
     if (!process.env.JWT_SECRET) {

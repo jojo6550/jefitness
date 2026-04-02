@@ -136,9 +136,11 @@ const UserSchema = new mongoose.Schema(
       ],
     },
     isEmailVerified: { type: Boolean, default: true },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
 
-    passwordResetToken: { type: String },
-    resetPasswordExpires: { type: Date },
+    passwordResetToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
     failedLoginAttempts: { type: Number, default: 0 },
     lockoutUntil: { type: Date },
     assignedPrograms: [

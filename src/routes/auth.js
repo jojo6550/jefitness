@@ -11,7 +11,7 @@ const { requireDbConnection } = require('../middleware/dbConnection');
 const { authLimiter, signupLimiter } = require('../middleware/rateLimiter');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 const User = require('../models/User');
-const { sendPasswordReset } = require('../services/email');
+const { sendPasswordReset, sendEmailVerification } = require('../services/email');
 const { logger } = require('../services/logger');
 
 /**
@@ -78,6 +78,86 @@ router.post('/logout', auth, authController.logout);
  *     tags: [Authentication]
  */
 router.post('/consent', auth, authController.grantConsent);
+
+/**
+ * @swagger
+ * /api/v1/auth/verify-email:
+ *   get:
+ *     summary: Verify email address using token from verification email
+ *     tags: [Authentication]
+ */
+router.get('/verify-email', requireDbConnection, async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Verification token is required.' });
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select('+emailVerificationToken +emailVerificationExpires');
+
+    if (!user) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired verification token.' });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.json({ success: true, message: 'Email verified successfully. You can now log in.' });
+  } catch (err) {
+    logger.error('Email verification error', { error: err.message });
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/auth/resend-verification:
+ *   post:
+ *     summary: Resend the email verification link
+ *     tags: [Authentication]
+ */
+router.post(
+  '/resend-verification',
+  requireDbConnection,
+  authLimiter,
+  [
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    handleValidationErrors,
+  ],
+  async (req, res) => {
+    try {
+      const user = await User.findOne({ email: req.body.email }).select(
+        '+emailVerificationToken +emailVerificationExpires'
+      );
+
+      // Always return 200 to avoid email enumeration
+      if (!user || user.isEmailVerified) {
+        return res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
+      }
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      user.emailVerificationToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+      user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save({ validateBeforeSave: false });
+
+      sendEmailVerification(user.email, user.firstName, rawToken).catch(err => {
+        logger.error('Failed to resend verification email', { userId: user._id, error: err.message });
+      });
+
+      res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
+    } catch (err) {
+      logger.error('Resend verification error', { error: err.message });
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
 
 /**
  * @swagger
