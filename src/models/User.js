@@ -237,6 +237,14 @@ const UserSchema = new mongoose.Schema(
     dataDeletedAt: { type: Date },
     deletionReason: { type: String },
 
+    twoFactorSecret: { type: String, select: false },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorBackupCodes: { type: [String], select: false },
+
+    onboardingCompleted: { type: Boolean, default: false },
+
+    googleId: { type: String, unique: true, sparse: true },
+
     workoutGoals: [
       {
         exercise: { type: String, required: true, trim: true },

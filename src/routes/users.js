@@ -632,4 +632,29 @@ router.put(
   }
 );
 
+/**
+ * POST /api/v1/users/onboarding
+ * Mark onboarding as complete and save optional first-time user data.
+ * Body (all optional): { goals, reason, gender, dob, height, weight }
+ */
+router.post(
+  '/onboarding',
+  allowOnlyFields(['goals', 'reason', 'gender', 'dob', 'height', 'weight'], true),
+  async (req, res) => {
+    try {
+      const updates = { onboardingCompleted: true };
+      const allowed = ['goals', 'reason', 'gender', 'dob', 'height', 'weight'];
+      allowed.forEach(field => {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      });
+
+      await User.findByIdAndUpdate(req.user.id, updates);
+      res.json({ success: true });
+    } catch (err) {
+      logger.error('Onboarding update error', { error: err.message });
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
+
 module.exports = router;

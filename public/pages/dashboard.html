@@ -118,10 +118,70 @@
         </div>
     </main>
 
+    <!-- Onboarding Modal -->
+    <div class="modal fade" id="onboardingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="onboardingModalLabel">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 shadow border-0">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold" id="onboardingModalLabel">Welcome to JE Fitness!</h5>
+          </div>
+          <div class="modal-body px-4">
+            <!-- Step 1 -->
+            <div id="onboardingStep1">
+              <p class="text-muted mb-3">Let's set up your profile so we can personalise your experience.</p>
+              <div class="mb-3">
+                <label class="form-label">What are your fitness goals?</label>
+                <textarea id="onboardingGoals" class="form-control" rows="3" placeholder="e.g. Lose weight, build muscle, improve endurance..."></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Why did you join JE Fitness?</label>
+                <input id="onboardingReason" class="form-control" placeholder="e.g. Recommended by a friend, saw an ad...">
+              </div>
+            </div>
+            <!-- Step 2 -->
+            <div id="onboardingStep2" class="d-none">
+              <p class="text-muted mb-3">A little more about you (optional — helps us recommend programs).</p>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Gender</label>
+                  <select id="onboardingGender" class="form-select">
+                    <option value="">Prefer not to say</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Date of Birth</label>
+                  <input type="date" id="onboardingDob" class="form-control">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Height (cm)</label>
+                  <input type="number" id="onboardingHeight" class="form-control" min="50" max="300" placeholder="175">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Weight (kg)</label>
+                  <input type="number" id="onboardingWeight" class="form-control" min="20" max="500" placeholder="70">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 justify-content-between">
+            <button id="onboardingSkip" class="btn btn-link text-muted text-decoration-none">Skip</button>
+            <div class="d-flex gap-2">
+              <button id="onboardingBack" class="btn btn-outline-secondary d-none">Back</button>
+              <button id="onboardingNext" class="btn btn-primary px-4">Next</button>
+              <button id="onboardingFinish" class="btn btn-success px-4 d-none">Finish</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.config.js"></script>
     <script src="../js/navbar-subscription.js" defer></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/logout.js" defer></script>
+    <script src="../js/onboarding.js" defer></script>
 </body>
 </html>

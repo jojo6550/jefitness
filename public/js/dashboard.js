@@ -1,5 +1,17 @@
 
 
+// Handle token passed via URL after Google OAuth redirect
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const oauthToken = params.get('token');
+  if (oauthToken) {
+    localStorage.setItem('token', oauthToken);
+    // Clean the token from the URL without reloading
+    const cleanUrl = window.location.pathname + (params.toString().replace(/token=[^&]*&?/, '').replace(/^&/, '') ? '?' + params.toString().replace(/token=[^&]*&?/, '').replace(/^&/, '') : '');
+    window.history.replaceState({}, '', cleanUrl);
+  }
+})();
+
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 window.initDashboard = async () => {

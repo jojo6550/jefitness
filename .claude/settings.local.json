@@ -20,7 +20,14 @@
       "Bash(node --check src/routes/workouts.js)",
       "Bash(node --check src/jobs.js)",
       "Bash(npx jest:*)",
-      "Bash(node -e \"require\\('speakeasy'\\); require\\('qrcode'\\); console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('speakeasy'\\); require\\('qrcode'\\); console.log\\('ok'\\)\")",
+      "Bash(node -e \"require\\('passport'\\); require\\('passport-google-oauth20'\\); console.log\\('ok'\\)\")",
+      "Bash(node --check src/routes/trainer.js)",
+      "Bash(node --check src/routes/appointments.js)",
+      "Bash(node --check src/models/Appointment.js)",
+      "Bash(node --check src/models/TrainerAvailability.js)",
+      "Bash(node --check src/models/User.js)",
+      "Bash(node --check src/controllers/authController.js)"
     ]
   }
 }

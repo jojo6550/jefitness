@@ -42,3 +42,6 @@
  - What's missing: Time slots are hardcoded to 5am–1pm in the frontend.
  - File: public/js/appointments.js
  - Suggestion: Dynamically generate time slots from trainer availability data. Trainer can list active hours
+
+
+ task: flesh out trainer dashboard and abilities, training can set availiabity, view client details for scheudled clients (client data and medical documents). also, each time an appointment must be made before the day it takes place. you can make an appointment for today, it must be for tommorow or further in the future. at the start of each day, an email is sent if the trainier has clients. emial inccludes a list of clients, and  times. setup the availaibty this way, they set there availibity for a given week, sun - saturday, then each day they set their available hours.

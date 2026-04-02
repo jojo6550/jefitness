@@ -44,6 +44,9 @@ const versioning = require('./middleware/versioning');
 const { nonceMiddleware, helmetOptions } = require('./config/security');
 const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
 
+// Passport (Google OAuth)
+const passport = require('./config/passport');
+
 // Routers
 const webhookRouter = require('./routes/webhooks');
 
@@ -69,6 +72,9 @@ app.use(cors(corsOptions));
 // Security middlewares
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
+
+// Passport (stateless — session: false used in each route)
+app.use(passport.initialize());
 
 // Logging, sanitization, and CSRF
 app.use(requestLogger);

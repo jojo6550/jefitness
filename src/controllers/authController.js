@@ -129,7 +129,7 @@ const authController = {
       // DB Query timing - minimal fields first
       const dbStart = performance.now();
       let user = await User.findOne({ email: email.toLowerCase() }).select(
-        '+password +tokenVersion'
+        '+password +tokenVersion +twoFactorEnabled'
       );
       dbTime = performance.now() - dbStart;
 
@@ -164,6 +164,19 @@ const authController = {
           'Authentication service',
           'Server configuration error: JWT_SECRET missing'
         );
+      }
+
+      // If 2FA is enabled, issue a short-lived temp token instead of a full session
+      if (user.twoFactorEnabled) {
+        const tempToken = jwt.sign(
+          { id: user._id, twoFactorPending: true },
+          process.env.JWT_SECRET,
+          { expiresIn: '5m' }
+        );
+        jwtTime = performance.now() - jwtStart;
+        const totalTime = performance.now() - startTime;
+        logger.info('✅ LOGIN: 2FA REQUIRED', { emailHash, userId: user._id, clientRequestId, timings: { total: totalTime.toFixed(2) } });
+        return res.json({ success: true, requiresTwoFactor: true, tempToken });
       }
 
       const token = jwt.sign(
