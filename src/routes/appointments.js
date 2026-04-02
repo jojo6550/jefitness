@@ -2,6 +2,7 @@ const express = require('express');
 
 const router = express.Router();
 const Appointment = require('../models/Appointment');
+const TrainerAvailability = require('../models/TrainerAvailability');
 const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
@@ -260,11 +261,31 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       return res.status(400).json({ msg: 'Invalid trainer' });
     }
 
+    // Validate against trainer's availability
+    const appointmentDate = new Date(date);
+    const dayOfWeek = appointmentDate.getUTCDay();
+    const [hours, minutes] = time.split(':').map(Number);
+
+    const availability = await TrainerAvailability.findOne({
+      trainerId,
+      dayOfWeek,
+      isActive: true,
+    });
+
+    if (!availability) {
+      return res.status(400).json({ msg: 'Trainer is not available on this day' });
+    }
+
+    if (hours < availability.startHour || hours >= availability.endHour) {
+      return res.status(400).json({
+        msg: `Trainer is only available from ${availability.startHour}:00 to ${availability.endHour}:00 on this day`,
+      });
+    }
+
     // Set clientId from authenticated user
     const clientId = req.user.id;
 
     // Check if this client already has an appointment on this date (across all trainers)
-    const appointmentDate = new Date(date);
     const clientExistingOnDate = await Appointment.findOne({
       clientId,
       date: appointmentDate,
@@ -274,9 +295,6 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     if (clientExistingOnDate) {
       return res.status(400).json({ msg: 'You can only book one appointment per day' });
     }
-
-    // Validate appointment time
-    const [hours, minutes] = time.split(':').map(Number);
 
     // Check if appointment is in the future
     const todayUTCStr = new Date().toISOString().split('T')[0];
@@ -296,12 +314,6 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       return res
         .status(400)
         .json({ msg: 'Appointments can only be booked on the hour (e.g., 5:00, 6:00)' });
-    }
-
-    if (hours < 5 || hours > 13) {
-      return res
-        .status(400)
-        .json({ msg: 'Appointments are only available from 5:00 AM to 1:00 PM' });
     }
 
     // Check the 6-client limit per exact time slot

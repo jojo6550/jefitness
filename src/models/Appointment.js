@@ -50,4 +50,14 @@ AppointmentSchema.index({ trainerId: 1, clientId: 1 });
 AppointmentSchema.index({ date: 1, trainerId: 1, time: 1 });
 AppointmentSchema.index({ status: 1, date: 1 });
 
+// Prevent double-booking: trainer cannot have two non-cancelled appointments at same date+time
+AppointmentSchema.index(
+  { trainerId: 1, date: 1, time: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $ne: 'cancelled' } },
+    name: 'unique_trainer_slot',
+  }
+);
+
 module.exports = mongoose.model('Appointment', AppointmentSchema);

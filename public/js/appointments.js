@@ -219,6 +219,40 @@ async function loadTrainersInto(selectElement, selectedId = '') {
     }
 }
 
+// ====== Load Time Slots from Trainer Availability ======
+async function loadTrainerSlots(trainerId, dateStr, selectEl) {
+    if (!trainerId || !dateStr) {
+        selectEl.innerHTML = '<option value="">Select a trainer and date first...</option>';
+        return;
+    }
+
+    try {
+        const data = await authFetch(`${window.API_BASE}/api/v1/trainer/${trainerId}/availability`);
+        const availability = data.availability || [];
+
+        const dayOfWeek = new Date(dateStr + 'T00:00:00').getDay();
+        const daySlot = availability.find(s => s.dayOfWeek === dayOfWeek);
+
+        if (!daySlot) {
+            selectEl.innerHTML = '<option value="">Trainer unavailable on this day</option>';
+            return;
+        }
+
+        selectEl.innerHTML = '<option value="">Choose a time...</option>';
+        for (let h = daySlot.startHour; h < daySlot.endHour; h++) {
+            const option = document.createElement('option');
+            const padded = String(h).padStart(2, '0') + ':00';
+            const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+            const ampm = h < 12 ? 'AM' : 'PM';
+            option.value = padded;
+            option.textContent = `${displayHour}:00 ${ampm}`;
+            selectEl.appendChild(option);
+        }
+    } catch (err) {
+        selectEl.innerHTML = '<option value="">Failed to load times</option>';
+    }
+}
+
 // ====== Edit Appointment ======
 const editModalEl = document.getElementById('editAppointmentModal');
 const editModal = new bootstrap.Modal(editModalEl);
@@ -229,10 +263,14 @@ async function editAppointment(id) {
         currentEditAppointmentId = id;
         const app = await authFetch(`${window.API_BASE}/api/v1/appointments/${id}`);
 
-        document.getElementById('editAppointmentDate').value = new Date(app.date).toISOString().slice(0, 10);
-        document.getElementById('editAppointmentTime').value = app.time;
+        const editDateVal = new Date(app.date).toISOString().slice(0, 10);
+        document.getElementById('editAppointmentDate').value = editDateVal;
         document.getElementById('editAppointmentNotes').value = app.notes || '';
         await loadTrainersInto(document.getElementById('editTrainerSelect'), app.trainerId?._id);
+
+        const editTimeSel = document.getElementById('editAppointmentTime');
+        await loadTrainerSlots(app.trainerId?._id, editDateVal, editTimeSel);
+        editTimeSel.value = app.time;
 
         editModal.show();
     } catch (err) {
@@ -392,6 +430,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         const input = document.getElementById(id);
         if (input) input.min = today;
     });
+
+    // Dynamic time slots — reload when trainer or date changes (booking form)
+    const bookingTrainerSel = document.getElementById('trainerSelect');
+    const bookingDateInput = document.getElementById('appointmentDate');
+    const bookingTimeSel = document.getElementById('appointmentTime');
+    const reloadBookingSlots = () => loadTrainerSlots(bookingTrainerSel?.value, bookingDateInput?.value, bookingTimeSel);
+    bookingTrainerSel?.addEventListener('change', reloadBookingSlots);
+    bookingDateInput?.addEventListener('change', reloadBookingSlots);
+
+    // Dynamic time slots — reload when trainer or date changes (edit form)
+    const editTrainerSel = document.getElementById('editTrainerSelect');
+    const editDateInput = document.getElementById('editAppointmentDate');
+    const editTimeSel = document.getElementById('editAppointmentTime');
+    const reloadEditSlots = () => loadTrainerSlots(editTrainerSel?.value, editDateInput?.value, editTimeSel);
+    editTrainerSel?.addEventListener('change', reloadEditSlots);
+    editDateInput?.addEventListener('change', reloadEditSlots);
 
     // Refresh button
     document.getElementById('refreshAppointments')?.addEventListener('click', loadAppointments);
