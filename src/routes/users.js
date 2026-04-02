@@ -24,7 +24,7 @@ router.use(stripDangerousFields);
 // GET /api/users/trainers - Get all trainers with pagination
 router.get('/trainers', async (req, res) => {
   try {
-    console.log(`Fetching trainers for user: ${req.user.id}`);
+    logger.info('Fetching trainers', { userId: req.user.id });
 
     // Parse pagination parameters with defaults and limits
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -43,9 +43,7 @@ router.get('/trainers', async (req, res) => {
       .limit(limit)
       .sort({ firstName: 1, lastName: 1 });
 
-    console.log(
-      `Found ${trainers.length} trainers (page ${page} of ${Math.ceil(totalCount / limit)})`
-    );
+    logger.info('Trainers fetched', { count: trainers.length, page, totalPages: Math.ceil(totalCount / limit) });
     res.json({
       success: true,
       trainers,
@@ -58,8 +56,7 @@ router.get('/trainers', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Error fetching trainers:', err);
-    console.error('Stack trace:', err.stack);
+    logger.error('Error fetching trainers', { error: err.message, stack: err.stack });
     res.status(500).json({ error: 'Server error fetching trainers' });
   }
 });
@@ -96,7 +93,7 @@ router.get('/admins', requireAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('User route error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -160,7 +157,7 @@ router.get('/', requireAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('User route error', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Server error',
@@ -184,7 +181,7 @@ router.get('/profile', async (req, res) => {
 
     res.json(user);
   } catch (err) {
-    console.error(err.message);
+    logger.error('User route error', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Server error',
@@ -219,7 +216,7 @@ router.get('/:id', validateObjectId('id'), async (req, res) => {
       user,
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('User route error', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Server error',
@@ -301,7 +298,7 @@ router.put(
         user: updatedUser,
       });
     } catch (err) {
-      console.error(err.message);
+      logger.error('User route error', { error: err.message });
       res.status(500).json({
         success: false,
         error: 'Server error',
@@ -328,7 +325,7 @@ router.delete('/:id', requireAdmin, validateObjectId('id'), async (req, res) => 
       message: 'User deleted successfully',
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('User route error', { error: err.message });
     res.status(500).json({
       success: false,
       error: 'Server error',
@@ -380,9 +377,7 @@ router.get('/data-export', async (req, res) => {
     };
 
     // Log the data export request for compliance
-    console.log(
-      `GDPR Data Export: User ${req.user.id} requested data export at ${new Date().toISOString()}`
-    );
+    logger.logUserAction('gdpr_data_export', req.user.id, { requestedAt: new Date().toISOString() }, req);
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
@@ -391,7 +386,7 @@ router.get('/data-export', async (req, res) => {
     );
     res.json(dataExport);
   } catch (err) {
-    console.error('GDPR Data Export Error:', err.message);
+    logger.error('GDPR data export error', { userId: req.user.id, error: err.message });
     res.status(500).json({ msg: 'Server error during data export' });
   }
 });
@@ -420,9 +415,7 @@ router.delete(
       }
 
       // Log the deletion request for compliance and legal purposes
-      console.log(
-        `GDPR Data Deletion: User ${req.user.id} (${user.email}) requested data deletion. Reason: ${req.body.reason}`
-      );
+      logger.logUserAction('gdpr_data_deletion', req.user.id, { reason: req.body.reason }, req);
 
       // Instead of hard deleting, we anonymize the data to maintain referential integrity
       // This is a common GDPR compliance approach
@@ -452,7 +445,7 @@ router.delete(
         note: 'Your account has been anonymized while maintaining necessary records for legal compliance',
       });
     } catch (err) {
-      console.error('GDPR Data Deletion Error:', err.message);
+      logger.error('GDPR data deletion error', { userId: req.user.id, error: err.message });
       res.status(500).json({ msg: 'Server error during data deletion' });
     }
   }
@@ -480,7 +473,7 @@ router.get('/privacy-settings', async (req, res) => {
       deletionReason: user.deletionReason,
     });
   } catch (err) {
-    console.error('Privacy Settings Error:', err.message);
+    logger.error('Privacy settings error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -633,7 +626,7 @@ router.put(
         privacySettings: user.privacySettings,
       });
     } catch (err) {
-      console.error('Privacy Settings Update Error:', err.message);
+      logger.error('Privacy settings update error', { error: err.message });
       res.status(500).json({ msg: 'Server error' });
     }
   }

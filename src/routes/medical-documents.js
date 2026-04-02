@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 
 const User = require('../models/User');
+const { logger } = require('../services/logger');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
 
@@ -70,7 +71,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     res.json({ msg: 'File uploaded successfully', filename: req.file.filename });
   } catch (err) {
     if (req.file) fs.unlink(req.file.path, () => {});
-    console.error('Upload error:', err.stack);
+    logger.error('Upload error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error uploading file', error: err.message });
   }
 });
@@ -97,7 +98,7 @@ router.post('/delete', async (req, res) => {
     try {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (err) {
-      console.error(err);
+      logger.error('Failed to delete file from disk', { error: err.message });
     }
 
     user.medicalDocuments.splice(docIndex, 1);
@@ -105,7 +106,7 @@ router.post('/delete', async (req, res) => {
 
     res.json({ msg: 'Document deleted successfully' });
   } catch (err) {
-    console.error('Delete error:', err.stack);
+    logger.error('Delete error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error deleting document', error: err.message });
   }
 });
@@ -134,7 +135,7 @@ router.get('/get', async (req, res) => {
       documents,
     });
   } catch (err) {
-    console.error('Get documents error:', err.stack);
+    logger.error('Get documents error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error retrieving documents', error: err.message });
   }
 });
@@ -163,7 +164,7 @@ router.post('/save-info', async (req, res) => {
       medicalConditions: user.medicalConditions,
     });
   } catch (err) {
-    console.error('Save info error:', err.stack);
+    logger.error('Save info error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error saving medical info', error: err.message });
   }
 });
@@ -218,7 +219,7 @@ router.get('/view/:filename', async (req, res) => {
     res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
     res.sendFile(filePath);
   } catch (err) {
-    console.error('View error:', err.stack);
+    logger.error('View error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error viewing file', error: err.message });
   }
 });
@@ -253,7 +254,7 @@ router.get('/download/:filename', async (req, res) => {
 
     res.download(filePath);
   } catch (err) {
-    console.error('Download error:', err.stack);
+    logger.error('Download error', { error: err.message, stack: err.stack });
     res.status(500).json({ msg: 'Error downloading file', error: err.message });
   }
 });

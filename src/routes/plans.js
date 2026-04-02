@@ -1,5 +1,6 @@
 const express = require('express');
 
+const { logger } = require('../services/logger');
 const StripePlan = require('../models/StripePlan');
 const { auth, protectedRoute } = require('../middleware'); // Optional auth
 
@@ -61,7 +62,7 @@ router.get('/', async (req, res) => {
       plans: formatted,
     });
   } catch (error) {
-    console.error('Plans route error:', error);
+    logger.error('Plans route error', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to fetch plans' });
   }
 });

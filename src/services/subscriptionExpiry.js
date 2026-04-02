@@ -50,12 +50,11 @@ async function checkExpiredSubscriptions() {
     }
 
     if (updatedCount > 0) {
-      console.log(`✅ Updated ${updatedCount} expired subscriptions`);
+      logger.info('Updated expired subscriptions', { count: updatedCount });
     }
 
     return updatedCount;
   } catch (error) {
-    console.error('Error checking expired subscriptions:', error);
     logger.error('Error in checkExpiredSubscriptions', { error: error.message });
     throw error;
   }
@@ -98,12 +97,11 @@ async function checkPastDueSubscriptions() {
     }
 
     if (cancelledCount > 0) {
-      console.log(`✅ Cancelled ${cancelledCount} past due subscriptions`);
+      logger.info('Cancelled past due subscriptions', { count: cancelledCount });
     }
 
     return cancelledCount;
   } catch (error) {
-    console.error('Error checking past due subscriptions:', error);
     logger.error('Error in checkPastDueSubscriptions', { error: error.message });
     throw error;
   }
@@ -115,24 +113,16 @@ async function checkPastDueSubscriptions() {
  */
 async function runSubscriptionMaintenance() {
   try {
-    console.log('🔄 Running subscription maintenance...');
+    logger.info('Running subscription maintenance');
 
     const expiredCount = await checkExpiredSubscriptions();
     const pastDueCount = await checkPastDueSubscriptions();
 
     const totalUpdated = expiredCount + pastDueCount;
-
-    if (totalUpdated > 0) {
-      console.log(
-        `✅ Subscription maintenance completed. Updated ${totalUpdated} subscriptions.`
-      );
-    } else {
-      console.log('✅ Subscription maintenance completed. No updates needed.');
-    }
+    logger.info('Subscription maintenance completed', { expiredCount, pastDueCount, totalUpdated });
 
     return { expiredCount, pastDueCount, totalUpdated };
   } catch (error) {
-    console.error('Error in subscription maintenance:', error);
     logger.error('Error in runSubscriptionMaintenance', { error: error.message });
     throw error;
   }

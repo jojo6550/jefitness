@@ -2,6 +2,7 @@
 const express = require('express');
 
 const router = express.Router();
+const { logger } = require('../services/logger');
 const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
@@ -67,7 +68,7 @@ router.get('/', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Client route error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -129,7 +130,7 @@ router.get('/statistics', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Client route error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -149,7 +150,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({ client });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Client route error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -170,7 +171,7 @@ router.delete('/:id', async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Client deleted successfully' });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Client route error', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });

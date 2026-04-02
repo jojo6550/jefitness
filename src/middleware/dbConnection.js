@@ -4,6 +4,7 @@
  */
 
 const mongoose = require('mongoose');
+const { logger } = require('../services/logger');
 
 /**
  * Middleware to check if database is connected
@@ -23,9 +24,7 @@ const requireDbConnection = (req, res, next) => {
     next();
   } else if (connectionState === 2 || connectionState === 3) {
     // Database is connecting or disconnecting
-    console.warn(
-      `[DB] Database ${connectionState === 2 ? 'connecting' : 'disconnecting'}, request queued or rejected`
-    );
+    logger.warn(`DB ${connectionState === 2 ? 'connecting' : 'disconnecting'}, request queued or rejected`, { connectionState });
 
     // For login/signup, we should reject - can't authenticate without DB
     if (req.path.includes('login') || req.path.includes('signup')) {
@@ -48,7 +47,7 @@ const requireDbConnection = (req, res, next) => {
     }, 1000);
   } else {
     // Database is disconnected
-    console.error('[DB] Database not connected, request rejected');
+    logger.error('DB not connected, request rejected');
 
     return res.status(503).json({
       msg: 'Service temporarily unavailable. Database disconnected.',

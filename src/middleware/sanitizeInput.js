@@ -4,6 +4,7 @@
  */
 
 const sanitizeHtml = require('sanitize-html');
+const { logger } = require('../services/logger');
 
 /**
  * SECURITY: Sanitize input middleware
@@ -28,7 +29,7 @@ const sanitizeInput = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Input sanitization error:', error);
+    logger.error('Input sanitization error', { error: error.message });
     // SECURITY: Log but continue processing to avoid breaking functionality
     next();
   }
@@ -72,7 +73,7 @@ function sanitizeValue(value) {
       // SECURITY: Additional protection against script injection
       return sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
     } catch (error) {
-      console.error('Sanitize error:', error);
+      logger.error('Sanitize error', { error: error.message });
       return value;
     }
   }
@@ -95,7 +96,7 @@ const sanitizeStrict = (fields = []) => {
       });
       next();
     } catch (error) {
-      console.error('Strict sanitization error:', error);
+      logger.error('Strict sanitization error', { error: error.message });
       res.status(400).json({
         success: false,
         error: { message: 'Invalid input format' },

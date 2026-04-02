@@ -5,6 +5,7 @@
  */
 
 const Subscription = require('../models/Subscription');
+const { logger } = require('../services/logger');
 
 /**
  * Middleware: requireActiveSubscription
@@ -67,7 +68,7 @@ async function requireActiveSubscription(req, res, next) {
     req.subscription = subscription;
     next();
   } catch (error) {
-    console.error('Error in requireActiveSubscription middleware:', error);
+    logger.error('Error in requireActiveSubscription middleware', { error: error.message });
     return res.status(500).json({
       success: false,
       error: {
@@ -103,7 +104,7 @@ async function optionalSubscriptionCheck(req, res, next) {
     }
     next();
   } catch (error) {
-    console.error('Error in optionalSubscriptionCheck middleware:', error);
+    logger.error('Error in optionalSubscriptionCheck middleware', { error: error.message });
     // Don't block the request on non-critical errors
     next();
   }

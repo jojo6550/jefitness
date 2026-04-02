@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { logger } = require('../services/logger');
 
 /**
  * Cache Version Utility
@@ -29,7 +30,7 @@ function getFileHash(filePath) {
 
     // Check if file exists
     if (!fs.existsSync(fullPath)) {
-      console.warn(`Cache version: File not found: ${filePath}`);
+      logger.warn('Cache version: file not found', { filePath });
       return Date.now().toString(36);
     }
 
@@ -44,7 +45,7 @@ function getFileHash(filePath) {
     hashCache.set(filePath, hash);
     return hash;
   } catch (err) {
-    console.error(`Error computing hash for ${filePath}:`, err.message);
+    logger.error('Error computing file hash', { filePath, error: err.message });
     return Date.now().toString(36);
   }
 }
@@ -105,16 +106,16 @@ function startFileWatching(callback) {
       try {
         const watcher = fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
           if (filename && (filename.endsWith('.js') || filename.endsWith('.css'))) {
-            console.log(`[Cache] File changed: ${filename}, invalidating cache`);
+            logger.info('Cache invalidated due to file change', { filename });
             invalidateCache();
             if (callback) callback(filename);
           }
         });
 
         watchers.set(dir, watcher);
-        console.log(`[Cache] Started watching ${dir} for changes`);
+        logger.info('Cache watcher started', { dir });
       } catch (error) {
-        console.warn(`[Cache] Failed to watch ${dir}:`, error.message);
+        logger.warn('Failed to start cache watcher', { dir, error: error.message });
       }
     }
   });
@@ -126,7 +127,7 @@ function startFileWatching(callback) {
 function stopFileWatching() {
   watchers.forEach((watcher, dir) => {
     watcher.close();
-    console.log(`[Cache] Stopped watching ${dir}`);
+    logger.info('Cache watcher stopped', { dir });
   });
   watchers.clear();
 }

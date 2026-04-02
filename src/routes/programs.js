@@ -1,6 +1,7 @@
 const express = require('express');
 
 const router = express.Router();
+const { logger } = require('../services/logger');
 const Program = require('../models/Program');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
@@ -63,10 +64,7 @@ router.get('/', async (req, res) => {
             createdAt: program.createdAt,
           };
         } catch (error) {
-          console.error(
-            `Error fetching price for program ${program._id}:`,
-            error.message
-          );
+          logger.error('Error fetching price for program', { programId: program._id, error: error.message });
           return {
             _id: program._id,
             title: program.title,
@@ -93,7 +91,7 @@ router.get('/', async (req, res) => {
       programs: programsWithPricing,
     });
   } catch (error) {
-    console.error('Error fetching programs:', error);
+    logger.error('Error fetching programs', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch programs',
@@ -228,7 +226,7 @@ router.get('/:id', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching program:', error);
+    logger.error('Error fetching program', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch program',
@@ -323,7 +321,7 @@ router.post('/checkout', auth, async (req, res) => {
       url: session.url,
     });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to create checkout session',
@@ -425,7 +423,7 @@ router.get('/user/my-programs', auth, async (req, res) => {
       programs,
     });
   } catch (error) {
-    console.error('Error fetching user programs:', error);
+    logger.error('Error fetching user programs', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch your programs',
@@ -460,7 +458,7 @@ router.get('/user/access/:slug', auth, async (req, res) => {
       slug,
     });
   } catch (error) {
-    console.error('Error checking program access:', error);
+    logger.error('Error checking program access', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to check program access',

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const { logger } = require('../services/logger');
 
 const { getFileHash } = require('../utils/cacheVersion');
 
@@ -43,7 +44,7 @@ router.get('/cache-versions', async (req, res) => {
           }
         }
       } catch (error) {
-        console.warn(`Warning scanning directory ${dirPath}:`, error.message);
+        logger.warn('Warning scanning directory', { dirPath, error: error.message });
       }
     }
 
@@ -71,7 +72,7 @@ router.get('/cache-versions', async (req, res) => {
       environment: process.env.NODE_ENV || 'development',
     });
   } catch (error) {
-    console.error('Error generating cache versions:', error);
+    logger.error('Error generating cache versions', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to generate cache versions',

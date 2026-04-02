@@ -1,5 +1,6 @@
 const express = require('express');
 
+const { logger } = require('../services/logger');
 const { auth } = require('../middleware/auth');
 const {
   preventNoSQLInjection,
@@ -38,7 +39,7 @@ router.get('/', async (req, res) => {
           currency: priceObj.currency,
         };
       } catch (err) {
-        console.warn(`Failed to fetch price for ${key}, using default:`, err.message);
+        logger.warn('Failed to fetch price, using default', { key, error: err.message });
         products[key] = {
           ...product,
           price: 100.1,
@@ -49,7 +50,7 @@ router.get('/', async (req, res) => {
 
     res.json({ success: true, products });
   } catch (err) {
-    console.error('Products route error:', err);
+    logger.error('Products route error', { error: err.message });
     res.status(500).json({
       success: false,
       products: Object.keys(PRODUCT_MAP).reduce((acc, key) => {
@@ -138,7 +139,7 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
 
     res.json({ success: true, checkoutUrl: session.url });
   } catch (err) {
-    console.error('Checkout error:', err);
+    logger.error('Checkout error', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to create checkout session' });
   }
 });
@@ -154,7 +155,7 @@ router.get('/purchases', auth, async (req, res) => {
 
     res.json({ success: true, purchases });
   } catch (err) {
-    console.error('Purchase history error:', err);
+    logger.error('Purchase history error', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to load purchase history' });
   }
 });

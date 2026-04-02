@@ -224,26 +224,26 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
 // -----------------------------
 async function startServer() {
   try {
-    console.log('Connecting to MongoDB...');
+    logger.info('Connecting to MongoDB...');
     await connectDB();
-    console.log('✅ MongoDB connected successfully');
+    logger.info('MongoDB connected successfully');
 
-    mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
-    mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
-    mongoose.connection.on('error', err => console.error('Mongo error', err));
+    mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
+    mongoose.connection.on('reconnected', () => logger.info('MongoDB reconnected'));
+    mongoose.connection.on('error', err => logger.error('MongoDB connection error', { error: err.message }));
 
     startSubscriptionCleanupJob();
     startRenewalReminderJob();
 
-    const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));
 
     const gracefulShutdown = async signal => {
-      console.log(`${signal} received. Shutting down.`);
+      logger.info('Shutting down gracefully', { signal });
       stopFileWatching();
       csrfProtection.stop();
       server.close(async () => {
         await mongoose.connection.close();
-        console.log('MongoDB closed');
+        logger.info('MongoDB connection closed');
         process.exit(0);
       });
     };
@@ -251,7 +251,7 @@ async function startServer() {
     process.on('SIGINT', gracefulShutdown);
     process.on('SIGTERM', gracefulShutdown);
   } catch (err) {
-    console.error('Failed to start server:', err);
+    logger.error('Failed to start server', { error: err.message, stack: err.stack });
     process.exit(1);
   }
 }

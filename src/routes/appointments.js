@@ -142,7 +142,7 @@ router.get('/', async (req, res) => {
       pagination,
     });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Appointment operation failed', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -157,7 +157,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/user', async (req, res) => {
   try {
-    console.log(`Fetching appointments for user: ${req.user.id}`);
+    logger.info('Fetching appointments for user', { userId: req.user.id });
 
     // Validate subscription dates safely
     const validateDate = date => {
@@ -183,17 +183,14 @@ router.get('/user', async (req, res) => {
       return apt;
     });
 
-    console.log(
-      `Found ${processedAppointments.length} appointments for user: ${req.user.id}`
-    );
+    logger.info('Appointments fetched', { count: processedAppointments.length, userId: req.user.id });
 
     res.json({
       success: true,
       appointments: processedAppointments,
     });
   } catch (err) {
-    console.error('Error fetching user appointments:', err);
-    console.error('Stack trace:', err.stack);
+    logger.error('Error fetching user appointments', { error: err.message, stack: err.stack });
     res.status(500).json({ error: 'Server error fetching appointments' });
   }
 });
@@ -229,7 +226,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(appointment);
   } catch (err) {
-    console.error(err.message);
+    logger.error('Appointment operation failed', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -253,11 +250,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
     // Validate required fields
     if (!trainerId || !date || !time) {
-      console.log('Validation failed: missing required fields', {
-        trainerId,
-        date,
-        time,
-      });
+      logger.warn('Validation failed: missing required fields', { trainerId, date, time });
       return res.status(400).json({ msg: 'Please provide all required fields' });
     }
 
@@ -363,7 +356,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
     res.status(201).json(appointment);
   } catch (err) {
-    console.error(err.message);
+    logger.error('Appointment operation failed', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -463,7 +456,7 @@ router.put(
 
       res.json(appointment);
     } catch (err) {
-      console.error(err.message);
+      logger.error('Appointment operation failed', { error: err.message });
       res.status(500).json({ msg: 'Server error' });
     }
   }
@@ -508,7 +501,7 @@ router.delete('/:id', async (req, res) => {
     await Appointment.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Appointment deleted successfully' });
   } catch (err) {
-    console.error(err.message);
+    logger.error('Appointment operation failed', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });

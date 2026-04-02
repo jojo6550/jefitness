@@ -1,4 +1,5 @@
 const StripePlan = require('../models/StripePlan');
+const { logger } = require('./logger');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
@@ -29,7 +30,7 @@ async function getStripePlans() {
     const plans = await StripePlan.find({ active: true, type: 'recurring' }).lean();
     return plans;
   } catch (error) {
-    console.error('Failed to fetch StripePlans:', error.message);
+    logger.error('Failed to fetch StripePlans', { error: error.message });
     return [];
   }
 }
@@ -78,7 +79,7 @@ async function getPriceIdForProduct(productId) {
     }).lean();
     return planRecord ? planRecord.stripePriceId : null;
   } catch (error) {
-    console.error(`Failed to get price for product ${productId}:`, error.message);
+    logger.error('Failed to get price for product', { productId, error: error.message });
     return null;
   }
 }
@@ -90,11 +91,11 @@ async function getPriceIdForProduct(productId) {
 async function getPlanPricing() {
   // Cache hit?
   if (Date.now() < cacheExpiry && Object.keys(priceCache).length > 0) {
-    console.log('⚡ getPlanPricing() CACHE HIT (Dynamic DB)');
+    logger.debug('getPlanPricing cache hit');
     return priceCache;
   }
 
-  console.log('🔄 getPlanPricing() - Fresh Dynamic DB scan');
+  logger.debug('getPlanPricing: fresh DB scan');
 
   try {
     // Get ALL active recurring plans from DB (pure dynamic)
@@ -109,9 +110,7 @@ async function getPlanPricing() {
       .lean();
 
     if (plans.length === 0) {
-      console.warn(
-        '⚠️ No active recurring plans in StripePlan DB. Run: node scripts/sync-stripe-to-db.js'
-      );
+      logger.warn('No active recurring plans in StripePlan DB');
       return {};
     }
 
@@ -144,20 +143,16 @@ async function getPlanPricing() {
         intervalCount: planRecord.intervalCount,
       };
 
-      console.log(
-        `✅ Dynamic Plan ${planKey}: ${displayPrice} (${planRecord.stripePriceId.slice(-8)})`
-      );
+      logger.debug('Dynamic plan loaded', { planKey, displayPrice, priceIdSuffix: planRecord.stripePriceId.slice(-8) });
     }
 
     // Cache
     priceCache = pricing;
     cacheExpiry = Date.now() + CACHE_TTL;
-    console.log(
-      `✅ getPlanPricing() Dynamic cached: ${Object.keys(pricing).length} plans`
-    );
+    logger.debug('getPlanPricing cached', { planCount: Object.keys(pricing).length });
     return pricing;
   } catch (error) {
-    console.error('getPlanPricing Dynamic DB error:', error.message);
+    logger.error('getPlanPricing DB error', { error: error.message });
     return {};
   }
 }
@@ -167,7 +162,7 @@ async function getPlanPricing() {
  */
 
 function getFallbackPricingAll() {
-  console.warn('getPlanPricing fallback - empty plans object (no DB records)');
+  logger.warn('getPlanPricing fallback: no DB records');
   return {};
 }
 
@@ -209,7 +204,7 @@ async function getPlanNameFromPriceId(priceId) {
     }
     return 'unknown-plan';
   } catch (error) {
-    console.error(`Failed to get plan name for price ${priceId}:`, error.message);
+    logger.error('Failed to get plan name for price', { priceId, error: error.message });
     return 'unknown-plan';
   }
 }
@@ -295,7 +290,7 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
           });
         } catch (attachError) {
           // Payment method might already be attached, ignore error
-          console.warn('Payment method attach warning:', attachError.message);
+          logger.warn('Payment method attach warning', { error: attachError.message });
         }
       }
     } else {
@@ -326,16 +321,16 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
  */
 async function createSubscription(customerId, plan) {
   try {
-    console.log('createSubscription called with customerId:', customerId, 'plan:', plan);
+    logger.info('createSubscription called', { customerId, plan });
 
     const productId = PRODUCT_IDS[plan];
-    console.log('productId for plan:', productId);
+    logger.debug('Product ID for plan', { plan, productId });
     if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);
     }
 
     const priceId = await getPriceIdForPlan(plan);
-    console.log('priceId (DB) found:', priceId);
+    logger.debug('Price ID from DB', { plan, priceId });
     if (!priceId) {
       throw new Error(
         `No active recurring price found for plan: ${plan} (check StripePlan DB)`
@@ -344,9 +339,9 @@ async function createSubscription(customerId, plan) {
 
     // Get customer to check default payment method
     const customer = await getStripe().customers.retrieve(customerId);
-    console.log('customer retrieved:', customer.id);
+    logger.debug('Customer retrieved', { customerId: customer.id });
     const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
-    console.log('defaultPaymentMethod:', defaultPaymentMethod);
+    logger.debug('Default payment method', { defaultPaymentMethod });
 
     const subscriptionData = {
       customer: customerId,
@@ -366,21 +361,13 @@ async function createSubscription(customerId, plan) {
       subscriptionData.default_payment_method = defaultPaymentMethod;
     }
 
-    console.log(
-      'Creating subscription with data:',
-      JSON.stringify(subscriptionData, null, 2)
-    );
+    logger.debug('Creating subscription', { customerId, plan, priceId });
     const subscription = await getStripe().subscriptions.create(subscriptionData);
-    console.log(
-      'Subscription created successfully:',
-      subscription.id,
-      'status:',
-      subscription.status
-    );
+    logger.info('Subscription created', { subscriptionId: subscription.id, status: subscription.status });
 
     return subscription;
   } catch (error) {
-    console.error('createSubscription error:', error);
+    logger.error('createSubscription error', { error: error.message });
     throw new Error(`Failed to create subscription: ${error.message}`);
   }
 }
@@ -529,9 +516,7 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       msg.includes('already been canceled') ||
       msg.includes('Cannot cancel')
     ) {
-      console.log(
-        `ℹ️ Stripe subscription ${subscriptionId} already canceled or not found — treating as success`
-      );
+      logger.info('Stripe subscription already canceled or not found, treating as success', { subscriptionId });
       return null;
     }
     throw new Error(`Failed to cancel subscription: ${error.message}`);
@@ -601,19 +586,19 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     if (!customerId) {
       throw new Error('Missing customer ID - please re-authenticate your account');
     }
-    console.log(`🔍 Validating customer ${customerId} for plan ${plan}`);
+    logger.debug('Validating Stripe customer', { customerId, plan });
 
     try {
       await stripe.customers.retrieve(customerId);
-      console.log(`✅ Customer ${customerId} verified`);
+      logger.debug('Stripe customer verified', { customerId });
     } catch (custErr) {
       if (custErr.code === 'resource_missing') {
-        console.error(`❌ Customer not found: ${customerId} (user email lookup needed)`);
+        logger.error('Stripe customer not found', { customerId });
         throw new Error(
           `Customer account invalid: ${customerId}. Please contact support to re-link your Stripe account.`
         );
       }
-      console.error('❌ Customer validation failed:', custErr.message);
+      logger.error('Customer validation failed', { customerId, error: custErr.message });
       throw custErr;
     }
 
@@ -629,9 +614,7 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       );
     }
     const priceId = planData.priceId;
-    console.log(
-      `✅ Checkout using priceId: ${priceId.slice(-8)} (${planData.currency}) for "${plan}"`
-    );
+    logger.debug('Checkout price resolved', { plan, priceIdSuffix: priceId.slice(-8), currency: planData.currency });
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -655,15 +638,10 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
       // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor
     });
 
-    console.log(
-      `✅ Subscription checkout session created successfully: ${session.id} for customer ${customerId}`
-    );
+    logger.info('Subscription checkout session created', { sessionId: session.id, customerId });
     return session;
   } catch (error) {
-    console.error(
-      `❌ createCheckoutSession error [${plan}] customer[${customerId}]:`,
-      error.message
-    );
+    logger.error('createCheckoutSession error', { plan, customerId, error: error.message });
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
@@ -934,14 +912,11 @@ async function createProductCheckoutSession(customerId, items, successUrl, cance
       },
     });
 
-    console.log(
-      `✅ Product checkout session created: ${session.id} for customer: ${customerId}`
-    );
-    console.log(`📦 Items: ${validatedItems.length}`);
+    logger.info('Product checkout session created', { sessionId: session.id, customerId, itemCount: validatedItems.length });
 
     return session;
   } catch (error) {
-    console.error('Failed to create product checkout session:', error.message);
+    logger.error('Failed to create product checkout session', { error: error.message });
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
@@ -988,7 +963,7 @@ async function getOrCreateProductCustomer(email, name = null) {
     });
 
     if (existingCustomers.data.length > 0) {
-      console.log(`✅ Found existing customer: ${existingCustomers.data[0].id}`);
+      logger.debug('Found existing Stripe customer', { customerId: existingCustomers.data[0].id });
       return existingCustomers.data[0];
     }
 
@@ -1001,7 +976,7 @@ async function getOrCreateProductCustomer(email, name = null) {
       },
     });
 
-    console.log(`✅ Created new customer: ${customer.id}`);
+    logger.info('Created new Stripe customer', { customerId: customer.id });
     return customer;
   } catch (error) {
     throw new Error(`Failed to get/create customer: ${error.message}`);

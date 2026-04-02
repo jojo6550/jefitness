@@ -16,7 +16,7 @@ const STRIPE_ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'inc
  */
 const startSubscriptionCleanupJob = () => {
   cron.schedule('0 0 * * *', async () => {
-    console.log('🔄 Running daily subscription cleanup job...');
+    logger.info('Running daily subscription cleanup job');
 
     try {
       const now = new Date();
@@ -27,13 +27,11 @@ const startSubscriptionCleanupJob = () => {
       });
 
       if (!expiredSubscriptions.length) {
-        console.log('ℹ️ No expired subscriptions found today.');
+        logger.info('No expired subscriptions found today');
         return;
       }
 
-      console.log(
-        `📑 Found ${expiredSubscriptions.length} potentially expired subscriptions to verify.`
-      );
+      logger.info('Found potentially expired subscriptions to verify', { count: expiredSubscriptions.length });
 
       const stripe = stripeService.getStripe();
 
@@ -64,21 +62,15 @@ const startSubscriptionCleanupJob = () => {
                 },
                 { runValidators: false }
               );
-              console.log(
-                `ℹ️ Subscription ${sub._id} is still ${stripeSub.status} in Stripe — period dates synced.`
-              );
+              logger.info('Subscription still active in Stripe, period dates synced', { subscriptionId: sub._id, stripeStatus: stripeSub.status });
               continue;
             }
 
             // Stripe confirms inactive — safe to mark canceled.
-            console.log(
-              `✅ Stripe confirms subscription ${sub._id} is ${stripeSub.status} — marking canceled.`
-            );
+            logger.info('Stripe confirms subscription inactive, marking canceled', { subscriptionId: sub._id, stripeStatus: stripeSub.status });
           } catch (stripeErr) {
             // Cannot reach Stripe — skip rather than incorrectly canceling.
-            console.warn(
-              `⚠️ Could not verify subscription ${sub._id} with Stripe: ${stripeErr.message}. Skipping.`
-            );
+            logger.warn('Could not verify subscription with Stripe, skipping', { subscriptionId: sub._id, error: stripeErr.message });
             continue;
           }
         }
@@ -92,12 +84,10 @@ const startSubscriptionCleanupJob = () => {
         });
 
         await sub.save();
-        console.log(
-          `✅ Subscription ${sub._id} for user ${sub.userId} marked as canceled.`
-        );
+        logger.info('Subscription marked as canceled', { subscriptionId: sub._id, userId: sub.userId });
       }
     } catch (error) {
-      console.error('❌ Error in subscription cleanup job:', error);
+      logger.error('Error in subscription cleanup job', { error: error.message });
       logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
         jobName: 'subscriptionCleanup',
         error: error.message,
@@ -105,7 +95,7 @@ const startSubscriptionCleanupJob = () => {
     }
   });
 
-  console.log('⏰ Subscription cleanup cron job scheduled (0 0 * * *)');
+  logger.info('Subscription cleanup cron job scheduled', { schedule: '0 0 * * *' });
 };
 
 /**

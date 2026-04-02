@@ -1,6 +1,7 @@
 const express = require('express');
 
 const Subscription = require('../models/Subscription');
+const { logger } = require('../services/logger');
 const User = require('../models/User');
 const {
   isWebhookEventProcessed,
@@ -45,22 +46,20 @@ async function handleStripeWebhook(req, res) {
 
   // SECURITY: Verify webhook signature is present
   if (!sig) {
-    console.error(
-      '⚠️ Security event: webhook_signature_missing | IP: ' + (req.ip || 'unknown')
-    );
+    logger.warn('Security event: webhook_signature_missing', { ip: req.ip || 'unknown' });
     return res.status(400).send('Webhook signature missing');
   }
 
   // SECURITY: Verify webhook secret is configured
   if (!webhookSecret) {
-    console.error('⚠️ Security event: webhook_secret_not_configured');
+    logger.error('Security event: webhook_secret_not_configured');
     return res.status(500).send('Webhook secret not configured');
   }
 
   try {
     const stripe = getStripe();
     if (!stripe) {
-      console.error('⚠️ Stripe not initialized');
+      logger.error('Stripe not initialized');
       return res.status(500).send('Stripe not configured');
     }
 
@@ -68,26 +67,21 @@ async function handleStripeWebhook(req, res) {
     // req.body is a raw Buffer here because this route is registered before express.json().
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error(
-      `⚠️ Security event: webhook_signature_verification_failed | Error: ${err.message} | IP: ${req.ip}`
-    );
+    logger.error('Security event: webhook_signature_verification_failed', { error: err.message, ip: req.ip });
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // SECURITY: Validate event structure
   if (!event || !event.id || !event.type || !event.data || !event.data.object) {
-    console.error(
-      '⚠️ Security event: invalid_webhook_event_structure | EventId: ' +
-        (event?.id || 'unknown')
-    );
+    logger.error('Security event: invalid_webhook_event_structure', { eventId: event?.id || 'unknown' });
     return res.status(400).send('Invalid event structure');
   }
 
-  console.log(`📨 Webhook event received: ${event.type} | EventId: ${event.id}`);
+  logger.info('Webhook event received', { eventType: event.type, eventId: event.id });
 
   // SECURITY: Check if event is in whitelist
   if (!ALLOWED_WEBHOOK_EVENTS.has(event.type)) {
-    console.warn(`⚠️ Unhandled webhook event type: ${event.type} | EventId: ${event.id}`);
+    logger.warn('Unhandled webhook event type', { eventType: event.type, eventId: event.id });
     return res
       .status(200)
       .json({ received: true, processed: false, reason: 'Event type not handled' });
@@ -96,9 +90,7 @@ async function handleStripeWebhook(req, res) {
   // SECURITY: Replay protection — check if event was already processed
   const alreadyProcessed = await isWebhookEventProcessed(event.id);
   if (alreadyProcessed) {
-    console.warn(
-      `⚠️ Security event: webhook_replay_attempt | EventId: ${event.id} | EventType: ${event.type}`
-    );
+    logger.warn('Security event: webhook_replay_attempt', { eventId: event.id, eventType: event.type });
     return res
       .status(200)
       .json({ received: true, processed: false, reason: 'Event already processed' });
@@ -148,15 +140,12 @@ async function handleStripeWebhook(req, res) {
         break;
 
       default:
-        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+        logger.info('Unhandled event type in switch', { eventType: event.type });
     }
 
     res.status(200).json({ received: true, processed: true });
   } catch (error) {
-    console.error(
-      `❌ Error processing webhook event ${event.type} (${event.id}):`,
-      error
-    );
+    logger.error('Error processing webhook event', { eventType: event.type, eventId: event.id, error: error.message });
     // Always return 200 so Stripe does not keep retrying a bad event.
     // The error is logged for investigation.
     res.status(200).json({ received: true, processed: false, error: error.message });
@@ -203,7 +192,7 @@ async function buildSubscriptionPayload(subscription) {
 }
 
 async function handleCustomerCreated(customer) {
-  console.log(`✅ Customer created: ${customer.id}`);
+  logger.info('Stripe customer created', { customerId: customer.id });
 }
 
 /**
@@ -215,9 +204,7 @@ async function handleSubscriptionUpsert(subscription) {
   const user = await User.findOne({ stripeCustomerId: subscription.customer });
 
   if (!user) {
-    console.warn(
-      `⚠️ No user found for Stripe customer ${subscription.customer} (subscription: ${subscription.id})`
-    );
+    logger.warn('No user found for Stripe customer', { customerId: subscription.customer, subscriptionId: subscription.id });
     return;
   }
 
@@ -229,9 +216,7 @@ async function handleSubscriptionUpsert(subscription) {
     { upsert: true, new: true }
   );
 
-  console.log(
-    `✅ Subscription upserted: ${doc._id} | status: ${doc.status} | plan: ${doc.plan}`
-  );
+  logger.info('Subscription upserted', { docId: doc._id, status: doc.status, plan: doc.plan });
 
   // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
   await User.findOneAndUpdate(
@@ -243,7 +228,7 @@ async function handleSubscriptionUpsert(subscription) {
       },
     }
   );
-  console.log(`✅ User account synced: ${user._id} | sub: ${subscription.id}`);
+  logger.info('User account synced', { userId: user._id, subscriptionId: subscription.id });
 }
 
 /**
@@ -266,14 +251,14 @@ async function handleSubscriptionDeleted(subscription) {
   );
 
   if (!sub) {
-    console.warn(`⚠️ Subscription ${subscription.id} not found in DB on deletion event`);
+    logger.warn('Subscription not found in DB on deletion event', { stripeSubscriptionId: subscription.id });
   } else {
-    console.log(`✅ Subscription canceled in DB: ${subscription.id}`);
+    logger.info('Subscription canceled in DB', { stripeSubscriptionId: subscription.id });
   }
 }
 
 async function handleInvoiceCreated(invoice) {
-  console.log(`ℹ️ Invoice created: ${invoice.id}`);
+  logger.info('Invoice created', { invoiceId: invoice.id });
 }
 
 /**
@@ -281,7 +266,7 @@ async function handleInvoiceCreated(invoice) {
  * Ensures subscription status is 'active' and period dates are current.
  */
 async function handleInvoicePaid(invoice) {
-  console.log(`✅ Invoice paid: ${invoice.id}`);
+  logger.info('Invoice paid', { invoiceId: invoice.id });
   if (!invoice.subscription) return;
 
   const stripe = getStripe();
@@ -300,9 +285,7 @@ async function handleInvoicePaid(invoice) {
         : null;
     }
   } catch (err) {
-    console.warn(
-      `⚠️ Could not fetch subscription ${invoice.subscription} from Stripe: ${err.message}`
-    );
+    logger.warn('Could not fetch subscription from Stripe', { stripeSubscriptionId: invoice.subscription, error: err.message });
   }
 
   const updatePayload = {
@@ -319,11 +302,9 @@ async function handleInvoicePaid(invoice) {
   );
 
   if (sub) {
-    console.log(`✅ Subscription activated/renewed in DB: ${sub._id}`);
+    logger.info('Subscription activated/renewed in DB', { docId: sub._id });
   } else {
-    console.warn(
-      `⚠️ Subscription ${invoice.subscription} not found in DB on invoice.paid`
-    );
+    logger.warn('Subscription not found in DB on invoice.paid', { stripeSubscriptionId: invoice.subscription });
   }
 }
 
@@ -332,7 +313,7 @@ async function handleInvoicePaid(invoice) {
  * Marks the subscription as past_due in MongoDB.
  */
 async function handleInvoicePaymentFailed(invoice) {
-  console.log(`❌ Invoice payment failed: ${invoice.id}`);
+  logger.warn('Invoice payment failed', { invoiceId: invoice.id });
   if (!invoice.subscription) return;
 
   const sub = await Subscription.findOneAndUpdate(
@@ -342,20 +323,18 @@ async function handleInvoicePaymentFailed(invoice) {
   );
 
   if (sub) {
-    console.log(`❌ Subscription marked past_due in DB: ${sub._id}`);
+    logger.warn('Subscription marked past_due in DB', { docId: sub._id });
   } else {
-    console.warn(
-      `⚠️ Subscription ${invoice.subscription} not found in DB on payment_failed`
-    );
+    logger.warn('Subscription not found in DB on payment_failed', { stripeSubscriptionId: invoice.subscription });
   }
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
-  console.log(`✅ Payment intent succeeded: ${paymentIntent.id}`);
+  logger.info('Payment intent succeeded', { paymentIntentId: paymentIntent.id });
 }
 
 async function handlePaymentIntentFailed(paymentIntent) {
-  console.log(`❌ Payment intent failed: ${paymentIntent.id}`);
+  logger.warn('Payment intent failed', { paymentIntentId: paymentIntent.id });
 }
 
 /**
@@ -364,16 +343,16 @@ async function handlePaymentIntentFailed(paymentIntent) {
  * For payment mode: handles program purchases and product purchases.
  */
 async function handleCheckoutSessionCompleted(session) {
-  console.log(`✅ Checkout session completed: ${session.id}`);
+  logger.info('Checkout session completed', { sessionId: session.id });
 
   if (!session.customer) {
-    console.warn(`⚠️ Checkout session ${session.id} has no customer ID`);
+    logger.warn('Checkout session has no customer ID', { sessionId: session.id });
     return;
   }
 
   const user = await User.findOne({ stripeCustomerId: session.customer });
   if (!user) {
-    console.warn(`⚠️ No user found for Stripe customer ${session.customer}`);
+    logger.warn('No user found for Stripe customer', { customerId: session.customer });
     return;
   }
 
@@ -387,7 +366,7 @@ async function handleCheckoutSessionCompleted(session) {
         stripeSub = await stripe.subscriptions.retrieve(session.subscription);
       }
     } catch (err) {
-      console.warn(`⚠️ Could not fetch subscription from Stripe: ${err.message}`);
+      logger.warn('Could not fetch subscription from Stripe on checkout', { error: err.message });
     }
 
     if (stripeSub) {
@@ -397,9 +376,7 @@ async function handleCheckoutSessionCompleted(session) {
         { $set: { userId: user._id, ...payload, checkoutSessionId: session.id } },
         { upsert: true, new: true }
       );
-      console.log(
-        `✅ Subscription upserted via checkout: ${doc._id} | plan: ${doc.plan}`
-      );
+      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan });
 
       // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
       await User.findOneAndUpdate(
@@ -411,9 +388,7 @@ async function handleCheckoutSessionCompleted(session) {
           },
         }
       );
-      console.log(
-        `✅ User account synced via checkout: ${user._id} | sub: ${session.subscription}`
-      );
+      logger.info('User account synced via checkout', { userId: user._id, subscriptionId: session.subscription });
     }
     return;
   }
@@ -426,7 +401,7 @@ async function handleCheckoutSessionCompleted(session) {
       const programId = metadata.programId;
       // SECURITY: Validate MongoDB ObjectId format
       if (!/^[0-9a-fA-F]{24}$/.test(programId)) {
-        console.error(`⚠️ Invalid program ID format: ${programId}`);
+        logger.error('Invalid program ID format in checkout metadata', { programId });
         return;
       }
 
@@ -446,9 +421,9 @@ async function handleCheckoutSessionCompleted(session) {
           amountPaid: session.amount_total, // SECURITY: use server-side amount from Stripe
         });
         await user.save();
-        console.log(`✅ Program ${programId} purchased by user ${user._id}`);
+        logger.info('Program purchased', { programId, userId: user._id });
       } else {
-        console.log(`ℹ️ Program ${programId} already purchased by user ${user._id}`);
+        logger.info('Program already purchased', { programId, userId: user._id });
       }
     } else if (metadata?.programId) {
       // Legacy: trainer-assigned programs
@@ -459,7 +434,7 @@ async function handleCheckoutSessionCompleted(session) {
       if (!alreadyAssigned) {
         user.assignedPrograms.push({ programId, assignedAt: new Date() });
         await user.save();
-        console.log(`✅ Program ${programId} assigned to user ${user._id}`);
+        logger.info('Program assigned to user', { programId, userId: user._id });
       }
     } else if (metadata?.type === 'product_purchase') {
       const Purchase = require('../models/Purchase');
@@ -469,11 +444,9 @@ async function handleCheckoutSessionCompleted(session) {
         purchase.stripePaymentIntentId = session.payment_intent;
         purchase.status = 'completed';
         await purchase.save();
-        console.log(`✅ Product purchase ${purchase._id} completed for user ${user._id}`);
+        logger.info('Product purchase completed', { purchaseId: purchase._id, userId: user._id });
       } else {
-        console.warn(
-          `⚠️ Purchase record not found or already processed for session ${session.id}`
-        );
+        logger.warn('Purchase record not found or already processed', { sessionId: session.id });
       }
     }
   }

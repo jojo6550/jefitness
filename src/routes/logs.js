@@ -13,7 +13,7 @@ setInterval(() => {
   if (realtimeLogs.length > MAX_LOGS) {
     const removedCount = realtimeLogs.length - MAX_LOGS;
     realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
-    console.log(`Log cleanup: Removed ${removedCount} old log entries`);
+    originalConsoleLog(`Log cleanup: Removed ${removedCount} old log entries`);
   }
 }, CLEANUP_INTERVAL);
 
@@ -102,7 +102,7 @@ router.get('/', (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching logs:', error);
+    originalConsoleError('Error fetching logs:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -124,7 +124,7 @@ router.get('/stats', (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    console.error('Error fetching log stats:', error);
+    originalConsoleError('Error fetching log stats:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -159,7 +159,7 @@ router.get('/export', (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="logs.csv"');
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting logs:', error);
+    originalConsoleError('Error exporting logs:', error);
     res.status(500).json({ msg: 'Server error' });
   }
 });

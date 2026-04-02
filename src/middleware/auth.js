@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
+const { logger } = require('../services/logger');
 const WebhookEvent = require('../models/WebhookEvent');
 
 const {
@@ -64,7 +65,7 @@ async function auth(req, res, next) {
 
     // SECURITY: Reject tokens with outdated version
     if (tokenVersion < currentVersion) {
-      console.warn(`Security event: outdated_token_rejected | UserId: ${userId}`);
+      logger.warn('Security event: outdated_token_rejected', { userId });
       throw new AuthenticationError('Token has been revoked. Please log in again.');
     }
 
@@ -97,18 +98,16 @@ async function incrementUserTokenVersion(userId) {
   try {
     const user = await User.findById(userId).select('+tokenVersion');
     if (!user) {
-      console.error(`Failed to increment token version: User ${userId} not found`);
+      logger.error('Failed to increment token version: user not found', { userId });
       return;
     }
 
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
-    console.log(
-      `Security event: token_version_incremented | UserId: ${userId} | NewVersion: ${user.tokenVersion}`
-    );
+    logger.info('Security event: token_version_incremented', { userId, newVersion: user.tokenVersion });
   } catch (err) {
-    console.error(`Failed to increment token version for user ${userId}:`, err.message);
+    logger.error('Failed to increment token version', { userId, error: err.message });
   }
 }
 
@@ -120,7 +119,7 @@ async function getUserTokenVersion(userId) {
     const user = await User.findById(userId).select('+tokenVersion');
     return user ? user.tokenVersion || 0 : 0;
   } catch (err) {
-    console.error(`Failed to get token version for user ${userId}:`, err.message);
+    logger.error('Failed to get token version', { userId, error: err.message });
     return 0;
   }
 }
@@ -166,9 +165,7 @@ async function requireTrainer(req, res, next) {
     const user = await User.findById(req.user.id).select('role');
 
     if (!user) {
-      console.warn(
-        `Security event: trainer_access_denied | Reason: user_not_found | UserId: ${req.user.id}`
-      );
+      logger.warn('Security event: trainer_access_denied', { reason: 'user_not_found', userId: req.user.id });
       return res.status(401).json({
         success: false,
         error: 'User not found',
@@ -177,9 +174,7 @@ async function requireTrainer(req, res, next) {
 
     // SECURITY: Verify role from database, not from potentially stale JWT
     if (user.role !== 'trainer') {
-      console.warn(
-        `Security event: trainer_access_denied | UserId: ${req.user.id} | Role: ${user.role}`
-      );
+      logger.warn('Security event: trainer_access_denied', { userId: req.user.id, role: user.role });
       return res.status(403).json({
         success: false,
         error: 'Access denied. Trainer privileges required.',
@@ -190,7 +185,7 @@ async function requireTrainer(req, res, next) {
     req.user.role = user.role;
     next();
   } catch (err) {
-    console.error('Trainer verification error:', err.message);
+    logger.error('Trainer verification error', { error: err.message });
     return res.status(500).json({
       success: false,
       error: 'Failed to verify trainer status',
@@ -211,7 +206,7 @@ async function isWebhookEventProcessed(eventId) {
   } catch (err) {
     // If database is down, log error and fall back to safe behavior
     // (reject the event to prevent potential duplicate processing)
-    console.error(`Failed to check webhook event status: ${err.message}`);
+    logger.error('Failed to check webhook event status', { error: err.message });
     return true; // Assume processed on error (safe failure)
   }
 }
@@ -235,10 +230,10 @@ async function markWebhookEventProcessed(eventId, eventType = 'unknown') {
 
     // Use ensureProcessed to handle race conditions safely
     await webhookEvent.ensureProcessed();
-    console.log(`Webhook event marked as processed: ${eventId}`);
+    logger.info('Webhook event marked as processed', { eventId });
   } catch (err) {
     // Log error but don't throw - webhook processing should continue
-    console.error(`Failed to mark webhook event as processed: ${err.message}`);
+    logger.error('Failed to mark webhook event as processed', { eventId, error: err.message });
   }
 }
 

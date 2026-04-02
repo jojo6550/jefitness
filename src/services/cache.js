@@ -1,3 +1,5 @@
+const { logger } = require('./logger');
+
 /**
  * In-Memory Cache Service
  * Simple in-memory caching without Redis dependency
@@ -18,7 +20,7 @@ class CacheService {
    * Starts memory cache cleanup interval
    */
   connect() {
-    console.log('✅ Cache service: Using in-memory cache');
+    logger.info('Cache service initialized', { type: 'in-memory' });
     this.startMemoryCacheCleanup();
   }
 
@@ -43,9 +45,7 @@ class CacheService {
       }
 
       if (cleaned > 0) {
-        console.log(
-          `Memory cache cleanup: Removed ${cleaned} expired entries (${this.memoryCache.size} remaining)`
-        );
+        logger.info('Memory cache cleanup', { removed: cleaned, remaining: this.memoryCache.size });
       }
     }, 60000); // Clean up every minute
   }
@@ -116,9 +116,7 @@ class CacheService {
     });
 
     if (memoryDeleted > 0) {
-      console.log(
-        `Cache invalidation: ${memoryDeleted} memory keys removed for pattern ${pattern}`
-      );
+      logger.info('Cache invalidation', { removed: memoryDeleted, pattern });
     }
   }
 
@@ -129,7 +127,7 @@ class CacheService {
   async clear() {
     this.memoryCache.clear();
     this.memoryCacheTTL.clear();
-    console.log('Memory cache cleared');
+    logger.info('Memory cache cleared');
   }
 
   /**
@@ -150,7 +148,7 @@ class CacheService {
     if (this.memoryCacheCleanupInterval) {
       clearInterval(this.memoryCacheCleanupInterval);
     }
-    console.log('✅ Cache service stopped');
+    logger.info('Cache service stopped');
   }
 }
 

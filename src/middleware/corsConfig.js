@@ -4,6 +4,7 @@
  */
 
 const cors = require('cors');
+const { logger } = require('../services/logger');
 
 /**
  * SECURITY: CORS options configuration
@@ -29,7 +30,7 @@ const corsOptions = {
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.warn(`Security event: cors_origin_rejected | Origin: ${origin}`);
+      logger.warn('Security event: cors_origin_rejected', { origin });
       callback(new Error(`Not allowed by CORS: ${origin}`), false);
     }
   },

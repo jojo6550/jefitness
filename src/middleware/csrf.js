@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { logger } = require('../services/logger');
 
 /**
  * CSRF Protection Middleware
@@ -61,7 +62,7 @@ class CSRFProtection {
 
     // SECURITY: Verify same user agent (prevents token theft via XSS)
     if (tokenData.userAgent !== req.get('User-Agent')) {
-      console.warn(`CSRF token mismatch for user ${tokenData.userId}: UserAgent changed`);
+      logger.warn('CSRF token mismatch: UserAgent changed', { userId: tokenData.userId });
       return { valid: false, error: 'Token mismatch' };
     }
 
@@ -95,7 +96,7 @@ class CSRFProtection {
         req.get('User-Agent')?.includes('Stripe') &&
         req.get('stripe-signature')
       ) {
-        console.log(`✅ Stripe webhook on root / bypassed CSRF | IP: ${req.ip}`);
+        logger.info('Stripe webhook on root / bypassed CSRF', { ip: req.ip });
         return next();
       }
 
@@ -131,9 +132,7 @@ class CSRFProtection {
       const verification = this.verifyToken(req);
 
       if (!verification.valid) {
-        console.warn(
-          `CSRF verification failed: ${verification.error} | IP: ${req.ip} | Path: ${req.path}`
-        );
+        logger.warn('CSRF verification failed', { error: verification.error, ip: req.ip, path: req.path });
         return res.status(403).json({
           success: false,
           error: 'CSRF validation failed',
@@ -161,7 +160,7 @@ class CSRFProtection {
       }
 
       if (cleaned > 0) {
-        console.log(`[CSRF] Cleanup: Removed ${cleaned} expired tokens`);
+        logger.info('CSRF cleanup completed', { removedCount: cleaned });
       }
     }, this.cleanupInterval);
   }

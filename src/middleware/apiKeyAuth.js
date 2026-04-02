@@ -1,4 +1,5 @@
 const APIKey = require('../models/APIKey');
+const { logger } = require('../services/logger');
 
 const apiKeyAuth = async (req, res, next) => {
   try {
@@ -29,7 +30,7 @@ const apiKeyAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('API Key authentication error:', error);
+    logger.error('API Key authentication error', { error: error.message });
     res.status(500).json({ msg: 'Authentication error' });
   }
 };

@@ -10,36 +10,38 @@
  * - Message queues (RabbitMQ, Kafka)
  */
 
+const { logger } = require('./logger');
+
 /**
  * Initialize all job processors (no-op)
  */
 async function initializeProcessors() {
-  console.warn('⚠️ Job processors disabled (job queue removed)');
+  logger.warn('Job processors disabled (job queue removed)');
 }
 
 // Stub processors - not called anymore
-async function emailProcessor(job) {
-  console.warn('⚠️ Email processor not available (job queue disabled)');
+async function emailProcessor() {
+  logger.warn('Email processor not available (job queue disabled)');
   return null;
 }
 
-async function fileProcessingProcessor(job) {
-  console.warn('⚠️ File processing processor not available (job queue disabled)');
+async function fileProcessingProcessor() {
+  logger.warn('File processing processor not available (job queue disabled)');
   return null;
 }
 
-async function reportProcessor(job) {
-  console.warn('⚠️ Report processor not available (job queue disabled)');
+async function reportProcessor() {
+  logger.warn('Report processor not available (job queue disabled)');
   return null;
 }
 
-async function cleanupProcessor(job) {
-  console.warn('⚠️ Cleanup processor not available (job queue disabled)');
+async function cleanupProcessor() {
+  logger.warn('Cleanup processor not available (job queue disabled)');
   return null;
 }
 
-async function webhookProcessor(job) {
-  console.warn('⚠️ Webhook processor not available (job queue disabled)');
+async function webhookProcessor() {
+  logger.warn('Webhook processor not available (job queue disabled)');
   return null;
 }
 

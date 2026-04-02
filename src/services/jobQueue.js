@@ -9,6 +9,7 @@
  * - Message queues (RabbitMQ, Kafka)
  * - Cloud functions for async processing
  */
+const { logger } = require('./logger');
 
 // Stub implementation
 class JobQueueService {
@@ -21,23 +22,21 @@ class JobQueueService {
    * Initialize the job queue service (no-op)
    */
   async init() {
-    console.warn('⚠️ Job Queue is disabled (Redis dependency removed)');
+    logger.warn('Job Queue is disabled (Redis dependency removed)');
   }
 
   /**
    * Register a job processor (no-op)
    */
   registerProcessor(queueName, concurrency, processor) {
-    console.warn(
-      `⚠️ Job processor registration skipped: ${queueName} (job queue disabled)`
-    );
+    logger.warn('Job processor registration skipped (job queue disabled)', { queueName });
   }
 
   /**
    * Queue an email job (no-op)
    */
   async queueEmail(emailData, options = {}) {
-    console.warn('⚠️ Email job queued skipped (job queue disabled)');
+    logger.warn('Email job skipped (job queue disabled)');
     return null;
   }
 
@@ -45,7 +44,7 @@ class JobQueueService {
    * Queue a file processing job (no-op)
    */
   async queueFileProcessing(fileData, options = {}) {
-    console.warn('⚠️ File processing job queued skipped (job queue disabled)');
+    logger.warn('File processing job skipped (job queue disabled)');
     return null;
   }
 
@@ -53,7 +52,7 @@ class JobQueueService {
    * Queue a report generation job (no-op)
    */
   async queueReport(reportData, options = {}) {
-    console.warn('⚠️ Report job queued skipped (job queue disabled)');
+    logger.warn('Report job skipped (job queue disabled)');
     return null;
   }
 
@@ -61,7 +60,7 @@ class JobQueueService {
    * Queue a cleanup job (no-op)
    */
   async queueCleanup(cleanupData, options = {}) {
-    console.warn('⚠️ Cleanup job queued skipped (job queue disabled)');
+    logger.warn('Cleanup job skipped (job queue disabled)');
     return null;
   }
 
@@ -69,7 +68,7 @@ class JobQueueService {
    * Queue a webhook retry (no-op)
    */
   async queueWebhook(webhookData, options = {}) {
-    console.warn('⚠️ Webhook job queued skipped (job queue disabled)');
+    logger.warn('Webhook job skipped (job queue disabled)');
     return null;
   }
 
@@ -107,28 +106,28 @@ class JobQueueService {
    * Pause a queue (no-op)
    */
   async pauseQueue(queueName) {
-    console.warn('⚠️ Queue pause skipped (job queue disabled)');
+    logger.warn('Queue pause skipped (job queue disabled)');
   }
 
   /**
    * Resume a queue (no-op)
    */
   async resumeQueue(queueName) {
-    console.warn('⚠️ Queue resume skipped (job queue disabled)');
+    logger.warn('Queue resume skipped (job queue disabled)');
   }
 
   /**
    * Clear a queue (no-op)
    */
   async clearQueue(queueName) {
-    console.warn('⚠️ Queue clear skipped (job queue disabled)');
+    logger.warn('Queue clear skipped (job queue disabled)');
   }
 
   /**
    * Close all queues (no-op)
    */
   async close() {
-    console.log('✅ Job queue service closed');
+    // no-op stub
   }
 }
 

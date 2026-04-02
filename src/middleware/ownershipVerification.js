@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+const { logger } = require('../services/logger');
 
 /**
  * SECURITY: Verify resource ownership
@@ -94,9 +95,7 @@ function verifyOwnership(options) {
       const userIdStr = req.user.id.toString();
 
       if (ownerIdStr !== userIdStr) {
-        console.warn(
-          `Security event: idor_attempt_blocked | UserId: ${userIdStr} | OwnerId: ${ownerIdStr} | Resource: ${resourceName} | ResourceId: ${resourceId}`
-        );
+        logger.warn('Security event: idor_attempt_blocked', { userId: userIdStr, ownerId: ownerIdStr, resource: resourceName, resourceId });
         return res.status(403).json({
           success: false,
           error: `Access denied. You can only access your own ${resourceName}.`,
@@ -106,7 +105,7 @@ function verifyOwnership(options) {
       // Ownership verified, proceed
       next();
     } catch (err) {
-      console.error(`Ownership verification error for ${resourceName}:`, err.message);
+      logger.error('Ownership verification error', { resource: resourceName, error: err.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to verify resource ownership',
@@ -163,9 +162,7 @@ function verifyQueryOwnership(userIdField = 'userId') {
 
       // SECURITY: Prevent users from querying other users' data
       if (req.query[userIdField] && req.query[userIdField] !== req.user.id.toString()) {
-        console.warn(
-          `Security event: idor_query_attempt | UserId: ${req.user.id} | RequestedUserId: ${req.query[userIdField]}`
-        );
+        logger.warn('Security event: idor_query_attempt', { userId: req.user.id, requestedUserId: req.query[userIdField] });
         return res.status(403).json({
           success: false,
           error: 'Access denied. You can only access your own data.',
@@ -176,7 +173,7 @@ function verifyQueryOwnership(userIdField = 'userId') {
       req.query[userIdField] = req.user.id.toString();
       next();
     } catch (err) {
-      console.error('Query ownership verification error:', err.message);
+      logger.error('Query ownership verification error', { error: err.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to verify ownership',
