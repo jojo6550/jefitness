@@ -526,3 +526,16 @@
 .avail-select    { width: auto; font-size: 0.9rem; min-height: 40px; }
 .avail-cap       { width: 58px; text-align: center; font-size: 0.9rem; min-height: 40px; }
 .avail-sep       { font-size: 0.8rem; }
+
+/* CSP Compliance Utilities */
+.no-underline {
+  text-decoration: none !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.w-max-560 {
+  max-width: 560px;
+}
