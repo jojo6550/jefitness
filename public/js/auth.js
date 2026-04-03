@@ -105,7 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (userRole === 'admin') {
             redirectPathRole = '/admin-dashboard';
           } else if (userRole === 'trainer') {
-            redirectPathRole = '/trainer-dashboard';
+            // First-time trainers go to the guide; returning trainers go straight to dashboard
+            const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
+            redirectPathRole = guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
           }
           window.location.href = redirectPathRole;
         }
@@ -326,7 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Redirect based on role
         let redirectPath = '/dashboard';
         if (user.role === 'admin') redirectPath = '/admin-dashboard';
-        else if (user.role === 'trainer') redirectPath = '/trainer-dashboard';
+        else if (user.role === 'trainer') {
+          const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
+          redirectPath = guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
+        }
         setTimeout(() => window.location.href = redirectPath, 1500);
       } catch (err) {
         console.error('Signup error:', err);
