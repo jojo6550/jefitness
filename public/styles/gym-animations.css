@@ -1,0 +1,839 @@
+/* ════════════════════════════════════════════════════════════════
+   GYM ANIMATIONS · SKELETON LOADING · ONBOARDING TOUR
+   JE Fitness — Industrial Athletic
+════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────
+   SKELETON LOADING
+───────────────────────────────────────────────── */
+
+@keyframes skeletonShimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #131318 0%,
+    #1e1e2a 30%,
+    #242432 50%,
+    #1e1e2a 70%,
+    #131318 100%
+  );
+  background-size: 1600px 100%;
+  animation: skeletonShimmer 2s ease-in-out infinite;
+  border-radius: 0.375rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle cyan tint that sweeps through */
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(34, 211, 238, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 1600px 100%;
+  animation: skeletonShimmer 2s ease-in-out infinite;
+}
+
+/* ── Skeleton card — matches .dash-nav-card ── */
+.dash-nav-card--skeleton {
+  background: #111113;
+  border: 1px solid #1e1e24;
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: dashCardIn 0.4s ease-out both;
+}
+
+@media (min-width: 576px) {
+  .dash-nav-card--skeleton { padding: 1.5rem; border-radius: 1rem; }
+}
+@media (min-width: 768px) {
+  .dash-nav-card--skeleton { padding: 1.75rem; }
+}
+
+.skeleton-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  animation-delay: inherit;
+}
+
+.skeleton-heading {
+  height: 1rem;
+  width: 48%;
+}
+
+.skeleton-text {
+  height: 0.72rem;
+  width: 100%;
+}
+
+.skeleton-text--short {
+  width: 72%;
+}
+
+.skeleton-text--shorter {
+  width: 55%;
+}
+
+.skeleton-cta {
+  height: 2.25rem;
+  width: 7rem;
+  border-radius: 999px;
+  margin-top: auto;
+}
+
+/* Stagger skeleton cards like real ones */
+.dash-nav-card--skeleton:nth-child(1) { animation-delay: 0.05s; }
+.dash-nav-card--skeleton:nth-child(2) { animation-delay: 0.10s; }
+.dash-nav-card--skeleton:nth-child(3) { animation-delay: 0.15s; }
+.dash-nav-card--skeleton:nth-child(4) { animation-delay: 0.20s; }
+.dash-nav-card--skeleton:nth-child(5) { animation-delay: 0.25s; }
+.dash-nav-card--skeleton:nth-child(6) { animation-delay: 0.30s; }
+
+/* Welcome skeleton */
+.skeleton-welcome {
+  padding: 1.75rem 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #1e1e24;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skeleton-welcome-title {
+  height: 2.5rem;
+  width: 65%;
+  border-radius: 0.5rem;
+}
+
+.skeleton-welcome-sub {
+  height: 0.875rem;
+  width: 45%;
+}
+
+.skeleton-badge {
+  height: 1.75rem;
+  width: 8rem;
+  border-radius: 999px;
+}
+
+/* ── Fade out skeleton rows ── */
+.dash-skeleton-row {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.dash-skeleton-row.hiding {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+/* ── Real cards hidden initially, then revealed ── */
+.dash-real-row {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
+}
+
+.dash-real-row.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* When cards are shown, re-enable their own stagger animations */
+.dash-real-row.visible .dash-nav-card {
+  animation: dashCardIn 0.4s ease-out both;
+}
+
+
+/* ─────────────────────────────────────────────────
+   GYM LOADER OVERLAY (full-page)
+───────────────────────────────────────────────── */
+
+.gym-loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: #09090c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+  pointer-events: all;
+}
+
+.gym-loader-overlay.gym-loader--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ── Dumbbell CSS shape ── */
+.gym-dumbbell-wrap {
+  animation: dumbbellCurl 1.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  transform-origin: 50% 90%;
+  display: flex;
+  align-items: center;
+}
+
+.gym-dumbbell {
+  position: relative;
+  width: 148px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* Center bar */
+.gym-dumbbell-bar {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  right: 28px;
+  height: 9px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, #374151, #6b7280, #9ca3af, #6b7280, #374151);
+  border-radius: 4.5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Collar rings */
+.gym-dumbbell-collar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 26px;
+  background: linear-gradient(180deg, #374151, #1f2937);
+  border-radius: 3px;
+  border: 1px solid #4b5563;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  z-index: 2;
+}
+
+.gym-dumbbell-collar--left  { left: 22px; }
+.gym-dumbbell-collar--right { right: 22px; }
+
+/* Weight plates */
+.gym-dumbbell-plate {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 48px;
+  border-radius: 6px;
+  box-shadow:
+    inset 2px 0 4px rgba(255,255,255,0.15),
+    inset -2px 0 4px rgba(0,0,0,0.3),
+    0 0 24px rgba(34, 211, 238, 0.35);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gym-dumbbell-plate--left {
+  left: 0;
+  background: linear-gradient(160deg, #22d3ee 0%, #0891b2 60%, #0e7490 100%);
+}
+
+.gym-dumbbell-plate--right {
+  right: 0;
+  background: linear-gradient(200deg, #0e7490 0%, #0891b2 40%, #22d3ee 100%);
+}
+
+/* Plate hole detail */
+.gym-dumbbell-plate::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(0,0,0,0.5);
+}
+
+@keyframes dumbbellCurl {
+  0%   { transform: rotate(-14deg); }
+  42%  { transform: rotate(46deg);  }
+  58%  { transform: rotate(46deg);  }
+  100% { transform: rotate(-14deg); }
+}
+
+/* Brand text */
+.gym-loader-brand {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: #e2e8f0;
+  margin-top: 2.75rem;
+  text-transform: uppercase;
+}
+
+.gym-loader-brand em {
+  font-style: normal;
+  color: #22d3ee;
+}
+
+/* Cycling loading message */
+.gym-loader-msg {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  color: #334155;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 0.6rem;
+  height: 1em;
+  overflow: hidden;
+}
+
+.gym-loader-msg-inner {
+  display: block;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.gym-loader-msg-inner.slide-out {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+/* Weight-plate progress dots */
+.gym-loader-dots {
+  display: flex;
+  gap: 7px;
+  margin-top: 2.25rem;
+}
+
+.gym-loader-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #1e1e2a;
+  border: 1px solid #2a2a38;
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.gym-loader-dot:nth-child(2) { animation-delay: 0.25s; }
+.gym-loader-dot:nth-child(3) { animation-delay: 0.5s;  }
+
+@keyframes dotPulse {
+  0%, 100% { background: #1e1e2a; box-shadow: none;  transform: scale(1);   }
+  50%       { background: #22d3ee; transform: scale(1.4);
+              box-shadow: 0 0 8px rgba(34, 211, 238, 0.5); }
+}
+
+
+/* ─────────────────────────────────────────────────
+   INLINE GYM SPINNER  (replaces Bootstrap spinner)
+───────────────────────────────────────────────── */
+
+.gym-spinner {
+  display: inline-block;
+  width: 1.25rem;
+  height: 1.25rem;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.gym-spinner::before,
+.gym-spinner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.gym-spinner::before {
+  border: 2.5px solid rgba(34, 211, 238, 0.12);
+}
+
+.gym-spinner::after {
+  border: 2.5px solid transparent;
+  border-top-color: #22d3ee;
+  border-right-color: rgba(34, 211, 238, 0.45);
+  animation: gymSpin 0.75s linear infinite;
+}
+
+@keyframes gymSpin {
+  to { transform: rotate(360deg); }
+}
+
+.gym-spinner--sm { width: 0.9rem; height: 0.9rem; }
+.gym-spinner--lg { width: 2rem;   height: 2rem;   }
+
+.gym-spinner--amber::after  { border-top-color: #f59e0b; border-right-color: rgba(245,158,11,0.45); }
+.gym-spinner--green::after  { border-top-color: #22c55e; border-right-color: rgba(34,197,94,0.45);  }
+
+
+/* ─────────────────────────────────────────────────
+   INTERACTIVE ONBOARDING TOUR
+───────────────────────────────────────────────── */
+
+/* Dark overlay */
+.gym-tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 4, 7, 0);
+  z-index: 8800;
+  pointer-events: none;
+  transition: background 0.45s ease;
+}
+
+.gym-tour-overlay.active {
+  background: rgba(4, 4, 7, 0.88);
+  pointer-events: all;
+}
+
+/* ── Hero card (welcome / completion screen) ── */
+.gym-tour-center {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8900;
+  pointer-events: all;
+  padding: 1rem;
+}
+
+.gym-tour-hero {
+  background: #111113;
+  border: 1px solid #1e1e24;
+  border-radius: 1.25rem;
+  padding: 2.5rem 2rem;
+  width: min(440px, 100%);
+  text-align: center;
+  box-shadow:
+    0 32px 80px rgba(0,0,0,0.85),
+    0 0 0 1px rgba(34,211,238,0.07),
+    0 0 60px rgba(34,211,238,0.04);
+  animation: heroEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle grid texture */
+.gym-tour-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(34,211,238,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,211,238,0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+@keyframes heroEnter {
+  from { opacity: 0; transform: scale(0.88) translateY(24px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.gym-tour-hero-dumbbell {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  animation: dumbbellCurl 1.5s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  transform-origin: 50% 90%;
+}
+
+/* Compact dumbbell for hero card */
+.gym-tour-hero-dumbbell .gym-dumbbell {
+  width: 90px;
+  height: 30px;
+}
+
+.gym-tour-hero-dumbbell .gym-dumbbell-bar {
+  left: 18px;
+  right: 18px;
+  height: 6px;
+}
+
+.gym-tour-hero-dumbbell .gym-dumbbell-collar {
+  width: 9px;
+  height: 16px;
+}
+
+.gym-tour-hero-dumbbell .gym-dumbbell-collar--left  { left: 14px; }
+.gym-tour-hero-dumbbell .gym-dumbbell-collar--right { right: 14px; }
+
+.gym-tour-hero-dumbbell .gym-dumbbell-plate {
+  width: 16px;
+  height: 30px;
+  border-radius: 4px;
+}
+
+.gym-tour-hero-dumbbell .gym-dumbbell-plate::after {
+  width: 5px;
+  height: 5px;
+}
+
+.gym-tour-hero-emoji {
+  font-size: 2.75rem;
+  margin-bottom: 1.25rem;
+  display: block;
+  animation: iconBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes iconBounce {
+  from { transform: scale(0.4); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.gym-tour-hero-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f1f5f9;
+  margin-bottom: 0.625rem;
+  line-height: 1.15;
+}
+
+.gym-tour-hero-title span { color: #22d3ee; }
+
+.gym-tour-hero-body {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.65;
+  margin-bottom: 1.875rem;
+  padding: 0 0.5rem;
+}
+
+.gym-tour-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
+  color: #0a0a0b;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 2.25rem;
+  cursor: pointer;
+  transition: filter 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.gym-tour-hero-cta:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 8px 24px rgba(34, 211, 238, 0.35);
+  transform: translateY(-2px);
+}
+
+.gym-tour-hero-skip {
+  display: block;
+  margin-top: 1rem;
+  background: none;
+  border: none;
+  color: #2d3748;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.gym-tour-hero-skip:hover { color: #475569; }
+
+/* ── Spotlight tooltip ── */
+.gym-tour-tooltip {
+  position: fixed;
+  z-index: 8950;
+  width: min(368px, calc(100vw - 2rem));
+  background: #0f0f12;
+  border: 1px solid #1e1e2a;
+  border-radius: 1rem;
+  padding: 1.375rem 1.5rem;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(34,211,238,0.06),
+    0 0 40px rgba(34,211,238,0.04);
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: all;
+  display: none;
+}
+
+.gym-tour-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Arrow */
+.gym-tour-tooltip::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #0f0f12;
+  border: 1px solid #1e1e2a;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.gym-tour-tooltip[data-arrow="above"]::before  { bottom: -7px; left: 28px; border-top: none; border-left: none; }
+.gym-tour-tooltip[data-arrow="below"]::before  { top: -7px;    left: 28px; border-bottom: none; border-right: none; }
+.gym-tour-tooltip[data-arrow="right"]::before  { left: -7px;   top: 24px;  border-bottom: none; border-left: none; }
+.gym-tour-tooltip[data-arrow="left"]::before   { right: -7px;  top: 24px;  border-top: none; border-right: none; }
+
+/* Tooltip header row */
+.gym-tour-tt-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.gym-tour-tt-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgba(34,211,238,0.08);
+  border: 1px solid rgba(34,211,238,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  color: #22d3ee;
+  flex-shrink: 0;
+}
+
+.gym-tour-tt-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.gym-tour-tt-body {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.825rem;
+  color: #64748b;
+  line-height: 1.65;
+  margin-bottom: 1.125rem;
+}
+
+/* Segment progress bar */
+.gym-tour-progress {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 1.125rem;
+}
+
+.gym-tour-seg {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: #1e1e2a;
+  transition: background 0.35s ease, box-shadow 0.35s ease;
+}
+
+.gym-tour-seg.done    { background: rgba(34,211,238,0.45); }
+.gym-tour-seg.current {
+  background: linear-gradient(90deg, #22d3ee, #0891b2);
+  box-shadow: 0 0 8px rgba(34,211,238,0.4);
+}
+
+/* Footer row */
+.gym-tour-tt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gym-tour-tt-count {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  color: #2d3748;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gym-tour-tt-btns { display: flex; gap: 0.5rem; }
+
+.gym-tour-btn {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #1e1e2a;
+  line-height: 1.4;
+}
+
+.gym-tour-btn--ghost {
+  background: transparent;
+  color: #475569;
+}
+
+.gym-tour-btn--ghost:hover {
+  border-color: rgba(34,211,238,0.25);
+  color: #94a3b8;
+}
+
+.gym-tour-btn--primary {
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
+  color: #0a0a0b;
+  border: none;
+}
+
+.gym-tour-btn--primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 14px rgba(34,211,238,0.3);
+  transform: translateY(-1px);
+}
+
+.gym-tour-tt-skip {
+  background: none;
+  border: none;
+  color: #2d3748;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.gym-tour-tt-skip:hover { color: #475569; }
+
+/* ── Spotlight highlight on target element ──
+   The overlay (z-index 8800) darkens everything.
+   This element sits above it (z-index 8850), so it
+   naturally "pokes through" the overlay. We just
+   add a glowing cyan ring to draw the eye.
+── */
+.gym-tour-spotlight {
+  position: relative;
+  z-index: 8850 !important;
+  border-radius: 0.875rem;
+  animation: spotlightPulse 2.2s ease-in-out infinite !important;
+}
+
+@keyframes spotlightPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(34,211,238,0.22),
+      0 0 28px rgba(34,211,238,0.10),
+      0 8px 32px rgba(0,0,0,0.6);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(34,211,238,0.38),
+      0 0 48px rgba(34,211,238,0.18),
+      0 8px 32px rgba(0,0,0,0.6);
+  }
+}
+
+/* ─────────────────────────────────────────────────
+   ONBOARDING MODAL DARK THEME
+   (replaces inline style="" attributes)
+───────────────────────────────────────────────── */
+
+.ob-modal-content {
+  background: #111113;
+  border: 1px solid #1e1e24 !important;
+}
+
+.ob-step-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ob-modal-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  color: #f1f5f9;
+}
+
+.ob-hint {
+  font-size: 0.85rem;
+}
+
+.ob-form-label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.ob-form-control {
+  background: #1a1a20;
+  border-color: #1e1e24;
+  color: #f1f5f9;
+  font-size: 0.85rem;
+}
+
+.ob-form-control:focus {
+  background: #1a1a20;
+  border-color: rgba(34, 211, 238, 0.4);
+  color: #f1f5f9;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+}
+
+.ob-form-control option {
+  background: #1a1a20;
+  color: #f1f5f9;
+}
+
+.ob-skip-btn {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* "Take tour" trigger button */
+.gym-take-tour-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid #1e1e24;
+  color: #475569;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.35rem 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.875rem;
+}
+
+.gym-take-tour-btn:hover {
+  border-color: rgba(34,211,238,0.3);
+  color: #94a3b8;
+}
+
+.gym-take-tour-btn i { font-size: 0.7rem; }

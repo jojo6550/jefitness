@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../dist/styles.css">
     <link rel="stylesheet" href="../styles/styles.css?v=1.0.0">
     <link rel="stylesheet" href="../styles/dashboard.css">
+    <link rel="stylesheet" href="../styles/gym-animations.css">
 
     <link rel="apple-touch-icon" sizes="180x180" href="../favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../favicons/favicon-32x32.png">
@@ -18,11 +19,37 @@
 </head>
 
 <body class="dashboard-page">
+
+    <!-- ── Gym Loader Overlay ─────────────────────────────────── -->
+    <div class="gym-loader-overlay" id="gym-loader-overlay">
+        <div class="gym-dumbbell-wrap">
+            <div class="gym-dumbbell">
+                <div class="gym-dumbbell-plate gym-dumbbell-plate--left"></div>
+                <div class="gym-dumbbell-collar gym-dumbbell-collar--left"></div>
+                <div class="gym-dumbbell-bar"></div>
+                <div class="gym-dumbbell-collar gym-dumbbell-collar--right"></div>
+                <div class="gym-dumbbell-plate gym-dumbbell-plate--right"></div>
+            </div>
+        </div>
+        <div class="gym-loader-brand">JE<em>FITNESS</em></div>
+        <div class="gym-loader-msg">
+            <span class="gym-loader-msg-inner">Warming up...</span>
+        </div>
+        <div class="gym-loader-dots">
+            <div class="gym-loader-dot"></div>
+            <div class="gym-loader-dot"></div>
+            <div class="gym-loader-dot"></div>
+        </div>
+    </div>
+
+    <!-- ── Navbar ─────────────────────────────────────────────── -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
             <div class="d-flex align-items-center">
                 <a class="navbar-brand fw-bold me-3" href="/dashboard" id="brand-link">JEFITNESS</a>
-                <span id="subscription-status-navbar" class="badge bg-secondary text-white small">Loading...</span>
+                <span id="subscription-status-navbar" class="badge bg-secondary text-white small">
+                    <span class="gym-spinner gym-spinner--sm me-1"></span>
+                </span>
             </div>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -38,14 +65,25 @@
     </nav>
 
     <main class="container my-5">
-        <!-- Welcome -->
-        <div class="dash-welcome">
+
+        <!-- ── Welcome skeleton (shown first) ─────────────────── -->
+        <div id="welcome-skeleton" class="skeleton-welcome">
+            <div class="skeleton skeleton-welcome-title"></div>
+            <div class="skeleton skeleton-welcome-sub"></div>
+            <div class="skeleton skeleton-badge"></div>
+        </div>
+
+        <!-- ── Welcome real (revealed after load) ─────────────── -->
+        <div id="welcome-real" class="dash-welcome d-none">
             <h1>Welcome Back to <span>JEFITNESS</span></h1>
             <p>Your fitness journey continues. Here's everything in one place.</p>
             <div id="subscriptionStatus" class="dash-sub-alert d-none" role="alert">
                 <i class="bi bi-check-circle-fill"></i>
                 <strong id="activePlanText">Active Plan</strong>
             </div>
+            <button class="gym-take-tour-btn" id="retake-tour-btn">
+                <i class="bi bi-compass"></i> Take the tour
+            </button>
         </div>
 
         <!-- Hidden subscription status elements (used by dashboard.js) -->
@@ -55,10 +93,69 @@
             <button id="cancel-subscription-btn" class="btn btn-danger d-none ms-2">Cancel Subscription</button>
         </div>
 
-        <!-- Nav Cards -->
-        <div class="row g-4">
-            <!-- Your Profile -->
+        <!-- ── Skeleton Nav Cards ───────────────────────────────── -->
+        <div class="row g-4 dash-skeleton-row" id="dash-skeleton-row">
             <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--short"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--shorter"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--short"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--shorter"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--short"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="dash-nav-card--skeleton">
+                    <div class="skeleton skeleton-icon"></div>
+                    <div class="skeleton skeleton-heading"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text skeleton-text--shorter"></div>
+                    <div class="skeleton skeleton-cta"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Real Nav Cards (revealed after load) ─────────────── -->
+        <div class="row g-4 dash-real-row d-none" id="dash-real-row">
+
+            <!-- Your Profile -->
+            <div class="col-md-6 col-lg-4" data-tour="profile">
                 <div class="dash-nav-card">
                     <span class="dash-card-icon dash-icon-cyan"><i class="bi bi-person-circle"></i></span>
                     <h3>Your Profile</h3>
@@ -68,7 +165,7 @@
             </div>
 
             <!-- Meet Your Trainer -->
-            <div class="col-md-6 col-lg-4">
+            <div class="col-md-6 col-lg-4" data-tour="trainer">
                 <div class="dash-nav-card">
                     <span class="dash-card-icon dash-icon-amber"><i class="bi bi-person-badge"></i></span>
                     <h3>Meet Your Trainer</h3>
@@ -78,7 +175,7 @@
             </div>
 
             <!-- Subscriptions -->
-            <div class="col-md-6 col-lg-4" id="subscription-card">
+            <div class="col-md-6 col-lg-4" id="subscription-card" data-tour="subscription">
                 <div class="dash-nav-card">
                     <span class="dash-card-icon dash-icon-green"><i class="bi bi-credit-card-fill"></i></span>
                     <h3>Subscriptions</h3>
@@ -119,59 +216,71 @@
         </div>
     </main>
 
-    <!-- Onboarding Modal -->
+    <!-- ── Onboarding Data Modal ──────────────────────────────── -->
     <div class="modal fade" id="onboardingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="onboardingModalLabel">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 shadow border-0">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold" id="onboardingModalLabel">Welcome to JE Fitness!</h5>
+        <div class="modal-content ob-modal-content rounded-4 shadow border-0">
+          <div class="modal-header border-0 pb-0">
+            <div>
+              <p class="ob-step-label text-muted mb-0">Step <span id="ob-step-num">1</span> of 2</p>
+              <h5 class="ob-modal-title modal-title fw-bold" id="onboardingModalLabel">
+                Let's Set Up Your Profile
+              </h5>
+            </div>
           </div>
           <div class="modal-body px-4">
+            <!-- Progress bar -->
+            <div class="gym-tour-progress mb-3" id="ob-progress">
+              <div class="gym-tour-seg current" id="ob-seg-1"></div>
+              <div class="gym-tour-seg" id="ob-seg-2"></div>
+            </div>
+
             <!-- Step 1 -->
             <div id="onboardingStep1">
-              <p class="text-muted mb-3">Let's set up your profile so we can personalise your experience.</p>
+              <p class="ob-hint text-muted mb-3">Tell us a bit about your goals so we can personalise your experience.</p>
               <div class="mb-3">
-                <label class="form-label">What are your fitness goals?</label>
-                <textarea id="onboardingGoals" class="form-control" rows="3" placeholder="e.g. Lose weight, build muscle, improve endurance..."></textarea>
+                <label class="ob-form-label form-label">What are your fitness goals?</label>
+                <textarea id="onboardingGoals" class="ob-form-control form-control" rows="3" placeholder="e.g. Lose weight, build muscle, improve endurance..."></textarea>
               </div>
-              <div class="mb-3">
-                <label class="form-label">Why did you join JE Fitness?</label>
-                <input id="onboardingReason" class="form-control" placeholder="e.g. Recommended by a friend, saw an ad...">
+              <div class="mb-1">
+                <label class="ob-form-label form-label">Why did you join JE Fitness?</label>
+                <input id="onboardingReason" class="ob-form-control form-control" placeholder="e.g. Recommended by a friend...">
               </div>
             </div>
+
             <!-- Step 2 -->
             <div id="onboardingStep2" class="d-none">
-              <p class="text-muted mb-3">A little more about you (optional — helps us recommend programs).</p>
+              <p class="ob-hint text-muted mb-3">Optional — helps us recommend the right programs for you.</p>
               <div class="row g-3">
                 <div class="col-6">
-                  <label class="form-label">Gender</label>
-                  <select id="onboardingGender" class="form-select">
+                  <label class="ob-form-label form-label">Gender</label>
+                  <select id="onboardingGender" class="ob-form-control form-select">
                     <option value="">Prefer not to say</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
                 </div>
                 <div class="col-6">
-                  <label class="form-label">Date of Birth</label>
-                  <input type="date" id="onboardingDob" class="form-control">
+                  <label class="ob-form-label form-label">Date of Birth</label>
+                  <input type="date" id="onboardingDob" class="ob-form-control form-control">
                 </div>
                 <div class="col-6">
-                  <label class="form-label">Height (cm)</label>
-                  <input type="number" id="onboardingHeight" class="form-control" min="50" max="300" placeholder="175">
+                  <label class="ob-form-label form-label">Height (cm)</label>
+                  <input type="number" id="onboardingHeight" class="ob-form-control form-control" min="50" max="300" placeholder="175">
                 </div>
                 <div class="col-6">
-                  <label class="form-label">Weight (kg)</label>
-                  <input type="number" id="onboardingWeight" class="form-control" min="20" max="500" placeholder="70">
+                  <label class="ob-form-label form-label">Weight (kg)</label>
+                  <input type="number" id="onboardingWeight" class="ob-form-control form-control" min="20" max="500" placeholder="70">
                 </div>
               </div>
             </div>
           </div>
-          <div class="modal-footer border-0 justify-content-between">
-            <button id="onboardingSkip" class="btn btn-link text-muted text-decoration-none">Skip</button>
+          <div class="modal-footer border-0 justify-content-between pt-2">
+            <button id="onboardingSkip" class="ob-skip-btn btn btn-link text-muted text-decoration-none">Skip</button>
             <div class="d-flex gap-2">
-              <button id="onboardingBack" class="btn btn-outline-secondary d-none">Back</button>
+              <button id="onboardingBack" class="btn btn-outline-secondary btn-sm d-none">Back</button>
               <button id="onboardingNext" class="btn btn-primary px-4">Next</button>
-              <button id="onboardingFinish" class="btn btn-success px-4 d-none">Finish</button>
+              <button id="onboardingFinish" class="btn btn-primary px-4 d-none">Finish</button>
             </div>
           </div>
         </div>
@@ -180,6 +289,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/api.config.js"></script>
+    <script src="../js/gym-tour.js"></script>
+    <script src="../js/dashboard-init.js"></script>
     <script src="../js/navbar-subscription.js" defer></script>
     <script src="../js/dashboard.js"></script>
     <script src="../js/logout.js" defer></script>

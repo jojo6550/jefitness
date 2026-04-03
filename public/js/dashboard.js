@@ -48,10 +48,15 @@ window.initDashboard = async () => {
       // Load workout statistics
       await loadWorkoutStats();
 
+      // Reveal real content, hide skeletons
+      if (window._revealDashboard) window._revealDashboard();
+
     } catch (err) {
       console.error('Error verifying admin status:', err);
       const adminLink = document.querySelector('a[href="/admin-dashboard"]');
       if (adminLink) adminLink.classList.add('d-none');
+      // Still reveal content on error
+      if (window._revealDashboard) window._revealDashboard();
     }
   };
 
@@ -280,4 +285,8 @@ async function loadWorkoutStats() {
         console.error('Error loading workout stats:', err);
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initDashboard) window.initDashboard();
+});
 
