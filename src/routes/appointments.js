@@ -308,19 +308,18 @@ router.post('/', requireActiveSubscription, async (req, res) => {
         .json({ msg: 'Appointments can only be booked on the hour (e.g., 5:00, 6:00)' });
     }
 
-    // Check the 6-client limit per exact time slot
-    const MAX_CLIENTS_PER_SLOT = 6;
+    // Enforce the trainer's configured slot capacity
+    const slotCapacity = availability.slotCapacity ?? 6;
 
-    const existingAppointments = await Appointment.find({
+    const existingCount = await Appointment.countDocuments({
       trainerId,
       date: appointmentDate,
-      time: time,
+      time,
       status: { $ne: 'cancelled' },
     });
 
-    // Check if time slot is full (max 6 clients per slot)
-    if (existingAppointments.length >= MAX_CLIENTS_PER_SLOT) {
-      return res.status(409).json({ msg: 'Time slot is fully booked' });
+    if (existingCount >= slotCapacity) {
+      return res.status(409).json({ msg: `Time slot is fully booked (max ${slotCapacity})` });
     }
 
     // Check if this client already has an appointment at this exact date and time (across all trainers)

@@ -31,6 +31,13 @@ const TrainerAvailabilitySchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Max clients per 1-hour slot (default 6, enforced at booking time)
+    slotCapacity: {
+      type: Number,
+      default: 6,
+      min: 1,
+      max: 50,
+    },
   },
   {
     timestamps: true,

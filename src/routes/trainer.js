@@ -79,7 +79,7 @@ router.put('/availability', requireTrainer, async (req, res) => {
     const results = [];
 
     for (const slot of availability) {
-      const { dayOfWeek, startHour, endHour, isActive = true } = slot;
+      const { dayOfWeek, startHour, endHour, isActive = true, slotCapacity = 6 } = slot;
 
       if (dayOfWeek === undefined || startHour === undefined || endHour === undefined) {
         return res.status(400).json({ success: false, error: 'Each slot requires dayOfWeek, startHour, endHour' });
@@ -89,9 +89,11 @@ router.put('/availability', requireTrainer, async (req, res) => {
         return res.status(400).json({ success: false, error: 'endHour must be greater than startHour' });
       }
 
+      const capacity = Math.min(50, Math.max(1, parseInt(slotCapacity) || 6));
+
       const updated = await TrainerAvailability.findOneAndUpdate(
         { trainerId, dayOfWeek },
-        { trainerId, dayOfWeek, startHour, endHour, isActive },
+        { trainerId, dayOfWeek, startHour, endHour, isActive, slotCapacity: capacity },
         { upsert: true, new: true }
       );
       results.push(updated);

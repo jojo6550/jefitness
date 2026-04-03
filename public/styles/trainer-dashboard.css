@@ -536,6 +536,7 @@
 .avail-day-check { min-width: 120px; }
 .avail-day-label { font-size: 0.85rem; }
 .avail-select { width: auto; }
+.avail-cap    { width: 64px; text-align: center; }
 .avail-sep { font-size: 0.8rem; }
 
 /* Mobile window (very small screens) */

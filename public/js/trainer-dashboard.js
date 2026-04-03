@@ -473,6 +473,7 @@ function renderAvailabilityGrid(existing) {
         const isActive = slot ? slot.isActive : false;
         const start = slot ? slot.startHour : 6;
         const end = slot ? slot.endHour : 20;
+        const capacity = slot ? (slot.slotCapacity ?? 6) : 6;
 
         return `
             <div class="avail-row apt-row mb-2 p-3" data-dow="${dow}">
@@ -489,6 +490,10 @@ function renderAvailabilityGrid(existing) {
                         <select class="form-select form-select-sm avail-end avail-select bg-dark text-light border-secondary" id="end-${dow}">
                             ${buildHourOptions(end, 1, 24)}
                         </select>
+                        <span class="text-muted avail-sep">·</span>
+                        <label class="text-muted avail-day-label mb-0" for="cap-${dow}">Cap</label>
+                        <input type="number" class="form-control form-control-sm avail-cap bg-dark text-light border-secondary"
+                               id="cap-${dow}" min="1" max="50" value="${capacity}">
                     </div>
                     <span class="text-muted small ${isActive ? 'd-none' : ''}" id="offLabel-${dow}">Unavailable</span>
                 </div>
@@ -520,17 +525,24 @@ async function saveAvailability() {
         const endSel = document.getElementById(`end-${dow}`);
         if (!toggle) continue;
 
+        const capEl = document.getElementById(`cap-${dow}`);
         const isActive = toggle.checked;
         const startHour = parseInt(startSel?.value ?? 6);
         const endHour = parseInt(endSel?.value ?? 20);
+        const slotCapacity = Math.min(50, Math.max(1, parseInt(capEl?.value) || 6));
 
         if (isActive && endHour <= startHour) {
             window.Toast.error(`${DAYS[dow]}: end time must be after start time`);
             return;
         }
 
+        if (isActive && (slotCapacity < 1 || slotCapacity > 50)) {
+            window.Toast.error(`${DAYS[dow]}: capacity must be between 1 and 50`);
+            return;
+        }
+
         if (isActive) {
-            availability.push({ dayOfWeek: dow, startHour, endHour, isActive: true });
+            availability.push({ dayOfWeek: dow, startHour, endHour, isActive: true, slotCapacity });
         }
     }
 
