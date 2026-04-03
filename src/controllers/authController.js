@@ -102,7 +102,7 @@ const authController = {
    */
   login: asyncHandler(async (req, res) => {
     const startTime = performance.now();
-    const clientRequestId = req.get('X-Request-ID') || 'unknown';
+const clientRequestId = req.get('X-Request-ID') || req.ip;
     const { email, password } = req.body;
 
     // Privacy-safe email hash (SHA256 first 16 chars)
