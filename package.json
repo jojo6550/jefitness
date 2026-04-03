@@ -41,10 +41,6 @@
   },
   "homepage": "https://github.com/jojo6550/jojo6550.github.io#readme",
   "dependencies": {
-    "@capacitor/android": "^8.0.0",
-    "@capacitor/cli": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
-    "@capacitor/ios": "^8.0.0",
     "@utcp/code-mode": "^1.2.9",
     "bcryptjs": "^3.0.2",
     "bull": "^4.12.2",
