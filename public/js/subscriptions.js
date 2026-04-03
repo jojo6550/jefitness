@@ -10,7 +10,7 @@
 window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 
 const STRIPE_PUBLIC_KEY =
-  'pk_test_51NfYT7GBrdnKY4igMADzsKlYvumrey4zqRBIcMAjzd9gvm0a3TW8rUFDaSPhvAkhXPzDcmoay4V07NeIt4EZbR5N00AhS8rNXk';
+  'pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252MbWbTj9xGMhhlHKpGXQXPmUex2WOVb2kuiVzsqSKAQp36q00qAufxywd';
 
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
