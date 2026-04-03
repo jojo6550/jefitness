@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
-const { asyncHandler } = require('../middleware/errorHandler');
+const { asyncHandler, NotFoundError, AuthorizationError } = require('../middleware/errorHandler');
 const { logUserAction } = require('../services/logger');
 
 const trainerController = {
@@ -302,18 +302,22 @@ const trainerController = {
   }),
 
   /**
-   * Get specific client info
+   * Get specific client info (trainer must have at least one appointment with this client)
    */
   getClientInfo: asyncHandler(async (req, res) => {
     const trainerId = req.user.id;
     const { clientId } = req.params;
 
-    const client = await User.findById(clientId).select('-password');
+    // Verify a trainer-client relationship exists before exposing client data
+    const hasRelationship = await Appointment.exists({ trainerId, clientId });
+    if (!hasRelationship) throw new AuthorizationError();
+
+    const client = await User.findById(clientId).select(
+      'firstName lastName email phone dob gender activityStatus hasMedical medicalConditions medicalDocuments'
+    );
     if (!client) throw new NotFoundError('Client');
 
-    const appointments = await Appointment.find({ trainerId, clientId }).sort({
-      date: -1,
-    });
+    const appointments = await Appointment.find({ trainerId, clientId }).sort({ date: -1 });
 
     res.json({
       client,

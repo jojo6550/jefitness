@@ -254,44 +254,10 @@ router.post(
 );
 
 // ============================
-// Google OAuth Routes
+// Google OAuth Routes (disabled)
 // ============================
-const passport = require('../config/passport');
-const jwt = require('jsonwebtoken');
-
-/**
- * GET /api/v1/auth/google
- * Redirect user to Google for authentication.
- */
-router.get(
-  '/google',
-  passport.authenticate('google', { session: false, scope: ['profile', 'email'] })
-);
-
-/**
- * GET /api/v1/auth/google/callback
- * Google redirects back here after authentication.
- * Responds with a JWT and redirects to the frontend dashboard.
- */
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
-  (req, res) => {
-    try {
-      const user = req.user;
-      const token = jwt.sign(
-        { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
-        process.env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
-      // Redirect to frontend with token in query string (frontend stores it in localStorage)
-      res.redirect(`/dashboard?token=${encodeURIComponent(token)}`);
-    } catch (err) {
-      logger.error('Google OAuth callback error', { error: err.message });
-      res.redirect('/login?error=server_error');
-    }
-  }
-);
+router.get('/google', (_req, res) => res.status(503).json({ msg: 'Google login is currently disabled' }));
+router.get('/google/callback', (_req, res) => res.redirect('/login?error=google_auth_disabled'));
 
 // ============================
 // 2FA Routes

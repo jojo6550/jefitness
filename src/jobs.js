@@ -4,7 +4,8 @@ const Subscription = require('./models/Subscription');
 const User = require('./models/User');
 const { logSecurityEvent, logger } = require('./services/logger');
 const stripeService = require('./services/stripe');
-const { sendSubscriptionReminder } = require('./services/email');
+const { sendSubscriptionReminder, sendTrainerDailySchedule } = require('./services/email');
+const Appointment = require('./models/Appointment');
 
 /** Subscription statuses considered still active in Stripe */
 const STRIPE_ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
@@ -148,4 +149,72 @@ const startRenewalReminderJob = () => {
   logger.info('⏰ Renewal reminder cron job scheduled (0 8 * * *)');
 };
 
-module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob };
+/**
+ * Daily trainer schedule email — runs at 6 AM.
+ * For each trainer who has appointments today, sends a schedule email listing
+ * client names and times.
+ */
+const startTrainerDailyEmailJob = () => {
+  cron.schedule('0 6 * * *', async () => {
+    logger.info('Running daily trainer schedule email job');
+    try {
+      const now = new Date();
+      const dayStart = new Date(now);
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const dayEnd = new Date(now);
+      dayEnd.setUTCHours(23, 59, 59, 999);
+
+      const appointments = await Appointment.find({
+        date: { $gte: dayStart, $lte: dayEnd },
+        status: { $ne: 'cancelled' },
+      })
+        .populate('trainerId', 'firstName email')
+        .populate('clientId', 'firstName lastName')
+        .lean();
+
+      if (!appointments.length) {
+        logger.info('No trainer appointments today — skipping schedule emails');
+        return;
+      }
+
+      // Group by trainer
+      const byTrainer = {};
+      for (const apt of appointments) {
+        if (!apt.trainerId || !apt.trainerId.email) continue;
+        const tid = apt.trainerId._id.toString();
+        if (!byTrainer[tid]) {
+          byTrainer[tid] = { trainer: apt.trainerId, appointments: [] };
+        }
+        const clientName = apt.clientId
+          ? `${apt.clientId.firstName} ${apt.clientId.lastName}`
+          : 'Unknown Client';
+        byTrainer[tid].appointments.push({ clientName, time: apt.time });
+      }
+
+      const dateStr = now.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      });
+
+      for (const { trainer, appointments: trainerApts } of Object.values(byTrainer)) {
+        trainerApts.sort((a, b) => a.time.localeCompare(b.time));
+        try {
+          await sendTrainerDailySchedule(trainer.email, trainer.firstName, dateStr, trainerApts);
+          logger.info('Trainer daily schedule email sent', { trainerId: trainer._id, count: trainerApts.length });
+        } catch (emailErr) {
+          logger.error('Failed to send trainer daily schedule email', { trainerId: trainer._id, error: emailErr.message });
+        }
+      }
+    } catch (err) {
+      logger.error('Error in trainer daily email job', { error: err.message });
+      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', { jobName: 'trainerDailyEmail', error: err.message });
+    }
+  });
+
+  logger.info('Trainer daily schedule email job scheduled (0 6 * * *)');
+};
+
+module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob };

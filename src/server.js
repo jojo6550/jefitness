@@ -18,7 +18,7 @@ const connectDB = require('../config/db');
 const swaggerSpec = require('./docs/swagger');
 
 // Utilities, DB, and jobs
-const { startSubscriptionCleanupJob, startRenewalReminderJob } = require('./jobs');
+const { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob } = require('./jobs');
 const { logger } = require('./services/logger');
 const {
   getFileHash,
@@ -44,8 +44,8 @@ const versioning = require('./middleware/versioning');
 const { nonceMiddleware, helmetOptions } = require('./config/security');
 const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
 
-// Passport (Google OAuth)
-const passport = require('./config/passport');
+// Passport (Google OAuth) — disabled
+// const passport = require('./config/passport');
 
 // Routers
 const webhookRouter = require('./routes/webhooks');
@@ -73,8 +73,8 @@ app.use(cors(corsOptions));
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 
-// Passport (stateless — session: false used in each route)
-app.use(passport.initialize());
+// Passport (stateless — session: false used in each route) — disabled
+// app.use(passport.initialize());
 
 // Logging, sanitization, and CSRF
 app.use(requestLogger);
@@ -240,6 +240,7 @@ async function startServer() {
 
     startSubscriptionCleanupJob();
     startRenewalReminderJob();
+    startTrainerDailyEmailJob();
 
     const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));
 

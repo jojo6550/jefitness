@@ -158,4 +158,50 @@ async function sendEmailVerification(to, toName, verificationToken) {
   });
 }
 
-module.exports = { sendEmail, sendPasswordReset, sendSubscriptionReminder, sendEmailVerification };
+/**
+ * Send a trainer their daily client schedule.
+ * @param {string} to - Trainer email
+ * @param {string} trainerName - Trainer first name
+ * @param {string} dateStr - Human-readable date string (e.g. "Wednesday, April 2, 2026")
+ * @param {Array<{clientName: string, time: string}>} appointments - Sorted by time
+ */
+async function sendTrainerDailySchedule(to, trainerName, dateStr, appointments) {
+  const rows = appointments
+    .map(a => `<tr><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.time}</td><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.clientName}</td></tr>`)
+    .join('');
+
+  const textLines = appointments.map(a => `  ${a.time}  —  ${a.clientName}`).join('\n');
+
+  return sendEmail({
+    to,
+    subject: `Your schedule for today — ${dateStr}`,
+    text: [
+      `Hello ${trainerName},`,
+      '',
+      `Here are your clients for today (${dateStr}):`,
+      '',
+      textLines,
+      '',
+      '— JE Fitness Team',
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#343a40">Your Schedule for Today</h2>
+        <p>Hello ${trainerName},</p>
+        <p>Here are your clients for <strong>${dateStr}</strong>:</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #dee2e6">Time</th>
+              <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #dee2e6">Client</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
+        <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
+      </div>`,
+  });
+}
+
+module.exports = { sendEmail, sendPasswordReset, sendSubscriptionReminder, sendEmailVerification, sendTrainerDailySchedule };

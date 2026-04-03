@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 
 const User = require('../models/User');
+const Appointment = require('../models/Appointment');
 const { logger } = require('../services/logger');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
@@ -199,11 +200,17 @@ router.get('/view/:filename', async (req, res) => {
       return res.status(500).json({ msg: 'Error checking file', error: err.message });
     }
 
-    if (
-      currentUser.role !== 'admin' &&
-      !currentUser.medicalDocuments.some(doc => doc.filename === filename)
-    ) {
-      return res.status(403).json({ msg: 'Access denied' });
+    const isOwner = currentUser.medicalDocuments.some(doc => doc.filename === filename);
+    if (!isOwner && currentUser.role !== 'admin') {
+      if (currentUser.role === 'trainer') {
+        // Trainers may view documents belonging to their clients
+        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename }).select('_id').lean();
+        if (!fileOwner) return res.status(404).json({ msg: 'File not found' });
+        const hasRelationship = await Appointment.exists({ trainerId: currentUser._id, clientId: fileOwner._id });
+        if (!hasRelationship) return res.status(403).json({ msg: 'Access denied' });
+      } else {
+        return res.status(403).json({ msg: 'Access denied' });
+      }
     }
 
     const ext = path.extname(filename).toLowerCase();
@@ -245,11 +252,16 @@ router.get('/download/:filename', async (req, res) => {
       return res.status(500).json({ msg: 'Error checking file', error: err.message });
     }
 
-    if (
-      currentUser.role !== 'admin' &&
-      !currentUser.medicalDocuments.some(doc => doc.filename === filename)
-    ) {
-      return res.status(403).json({ msg: 'Access denied' });
+    const isOwner = currentUser.medicalDocuments.some(doc => doc.filename === filename);
+    if (!isOwner && currentUser.role !== 'admin') {
+      if (currentUser.role === 'trainer') {
+        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename }).select('_id').lean();
+        if (!fileOwner) return res.status(404).json({ msg: 'File not found' });
+        const hasRelationship = await Appointment.exists({ trainerId: currentUser._id, clientId: fileOwner._id });
+        if (!hasRelationship) return res.status(403).json({ msg: 'Access denied' });
+      } else {
+        return res.status(403).json({ msg: 'Access denied' });
+      }
     }
 
     res.download(filePath);

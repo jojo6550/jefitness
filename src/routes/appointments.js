@@ -296,18 +296,10 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       return res.status(400).json({ msg: 'You can only book one appointment per day' });
     }
 
-    // Check if appointment is in the future
+    // Appointments must be booked at least one day in advance (no same-day bookings)
     const todayUTCStr = new Date().toISOString().split('T')[0];
-    if (date < todayUTCStr) {
-      return res.status(400).json({ msg: 'Appointments cannot be booked in the past' });
-    }
-
-    if (date === todayUTCStr) {
-      const now = new Date();
-      const appointmentDateTime = new Date(`${date}T${time}:00`);
-      if (appointmentDateTime <= now) {
-        return res.status(400).json({ msg: 'Appointments cannot be booked in the past' });
-      }
+    if (date <= todayUTCStr) {
+      return res.status(400).json({ msg: 'Appointments must be booked at least one day in advance' });
     }
 
     if (minutes !== 0) {
