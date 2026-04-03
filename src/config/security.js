@@ -19,11 +19,13 @@ const securityConfig = {
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
+          "'unsafe-inline'",
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
           'https://js.stripe.com',
+          'https://checkout.stripe.com',
         ],
         scriptSrcAttr: [(req, res) => `'nonce-${res.locals.cspNonce}'`],
         styleSrc: [
@@ -45,7 +47,7 @@ const securityConfig = {
           'http://localhost:10000',
           'http://127.0.0.1:10000',
         ],
-        frameSrc: ["'self'", 'https://js.stripe.com'],
+        frameSrc: ["'self'", 'https://js.stripe.com', 'https://checkout.stripe.com', 'https://hooks.stripe.com'],
         imgSrc: [
           "'self'",
           'data:',

@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trainer Reference Guide | JE Fitness</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #0f1117;
+      --surface:     #181c27;
+      --surface-2:   #1e2333;
+      --border:      #2a3045;
+      --accent:      #4f8ef7;
+      --accent-soft: rgba(79,142,247,.12);
+      --accent-2:    #38d9a9;
+      --text:        #e2e8f4;
+      --text-muted:  #7b8aaa;
+      --text-dim:    #4a566e;
+      --warning:     #f6c344;
+      --danger:      #e05c6a;
+      --success:     #38d9a9;
+      --radius:      10px;
+      --radius-lg:   16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .guide-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+
+    .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      color: var(--text);
+    }
+
+    .brand span { color: var(--accent); }
+
+    .header-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 12px;
+    }
+
+    /* ── Hero ───────────────────────────────────────────────── */
+    .guide-hero {
+      background: linear-gradient(135deg, var(--surface) 0%, #131829 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 3.5rem 2rem 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .guide-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(79,142,247,.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 10% 80%, rgba(56,217,169,.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .guide-hero .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .6rem;
+    }
+
+    .guide-hero h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: .01em;
+      margin-bottom: .75rem;
+    }
+
+    .guide-hero p {
+      color: var(--text-muted);
+      font-size: .95rem;
+      max-width: 520px;
+    }
+
+    .guide-meta {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .guide-meta-item {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .82rem;
+      color: var(--text-muted);
+    }
+
+    .guide-meta-item i { color: var(--accent); font-size: .9rem; }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .guide-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+      min-height: calc(100vh - 60px);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .guide-sidebar {
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.25rem;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+
+    .toc-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: .75rem;
+      padding-left: .5rem;
+    }
+
+    .toc-list { list-style: none; }
+
+    .toc-list li { margin-bottom: .15rem; }
+
+    .toc-list a {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .45rem .6rem;
+      border-radius: 7px;
+      font-size: .84rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+
+    .toc-list a i { font-size: .85rem; flex-shrink: 0; }
+
+    .toc-list a:hover,
+    .toc-list a.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .toc-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+
+    .toc-back {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .45rem .6rem;
+      border-radius: 7px;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .toc-back:hover { color: var(--text-muted); }
+
+    /* ── Content ─────────────────────────────────────────────── */
+    .guide-content {
+      padding: 2.5rem 2.5rem 4rem;
+      max-width: 780px;
+    }
+
+    /* ── Section ─────────────────────────────────────────────── */
+    .guide-section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: 80px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: .75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(79,142,247,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .section-num {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .1rem;
+    }
+
+    .section-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: .01em;
+      line-height: 1.2;
+    }
+
+    /* ── Prose ───────────────────────────────────────────────── */
+    .guide-content p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .guide-content p strong { color: var(--text); font-weight: 600; }
+
+    /* ── Steps ───────────────────────────────────────────────── */
+    .step-list {
+      list-style: none;
+      counter-reset: steps;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+
+    .step-list li {
+      counter-increment: steps;
+      display: flex;
+      gap: .85rem;
+      align-items: flex-start;
+    }
+
+    .step-list li::before {
+      content: counter(steps);
+      min-width: 24px;
+      height: 24px;
+      background: var(--accent);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: .2rem;
+    }
+
+    .step-list li span { color: var(--text-muted); }
+    .step-list li span strong { color: var(--text); }
+
+    /* ── Bullet list ─────────────────────────────────────────── */
+    .guide-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      margin-bottom: 1rem;
+    }
+
+    .guide-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      color: var(--text-muted);
+    }
+
+    .guide-list li i {
+      color: var(--accent-2);
+      font-size: .8rem;
+      margin-top: .3rem;
+      flex-shrink: 0;
+    }
+
+    .guide-list li strong { color: var(--text); }
+
+    /* ── Cards ───────────────────────────────────────────────── */
+    .tab-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .tab-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+      transition: border-color .2s;
+    }
+
+    .tab-card:hover { border-color: rgba(79,142,247,.35); }
+
+    .tab-card-head {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: .4rem;
+    }
+
+    .tab-card-head i {
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    .tab-card-name {
+      font-weight: 600;
+      font-size: .9rem;
+    }
+
+    .tab-card p {
+      font-size: .83rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    /* ── Callout ─────────────────────────────────────────────── */
+    .callout {
+      border-radius: var(--radius);
+      padding: .9rem 1.1rem;
+      display: flex;
+      gap: .75rem;
+      margin-bottom: 1rem;
+      font-size: .88rem;
+    }
+
+    .callout i { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+
+    .callout.info    { background: rgba(79,142,247,.08);  border: 1px solid rgba(79,142,247,.2);  color: #99b8f5; }
+    .callout.info i  { color: var(--accent); }
+    .callout.warn    { background: rgba(246,195,68,.07);  border: 1px solid rgba(246,195,68,.2);  color: #e8c366; }
+    .callout.warn i  { color: var(--warning); }
+    .callout.success { background: rgba(56,217,169,.07);  border: 1px solid rgba(56,217,169,.2);  color: #62d9b8; }
+    .callout.success i { color: var(--success); }
+
+    /* ── Notification option cards ───────────────────────────── */
+    .notif-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .notif-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+    }
+
+    .notif-card-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      border-radius: 20px;
+      padding: 2px 9px;
+      margin-bottom: .6rem;
+    }
+
+    .notif-card-badge.opt-a { background: rgba(79,142,247,.15); color: var(--accent); }
+    .notif-card-badge.opt-b { background: rgba(56,217,169,.12); color: var(--accent-2); }
+
+    .notif-card h6 { font-size: .92rem; font-weight: 600; margin-bottom: .3rem; }
+    .notif-card p  { font-size: .83rem; color: var(--text-muted); margin: 0; }
+
+    /* ── Tips grid ───────────────────────────────────────────── */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: .65rem;
+    }
+
+    .tip-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
+      display: flex;
+      gap: .65rem;
+      align-items: flex-start;
+      font-size: .86rem;
+      color: var(--text-muted);
+    }
+
+    .tip-item i {
+      color: var(--warning);
+      font-size: .95rem;
+      flex-shrink: 0;
+      margin-top: .15rem;
+    }
+
+    /* ── Inline code / keyboard ──────────────────────────────── */
+    .kbd {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 1px 7px;
+      font-size: .82rem;
+      font-family: 'Outfit', monospace;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .guide-footer {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .8rem;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+      gap: .5rem;
+    }
+
+    .guide-footer strong { color: var(--text-muted); font-weight: 600; }
+
+    /* ── Print ───────────────────────────────────────────────── */
+    @media print {
+      body { background: #fff; color: #111; font-size: 12pt; }
+      :root {
+        --bg: #fff; --surface: #f5f5f5; --surface-2: #eee;
+        --border: #ccc; --text: #111; --text-muted: #444; --text-dim: #888;
+        --accent: #2563eb; --accent-soft: rgba(37,99,235,.08);
+        --accent-2: #059669;
+      }
+      .guide-header { position: static; border-bottom: 2px solid #111; background: #fff; }
+      .guide-sidebar { display: none; }
+      .guide-layout { grid-template-columns: 1fr; }
+      .guide-content { padding: 1rem 0; max-width: 100%; }
+      .tab-cards, .notif-cards, .tips-grid { grid-template-columns: repeat(2, 1fr); }
+      .guide-section { page-break-inside: avoid; }
+      .callout { border: 1px solid #ccc; }
+      .section-icon { background: #eee; border-color: #ccc; }
+      a { color: inherit; text-decoration: none; }
+      .guide-footer { background: #f5f5f5; }
+    }
+
+    @media (max-width: 768px) {
+      .guide-layout { grid-template-columns: 1fr; }
+      .guide-sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+      .guide-content { padding: 1.5rem 1.25rem 3rem; }
+      .tab-cards, .notif-cards, .tips-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ───────────────────────────────────────────────── -->
+  <header class="guide-header">
+    <div class="brand">JE<span>.</span>FITNESS</div>
+    <span class="header-badge"><i class="bi bi-file-earmark-text me-1"></i>Trainer Guide</span>
+  </header>
+
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
+  <div class="guide-hero">
+    <div style="max-width:1100px;margin:0 auto">
+      <div class="eyebrow"><i class="bi bi-person-badge me-1"></i>Internal Reference</div>
+      <h1>Trainer Portal<br>Reference Guide</h1>
+      <p>Everything you need to manage your schedule, set your availability, and stay on top of your clients — in one place.</p>
+      <div class="guide-meta">
+        <div class="guide-meta-item"><i class="bi bi-calendar3"></i>April 2026</div>
+        <div class="guide-meta-item"><i class="bi bi-journals"></i>7 Sections</div>
+        <div class="guide-meta-item"><i class="bi bi-printer"></i>Print-friendly</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Body layout ──────────────────────────────────────────── -->
+  <div class="guide-layout">
+
+    <!-- Sidebar TOC -->
+    <aside class="guide-sidebar">
+      <div class="toc-label">Contents</div>
+      <ul class="toc-list">
+        <li><a href="#getting-started"><i class="bi bi-door-open"></i>Getting Started</a></li>
+        <li><a href="#dashboard-overview"><i class="bi bi-grid-1x2"></i>Dashboard Overview</a></li>
+        <li><a href="#setting-availability"><i class="bi bi-clock"></i>Setting Availability</a></li>
+        <li><a href="#managing-schedule"><i class="bi bi-calendar-check"></i>Managing Schedule</a></li>
+        <li><a href="#viewing-clients"><i class="bi bi-people"></i>Viewing Clients</a></li>
+        <li><a href="#notifications"><i class="bi bi-bell"></i>Email Notifications</a></li>
+        <li><a href="#tips"><i class="bi bi-lightbulb"></i>Tips &amp; Reminders</a></li>
+      </ul>
+      <hr class="toc-divider">
+      <a href="/trainer-dashboard" class="toc-back">
+        <i class="bi bi-arrow-left-short"></i>Back to Dashboard
+      </a>
+    </aside>
+
+    <!-- Main content -->
+    <main class="guide-content">
+
+      <!-- ── 1. Getting Started ─────────────────────────────── -->
+      <section class="guide-section" id="getting-started">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-door-open"></i></div>
+          <div>
+            <div class="section-num">Section 01</div>
+            <div class="section-title">Getting Started</div>
+          </div>
+        </div>
+
+        <p>To access your Trainer Portal, log in to JE Fitness with your trainer credentials and navigate to <strong>/trainer-dashboard</strong>. Your account must have the <strong>Trainer</strong> role assigned by an administrator before you can access the portal.</p>
+
+        <ol class="step-list">
+          <li><span>Open a browser and go to the JE Fitness app URL.</span></li>
+          <li><span>Click <strong>Log In</strong> and enter your trainer email and password.</span></li>
+          <li><span>Once signed in, navigate to <span class="kbd">/trainer-dashboard</span> or click the Trainer Portal link from the main menu.</span></li>
+          <li><span>The portal loads your schedule automatically. You're ready to go.</span></li>
+        </ol>
+
+        <div class="callout info mt-3">
+          <i class="bi bi-info-circle-fill"></i>
+          <div>If you see an "Access Denied" message, contact your administrator — your account may need the Trainer role enabled.</div>
+        </div>
+      </section>
+
+      <!-- ── 2. Dashboard Overview ──────────────────────────── -->
+      <section class="guide-section" id="dashboard-overview">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-grid-1x2"></i></div>
+          <div>
+            <div class="section-num">Section 02</div>
+            <div class="section-title">Dashboard Overview</div>
+          </div>
+        </div>
+
+        <p>The Trainer Portal is organized into four tabs, each giving you a focused view of a different part of your work.</p>
+
+        <div class="tab-cards">
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-calendar3"></i><span class="tab-card-name">Schedule</span></div>
+            <p>View upcoming sessions and your appointment archive. Mark sessions as On Time, Late, or No Show.</p>
+          </div>
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-people"></i><span class="tab-card-name">Clients</span></div>
+            <p>Browse every client who has booked with you. View contact details, appointment history, and medical notes.</p>
+          </div>
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-clock"></i><span class="tab-card-name">Availability</span></div>
+            <p>Set your weekly recurring schedule. Define the hours and slot capacity for each day of the week.</p>
+          </div>
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-bell"></i><span class="tab-card-name">Notifications</span></div>
+            <p>Choose how you're notified about new bookings — instant individual emails or a midnight daily digest.</p>
+          </div>
+        </div>
+
+        <p>The <strong>refresh button</strong> <i class="bi bi-arrow-clockwise"></i> in the top-right reloads data for whichever tab is open. The <strong>power button</strong> <i class="bi bi-power text-danger"></i> logs you out.</p>
+      </section>
+
+      <!-- ── 3. Setting Availability ────────────────────────── -->
+      <section class="guide-section" id="setting-availability">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-clock"></i></div>
+          <div>
+            <div class="section-num">Section 03</div>
+            <div class="section-title">Setting Your Availability</div>
+          </div>
+        </div>
+
+        <p>Clients can only book appointments during the hours you define here. <strong>You must set your availability before any bookings can be made.</strong></p>
+
+        <ol class="step-list">
+          <li><span>Click the <strong>Availability</strong> tab in the portal header.</span></li>
+          <li><span>A grid shows all 7 days of the week. <strong>Toggle each day</strong> active or inactive using the toggle switch on the left.</span></li>
+          <li><span>For each active day, set your <strong>Start Hour</strong> (earliest bookable time) and <strong>End Hour</strong> (latest bookable time) using the dropdowns. Times are in 24-hour format.</span></li>
+          <li><span>Set the <strong>Slot Capacity</strong> — the maximum number of clients that can book any single 1-hour slot. The default is <strong>6</strong>; the range is 1–50.</span></li>
+          <li><span>When finished, click <strong>Save Schedule</strong>. <em>You must save before switching tabs or changes will be lost.</em></span></li>
+        </ol>
+
+        <div class="callout warn">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>Days that are toggled <strong>inactive</strong> will not be available for booking, even if hours were previously set. Toggle a day on to re-enable it.</div>
+        </div>
+
+        <div class="callout success">
+          <i class="bi bi-check-circle-fill"></i>
+          <div>Example: Set Monday to <strong>8:00 AM – 5:00 PM</strong> with capacity <strong>4</strong> means up to 4 clients can book every hour slot between 8 AM and 4 PM on Mondays.</div>
+        </div>
+      </section>
+
+      <!-- ── 4. Managing Your Schedule ─────────────────────── -->
+      <section class="guide-section" id="managing-schedule">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-calendar-check"></i></div>
+          <div>
+            <div class="section-num">Section 04</div>
+            <div class="section-title">Managing Your Schedule</div>
+          </div>
+        </div>
+
+        <p>The <strong>Schedule</strong> tab is your day-to-day view of all client sessions.</p>
+
+        <ul class="guide-list">
+          <li><i class="bi bi-dot"></i><span><strong>Active view</strong> — shows all sessions with a <em>scheduled</em> status. These are upcoming sessions waiting for a status update from you.</span></li>
+          <li><i class="bi bi-dot"></i><span><strong>Archive view</strong> — read-only history of sessions marked completed, cancelled, or no-show. Use this to review past records.</span></li>
+          <li><i class="bi bi-dot"></i><span>Use the <strong>search bar</strong> to filter the list by a client's name in real time.</span></li>
+        </ul>
+
+        <p>For each session in the <strong>Active</strong> view, you have three status actions:</p>
+
+        <div class="tab-cards">
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-check-circle text-success"></i><span class="tab-card-name">On Time</span></div>
+            <p>Client attended and the session ran as scheduled. Marks the appointment <em>completed</em>.</p>
+          </div>
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-clock-history" style="color:var(--warning)"></i><span class="tab-card-name">Late</span></div>
+            <p>Client arrived late but the session took place. Records the session as <em>late</em> with a timestamp.</p>
+          </div>
+          <div class="tab-card">
+            <div class="tab-card-head"><i class="bi bi-x-circle" style="color:var(--danger)"></i><span class="tab-card-name">No Show</span></div>
+            <p>Client did not attend. Records the session as <em>no-show</em> with a timestamp.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <i class="bi bi-shield-check"></i>
+          <div>A <strong>confirmation dialog</strong> appears every time you change a session's status. This prevents accidental taps. Click <em>Confirm</em> to proceed or <em>Cancel</em> to go back.</div>
+        </div>
+      </section>
+
+      <!-- ── 5. Viewing Clients ──────────────────────────────── -->
+      <section class="guide-section" id="viewing-clients">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-people"></i></div>
+          <div>
+            <div class="section-num">Section 05</div>
+            <div class="section-title">Viewing Your Clients</div>
+          </div>
+        </div>
+
+        <p>The <strong>Clients</strong> tab lists everyone who has ever booked a session with you, along with their activity status.</p>
+
+        <ol class="step-list">
+          <li><span>Click the <strong>Clients</strong> tab to load your client roster.</span></li>
+          <li><span>Use the <strong>search bar</strong> to find a client by name.</span></li>
+          <li><span><strong>Click any client card</strong> to open their full detail view.</span></li>
+        </ol>
+
+        <p>The client detail modal shows:</p>
+        <ul class="guide-list">
+          <li><i class="bi bi-dot"></i><span><strong>Contact information</strong> — email, phone number, date of birth, gender</span></li>
+          <li><i class="bi bi-dot"></i><span><strong>Appointment stats</strong> — total sessions booked vs. completed</span></li>
+          <li><i class="bi bi-dot"></i><span><strong>Medical notes</strong> — any notes or uploaded documents on file for the client</span></li>
+        </ul>
+
+        <div class="callout info">
+          <i class="bi bi-lock"></i>
+          <div>Client data is read-only in the portal. To update a client's account or medical records, contact your administrator.</div>
+        </div>
+      </section>
+
+      <!-- ── 6. Email Notifications ─────────────────────────── -->
+      <section class="guide-section" id="notifications">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-bell"></i></div>
+          <div>
+            <div class="section-num">Section 06</div>
+            <div class="section-title">Email Notification Preferences</div>
+          </div>
+        </div>
+
+        <p>You control how you're notified when clients book appointments. Go to the <strong>Notifications</strong> tab and choose one of two options:</p>
+
+        <div class="notif-cards">
+          <div class="notif-card">
+            <div class="notif-card-badge opt-a"><i class="bi bi-envelope-fill"></i>Option A</div>
+            <h6>Individual email per booking</h6>
+            <p>As soon as a client books, you receive an email immediately with the client's name, date, and time of the appointment.</p>
+          </div>
+          <div class="notif-card">
+            <div class="notif-card-badge opt-b"><i class="bi bi-envelope-paper-fill"></i>Option B</div>
+            <h6>Daily digest at midnight</h6>
+            <p>One summary email sent at <strong>midnight</strong> each night listing all clients scheduled for that day — no interruptions during the day.</p>
+          </div>
+        </div>
+
+        <ol class="step-list">
+          <li><span>Click the <strong>Notifications</strong> tab.</span></li>
+          <li><span>Select your preferred option using the radio button.</span></li>
+          <li><span>Click <strong>Save Preference</strong>. A confirmation toast confirms it was saved.</span></li>
+        </ol>
+
+        <div class="callout warn">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <div>The daily digest is sent to the email address on your trainer account. If you're not receiving emails, check your spam folder or contact admin to verify your email is correct.</div>
+        </div>
+      </section>
+
+      <!-- ── 7. Tips & Reminders ────────────────────────────── -->
+      <section class="guide-section" id="tips">
+        <div class="section-header">
+          <div class="section-icon"><i class="bi bi-lightbulb"></i></div>
+          <div>
+            <div class="section-num">Section 07</div>
+            <div class="section-title">Tips &amp; Reminders</div>
+          </div>
+        </div>
+
+        <p>Keep these rules in mind when managing your schedule and working with clients.</p>
+
+        <div class="tips-grid">
+          <div class="tip-item">
+            <i class="bi bi-calendar-x"></i>
+            <span>You <strong>cannot be booked</strong> on days where your availability is set to inactive.</span>
+          </div>
+          <div class="tip-item">
+            <i class="bi bi-clock-history"></i>
+            <span>Clients must book at least <strong>1 day in advance</strong>. Same-day bookings are not allowed.</span>
+          </div>
+          <div class="tip-item">
+            <i class="bi bi-person-check"></i>
+            <span>Each client can only have <strong>one appointment per day</strong>, regardless of trainer or time.</span>
+          </div>
+          <div class="tip-item">
+            <i class="bi bi-alarm"></i>
+            <span>All time slots are <strong>on the hour only</strong> — e.g. 9:00 AM, 10:00 AM, 2:00 PM.</span>
+          </div>
+          <div class="tip-item">
+            <i class="bi bi-people-fill"></i>
+            <span>When a slot reaches your configured <strong>capacity</strong>, no further bookings are accepted for that hour.</span>
+          </div>
+          <div class="tip-item">
+            <i class="bi bi-headset"></i>
+            <span>To update your account details, password, or email — contact your <strong>administrator</strong>.</span>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────────────── -->
+  <footer class="guide-footer">
+    <span><strong>JE Fitness</strong> — Trainer Reference Guide</span>
+    <span>April 2026 &nbsp;·&nbsp; For internal use only</span>
+  </footer>
+
+  <script>
+    // Highlight active TOC link on scroll
+    const sections = document.querySelectorAll('.guide-section');
+    const tocLinks = document.querySelectorAll('.toc-list a');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          tocLinks.forEach(link => link.classList.remove('active'));
+          const active = document.querySelector(`.toc-list a[href="#${entry.target.id}"]`);
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    sections.forEach(s => observer.observe(s));
+  </script>
+</body>
+</html>

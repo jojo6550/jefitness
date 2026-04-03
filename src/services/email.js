@@ -204,4 +204,58 @@ async function sendTrainerDailySchedule(to, trainerName, dateStr, appointments) 
   });
 }
 
-module.exports = { sendEmail, sendPasswordReset, sendSubscriptionReminder, sendEmailVerification, sendTrainerDailySchedule };
+/**
+ * Notify a trainer of a single new appointment booking.
+ * @param {string} to - Trainer email
+ * @param {string} trainerName - Trainer first name
+ * @param {string} clientName - Full client name
+ * @param {string} dateStr - Human-readable date (e.g. "Friday, April 4, 2026")
+ * @param {string} time - Appointment time string (e.g. "09:00")
+ */
+async function sendNewAppointmentNotification(to, trainerName, clientName, dateStr, time) {
+  // Format time to 12-hour for display
+  const [h, m] = time.split(':').map(Number);
+  const suffix = h < 12 ? 'AM' : 'PM';
+  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+
+  return sendEmail({
+    to,
+    subject: `New appointment booked — ${clientName} on ${dateStr}`,
+    text: [
+      `Hello ${trainerName},`,
+      '',
+      `A new appointment has been booked with you:`,
+      '',
+      `  Client: ${clientName}`,
+      `  Date:   ${dateStr}`,
+      `  Time:   ${displayTime}`,
+      '',
+      '— JE Fitness Team',
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#343a40">New Appointment Booked</h2>
+        <p>Hello ${trainerName},</p>
+        <p>A new appointment has been scheduled with you:</p>
+        <table style="width:100%;border-collapse:collapse;margin:16px 0">
+          <tr style="background:#f8f9fa">
+            <td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #dee2e6;width:35%">Client</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #dee2e6">${clientName}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #dee2e6">Date</td>
+            <td style="padding:10px 14px;border-bottom:1px solid #dee2e6">${dateStr}</td>
+          </tr>
+          <tr style="background:#f8f9fa">
+            <td style="padding:10px 14px;font-weight:600">Time</td>
+            <td style="padding:10px 14px">${displayTime}</td>
+          </tr>
+        </table>
+        <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
+        <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
+      </div>`,
+  });
+}
+
+module.exports = { sendEmail, sendPasswordReset, sendSubscriptionReminder, sendEmailVerification, sendTrainerDailySchedule, sendNewAppointmentNotification };

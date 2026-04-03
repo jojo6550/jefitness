@@ -24,6 +24,7 @@
                     <button class="tab-btn active" id="tabSchedule" data-tab="schedule">Schedule</button>
                     <button class="tab-btn" id="tabClients" data-tab="clients">Clients</button>
                     <button class="tab-btn" id="tabAvailability" data-tab="availability">Availability</button>
+                    <button class="tab-btn" id="tabNotifications" data-tab="notifications">Notifications</button>
                 </div>
                 <div class="window-title flex-grow-1 text-center">
                     <i class="bi bi-calendar3 me-2 text-primary"></i>
@@ -56,6 +57,15 @@
                 <div class="search-inner">
                     <i class="bi bi-search"></i>
                     <input type="text" id="clientSearch" placeholder="Search clients...">
+                </div>
+            </div>
+
+            <!-- Notifications header bar -->
+            <div id="notificationsHeader" class="window-search-bar d-none">
+                <div class="d-flex align-items-center">
+                    <span class="avail-header-label">
+                        <i class="bi bi-bell me-2"></i>Email notification preferences
+                    </span>
                 </div>
             </div>
 
@@ -101,6 +111,35 @@
                             <div class="spinner-border text-primary spinner-border-sm me-2"></div>
                             <span>Loading schedule...</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- NOTIFICATIONS PANEL -->
+                <div id="panelNotifications" class="panel-content d-none">
+                    <div class="p-4" style="max-width:560px">
+                        <h6 class="fw-bold mb-1">Appointment Email Notifications</h6>
+                        <p class="text-muted small mb-4">Choose how you want to be notified when a client books an appointment with you.</p>
+
+                        <div class="d-flex flex-column gap-3" id="notifOptions">
+                            <label class="notif-option-card d-flex align-items-start gap-3 p-3 rounded-3 border" style="cursor:pointer">
+                                <input type="radio" name="emailPref" value="individual" class="mt-1 flex-shrink-0">
+                                <div>
+                                    <div class="fw-semibold">Individual email per booking</div>
+                                    <div class="text-muted small">You receive an email immediately each time a client books an appointment.</div>
+                                </div>
+                            </label>
+                            <label class="notif-option-card d-flex align-items-start gap-3 p-3 rounded-3 border" style="cursor:pointer">
+                                <input type="radio" name="emailPref" value="daily_digest" class="mt-1 flex-shrink-0">
+                                <div>
+                                    <div class="fw-semibold">Daily digest at midnight</div>
+                                    <div class="text-muted small">One email sent at midnight listing all your clients scheduled for that day.</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button id="saveNotifPrefBtn" class="btn btn-primary rounded-pill px-4 mt-4">
+                            <i class="bi bi-check2 me-1"></i>Save Preference
+                        </button>
                     </div>
                 </div>
 

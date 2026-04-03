@@ -4,6 +4,7 @@ const router = express.Router();
 const trainerController = require('../controllers/trainerController');
 const { requireTrainer } = require('../middleware/auth');
 const TrainerAvailability = require('../models/TrainerAvailability');
+const User = require('../models/User');
 const { logger } = require('../services/logger');
 
 /**
@@ -103,6 +104,27 @@ router.put('/availability', requireTrainer, async (req, res) => {
     res.json({ success: true, availability: results });
   } catch (err) {
     logger.error('Trainer availability update failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+/**
+ * @route   PUT /api/v1/trainer/notification-preference
+ * @desc    Set trainer's appointment email notification preference
+ * @body    { preference: 'individual' | 'daily_digest' }
+ * @access  Private (Trainer only)
+ */
+router.put('/notification-preference', requireTrainer, async (req, res) => {
+  try {
+    const { preference } = req.body;
+    if (!['individual', 'daily_digest'].includes(preference)) {
+      return res.status(400).json({ success: false, error: 'preference must be "individual" or "daily_digest"' });
+    }
+    await User.findByIdAndUpdate(req.user.id, { trainerEmailPreference: preference });
+    logger.info('Trainer notification preference updated', { trainerId: req.user.id, preference });
+    res.json({ success: true, preference });
+  } catch (err) {
+    logger.error('Trainer notification preference update failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });

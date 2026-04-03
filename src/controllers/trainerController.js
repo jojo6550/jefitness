@@ -106,11 +106,14 @@ const trainerController = {
 
     logUserAction('view_trainer_dashboard', trainerId);
 
+    const trainerUser = await User.findById(trainerId).select('trainerEmailPreference').lean();
+
     res.json({
       overview: { ...stats, completionRate },
       upcomingAppointments,
       clients,
       recentActivity: { lastUpdated: new Date() },
+      trainerEmailPreference: trainerUser?.trainerEmailPreference || 'daily_digest',
     });
   }),
 

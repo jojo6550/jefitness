@@ -234,6 +234,11 @@ const UserSchema = new mongoose.Schema(
       dataAnalytics: { type: Boolean, default: true },
       thirdPartySharing: { type: Boolean, default: false },
     },
+    trainerEmailPreference: {
+      type: String,
+      enum: ['individual', 'daily_digest'],
+      default: 'daily_digest',
+    },
     dataDeletedAt: { type: Date },
     deletionReason: { type: String },
 

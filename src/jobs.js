@@ -155,7 +155,7 @@ const startRenewalReminderJob = () => {
  * client names and times.
  */
 const startTrainerDailyEmailJob = () => {
-  cron.schedule('0 6 * * *', async () => {
+  cron.schedule('0 0 * * *', async () => {
     logger.info('Running daily trainer schedule email job');
     try {
       const now = new Date();
@@ -168,7 +168,7 @@ const startTrainerDailyEmailJob = () => {
         date: { $gte: dayStart, $lte: dayEnd },
         status: { $ne: 'cancelled' },
       })
-        .populate('trainerId', 'firstName email')
+        .populate('trainerId', 'firstName email trainerEmailPreference')
         .populate('clientId', 'firstName lastName')
         .lean();
 
@@ -177,10 +177,11 @@ const startTrainerDailyEmailJob = () => {
         return;
       }
 
-      // Group by trainer
+      // Group by trainer — only include trainers who prefer the daily digest
       const byTrainer = {};
       for (const apt of appointments) {
         if (!apt.trainerId || !apt.trainerId.email) continue;
+        if (apt.trainerId.trainerEmailPreference === 'individual') continue;
         const tid = apt.trainerId._id.toString();
         if (!byTrainer[tid]) {
           byTrainer[tid] = { trainer: apt.trainerId, appointments: [] };
@@ -214,7 +215,7 @@ const startTrainerDailyEmailJob = () => {
     }
   });
 
-  logger.info('Trainer daily schedule email job scheduled (0 6 * * *)');
+  logger.info('Trainer daily schedule email job scheduled (0 0 * * *)');
 };
 
 module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob };

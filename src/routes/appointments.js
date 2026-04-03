@@ -9,6 +9,7 @@ const User = require('../models/User');
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 const { allowOnlyFields } = require('../middleware/inputValidator');
+const { sendNewAppointmentNotification } = require('../services/email');
 
 /**
  * @route   GET /api/appointments
@@ -356,6 +357,20 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       date,
       time,
     });
+
+    // Send individual email notification if trainer prefers it
+    if (trainer.trainerEmailPreference === 'individual' && trainer.email) {
+      try {
+        const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
+        const aptDate = new Date(date);
+        const dateStr = aptDate.toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        });
+        await sendNewAppointmentNotification(trainer.email, trainer.firstName, clientName, dateStr, time);
+      } catch (emailErr) {
+        logger.warn('Failed to send individual appointment notification', { trainerId, error: emailErr.message });
+      }
+    }
 
     res.status(201).json(appointment);
   } catch (err) {

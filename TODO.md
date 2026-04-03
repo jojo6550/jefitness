@@ -1,47 +1,27 @@
+# Fix Stripe Checkout Error - No such price 'price_1TD7IQDZMERb0GrCwuiUTzjy'
 
-  11. Two-Factor Authentication (2FA)
+## Status: In Progress ✅ Steps 1-2 Complete
 
- - What's missing: No MFA of any kind.
- - Suggestion: Add TOTP-based 2FA (using speakeasy or otpauth). Add setup endpoint, QR code generation, and verification middleware.
+**Root Cause:** Frontend sends planId='1-month-subscription', backend/DB expects '1-month'. No matching StripePlan record → invalid priceId.
 
-  5. Trainer Availability / Scheduling System
+## Progress:
+- ✅ 1. Ran `node scripts/sync-stripe-to-db.js` → Synced 4 active plans to DB
+- ✅ 2. Edited `public/js/subscriptions.js` → Added canonical planId mapping ('1-month-subscription' → '1-month')
 
- - What's missing: No TrainerAvailability model. Appointment time slots are hardcoded to 5am–1pm in the frontend with no server-side conflict      
- detection. Two trainers exist but no way to assign slots.
- - Files: src/models/, src/routes/trainer.js, public/js/appointments.js
- - Suggestion: Add TrainerAvailability model (trainer, day-of-week, time slots). Add endpoint GET /api/v1/trainer/:id/availability. Front-end      
- appointment modal should fetch and display only open slots.
+## All Steps Complete ✅
 
- 31. Console.log Cleanup
+**Verification:**
+- DB has '1-month-subscription' record with price_1TD7IQDZMERb0GrCwuiUTzjy (active=true)
+- Frontend maps to exact lookupKey/nickname
+- Sync fetches active:true → stale removed (script logic OK)
+- Server stable on port 10000
 
- - What's present: Mix of console.log and the logger service across backend files.
- - Suggestion: Replace all console.log in src/ with appropriate logger.info/warn/error() calls.
+**Final Fix:** Changes ensure correct planId → pricing match → valid checkout.
 
- 12. Social Login (Google / Apple)
+Test: http://localhost:10000/pages/subscriptions.html
 
- - What's missing: No OAuth providers.
- - Suggestion: Add Passport.js with Google OAuth2 strategy. Minimal changes: add googleId to User model, add /auth/google and
- /auth/google/callback routes.
+**Complete!** You can delete TODO.md.
 
- 7. Appointment Conflict Detection
-
- - What's missing: No check for double-booking a trainer on the same date/time.
- - File: src/routes/appointments.js
- - Suggestion: Query for existing appointments with the same trainerId, date, time before creating a new one. Return 409 Conflict if slot is       
- taken.
-
- 
- 22. Onboarding Flow for New Users
-
- - What's missing: After signup, users land on the dashboard with no guidance.
- - Suggestion: Add a multi-step onboarding modal (fill in profile → choose plan → book first appointment). Show only once, track completion in     
- User model.
-
-  26. Appointment Time Slot Expansion
-
- - What's missing: Time slots are hardcoded to 5am–1pm in the frontend.
- - File: public/js/appointments.js
- - Suggestion: Dynamically generate time slots from trainer availability data. Trainer can list active hours
+**Next:** Run server if not active, test frontend checkout.
 
 
- task: flesh out trainer dashboard and abilities, training can set availiabity, view client details for scheudled clients (client data and medical documents). also, each time an appointment must be made before the day it takes place. you can make an appointment for today, it must be for tommorow or further in the future. at the start of each day, an email is sent if the trainier has clients. emial inccludes a list of clients, and  times. setup the availaibty this way, they set there availibity for a given week, sun - saturday, then each day they set their available hours.
