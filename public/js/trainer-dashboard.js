@@ -109,6 +109,13 @@ async function loadAppointments() {
     }
 }
 
+function formatTime12(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
 function renderAppointments(appointments) {
     const container = document.getElementById('appointmentsList');
     if (!container) return;
@@ -119,28 +126,61 @@ function renderAppointments(appointments) {
     }
 
     container.innerHTML = appointments.map(apt => {
-        const dateStr = new Date(apt.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dateObj = new Date(apt.date);
+        const dayLabel  = dateObj.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+        const dateLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+        const timeLabel = formatTime12(apt.time);
         const clientName = apt.clientId ? `${apt.clientId.firstName} ${apt.clientId.lastName}` : 'Unknown Client';
         const canUpdate = (apt.status === 'scheduled' || apt.status === 'late') && currentView === 'active';
 
+        if (canUpdate) {
+            return `
+            <div class="apt-card-active">
+                <div class="apt-card-time">
+                    <div class="apt-card-clock">${timeLabel}</div>
+                    <div class="apt-card-day">${dayLabel}</div>
+                    <div class="apt-card-date">${dateLabel}</div>
+                </div>
+                <div class="apt-card-client">
+                    <i class="bi bi-person-circle apt-card-icon"></i>
+                    <div class="apt-card-name">${clientName}</div>
+                </div>
+                <div class="apt-card-actions"
+                     data-appointment-id="${apt._id}"
+                     data-client-name="${clientName}"
+                     data-time="${timeLabel}"
+                     data-date="${dayLabel}, ${dateLabel}">
+                    <button class="apt-btn apt-btn-ontime ontime-btn">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>On Time</span>
+                    </button>
+                    <button class="apt-btn apt-btn-late late-btn">
+                        <i class="bi bi-clock-fill"></i>
+                        <span>Late</span>
+                    </button>
+                    <button class="apt-btn apt-btn-noshow noshow-btn">
+                        <i class="bi bi-x-circle-fill"></i>
+                        <span>No Show</span>
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        // Archive / read-only row
+        const statusLabel = { completed: 'On Time', late: 'Late', no_show: 'No Show', cancelled: 'Cancelled', scheduled: 'Scheduled' }[apt.status] || apt.status;
         return `
             <div class="apt-row">
                 <div class="apt-time-block">
-                    <div class="apt-time">${apt.time}</div>
-                    <div class="apt-date">${dateStr}</div>
+                    <div class="apt-time">${timeLabel}</div>
+                    <div class="apt-date">${dayLabel}</div>
+                    <div class="apt-date">${dateLabel}</div>
                 </div>
                 <div class="apt-client">
                     <div class="client-name text-truncate">${clientName}</div>
-                    ${currentView === 'archive' && apt.statusUpdatedAt ? `<div class="small text-muted apt-updated-time">Updated: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
+                    ${apt.statusUpdatedAt ? `<div class="small text-muted apt-updated-time">Logged: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
                 </div>
-                <div class="apt-actions d-flex align-items-center gap-2">
-                    <span class="apt-status status-${apt.status || 'scheduled'}">${apt.status || 'scheduled'}</span>
-                    ${canUpdate ? `
-                    <div class="btn-group btn-group-sm status-buttons" data-appointment-id="${apt._id}">
-                        <button class="btn btn-dark border-0 py-0 complete-btn" title="Complete"><i class="bi bi-check text-success"></i></button>
-                        <button class="btn btn-dark border-0 py-0 late-btn" title="Late"><i class="bi bi-clock text-warning"></i></button>
-                        <button class="btn btn-dark border-0 py-0 noshow-btn" title="No Show"><i class="bi bi-x text-danger"></i></button>
-                    </div>` : ''}
+                <div class="apt-actions d-flex align-items-center">
+                    <span class="apt-status status-${apt.status || 'scheduled'}">${statusLabel}</span>
                 </div>
             </div>`;
     }).join('');
@@ -156,16 +196,17 @@ function setupScheduleListeners() {
         }) : allAppointments);
     });
 
-    // Status buttons (event delegation)
+    // Status buttons (event delegation on the actions container)
     document.getElementById('appointmentsList').addEventListener('click', e => {
-        const aptId = e.target.closest('.status-buttons')?.dataset.appointmentId;
-        if (!aptId) return;
-        let status;
-        if (e.target.closest('.complete-btn')) status = 'completed';
-        else if (e.target.closest('.late-btn')) status = 'late';
-        else if (e.target.closest('.noshow-btn')) status = 'no_show';
+        const actionsEl = e.target.closest('.apt-card-actions');
+        if (!actionsEl) return;
+        const { appointmentId, clientName, time, date } = actionsEl.dataset;
+        let status, label;
+        if (e.target.closest('.ontime-btn'))  { status = 'completed'; label = 'On Time'; }
+        else if (e.target.closest('.late-btn'))   { status = 'late';      label = 'Late'; }
+        else if (e.target.closest('.noshow-btn')) { status = 'no_show';   label = 'No Show'; }
         else return;
-        updateStatus(aptId, status);
+        updateStatus(appointmentId, status, label, clientName, time, date);
     });
 
     // Active / Archive sub-tabs
@@ -186,29 +227,49 @@ function setupScheduleListeners() {
     });
 }
 
-window.updateStatus = async (id, status) => {
-    const statusText = status.replace('_', ' ');
-    showConfirm(`Mark session as ${statusText}?`, async () => {
+window.updateStatus = async (id, status, label, clientName, time, date) => {
+    const displayLabel = label || status.replace('_', ' ');
+    const who  = clientName || 'this client';
+    const when = (time && date) ? `${time} — ${date}` : '';
+    const confirmLines = [
+        `Log ${who} as "${displayLabel}"?`,
+        when ? when : null,
+        'Session will be moved to archive.',
+    ].filter(Boolean);
+
+    showConfirm(confirmLines, async () => {
+        const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+        const logNote = `[${ts}] Marked as ${displayLabel}${when ? ' — ' + when : ''}.`;
+
         try {
             const res = await apiFetch(`/api/v1/trainer/appointments/${id}`, {
                 method: 'PUT',
-                body: JSON.stringify({ status }),
+                body: JSON.stringify({ status, notes: logNote }),
             });
             if (!res.ok) throw new Error('Failed to update');
-            window.Toast.success(`Updated to ${statusText}`);
+            window.Toast.success(`${who}'s session logged as "${displayLabel}" and archived.`);
             await loadAppointments();
         } catch (err) {
             if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
             console.error(err);
-            window.Toast.error('Update failed.');
+            window.Toast.error('Failed to log session status.');
         }
     });
 };
 
 function showConfirm(message, callback) {
     const el = document.getElementById('confirmModal');
-    if (!el) { if (confirm(message)) callback(); return; }
-    document.getElementById('confirmModalBody').textContent = message;
+    const lines = Array.isArray(message) ? message : [message];
+    if (!el) { if (confirm(lines.join('\n'))) callback(); return; }
+    const body = document.getElementById('confirmModalBody');
+    body.innerHTML = '';
+    lines.forEach((line, i) => {
+        const p = document.createElement('p');
+        p.textContent = line;
+        if (i === 0) p.classList.add('fw-bold', 'mb-1');
+        else p.classList.add('small', 'text-muted', 'mb-1');
+        body.appendChild(p);
+    });
     const modal = new bootstrap.Modal(el);
     document.getElementById('confirmActionBtn').onclick = () => { callback(); modal.hide(); };
     modal.show();

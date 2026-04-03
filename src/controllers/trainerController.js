@@ -291,13 +291,30 @@ const trainerController = {
       appointment.status = status;
       appointment.statusUpdatedAt = new Date();
     }
-    if (notes !== undefined) appointment.notes = notes;
+    // Append log note so history accumulates rather than getting overwritten
+    if (notes !== undefined) {
+      appointment.notes = appointment.notes
+        ? `${appointment.notes}\n${notes}`
+        : notes;
+    }
 
     await appointment.save();
     await appointment.populate('clientId', 'firstName lastName email');
     await appointment.populate('trainerId', 'firstName lastName email');
 
-    logUserAction('update_appointment', req.user.id, { appointmentId: req.params.id });
+    const actionNames = {
+      completed: 'appointment_marked_on_time',
+      late:      'appointment_marked_late',
+      no_show:   'appointment_marked_no_show',
+    };
+    logUserAction(actionNames[status] || 'appointment_notes_updated', req.user.id, {
+      appointmentId: req.params.id,
+      clientId: appointment.clientId._id,
+      clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+      date: appointment.date,
+      time: appointment.time,
+      status,
+    });
     res.json(appointment);
   }),
 
