@@ -242,7 +242,21 @@ async function startServer() {
     startRenewalReminderJob();
     startTrainerDailyEmailJob();
 
+    // Self-ping keep-alive for production (prevents sleep on free hosts like Render)
+    if (process.env.NODE_ENV === 'production') {
+      const pingUrl = process.env.APP_URL || `http://localhost:${PORT}/api/health`;
+      setInterval(async () => {
+        try {
+          await fetch(pingUrl);
+          logger.info('Self-ping sent');
+        } catch (err) {
+          // Silent fail - do not log errors
+        }
+      }, 4 * 60 * 1000);  // Every 50 seconds
+    }
+
     const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));
+
 
     const gracefulShutdown = async signal => {
       logger.info('Shutting down gracefully', { signal });
