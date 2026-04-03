@@ -325,6 +325,39 @@
     }
 }
 
+/* ── Trainer Dashboard Component Styles ── */
+
+/* Schedule tab */
+.apt-updated-time { font-size: 0.6rem; }
+
+/* Clients tab */
+.client-card { cursor: default; }
+.client-avatar {
+    width: 42px;
+    height: 42px;
+    background: rgba(0, 210, 255, 0.12);
+    color: var(--primary-accent);
+    font-weight: 800;
+    font-size: 1rem;
+}
+.badge-xs { font-size: 0.6rem; }
+.btn-view-client { font-size: 0.75rem; }
+
+/* Client detail modal */
+.doc-row { border-color: rgba(255, 255, 255, 0.06) !important; }
+.btn-doc-view { font-size: 0.7rem; }
+.section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Availability tab */
+.avail-day-check { min-width: 120px; }
+.avail-day-label { font-size: 0.85rem; }
+.avail-select { width: auto; }
+.avail-sep { font-size: 0.8rem; }
+
 /* Mobile window (very small screens) */
 @media (max-width: 575.98px) {
     .app-window {

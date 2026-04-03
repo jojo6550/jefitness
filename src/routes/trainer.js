@@ -3,7 +3,6 @@ const express = require('express');
 const router = express.Router();
 const trainerController = require('../controllers/trainerController');
 const { requireTrainer } = require('../middleware/auth');
-const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const TrainerAvailability = require('../models/TrainerAvailability');
 const { logger } = require('../services/logger');
 
@@ -17,12 +16,7 @@ router.get('/dashboard', requireTrainer, trainerController.getDashboard);
  * @route   GET /api/trainer/clients
  * @access  Private (Trainer only)
  */
-router.get(
-  '/clients',
-  requireTrainer,
-  requireActiveSubscription,
-  trainerController.getClients
-);
+router.get('/clients', requireTrainer, trainerController.getClients);
 
 /**
  * @route   GET /api/trainer/appointments

@@ -131,7 +131,7 @@ function renderAppointments(appointments) {
                 </div>
                 <div class="apt-client">
                     <div class="client-name text-truncate">${clientName}</div>
-                    ${currentView === 'archive' && apt.statusUpdatedAt ? `<div class="small text-muted" style="font-size:0.6rem">Updated: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
+                    ${currentView === 'archive' && apt.statusUpdatedAt ? `<div class="small text-muted apt-updated-time">Updated: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
                 </div>
                 <div class="apt-actions d-flex align-items-center gap-2">
                     <span class="apt-status status-${apt.status || 'scheduled'}">${apt.status || 'scheduled'}</span>
@@ -247,18 +247,17 @@ function renderClients(clients) {
 
     container.innerHTML = `<div class="row g-3">${clients.map(c => `
         <div class="col-12 col-sm-6">
-            <div class="apt-row d-flex align-items-center gap-3 p-3" style="cursor:default">
-                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:42px;height:42px;background:rgba(0,210,255,0.12);color:var(--primary-accent);font-weight:800;font-size:1rem;">
+            <div class="apt-row client-card d-flex align-items-center gap-3 p-3">
+                <div class="client-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
                     ${(c.firstName || '?')[0].toUpperCase()}
                 </div>
                 <div class="flex-grow-1 min-w-0">
                     <div class="fw-bold text-truncate">${c.firstName} ${c.lastName}</div>
                     <div class="small text-muted text-truncate">${c.email}</div>
-                    <span class="badge ${c.activityStatus === 'active' ? 'bg-success' : 'bg-secondary'} mt-1" style="font-size:0.6rem">${c.activityStatus || 'unknown'}</span>
+                    <span class="badge badge-xs ${c.activityStatus === 'active' ? 'bg-success' : 'bg-secondary'} mt-1">${c.activityStatus || 'unknown'}</span>
                 </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0 view-client-btn"
-                        data-client-id="${c._id}" style="font-size:0.75rem">
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0 view-client-btn btn-view-client"
+                        data-client-id="${c._id}">
                     View
                 </button>
             </div>
@@ -295,11 +294,11 @@ async function openClientDetail(clientId) {
 
         const token = localStorage.getItem('token');
         const docRows = (client.medicalDocuments || []).map(doc => `
-            <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color:rgba(255,255,255,.06)!important">
+            <div class="d-flex align-items-center gap-3 py-2 border-bottom doc-row">
                 <i class="bi bi-file-earmark-text text-muted"></i>
                 <div class="flex-grow-1 text-truncate small">${doc.originalName || doc.filename}</div>
                 <a href="${window.API_BASE}/api/v1/medical-documents/view/${encodeURIComponent(doc.filename)}?token=${token}"
-                   target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3" style="font-size:0.7rem">
+                   target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 btn-doc-view">
                     View
                 </a>
             </div>`).join('');
@@ -307,24 +306,24 @@ async function openClientDetail(clientId) {
         document.getElementById('clientDetailBody').innerHTML = `
             <div class="row g-4">
                 <div class="col-md-6">
-                    <p class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">Contact</p>
+                    <p class="text-muted section-label mb-1">Contact</p>
                     <p class="mb-1"><i class="bi bi-envelope me-2 text-muted"></i>${client.email}</p>
                     ${client.phone ? `<p class="mb-1"><i class="bi bi-phone me-2 text-muted"></i>${client.phone}</p>` : ''}
                     ${client.dob ? `<p class="mb-1"><i class="bi bi-calendar me-2 text-muted"></i>${new Date(client.dob).toLocaleDateString()}</p>` : ''}
                     ${client.gender ? `<p class="mb-0"><i class="bi bi-person me-2 text-muted"></i>${client.gender}</p>` : ''}
                 </div>
                 <div class="col-md-6">
-                    <p class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">Appointments</p>
+                    <p class="text-muted section-label mb-1">Appointments</p>
                     <p class="mb-0"><strong>${completedCount}</strong> completed / <strong>${appointmentCount}</strong> total</p>
                 </div>
                 ${client.hasMedical ? `
                 <div class="col-12">
-                    <p class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">Medical Notes</p>
+                    <p class="text-muted section-label mb-1">Medical Notes</p>
                     <p class="mb-0 small">${client.medicalConditions || 'No notes recorded'}</p>
                 </div>` : ''}
                 ${(client.medicalDocuments || []).length > 0 ? `
                 <div class="col-12">
-                    <p class="text-muted mb-2" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">
+                    <p class="text-muted section-label mb-2">
                         Medical Documents (${client.medicalDocuments.length})
                     </p>
                     ${docRows}
@@ -413,20 +412,20 @@ function renderAvailabilityGrid(existing) {
         return `
             <div class="avail-row apt-row mb-2 p-3" data-dow="${dow}">
                 <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div class="form-check form-switch mb-0" style="min-width:120px">
+                    <div class="form-check form-switch mb-0 avail-day-check">
                         <input class="form-check-input avail-toggle" type="checkbox" id="toggle-${dow}" ${isActive ? 'checked' : ''} data-dow="${dow}">
-                        <label class="form-check-label fw-bold" for="toggle-${dow}" style="font-size:.85rem">${day}</label>
+                        <label class="form-check-label fw-bold avail-day-label" for="toggle-${dow}">${day}</label>
                     </div>
                     <div class="avail-hours d-flex align-items-center gap-2 flex-wrap ${isActive ? '' : 'd-none'}" id="hours-${dow}">
-                        <select class="form-select form-select-sm avail-start bg-dark text-light border-secondary" id="start-${dow}" style="width:auto">
+                        <select class="form-select form-select-sm avail-start avail-select bg-dark text-light border-secondary" id="start-${dow}">
                             ${buildHourOptions(start, 0, 23)}
                         </select>
-                        <span class="text-muted" style="font-size:.8rem">to</span>
-                        <select class="form-select form-select-sm avail-end bg-dark text-light border-secondary" id="end-${dow}" style="width:auto">
+                        <span class="text-muted avail-sep">to</span>
+                        <select class="form-select form-select-sm avail-end avail-select bg-dark text-light border-secondary" id="end-${dow}">
                             ${buildHourOptions(end, 1, 24)}
                         </select>
                     </div>
-                    ${!isActive ? `<span class="text-muted small" id="offLabel-${dow}">Unavailable</span>` : ''}
+                    <span class="text-muted small ${isActive ? 'd-none' : ''}" id="offLabel-${dow}">Unavailable</span>
                 </div>
             </div>`;
     }).join('');
@@ -439,10 +438,10 @@ function renderAvailabilityGrid(existing) {
             const offLabel = document.getElementById(`offLabel-${dow}`);
             if (toggle.checked) {
                 hours?.classList.remove('d-none');
-                if (offLabel) offLabel.style.display = 'none';
+                offLabel?.classList.add('d-none');
             } else {
                 hours?.classList.add('d-none');
-                if (offLabel) offLabel.style.display = '';
+                offLabel?.classList.remove('d-none');
             }
         });
     });
