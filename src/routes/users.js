@@ -189,41 +189,6 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// SECURITY: GET /api/users/:id - Get user by ID (with IDOR protection)
-router.get('/:id', validateObjectId('id'), async (req, res) => {
-  try {
-    // SECURITY: IDOR Prevention - Users can only access their own data unless admin
-    if (req.user.role !== 'admin' && req.params.id !== req.user.id.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied. You can only access your own profile.',
-      });
-    }
-
-    // SECURITY: Exclude sensitive fields
-    const user = await User.findById(req.params.id).select(
-      '-password -emailVerificationToken -passwordResetToken -pushSubscription'
-    );
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found',
-      });
-    }
-
-    res.json({
-      success: true,
-      user,
-    });
-  } catch (err) {
-    logger.error('User route error', { error: err.message });
-    res.status(500).json({
-      success: false,
-      error: 'Server error',
-    });
-  }
-});
-
 // SECURITY: PUT /api/users/:id - Update user profile (with IDOR protection)
 router.put(
   '/:id',
@@ -594,6 +559,43 @@ router.delete('/measurements/:measurementId', async (req, res) => {
   } catch (err) {
     logger.error('Delete measurement error', { userId: req.user.id, error: err.message });
     res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// SECURITY: GET /api/users/:id - Get user by ID (with IDOR protection)
+// NOTE: must be declared AFTER all specific GET routes (/profile, /measurements, etc.)
+// so Express doesn't match e.g. /measurements as id="measurements" and return 400.
+router.get('/:id', validateObjectId('id'), async (req, res) => {
+  try {
+    // SECURITY: IDOR Prevention - Users can only access their own data unless admin
+    if (req.user.role !== 'admin' && req.params.id !== req.user.id.toString()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only access your own profile.',
+      });
+    }
+
+    // SECURITY: Exclude sensitive fields
+    const user = await User.findById(req.params.id).select(
+      '-password -emailVerificationToken -passwordResetToken -pushSubscription'
+    );
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      user,
+    });
+  } catch (err) {
+    logger.error('User route error', { error: err.message });
+    res.status(500).json({
+      success: false,
+      error: 'Server error',
+    });
   }
 });
 

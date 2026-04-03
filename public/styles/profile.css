@@ -251,6 +251,9 @@
     color: #ef4444;
 }
 
+/* ── Change password form width ── */
+.profile-change-password-form { max-width: 480px; }
+
 /* ── Save Button ── */
 .profile-save-btn {
     padding: 0.875rem 2rem;

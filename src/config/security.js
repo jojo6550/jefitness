@@ -34,6 +34,7 @@ const securityConfig = {
           'https://fonts.googleapis.com',
           'https://cdnjs.cloudflare.com',
           "'sha256-biLFinpqYMtWHmXfkA1BPeCY0/fNt46SAZ+BBk5YUog='",
+          "'sha256-AUY0m1X9Sfh14gTAfA1FDbB5e6FpSDBkqMaQDOZyhE8='",
         ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'],
         connectSrc: [
