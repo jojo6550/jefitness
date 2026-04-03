@@ -92,7 +92,7 @@ router.put('/availability', requireTrainer, async (req, res) => {
       const updated = await TrainerAvailability.findOneAndUpdate(
         { trainerId, dayOfWeek },
         { trainerId, dayOfWeek, startHour, endHour, isActive },
-        { upsert: true, new: true, runValidators: true }
+        { upsert: true, new: true }
       );
       results.push(updated);
     }

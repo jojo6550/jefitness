@@ -353,6 +353,13 @@
 }
 
 /* Availability tab */
+.avail-header-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
 .avail-day-check { min-width: 120px; }
 .avail-day-label { font-size: 0.85rem; }
 .avail-select { width: auto; }
