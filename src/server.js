@@ -244,7 +244,7 @@ async function startServer() {
 
     // Self-ping keep-alive for production (prevents sleep on free hosts like Render)
     if (process.env.NODE_ENV === 'production') {
-      const pingUrl = process.env.APP_URL || `http://localhost:${PORT}/api/health`;
+      const pingUrl = `http://localhost:${PORT}/api/health`;
       setInterval(async () => {
         try {
           await fetch(pingUrl);
@@ -252,7 +252,7 @@ async function startServer() {
         } catch (err) {
           // Silent fail - do not log errors
         }
-      }, 4 * 60 * 1000);  // Every 50 seconds
+      }, 10 * 60 * 1000);  // Every 50 seconds
     }
 
     const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));
