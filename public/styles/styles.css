@@ -1,70 +1,80 @@
-/* --- JE Fitness UI System --- */
+/* --- JE Fitness UI System — Mobile-First --- */
+/* Body font: 'Outfit' (add to Google Fonts import alongside Rajdhani) */
 
 :root {
-    /* Color Palette */
     --primary-accent: var(--bs-primary);
     --primary-accent-dark: var(--bs-primary-text-emphasis);
     --gradient-purple-start: var(--bs-primary);
     --gradient-purple-end: var(--bs-purple);
     --gradient-primary: linear-gradient(135deg, var(--gradient-purple-start), var(--gradient-purple-end));
 
-    /* Backgrounds */
     --bg-main: var(--bs-gray-900);
     --bg-secondary: var(--bs-gray-800);
     --bg-card: var(--bs-gray-700);
     --bg-input: var(--bs-secondary-bg-subtle);
 
-    /* Text */
     --text-primary: var(--bs-white);
     --text-muted: var(--bs-gray-600);
     --text-on-accent: var(--bs-dark);
 
-    /* Spacing & Borders */
     --border-radius-lg: var(--bs-border-radius-xl);
     --border-radius-md: var(--bs-border-radius-lg);
-    --border-color: var(--bs-border-color);
+    --border-color: var(--border-color, rgba(255,255,255,0.08));
     --transition-base: all 0.3s ease;
+
+    /* Touch-friendly minimum */
+    --touch-target: 44px;
 }
 
-/* --- Base Reset --- */
+/* --- Base Reset (mobile) --- */
 body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
 }
 
 /* --- Shared Layout Classes --- */
 .page-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 1.5rem;
 }
 
 .max-w-600 { max-width: 600px; }
 
 .py-6 {
-    padding-top: 4rem;
-    padding-bottom: 4rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
 .mb-6 {
-    margin-bottom: 4rem;
+    margin-bottom: 2rem;
 }
 
 .section-spacing {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
 }
 
 .sticky-top-header {
     position: sticky;
-    top: 20px;
+    top: 8px;
 }
 
 .sticky-top-navbar-offset {
     position: sticky;
-    top: 100px;
+    top: 70px;
+}
+
+@media (min-width: 768px) {
+    .page-header { margin-bottom: 3rem; }
+    .py-6 { padding-top: 4rem; padding-bottom: 4rem; }
+    .mb-6 { margin-bottom: 4rem; }
+    .section-spacing { padding-top: 5rem; padding-bottom: 5rem; }
+    .sticky-top-header { top: 20px; }
+    .sticky-top-navbar-offset { top: 100px; }
 }
 
 /* --- Typography --- */
@@ -89,13 +99,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar-brand {
     font-weight: 800;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     color: #fff !important;
 }
 
 .navbar-nav .nav-link {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
     font-weight: 500;
+    min-height: var(--touch-target);
+    display: flex;
+    align-items: center;
 }
 
 .navbar-nav .nav-link:hover,
@@ -114,10 +127,12 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary);
 }
 
-.card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(0, 210, 255, 0.3) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+@media (hover: hover) {
+    .card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(0, 210, 255, 0.3) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
 }
 
 .card-header.bg-gradient {
@@ -132,20 +147,24 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-on-accent) !important;
     font-weight: 700;
     border-radius: 50px;
-    padding: 10px 25px;
+    padding: 12px 24px;
+    min-height: var(--touch-target);
     transition: var(--transition-base);
     position: relative;
     overflow: hidden;
+    touch-action: manipulation;
 }
 
-.btn-primary:hover {
-    background-color: #fff !important;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+@media (hover: hover) {
+    .btn-primary:hover {
+        background-color: #fff !important;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 210, 255, 0.4);
+    }
 }
 
 .btn-primary:active {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.97);
     transition: transform 0.1s ease;
 }
 
@@ -199,29 +218,18 @@ h1, h2, h3, h4, h5, h6 {
     100% { transform: rotate(360deg); }
 }
 
-/* Fade In/Out for Loading States */
-.fade-in {
-    animation: fadeIn 0.3s ease-in;
-}
+.fade-in  { animation: fadeIn 0.3s ease-in; }
+.fade-out { animation: fadeOut 0.3s ease-out; }
 
-.fade-out {
-    animation: fadeOut 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 
 .btn-outline-info {
     border-color: var(--primary-accent);
     color: var(--primary-accent);
     border-radius: 50px;
+    min-height: var(--touch-target);
+    touch-action: manipulation;
 }
 
 .btn-outline-info:hover {
@@ -237,36 +245,36 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 500;
     border-radius: var(--border-radius-md);
     padding: 0.75rem 1rem;
+    min-height: var(--touch-target);
     transition: var(--transition-base);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-size: 1rem; /* prevent iOS zoom on focus */
 }
 
 .form-control:focus, .form-select:focus {
     background-color: var(--bg-card) !important;
     border-color: var(--primary-accent) !important;
-    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.2) !important;
     color: var(--text-primary) !important;
-    transform: scale(1.01);
 }
 
-/* Improved visibility and contrast for trainer dropdown, time slot dropdown, and notes textarea */
 #trainerSelect, #appointmentTime, #appointmentNotes,
 #editTrainerSelect, #editAppointmentTime, #editAppointmentNotes {
     background-color: var(--bg-secondary) !important;
     color: var(--text-primary) !important;
     border: 2px solid var(--border-color) !important;
     font-weight: 500;
+    font-size: 1rem;
+    min-height: var(--touch-target);
 }
 
 #trainerSelect:focus, #appointmentTime:focus, #appointmentNotes:focus,
 #editTrainerSelect:focus, #editAppointmentTime:focus, #editAppointmentNotes:focus {
     background-color: var(--bg-card) !important;
     border-color: var(--primary-accent) !important;
-    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.2) !important;
     color: var(--text-primary) !important;
 }
 
-/* Ensure dropdown options have good contrast */
 #trainerSelect option, #appointmentTime option,
 #editTrainerSelect option, #editAppointmentTime option {
     background-color: var(--bg-secondary);
@@ -275,62 +283,76 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Trainer Specific --- */
 .trainer-image-circle {
-    width: 120px;
-    height: 120px;
+    width: 80px;
+    height: 80px;
     object-fit: cover;
+}
+
+@media (min-width: 768px) {
+    .trainer-image-circle { width: 120px; height: 120px; }
 }
 
 /* --- Checkout Specific --- */
 .progress-step-circle {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
 }
 
-.progress-connector {
-    height: 2px;
+@media (min-width: 576px) {
+    .progress-step-circle { width: 50px; height: 50px; }
 }
 
-.progress-connector-active { background: var(--gradient-purple-start); }
+.progress-connector { height: 2px; }
+.progress-connector-active   { background: var(--gradient-purple-start); }
 .progress-connector-inactive { background: #dee2e6; }
 
-/* --- Admin Specific (from style blocks) --- */
+/* --- Admin Stats --- */
 .admin-stats-card {
     background-color: var(--bg-card);
-    padding: 1.5rem;
+    padding: 1.25rem;
     border-radius: var(--border-radius-md);
 }
 
-.admin-stats-icon {
-    font-size: 2.5rem;
+.admin-stats-icon { font-size: 2rem; }
+
+@media (min-width: 768px) {
+    .admin-stats-card { padding: 1.5rem; }
+    .admin-stats-icon { font-size: 2.5rem; }
 }
 
-/* --- Trainer Specific (Modernized) */
+/* --- Trainer Modern Cards --- */
 .trainer-modern-card {
     background-color: var(--bg-card) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    border-radius: 24px !important;
+    border-radius: 20px !important;
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-.trainer-modern-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    border-color: var(--primary-accent) !important;
+@media (hover: hover) {
+    .trainer-modern-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        border-color: var(--primary-accent) !important;
+    }
 }
 
 .trainer-modern-image {
-    width: 140px;
-    height: 140px;
+    width: 100px;
+    height: 100px;
     object-fit: cover;
     border: 4px solid var(--bg-secondary);
+}
+
+@media (min-width: 768px) {
+    .trainer-modern-image { width: 140px; height: 140px; }
 }
 
 .status-indicator {
     position: absolute;
     bottom: 8px;
     right: 8px;
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     border: 3px solid var(--bg-card);
 }
@@ -340,55 +362,71 @@ h1, h2, h3, h4, h5, h6 {
 /* Appointment Section */
 .appointment-section-card {
     background-color: var(--bg-card) !important;
-    border-radius: 24px !important;
+    border-radius: 20px !important;
     overflow: hidden;
 }
 
 .custom-appointment-table thead th {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 800;
     color: var(--text-muted);
-    padding: 1.25rem 1rem;
+    padding: 1rem 0.75rem;
     border: none;
 }
 
 .custom-appointment-table tbody td {
-    padding: 1.25rem 1rem;
+    padding: 1rem 0.75rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+@media (min-width: 768px) {
+    .custom-appointment-table thead th { padding: 1.25rem 1rem; font-size: 0.75rem; }
+    .custom-appointment-table tbody td  { padding: 1.25rem 1rem; }
+}
+
 .appointment-status-badge {
-    padding: 6px 12px;
+    padding: 5px 10px;
     border-radius: 10px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: capitalize;
 }
 
 .status-scheduled { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-.status-pending { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-.status-cancelled { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.status-pending   { background: rgba(245, 158, 11, 0.1);  color: #f59e0b; }
+.status-cancelled { background: rgba(239, 68, 68, 0.1);   color: #ef4444; }
 
-/* Appointment table helpers (replaces CSP-blocked inline styles) */
-.appt-empty-icon { font-size: 3rem; }
-.icon-3rem { font-size: 3rem; }
-.card-narrow { max-width: 440px; width: 100%; }
+.appt-empty-icon  { font-size: 2.5rem; }
+.icon-3rem        { font-size: 2.5rem; }
+.card-narrow      { max-width: 440px; width: 100%; }
 .appt-trainer-avatar { width: 32px; height: 32px; flex-shrink: 0; }
-.appt-notes-cell { max-width: 200px; }
+.appt-notes-cell  { max-width: 160px; }
+
+@media (min-width: 768px) {
+    .appt-empty-icon { font-size: 3rem; }
+    .icon-3rem       { font-size: 3rem; }
+    .appt-notes-cell { max-width: 200px; }
+}
 
 /* Contact Section */
-.contact-section {
-    background-color: var(--bg-secondary);
-}
+.contact-section { background-color: var(--bg-secondary); }
 
 .contact-form {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 30px;
+    padding: 1.5rem;
     border-radius: var(--border-radius-lg);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 576px) {
+    .contact-form { padding: 2rem; }
+}
+
+@media (min-width: 768px) {
+    .contact-form { padding: 30px; }
 }
 
 .contact-form .btn-primary {
@@ -403,13 +441,12 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--primary-accent);
 }
 
-/* Responsive Design for Trainers */
+/* Responsive trainer card layout */
 @media (min-width: 992px) {
     .trainer-card {
         flex-direction: row;
         text-align: left;
     }
-
     .trainer-image {
         margin-right: 20px;
         margin-bottom: 0;
@@ -418,29 +455,22 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Utility Classes --- */
 .bg-secondary-dark { background-color: var(--bg-secondary) !important; }
-.z-index-11 { z-index: 11; }
-.cursor-pointer { cursor: pointer; }
-.max-w-600 { max-width: 600px; }
-.max-w-120 { max-width: 120px; }
-.max-w-80 { max-width: 80px; }
-.hidden-state { display: none; }
+.z-index-11        { z-index: 11; }
+.cursor-pointer    { cursor: pointer; }
+.max-w-600         { max-width: 600px; }
+.max-w-120         { max-width: 120px; }
+.max-w-80          { max-width: 80px; }
+.hidden-state      { display: none; }
 
-/* CSP Fix - High z-index for toast container */
-.toast-container {
-    z-index: 9999 !important;
-}
-
-/* OTP container toggle class */
-.otp-visible {
-    display: block !important;
-}
+.toast-container { z-index: 9999 !important; }
+.otp-visible     { display: block !important; }
 
 /* Cookie Banner */
 .cookie-consent-banner {
     background-color: var(--bg-card);
     border-top: 2px solid var(--primary-accent);
     color: #fff;
-    padding: 15px 0;
+    padding: 12px 0;
     position: fixed;
     bottom: 0;
     width: 100%;
@@ -453,7 +483,7 @@ footer {
     border-top: 1px solid var(--border-color);
 }
 
-/* --- Login and Signup Pages --- */
+/* --- Login / Signup Pages --- */
 .login-page, .signup-page {
     display: flex;
     flex-direction: column;
@@ -465,32 +495,60 @@ footer {
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 2rem 1rem;
+    align-items: flex-start;
+    padding: 1rem 1rem 2rem;
+}
+
+@media (min-width: 480px) {
+    .login-container, .signup-container {
+        align-items: center;
+        padding: 2rem 1rem;
+    }
 }
 
 .login-form, .signup-form, .otp-form {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-lg);
-    padding: 2.5rem;
+    padding: 1.5rem;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    max-width: 450px;
     width: 100%;
     transition: var(--transition-base);
 }
 
-.login-form:hover, .signup-form:hover, .otp-form:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+@media (min-width: 480px) {
+    .login-form, .signup-form, .otp-form {
+        padding: 2rem;
+        max-width: 450px;
+    }
+}
+
+@media (min-width: 768px) {
+    .login-form, .signup-form, .otp-form {
+        padding: 2.5rem;
+    }
+}
+
+@media (hover: hover) {
+    .login-form:hover, .signup-form:hover, .otp-form:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    }
 }
 
 .login-form h2, .signup-form h2, .otp-form h2 {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
-    font-size: 1.75rem;
+    font-size: 1.5rem;
+}
+
+@media (min-width: 480px) {
+    .login-form h2, .signup-form h2, .otp-form h2 {
+        font-size: 1.75rem;
+        margin-bottom: 2rem;
+    }
 }
 
 .login-form .form-label, .signup-form .form-label, .otp-form .form-label {
@@ -505,13 +563,15 @@ footer {
     border-radius: var(--border-radius-md);
     color: var(--text-primary);
     padding: 0.75rem 1rem;
+    font-size: 1rem;
+    min-height: var(--touch-target);
     transition: var(--transition-base);
 }
 
 .login-form .form-control:focus, .signup-form .form-control:focus, .otp-form .form-control:focus {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.15);
     color: var(--text-primary);
 }
 
@@ -521,51 +581,45 @@ footer {
     color: var(--text-on-accent);
     font-weight: 700;
     border-radius: 50px;
-    padding: 12px 30px;
+    padding: 14px 30px;
+    min-height: var(--touch-target);
     width: 100%;
     transition: var(--transition-base);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    touch-action: manipulation;
 }
 
-.btn-login:hover, .btn-signup:hover {
-    background: linear-gradient(135deg, #fff, var(--primary-accent));
-    color: var(--text-on-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 210, 255, 0.4);
+@media (hover: hover) {
+    .btn-login:hover, .btn-signup:hover {
+        background: linear-gradient(135deg, #fff, var(--primary-accent));
+        color: var(--text-on-accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 210, 255, 0.4);
+    }
 }
 
 #password-requirements {
     background-color: var(--bg-secondary);
     border-radius: var(--border-radius-md);
-    padding: 1rem;
+    padding: 0.875rem;
     margin-top: 0.5rem;
 }
 
-#password-requirements ul li {
-    margin-bottom: 0.25rem;
-}
+#password-requirements ul li { margin-bottom: 0.25rem; }
+#password-requirements ul li.text-success { color: #28a745 !important; }
 
-#password-requirements ul li.text-success {
-    color: #28a745 !important;
-}
-
-#otp-container {
-    margin-top: 2rem;
-}
+#otp-container { margin-top: 1.5rem; }
 
 #otp-message {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     color: var(--text-muted);
 }
 
-#message {
-    color: var(--text-primary);
-    font-weight: 500;
-}
+#message { color: var(--text-primary); font-weight: 500; }
 
-/* Terms Modal Styling */
+/* Terms Modal */
 #termsModal .modal-content {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -577,24 +631,19 @@ footer {
     background-color: var(--bg-secondary);
 }
 
-#termsModal .modal-title {
-    font-weight: 700;
-    color: var(--text-primary);
-}
+#termsModal .modal-title { font-weight: 700; color: var(--text-primary); }
+#termsModal .btn-close { filter: invert(1); }
 
-#termsModal .btn-close {
-    filter: invert(1);
-}
-
-#termsModal .nav-tabs {
-    border-bottom: 1px solid var(--border-color);
-}
+#termsModal .nav-tabs { border-bottom: 1px solid var(--border-color); }
 
 #termsModal .nav-tabs .nav-link {
     color: var(--text-muted);
     border: none;
     border-bottom: 2px solid transparent;
     font-weight: 500;
+    min-height: var(--touch-target);
+    display: flex;
+    align-items: center;
 }
 
 #termsModal .nav-tabs .nav-link.active {
@@ -603,41 +652,27 @@ footer {
     background-color: transparent;
 }
 
-#termsModal .nav-tabs .nav-link:hover {
-    color: var(--text-primary);
-}
+#termsModal .nav-tabs .nav-link:hover { color: var(--text-primary); }
 
 #termsModal .terms-section {
-    max-height: 400px;
+    max-height: 280px;
     overflow-y: auto;
-    padding-right: 10px;
+    padding-right: 8px;
+    -webkit-overflow-scrolling: touch;
 }
 
-#termsModal .terms-section h6 {
-    color: var(--primary-accent);
+@media (min-width: 576px) {
+    #termsModal .terms-section { max-height: 400px; }
 }
 
+#termsModal .terms-section h6          { color: var(--primary-accent); }
 #termsModal .terms-section p,
-#termsModal .terms-section li {
-    color: var(--text-primary);
-    line-height: 1.6;
-}
+#termsModal .terms-section li          { color: var(--text-primary); line-height: 1.6; }
+#termsModal .alert-sm                  { padding: 0.5rem 0.75rem !important; margin-bottom: 0.5rem !important; font-size: 0.875rem; }
+#termsModal .modal-footer              { border-top: 1px solid var(--border-color); background-color: var(--bg-secondary); }
 
-#termsModal .alert-sm {
-    padding: 0.5rem 0.75rem !important;
-    margin-bottom: 0.5rem !important;
-    font-size: 0.875rem;
-}
-
-#termsModal .modal-footer {
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-secondary);
-}
-
-/* Agreement checkbox styling */
-.form-check {
-    padding-left: 1.5rem;
-}
+/* Agreement checkbox */
+.form-check { padding-left: 1.5rem; }
 
 .form-check-input {
     width: 1.25em;
@@ -650,35 +685,28 @@ footer {
 
 .form-check-input:focus {
     border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.25rem rgba(0, 210, 255, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.15);
 }
 
-.form-check-input.is-invalid {
-    border-color: #dc3545;
-}
+.form-check-input.is-invalid { border-color: #dc3545; }
+.form-check-label             { cursor: pointer; user-select: none; }
+.form-check-label a           { text-decoration: none; }
+.form-check-label a:hover     { text-decoration: underline; }
 
-.form-check-label {
-    cursor: pointer;
-    user-select: none;
-}
-
-.form-check-label a {
-    text-decoration: none;
-}
-
-.form-check-label a:hover {
-    text-decoration: underline;
-}
-
-/* Medical Documents Upload Styling */
+/* Medical Upload */
 .medical-upload-zone {
     border: 2px dashed var(--border-color);
     border-radius: var(--border-radius-lg);
-    background-color: rgba(0, 210, 255, 0.05);
-    padding: 2rem;
+    background-color: rgba(0, 210, 255, 0.04);
+    padding: 1.5rem 1rem;
     text-align: center;
     cursor: pointer;
     transition: var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 576px) {
+    .medical-upload-zone { padding: 2rem; }
 }
 
 .medical-upload-zone:hover,
@@ -690,13 +718,23 @@ footer {
 
 .medical-file-item {
     display: flex;
-    align-items: center;
-    padding: 1rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.875rem;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
     margin-bottom: 0.75rem;
     transition: var(--transition-base);
+}
+
+@media (min-width: 576px) {
+    .medical-file-item {
+        flex-wrap: nowrap;
+        align-items: center;
+        padding: 1rem;
+    }
 }
 
 .medical-file-item:hover {
@@ -705,56 +743,43 @@ footer {
 }
 
 .medical-file-icon {
-    font-size: 1.5rem;
-    margin-right: 1rem;
+    font-size: 1.4rem;
     color: var(--primary-accent);
-    min-width: 40px;
+    min-width: 36px;
 }
 
-.medical-file-info {
-    flex: 1;
-}
-
-.medical-file-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    word-break: break-word;
-}
-
-.medical-file-meta {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    margin-top: 0.25rem;
-}
+.medical-file-info   { flex: 1; min-width: 0; }
+.medical-file-name   { font-weight: 500; color: var(--text-primary); word-break: break-word; }
+.medical-file-meta   { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem; }
 
 .medical-file-actions {
     display: flex;
     gap: 0.5rem;
+    width: 100%;
+    justify-content: flex-end;
+}
+
+@media (min-width: 576px) {
+    .medical-file-actions { width: auto; }
 }
 
 .medical-file-actions button {
-    padding: 0.25rem 0.5rem;
+    padding: 0.4rem 0.65rem;
     font-size: 0.85rem;
+    min-height: 36px;
 }
 
 .medical-file-status {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    min-width: 120px;
+    min-width: 110px;
+    font-size: 0.875rem;
 }
 
-.medical-file-status.uploading {
-    color: var(--primary-accent);
-}
-
-.medical-file-status.success {
-    color: #28a745;
-}
-
-.medical-file-status.error {
-    color: #dc3545;
-}
+.medical-file-status.uploading { color: var(--primary-accent); }
+.medical-file-status.success   { color: #28a745; }
+.medical-file-status.error     { color: #dc3545; }
 
 .medical-upload-spinner {
     width: 1rem;
@@ -765,57 +790,71 @@ footer {
     animation: spin 0.8s linear infinite;
 }
 
-/* Payment Modal Enhancements for Maximum Visibility */
+/* Payment Modal — full screen on mobile, constrained on desktop */
 #paymentModal .modal-dialog {
-    max-width: 600px;
-    margin: 2rem auto;
+    margin: 0;
+    max-width: 100%;
+    min-height: 100%;
 }
 
 #paymentModal .modal-content {
     background-color: var(--bg-card);
-    border: 2px solid var(--primary-accent);
-    border-radius: var(--border-radius-lg);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 210, 255, 0.3);
-    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 100dvh;
 }
 
-#paymentModal .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
+@media (min-width: 576px) {
+    #paymentModal .modal-dialog {
+        margin: 1.5rem auto;
+        max-width: 560px;
+        min-height: auto;
+    }
+    #paymentModal .modal-content {
+        border: 2px solid var(--primary-accent);
+        border-radius: var(--border-radius-lg);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 210, 255, 0.3);
+        min-height: auto;
+    }
 }
+
+#paymentModal .modal-backdrop { background-color: rgba(0, 0, 0, 0.8); }
 
 #paymentModal .modal-header {
     background: var(--gradient-primary);
     border-bottom: 2px solid var(--primary-accent);
-    padding: 1.5rem 2rem;
+    padding: 1.25rem 1.25rem;
+}
+
+@media (min-width: 576px) {
+    #paymentModal .modal-header { padding: 1.5rem 2rem; }
 }
 
 #paymentModal .modal-title {
     color: var(--text-on-accent);
     font-weight: 700;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-#paymentModal .btn-close {
-    filter: invert(1);
-    opacity: 0.8;
+@media (min-width: 576px) {
+    #paymentModal .modal-title { font-size: 1.5rem; }
 }
 
-#paymentModal .btn-close:hover {
-    opacity: 1;
-}
+#paymentModal .btn-close  { filter: invert(1); opacity: 0.8; }
+#paymentModal .btn-close:hover { opacity: 1; }
 
 #paymentModal .modal-body {
-    padding: 2rem;
+    padding: 1.25rem;
     background-color: var(--bg-card);
 }
 
-#paymentModal .form-label {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+@media (min-width: 576px) {
+    #paymentModal .modal-body { padding: 2rem; }
 }
+
+#paymentModal .form-label { color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem; }
 
 #paymentModal .form-control {
     background-color: var(--bg-input);
@@ -824,85 +863,82 @@ footer {
     color: var(--text-primary);
     padding: 0.75rem 1rem;
     font-size: 1rem;
+    min-height: var(--touch-target);
     transition: var(--transition-base);
 }
 
 #paymentModal .form-control:focus {
     background-color: rgba(255, 255, 255, 0.08);
     border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.25);
     color: var(--text-primary);
-    transform: scale(1.02);
 }
 
 #paymentModal #cardElement {
     border: 2px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: 0.75rem;
+    padding: 0.875rem;
     background-color: var(--bg-input);
     transition: var(--transition-base);
     position: relative;
-    min-height: 40px;
+    min-height: 48px;
     cursor: text;
 }
 
 #paymentModal #cardElement.StripeElement--focus {
     border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.3rem rgba(0, 210, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 210, 255, 0.25);
 }
 
-#paymentModal #cardElement .StripeElement {
-    padding: 0.5rem 0;
-    cursor: text;
-    pointer-events: auto !important;
-}
-
-#paymentModal #cardElement iframe {
-    pointer-events: auto !important;
-}
+#paymentModal #cardElement .StripeElement { padding: 0.5rem 0; cursor: text; pointer-events: auto !important; }
+#paymentModal #cardElement iframe         { pointer-events: auto !important; }
 
 #paymentModal .d-grid .btn-primary {
     background: var(--gradient-primary);
     border: none;
     color: var(--text-on-accent);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1rem;
     padding: 1rem 2rem;
     border-radius: 50px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     box-shadow: 0 4px 15px rgba(0, 210, 255, 0.4);
     transition: var(--transition-base);
+    min-height: var(--touch-target);
 }
 
-#paymentModal .d-grid .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
-    background: linear-gradient(135deg, #fff, var(--primary-accent));
-    color: var(--text-on-accent);
+@media (hover: hover) {
+    #paymentModal .d-grid .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 210, 255, 0.6);
+        background: linear-gradient(135deg, #fff, var(--primary-accent));
+        color: var(--text-on-accent);
+    }
 }
 
-#paymentModal .d-grid .btn-primary:active {
-    transform: translateY(0) scale(0.98);
-}
+#paymentModal .d-grid .btn-primary:active { transform: translateY(0) scale(0.98); }
 
-/* Animation for modal appearance */
 #paymentModal.fade .modal-dialog {
-    animation: modalZoomIn 0.3s ease-out;
+    animation: modalSlideUp 0.3s ease-out;
+}
+
+@media (min-width: 576px) {
+    #paymentModal.fade .modal-dialog {
+        animation: modalZoomIn 0.3s ease-out;
+    }
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(60px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes modalZoomIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8) translateY(-50px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    from { opacity: 0; transform: scale(0.88) translateY(-30px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Enhanced card errors styling */
 #paymentModal #cardErrors {
     background-color: rgba(220, 53, 69, 0.1);
     border: 1px solid rgba(220, 53, 69, 0.3);
@@ -911,53 +947,4 @@ footer {
     margin-top: 0.5rem;
     color: #dc3545;
     font-weight: 500;
-}
-
-/* Responsive Design */
-@media (max-width: 576px) {
-    .login-form, .signup-form, .otp-form {
-        padding: 2rem 1.5rem;
-        margin: 1rem;
-    }
-
-    .login-form h2, .signup-form h2, .otp-form h2 {
-        font-size: 1.5rem;
-    }
-
-    #termsModal .modal-dialog {
-        margin: 0.5rem;
-    }
-
-    #termsModal .terms-section {
-        max-height: 300px;
-    }
-
-    .medical-file-item {
-        flex-wrap: wrap;
-    }
-
-    .medical-file-actions {
-        width: 100%;
-        justify-content: flex-end;
-        margin-top: 0.75rem;
-    }
-
-    .medical-upload-zone {
-        padding: 1.5rem;
-    }
-
-    /* Payment Modal Mobile Enhancements */
-    #paymentModal .modal-dialog {
-        margin: 1rem;
-        max-width: calc(100vw - 2rem);
-    }
-
-    #paymentModal .modal-header,
-    #paymentModal .modal-body {
-        padding: 1.5rem;
-    }
-
-    #paymentModal .modal-title {
-        font-size: 1.25rem;
-    }
 }

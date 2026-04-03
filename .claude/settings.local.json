@@ -27,7 +27,9 @@
       "Bash(node --check src/models/Appointment.js)",
       "Bash(node --check src/models/TrainerAvailability.js)",
       "Bash(node --check src/models/User.js)",
-      "Bash(node --check src/controllers/authController.js)"
+      "Bash(node --check src/controllers/authController.js)",
+      "Bash(wc -l /c/Users/josia/jefitness/public/pages/*.html)",
+      "Bash(python _add_fonts.py)"
     ]
   }
 }

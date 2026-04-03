@@ -1,23 +1,33 @@
-/* ── Profile Page — JE Fitness Industrial Dark Theme ── */
+/* ── Profile Page — JE Fitness — Mobile-First ── */
 
 /* ── Page Header ── */
 .profile-page-header {
-    padding: 3rem 0 2rem;
+    padding: 1.5rem 0 1.25rem;
     border-bottom: 1px solid #1e1e24;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
 }
+
+@media (min-width: 768px) {
+    .profile-page-header {
+        padding: 3rem 0 2rem;
+        margin-bottom: 2.5rem;
+    }
+}
+
 .profile-page-header h2 {
     font-family: 'Rajdhani', sans-serif;
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #f1f5f9;
     margin-bottom: 0.4rem;
 }
+
 .profile-page-header h2 span { color: #22d3ee; }
+
 .profile-page-header p {
     color: #64748b;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
     margin: 0;
 }
 
@@ -25,14 +35,23 @@
 .profile-card {
     background: #111113;
     border: 1px solid #1e1e24;
-    border-radius: 1rem;
-    padding: 1.75rem;
+    border-radius: 0.875rem;
+    padding: 1.25rem;
     height: 100%;
     position: relative;
     overflow: hidden;
     animation: profileCardIn 0.45s ease-out both;
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
+
+@media (min-width: 576px) {
+    .profile-card { padding: 1.5rem; border-radius: 1rem; }
+}
+
+@media (min-width: 768px) {
+    .profile-card { padding: 1.75rem; }
+}
+
 .profile-card::before {
     content: '';
     position: absolute;
@@ -41,97 +60,108 @@
     background: linear-gradient(90deg, transparent, #22d3ee44, transparent);
     transition: background 0.3s ease;
 }
+
 .profile-card:focus-within {
-    border-color: rgba(34,211,238,0.25);
-    box-shadow: 0 8px 24px rgba(34,211,238,0.07);
+    border-color: rgba(34, 211, 238, 0.25);
+    box-shadow: 0 8px 24px rgba(34, 211, 238, 0.07);
 }
+
 .profile-card:focus-within::before {
     background: linear-gradient(90deg, transparent, #22d3ee, transparent);
 }
 
-/* Section heading */
+/* Section headings */
 .profile-card h3 {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: #64748b;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
-.profile-card h3 i {
-    color: #22d3ee;
-    font-size: 1rem;
+
+@media (min-width: 576px) {
+    .profile-card h3 { font-size: 0.75rem; margin-bottom: 1.5rem; }
 }
+
+.profile-card h3 i { color: #22d3ee; font-size: 1rem; }
+
 .profile-card h4 {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: #64748b;
-    margin-bottom: 1rem;
+    margin-bottom: 0.875rem;
     display: flex;
     align-items: center;
     gap: 0.4rem;
 }
+
 .profile-card h4 i { color: #22d3ee; font-size: 0.9rem; }
 
-/* ── Form controls scoped to profile cards ── */
+/* ── Form controls ── */
 .profile-card .form-control,
 .profile-card .form-select {
     background-color: #0a0a0b !important;
     color: #f1f5f9 !important;
     border-color: #1e1e24 !important;
     border-radius: 0.5rem;
-    font-size: 0.9rem;
-    padding: 0.6rem 0.875rem;
+    font-size: 1rem; /* prevent iOS zoom */
+    padding: 0.65rem 0.875rem;
+    min-height: 44px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
+
 .profile-card .form-control:focus,
 .profile-card .form-select:focus {
     background-color: #0a0a0b !important;
     color: #f1f5f9 !important;
     border-color: #22d3ee !important;
-    box-shadow: 0 0 0 0.2rem rgba(34,211,238,0.12) !important;
+    box-shadow: 0 0 0 0.2rem rgba(34, 211, 238, 0.12) !important;
 }
+
 .profile-card .form-control::placeholder { color: #4b5563; }
+
 .profile-card .form-control:read-only,
 .profile-card .readonly-field {
     background-color: #0d0d0f !important;
     color: #64748b !important;
     cursor: default;
 }
+
 .profile-card .form-label {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #94a3b8;
     margin-bottom: 0.4rem;
 }
-.profile-card .form-text {
-    color: #4b5563;
-    font-size: 0.75rem;
-}
+
+.profile-card .form-text  { color: #4b5563; font-size: 0.75rem; }
+
 .profile-card .form-check-input {
     background-color: #0a0a0b;
     border-color: #1e1e24;
     accent-color: #22d3ee;
+    width: 1.15em;
+    height: 1.15em;
 }
+
 .profile-card .form-check-input:checked {
     background-color: #22d3ee;
     border-color: #22d3ee;
 }
-.profile-card .form-check-label {
-    color: #94a3b8;
-    font-size: 0.875rem;
-}
 
-/* ── Select option dark background ── */
+.profile-card .form-check-label { color: #94a3b8; font-size: 0.875rem; }
+
+/* Select option dark bg */
 .profile-card .form-select option {
     background-color: #111113;
     color: #f1f5f9;
@@ -145,16 +175,9 @@
     padding: 0.75rem 1rem;
     margin-top: 0.5rem;
 }
-.bmi-result-box p {
-    margin: 0;
-    color: #94a3b8;
-    font-size: 0.875rem;
-}
-.bmi-result-box strong {
-    color: #22d3ee;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 1.1rem;
-}
+
+.bmi-result-box p      { margin: 0; color: #94a3b8; font-size: 0.875rem; }
+.bmi-result-box strong { color: #22d3ee; font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; }
 
 /* ── Medical Upload Zone ── */
 .medical-upload-zone,
@@ -164,28 +187,35 @@
     border-radius: 0.75rem;
     transition: border-color 0.2s, background 0.2s;
     cursor: pointer;
+    padding: 1.25rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
+
+@media (min-width: 576px) {
+    .medical-upload-zone, #uploadDropZone { padding: 1.75rem; }
+}
+
 .medical-upload-zone:hover,
 #uploadDropZone:hover,
 #uploadDropZone.drag-over {
     border-color: #22d3ee66;
-    background: rgba(34,211,238,0.03);
+    background: rgba(34, 211, 238, 0.03);
 }
+
 .medical-upload-zone .bi-cloud-upload,
-#uploadDropZone .bi-cloud-upload {
-    color: #22d3ee !important;
-}
+#uploadDropZone .bi-cloud-upload { color: #22d3ee !important; }
+
 .medical-upload-zone strong,
-#uploadDropZone strong {
-    color: #f1f5f9;
-}
+#uploadDropZone strong { color: #f1f5f9; }
 
 /* Progress bar */
 .profile-card .progress {
     background-color: #1e1e24;
     border-radius: 999px;
-    height: 6px;
+    height: 5px;
 }
+
 .profile-card .progress-bar {
     background: linear-gradient(90deg, #22d3ee, #0891b2);
     border-radius: 999px;
@@ -205,26 +235,28 @@
 /* ── Form message alert ── */
 #formMessage {
     border-radius: 0.75rem;
-    font-size: 0.9rem;
-    padding: 0.875rem 1.25rem;
+    font-size: 0.875rem;
+    padding: 0.875rem 1rem;
 }
+
 #formMessage.alert-success {
-    background: rgba(34,197,94,0.1);
-    border-color: rgba(34,197,94,0.3);
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
     color: #22c55e;
 }
+
 #formMessage.alert-danger {
-    background: rgba(239,68,68,0.1);
-    border-color: rgba(239,68,68,0.3);
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
     color: #ef4444;
 }
 
 /* ── Save Button ── */
 .profile-save-btn {
-    padding: 0.75rem 3rem;
+    padding: 0.875rem 2rem;
     border-radius: 999px;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -233,26 +265,38 @@
     color: #0a0a0b;
     transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     cursor: pointer;
+    min-height: 48px;
+    width: 100%;
+    touch-action: manipulation;
 }
-.profile-save-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(34,211,238,0.3);
-    filter: brightness(1.08);
-    color: #0a0a0b;
+
+@media (min-width: 480px) {
+    .profile-save-btn { width: auto; padding: 0.875rem 3rem; }
+}
+
+@media (hover: hover) {
+    .profile-save-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(34, 211, 238, 0.3);
+        filter: brightness(1.08);
+        color: #0a0a0b;
+    }
 }
 
 /* ── BMI calculate button ── */
 .profile-card .btn-info {
-    background: rgba(34,211,238,0.12);
-    border: 1px solid rgba(34,211,238,0.3);
+    background: rgba(34, 211, 238, 0.12);
+    border: 1px solid rgba(34, 211, 238, 0.3);
     color: #22d3ee;
     border-radius: 0.5rem;
     font-size: 0.875rem;
     font-weight: 600;
     transition: all 0.2s;
+    min-height: 44px;
 }
+
 .profile-card .btn-info:hover {
-    background: rgba(34,211,238,0.2);
+    background: rgba(34, 211, 238, 0.2);
     border-color: #22d3ee;
     color: #22d3ee;
 }
