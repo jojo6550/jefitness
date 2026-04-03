@@ -201,9 +201,8 @@ const authController = {
         },
       });
 
-      // Update last login
-      user.lastLoggedIn = new Date();
-      await user.save();
+      // Update last login (use updateOne to avoid triggering validators on unrelated fields)
+      await user.updateOne({ lastLoggedIn: new Date() });
 
       res.json({
         success: true,

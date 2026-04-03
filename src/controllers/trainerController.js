@@ -173,25 +173,14 @@ const trainerController = {
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
     const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const baseMatch = { trainerId: trainerObjectId };
     if (view === 'archive') {
-      baseMatch.$or = [
-        { status: 'cancelled' },
-        {
-          status: { $in: ['completed', 'no_show'] },
-          statusUpdatedAt: { $lt: twentyFourHoursAgo },
-        },
-      ];
+      // All terminal statuses — anything that's been given a final outcome
+      baseMatch.status = { $in: ['completed', 'no_show', 'late', 'cancelled'] };
     } else {
-      baseMatch.$or = [
-        { status: { $in: ['scheduled', 'late'] } },
-        {
-          status: { $in: ['completed', 'no_show'] },
-          statusUpdatedAt: { $gte: twentyFourHoursAgo },
-        },
-      ];
+      // Only unresolved sessions remain in active
+      baseMatch.status = 'scheduled';
     }
 
     if (status) baseMatch.status = status;

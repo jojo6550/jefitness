@@ -131,7 +131,7 @@ function renderAppointments(appointments) {
         const dateLabel = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
         const timeLabel = formatTime12(apt.time);
         const clientName = apt.clientId ? `${apt.clientId.firstName} ${apt.clientId.lastName}` : 'Unknown Client';
-        const canUpdate = (apt.status === 'scheduled' || apt.status === 'late') && currentView === 'active';
+        const canUpdate = apt.status === 'scheduled' && currentView === 'active';
 
         if (canUpdate) {
             return `
@@ -248,6 +248,10 @@ window.updateStatus = async (id, status, label, clientName, time, date) => {
             });
             if (!res.ok) throw new Error('Failed to update');
             window.Toast.success(`${who}'s session logged as "${displayLabel}" and archived.`);
+            // Switch to archive so the trainer immediately sees the logged record
+            currentView = 'archive';
+            document.getElementById('archiveTab')?.classList.add('active');
+            document.getElementById('activeTab')?.classList.remove('active');
             await loadAppointments();
         } catch (err) {
             if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
