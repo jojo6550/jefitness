@@ -46,6 +46,7 @@ const securityConfig = {
           'https://jefitnessja.com',
           'http://localhost:10000',
           'http://127.0.0.1:10000',
+          'https://world.openfoodfacts.org',
         ],
         frameSrc: ["'self'", 'https://js.stripe.com', 'https://checkout.stripe.com', 'https://hooks.stripe.com'],
         imgSrc: [

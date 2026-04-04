@@ -3,6 +3,26 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 let foodCount = 0;
 let searchDebounceTimers = {};
 
+async function requireSubscription() {
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/'; return false; }
+    try {
+        const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const activeStatuses = ['active', 'trialing', 'past_due'];
+        if (!data.data || !activeStatuses.includes(data.data.status)) {
+            window.location.href = '/subscriptions';
+            return false;
+        }
+        return true;
+    } catch {
+        window.location.href = '/subscriptions';
+        return false;
+    }
+}
+
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
@@ -12,12 +32,9 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
+document.addEventListener('DOMContentLoaded', async () => {
+    const allowed = await requireSubscription();
+    if (!allowed) return;
 
     document.getElementById('mealDate').valueAsDate = new Date();
     addFoodItem();
@@ -99,7 +116,7 @@ function addFoodItem() {
                         <div class="input-group input-group-sm">
                             <input type="number" class="form-control food-quantity"
                                    placeholder="100" min="0.01" step="0.01" value="100" required>
-                            <select class="form-select food-unit" style="max-width: 80px;">
+                            <select class="form-select food-unit food-unit--sm">
                                 <option value="g">g</option>
                                 <option value="ml">ml</option>
                                 <option value="oz">oz</option>
@@ -171,8 +188,7 @@ async function searchFood(query, foodId) {
             const carbs = Math.round(p.nutriments?.carbohydrates_value       || 0);
             const fat   = Math.round(p.nutriments?.fat_value                 || 0);
             return `
-                <div class="food-result-item p-2 border-bottom"
-                     style="cursor:pointer"
+                <div class="food-result-item p-2 border-bottom food-result-item--clickable"
                      data-name="${escapeHtml(p.product_name)}"
                      data-kcal="${kcal}"
                      data-protein="${prot}"

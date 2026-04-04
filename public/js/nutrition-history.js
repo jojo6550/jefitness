@@ -1,5 +1,25 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+async function requireSubscription() {
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/'; return false; }
+    try {
+        const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const activeStatuses = ['active', 'trialing', 'past_due'];
+        if (!data.data || !activeStatuses.includes(data.data.status)) {
+            window.location.href = '/subscriptions';
+            return false;
+        }
+        return true;
+    } catch {
+        window.location.href = '/subscriptions';
+        return false;
+    }
+}
+
 let currentPage  = 1;
 let totalPages   = 1;
 let pendingDeleteId = null;
@@ -13,11 +33,8 @@ const MEAL_TYPE_BADGES = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
+    const allowed = await requireSubscription();
+    if (!allowed) return;
 
     deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 

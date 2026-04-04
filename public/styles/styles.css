@@ -948,3 +948,38 @@ footer {
     color: #dc3545;
     font-weight: 500;
 }
+
+/* ── Log Meal Page ─────────────────────────────────────────────────── */
+.food-search-results {
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.food-result-item:hover {
+    background: #f8f9fa;
+}
+.food-search-wrap {
+    position: relative;
+}
+.macro-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+@media (min-width: 576px) {
+    .macro-grid { grid-template-columns: repeat(4, 1fr); }
+}
+/* ── Nutrition History Page ────────────────────────────────────────── */
+.stat-card { border-left: 4px solid #198754; }
+.chart-bar { transition: opacity 0.1s; }
+.chart-bar:hover { opacity: 0.75; }
+.meal-type-badge { text-transform: capitalize; }
+.food-list { font-size: 0.875rem; }
+.food-result-item--clickable { cursor: pointer; }
+.food-unit--sm { max-width: 80px; }
