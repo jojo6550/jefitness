@@ -98,19 +98,7 @@ const authController = {
     });
   }),
 
-  // Wrap in try-catch for error logging
-  signup: asyncHandler(async (req, res) => {
-    // ... existing code with timings
-  }).catch((signupError) => {
-    const totalTime = performance.now() - startTime;
-    logger.error('💥 SIGNUP ERROR', {
-      emailHash,
-      clientRequestId,
-      error: signupError.message,
-      timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) }
-    });
-    throw signupError;
-  }),
+
 
   /**
    * Log in user - Now checks email verification
