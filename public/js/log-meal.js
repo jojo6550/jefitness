@@ -171,7 +171,7 @@ async function searchFood(query, foodId) {
     resultsDiv.classList.remove('d-none');
 
     try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=5`;
+        const url = `${window.API_BASE}/api/v1/nutrition/food-search?q=${encodeURIComponent(query)}`;
         const resp = await fetch(url);
         if (!resp.ok) throw new Error('Search failed');
         const data = await resp.json();

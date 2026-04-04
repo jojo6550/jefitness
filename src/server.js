@@ -146,6 +146,22 @@ app.get('/api/v1/csrf-token', (req, res) => {
   res.json({ success: true, token: res.locals.csrfToken });
 });
 
+app.get('/api/v1/nutrition/food-search', (req, res) => {
+  const https = require('https');
+  const query = String(req.query.q || '').trim().slice(0, 100);
+  if (!query) return res.status(400).json({ error: 'Missing query' });
+
+  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=5`;
+  https.get(url, { headers: { 'User-Agent': 'JEFitness/1.0' } }, (upstream) => {
+    let body = '';
+    upstream.on('data', chunk => { body += chunk; });
+    upstream.on('end', () => {
+      if (upstream.statusCode !== 200) return res.status(502).json({ error: 'Food search unavailable' });
+      try { res.json(JSON.parse(body)); } catch { res.status(502).json({ error: 'Invalid response from food API' }); }
+    });
+  }).on('error', () => res.status(502).json({ error: 'Food search unavailable' }));
+});
+
 // -----------------------------
 // API Routes
 // -----------------------------
