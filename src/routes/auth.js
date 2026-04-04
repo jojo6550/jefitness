@@ -28,7 +28,7 @@ router.post(
   [
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
     body('password')
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 chars'),
@@ -54,7 +54,7 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
     body('password').notEmpty().withMessage('Password is required'),
     handleValidationErrors,
   ],
@@ -128,7 +128,7 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
   async (req, res) => {
@@ -171,7 +171,7 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail(),
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
   async (req, res) => {
