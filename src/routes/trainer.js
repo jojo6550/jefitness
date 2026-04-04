@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Trainer
+ *   description: Trainer dashboard, client management, appointments, and availability
+ */
+
 const express = require('express');
 
 const router = express.Router();
@@ -8,45 +15,178 @@ const User = require('../models/User');
 const { logger } = require('../services/logger');
 
 /**
- * @route   GET /api/trainer/dashboard
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/dashboard:
+ *   get:
+ *     summary: Get trainer dashboard summary
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data
+ *       403:
+ *         description: Trainer access required
  */
 router.get('/dashboard', requireTrainer, trainerController.getDashboard);
 
 /**
- * @route   GET /api/trainer/clients
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/clients:
+ *   get:
+ *     summary: Get the trainer's client list
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of clients
+ *       403:
+ *         description: Trainer access required
  */
 router.get('/clients', requireTrainer, trainerController.getClients);
 
 /**
- * @route   GET /api/trainer/appointments
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/appointments:
+ *   get:
+ *     summary: Get all appointments for the trainer
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of trainer appointments
+ *       403:
+ *         description: Trainer access required
  */
 router.get('/appointments', requireTrainer, trainerController.getAppointments);
 
 /**
- * @route   GET /api/trainer/appointments/:id
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/appointments/{id}:
+ *   get:
+ *     summary: Get a specific appointment by ID (trainer only)
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Appointment details
+ *       403:
+ *         description: Trainer access required
+ *       404:
+ *         description: Appointment not found
  */
 router.get('/appointments/:id', requireTrainer, trainerController.getAppointmentById);
 
 /**
- * @route   PUT /api/trainer/appointments/:id
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/appointments/{id}:
+ *   put:
+ *     summary: Update an appointment status or notes (trainer only)
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [completed, no_show, late]
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Appointment updated
+ *       403:
+ *         description: Trainer access required
+ *       404:
+ *         description: Appointment not found
  */
 router.put('/appointments/:id', requireTrainer, trainerController.updateAppointment);
 
 /**
- * @route   GET /api/trainer/client/:clientId
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/client/{clientId}:
+ *   get:
+ *     summary: Get detailed info for a specific client (trainer only)
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Client information
+ *       403:
+ *         description: Trainer access required
+ *       404:
+ *         description: Client not found
  */
 router.get('/client/:clientId', requireTrainer, trainerController.getClientInfo);
 
 /**
- * @route   GET /api/v1/trainer/:id/availability
- * @desc    Get a trainer's weekly availability (public — used during booking)
- * @access  Private
+ * @swagger
+ * /trainer/{id}/availability:
+ *   get:
+ *     summary: Get a trainer's weekly availability slots
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Trainer user ID
+ *     responses:
+ *       200:
+ *         description: Availability slots
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 availability:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       dayOfWeek:
+ *                         type: integer
+ *                       startHour:
+ *                         type: integer
+ *                       endHour:
+ *                         type: integer
+ *                       isActive:
+ *                         type: boolean
+ *                       slotCapacity:
+ *                         type: integer
+ *       500:
+ *         description: Server error
  */
 router.get('/:id/availability', async (req, res) => {
   try {
@@ -63,10 +203,54 @@ router.get('/:id/availability', async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v1/trainer/availability
- * @desc    Set the authenticated trainer's weekly availability
- * @body    { availability: [{ dayOfWeek, startHour, endHour, isActive }] }
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/availability:
+ *   put:
+ *     summary: Set the authenticated trainer's weekly availability
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - availability
+ *             properties:
+ *               availability:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - dayOfWeek
+ *                     - startHour
+ *                     - endHour
+ *                   properties:
+ *                     dayOfWeek:
+ *                       type: integer
+ *                       minimum: 0
+ *                       maximum: 6
+ *                     startHour:
+ *                       type: integer
+ *                     endHour:
+ *                       type: integer
+ *                     isActive:
+ *                       type: boolean
+ *                       default: true
+ *                     slotCapacity:
+ *                       type: integer
+ *                       default: 6
+ *     responses:
+ *       200:
+ *         description: Availability updated
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Trainer access required
+ *       500:
+ *         description: Server error
  */
 router.put('/availability', requireTrainer, async (req, res) => {
   try {
@@ -109,10 +293,43 @@ router.put('/availability', requireTrainer, async (req, res) => {
 });
 
 /**
- * @route   PUT /api/v1/trainer/notification-preference
- * @desc    Set trainer's appointment email notification preference
- * @body    { preference: 'individual' | 'daily_digest' }
- * @access  Private (Trainer only)
+ * @swagger
+ * /trainer/notification-preference:
+ *   put:
+ *     summary: Set the trainer's email notification preference for appointments
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - preference
+ *             properties:
+ *               preference:
+ *                 type: string
+ *                 enum: [individual, daily_digest]
+ *     responses:
+ *       200:
+ *         description: Preference updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 preference:
+ *                   type: string
+ *       400:
+ *         description: Invalid preference value
+ *       403:
+ *         description: Trainer access required
+ *       500:
+ *         description: Server error
  */
 router.put('/notification-preference', requireTrainer, async (req, res) => {
   try {

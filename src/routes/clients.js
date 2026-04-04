@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Clients
+ *   description: Admin-only client management (list, statistics, view, delete)
+ */
+
 // routes/clients.js
 const express = require('express');
 
@@ -7,6 +14,54 @@ const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
 
+/**
+ * @swagger
+ * /clients:
+ *   get:
+ *     summary: Get all clients with search, filter, sort, and pagination (admin only)
+ *     tags: [Clients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or email
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by activityStatus
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: firstName
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Paginated client list
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ */
 // GET /api/clients - return all users with search, filter, sort, and pagination
 // Auth is applied at router level in server.js
 router.get('/', async (req, res) => {
@@ -73,6 +128,35 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /clients/statistics:
+ *   get:
+ *     summary: Get client statistics (total, active, inactive, on-break counts) (admin only)
+ *     tags: [Clients]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Client statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalClients:
+ *                   type: integer
+ *                 activeClients:
+ *                   type: integer
+ *                 inactiveClients:
+ *                   type: integer
+ *                 onBreakClients:
+ *                   type: integer
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ */
 // GET /api/clients/statistics - return comprehensive client statistics
 router.get('/statistics', async (req, res) => {
   try {
@@ -135,6 +219,50 @@ router.get('/statistics', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /clients/{id}:
+ *   get:
+ *     summary: Get detailed info for a specific client (admin only)
+ *     tags: [Clients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Client details
+ *       403:
+ *         description: Admin access required
+ *       404:
+ *         description: Client not found
+ *       500:
+ *         description: Server error
+ *   delete:
+ *     summary: Delete a client (admin only)
+ *     tags: [Clients]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Client deleted
+ *       403:
+ *         description: Admin access required
+ *       404:
+ *         description: Client not found
+ *       500:
+ *         description: Server error
+ */
 // GET /api/clients/:id - get detailed info for a specific client
 router.get('/:id', async (req, res) => {
   try {

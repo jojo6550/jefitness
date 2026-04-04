@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Products
+ *   description: Physical product catalog, checkout, and purchase history
+ */
+
 const express = require('express');
 
 const { logger } = require('../services/logger');
@@ -21,6 +28,27 @@ const router = express.Router();
 router.use(preventNoSQLInjection);
 router.use(stripDangerousFields);
 
+/**
+ * @swagger
+ * /products:
+ *   get:
+ *     summary: Get the product catalog with live Stripe prices
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Product catalog keyed by product key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 products:
+ *                   type: object
+ *       500:
+ *         description: Server error (returns fallback prices)
+ */
 // GET /api/v1/products
 router.get('/', async (req, res) => {
   try {
@@ -62,6 +90,57 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /products/checkout:
+ *   post:
+ *     summary: Create a Stripe Checkout session for product purchase
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - items
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 maxItems: 50
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - productKey
+ *                     - quantity
+ *                   properties:
+ *                     productKey:
+ *                       type: string
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *                       maximum: 100
+ *     responses:
+ *       200:
+ *         description: Checkout URL
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 checkoutUrl:
+ *                   type: string
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: POST /api/v1/products/checkout
 router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res) => {
   try {
@@ -144,6 +223,31 @@ router.post('/checkout', auth, allowOnlyFields(['items'], true), async (req, res
   }
 });
 
+/**
+ * @swagger
+ * /products/purchases:
+ *   get:
+ *     summary: Get the current user's completed purchase history
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of completed purchases
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 purchases:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: GET /api/v1/products/purchases - Get user's purchase history (IDOR protected)
 router.get('/purchases', auth, async (req, res) => {
   try {

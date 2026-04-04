@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Logs
+ *   description: Real-time application log viewer, stats, and CSV export
+ */
+
 const express = require('express');
 const router = express.Router();
 // Note: Auth middleware is applied at the router level in server.js
@@ -59,6 +66,68 @@ console.warn = function (...args) {
   originalConsoleWarn.apply(console, args);
 };
 
+/**
+ * @swagger
+ * /logs:
+ *   get:
+ *     summary: Get in-memory application logs with pagination and filtering
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: [info, warn, error]
+ *         description: Filter by log level
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by log category
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Full-text search in log messages
+ *     responses:
+ *       200:
+ *         description: Paginated log entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ *                       level:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *                 pagination:
+ *                   type: object
+ *       500:
+ *         description: Server error
+ */
 // GET /api/logs - Get logs with pagination and filtering
 // Auth is applied at router level in server.js
 router.get('/', (req, res) => {
@@ -107,6 +176,35 @@ router.get('/', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /logs/stats:
+ *   get:
+ *     summary: Get log statistics (counts by level and category, recent errors)
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Log statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                 byLevel:
+ *                   type: object
+ *                 byCategory:
+ *                   type: object
+ *                 recentErrors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ */
 // GET /api/logs/stats - Get log statistics
 router.get('/stats', (req, res) => {
   try {
@@ -129,6 +227,32 @@ router.get('/stats', (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /logs/export:
+ *   get:
+ *     summary: Export logs as a CSV file
+ *     tags: [Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: level
+ *         schema:
+ *           type: string
+ *           enum: [info, warn, error]
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: CSV file download
+ *         content:
+ *           text/csv: {}
+ *       500:
+ *         description: Server error
+ */
 // GET /api/logs/export - Export logs as CSV
 router.get('/export', (req, res) => {
   try {

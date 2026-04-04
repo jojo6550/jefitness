@@ -1,3 +1,41 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User profile management, measurements, privacy, and GDPR data operations
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     Measurement:
+ *       type: object
+ *       properties:
+ *         date:
+ *           type: string
+ *           format: date-time
+ *         weight:
+ *           type: number
+ *         neck:
+ *           type: number
+ *         waist:
+ *           type: number
+ *         hips:
+ *           type: number
+ *         chest:
+ *           type: number
+ *         notes:
+ *           type: string
+ *     PrivacySettings:
+ *       type: object
+ *       properties:
+ *         marketingEmails:
+ *           type: boolean
+ *         dataAnalytics:
+ *           type: boolean
+ *         thirdPartySharing:
+ *           type: boolean
+ */
+
 const express = require('express');
 
 const router = express.Router();
@@ -21,6 +59,31 @@ router.use(stripDangerousFields);
 // Note: Auth middleware is applied at the router level in server.js
 // Only role-specific middleware (like requireAdmin) should be at route level
 
+/**
+ * @swagger
+ * /users/trainers:
+ *   get:
+ *     summary: Get all trainers with pagination
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Paginated trainer list
+ *       500:
+ *         description: Server error
+ */
 // GET /api/users/trainers - Get all trainers with pagination
 router.get('/trainers', async (req, res) => {
   try {
@@ -61,6 +124,33 @@ router.get('/trainers', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/admins:
+ *   get:
+ *     summary: Get all admin users with pagination (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: Paginated admin list
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: GET /api/users/admins - Get all admins with pagination (admin only)
 router.get('/admins', requireAdmin, async (req, res) => {
   try {
@@ -98,6 +188,48 @@ router.get('/admins', requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get all users with pagination and optional search/filter (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name or email
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by activityStatus
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [user, trainer, admin]
+ *     responses:
+ *       200:
+ *         description: Paginated user list
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: GET /api/users - Get all users with pagination (admin only)
 router.get('/', requireAdmin, async (req, res) => {
   try {
@@ -165,6 +297,26 @@ router.get('/', requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/profile:
+ *   get:
+ *     summary: Get the current authenticated user's profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: GET /api/users/profile - Get current user profile
 router.get('/profile', async (req, res) => {
   try {
@@ -189,6 +341,102 @@ router.get('/profile', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/{id}:
+ *   put:
+ *     summary: Update a user's profile (own profile only, or admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               goals:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *               activityStatus:
+ *                 type: string
+ *               startWeight:
+ *                 type: number
+ *               currentWeight:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Updated user profile
+ *       400:
+ *         description: Validation error
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ *   delete:
+ *     summary: Delete a user (admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted
+ *       403:
+ *         description: Admin access required
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ *   get:
+ *     summary: Get a user by ID (own data only, or admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User data
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // SECURITY: PUT /api/users/:id - Update user profile (with IDOR protection)
 router.put(
   '/:id',
@@ -298,6 +546,26 @@ router.delete('/:id', requireAdmin, validateObjectId('id'), async (req, res) => 
   }
 });
 
+/**
+ * @swagger
+ * /users/data-export:
+ *   get:
+ *     summary: Export all personal data for the current user (GDPR Article 20)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: JSON data export attachment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // GDPR COMPLIANCE ENDPOINTS
 
 // SECURITY: GET /api/users/data-export - Export user data (GDPR Article 20)
@@ -356,6 +624,41 @@ router.get('/data-export', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/data-delete:
+ *   delete:
+ *     summary: Anonymize/delete all personal data (GDPR Right to Erasure)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - confirmation
+ *               - reason
+ *             properties:
+ *               confirmation:
+ *                 type: string
+ *                 description: Must be the literal string "DELETE ALL MY DATA"
+ *                 example: DELETE ALL MY DATA
+ *               reason:
+ *                 type: string
+ *                 enum: [withdraw_consent, no_longer_needed, other]
+ *     responses:
+ *       200:
+ *         description: Account anonymized
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // DELETE /api/users/data-delete - Delete user data (GDPR Right to Erasure)
 router.delete(
   '/data-delete',
@@ -416,6 +719,52 @@ router.delete(
   }
 );
 
+/**
+ * @swagger
+ * /users/privacy-settings:
+ *   get:
+ *     summary: Get the current user's privacy settings
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Privacy settings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 privacySettings:
+ *                   $ref: '#/components/schemas/PrivacySettings'
+ *                 accountStatus:
+ *                   type: string
+ *                 dataDeletedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   nullable: true
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ *   put:
+ *     summary: Update the current user's privacy settings
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PrivacySettings'
+ *     responses:
+ *       200:
+ *         description: Privacy settings updated
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // GET /api/users/privacy-settings - Get current privacy settings
 // FIX: Removed allowOnlyFields middleware - GET requests have no body to validate
 router.get('/privacy-settings', async (req, res) => {
@@ -443,6 +792,41 @@ router.get('/privacy-settings', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /users/change-password:
+ *   post:
+ *     summary: Change the current user's password (invalidates all other sessions)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Validation error or current password incorrect
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // POST /api/users/change-password - Change password (requires current password)
 router.post(
   '/change-password',
@@ -487,6 +871,52 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /users/measurements:
+ *   get:
+ *     summary: Get body measurements history for the current user (sorted newest first)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Measurements list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 measurements:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Measurement'
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ *   post:
+ *     summary: Add a new body measurement entry
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Measurement'
+ *     responses:
+ *       201:
+ *         description: Measurement added
+ *       400:
+ *         description: Validation error
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // GET /api/users/measurements - Get body measurements history
 router.get('/measurements', async (req, res) => {
   try {
@@ -545,6 +975,28 @@ router.post(
   }
 );
 
+/**
+ * @swagger
+ * /users/measurements/{measurementId}:
+ *   delete:
+ *     summary: Delete a measurement entry
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: measurementId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Measurement deleted
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // DELETE /api/users/measurements/:measurementId - Remove a measurement entry
 router.delete('/measurements/:measurementId', async (req, res) => {
   try {
@@ -635,9 +1087,37 @@ router.put(
 );
 
 /**
- * POST /api/v1/users/onboarding
- * Mark onboarding as complete and save optional first-time user data.
- * Body (all optional): { goals, reason, gender, dob, height, weight }
+ * @swagger
+ * /users/onboarding:
+ *   post:
+ *     summary: Mark onboarding as complete and save initial user data
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               goals:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *               gender:
+ *                 type: string
+ *               dob:
+ *                 type: string
+ *                 format: date
+ *               height:
+ *                 type: number
+ *               weight:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Onboarding completed
+ *       500:
+ *         description: Server error
  */
 router.post(
   '/onboarding',

@@ -1,3 +1,52 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Appointments
+ *   description: Appointment booking, management, and cancellation
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     Appointment:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         clientId:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             firstName:
+ *               type: string
+ *             lastName:
+ *               type: string
+ *             email:
+ *               type: string
+ *         trainerId:
+ *           type: object
+ *           properties:
+ *             _id:
+ *               type: string
+ *             firstName:
+ *               type: string
+ *             lastName:
+ *               type: string
+ *             email:
+ *               type: string
+ *         date:
+ *           type: string
+ *           format: date
+ *         time:
+ *           type: string
+ *           example: "09:00"
+ *         status:
+ *           type: string
+ *           enum: [scheduled, completed, cancelled, no_show, late]
+ *         notes:
+ *           type: string
+ */
+
 const express = require('express');
 
 const router = express.Router();
@@ -12,19 +61,93 @@ const { allowOnlyFields } = require('../middleware/inputValidator');
 const { sendNewAppointmentNotification } = require('../services/email');
 
 /**
- * @route   GET /api/appointments
- * @desc    Get all appointments with pagination and filtering (admin only)
- * @access  Private (Admin only)
- * @query   {number} page - Page number for pagination (default: 1)
- * @query   {number} limit - Number of appointments per page (default: 10)
- * @query   {string} search - Search term for client/trainer names
- * @query   {string} sortBy - Field to sort by (default: 'date')
- * @query   {string} sortOrder - Sort order 'asc' or 'desc' (default: 'asc')
- * @query   {string} status - Filter by appointment status
- * @returns {Object} appointments - Array of appointments with pagination info
- * @returns {Object} pagination - Pagination metadata
- * @throws  {403} Access denied if not admin
- * @throws  {500} Server error
+ * @swagger
+ * /appointments:
+ *   get:
+ *     summary: Get all appointments with pagination and filtering (admin only)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by client or trainer name
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           default: date
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [scheduled, completed, cancelled, no_show, late]
+ *     responses:
+ *       200:
+ *         description: Paginated appointment list
+ *       403:
+ *         description: Admin access required
+ *       500:
+ *         description: Server error
+ *   post:
+ *     summary: Create a new appointment booking (requires active subscription)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - trainerId
+ *               - date
+ *               - time
+ *             properties:
+ *               trainerId:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Must be at least one day in the future (YYYY-MM-DD)
+ *               time:
+ *                 type: string
+ *                 example: "09:00"
+ *                 description: On-the-hour only (e.g. 09:00, 14:00)
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Appointment created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Appointment'
+ *       400:
+ *         description: Validation error or slot unavailable
+ *       409:
+ *         description: Time slot fully booked
+ *       500:
+ *         description: Server error
  */
 router.get('/', async (req, res) => {
   try {
@@ -149,13 +272,30 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/appointments/user - Get user's appointments
 /**
- * @route   GET /api/appointments/user
- * @desc    Get appointments for the authenticated user (as client or trainer)
- * @access  Private
- * @returns {Object} Object with success and appointments array
- * @throws  {500} Server error
+ * @swagger
+ * /appointments/user:
+ *   get:
+ *     summary: Get all appointments for the authenticated user (as client or trainer)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's appointments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 appointments:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Appointment'
+ *       500:
+ *         description: Server error
  */
 router.get('/user', async (req, res) => {
   try {
@@ -197,16 +337,93 @@ router.get('/user', async (req, res) => {
   }
 });
 
-// GET /api/appointments/:id - Get specific appointment
 /**
- * @route   GET /api/appointments/:id
- * @desc    Get a specific appointment by ID
- * @access  Private (Admin, or appointment client/trainer)
- * @param   {string} id - Appointment ID
- * @returns {Object} Appointment object with populated client/trainer info
- * @throws  {403} Access denied if not authorized
- * @throws  {404} Appointment not found
- * @throws  {500} Server error
+ * @swagger
+ * /appointments/{id}:
+ *   get:
+ *     summary: Get a specific appointment by ID (participant or admin only)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Appointment details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Appointment'
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Server error
+ *   put:
+ *     summary: Update an appointment (admin, trainer, or client with restrictions)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               trainerId:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date
+ *               time:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [scheduled, completed, cancelled, no_show, late]
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Updated appointment
+ *       400:
+ *         description: Status transition not allowed for this role
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Server error
+ *   delete:
+ *     summary: Delete an appointment (trainer, client, or admin)
+ *     tags: [Appointments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Appointment deleted
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Server error
  */
 router.get('/:id', async (req, res) => {
   try {
@@ -233,19 +450,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/appointments - Create new appointment
-/**
- * @route   POST /api/appointments
- * @desc    Create a new appointment booking
- * @access  Private
- * @body    {string} trainerId - ID of the trainer (must be admin role)
- * @body    {string} date - Appointment date (YYYY-MM-DD format)
- * @body    {string} time - Appointment time (HH:MM format)
- * @body    {string} [notes] - Optional appointment notes
- * @returns {Object} Created appointment object with populated client/trainer info
- * @throws  {400} Missing required fields or invalid trainer or time slot full (max 6 clients per slot)
- * @throws  {500} Server error
- */
 router.post('/', requireActiveSubscription, async (req, res) => {
   try {
     const { trainerId, date, time, notes } = req.body;
@@ -379,21 +583,6 @@ router.post('/', requireActiveSubscription, async (req, res) => {
   }
 });
 
-// PUT /api/appointments/:id - Update appointment
-/**
- * @route   PUT /api/appointments/:id
- * @desc    Update an existing appointment
- * @access  Private (Admin or appointment trainer)
- * @param   {string} id - Appointment ID
- * @body    {string} [date] - Updated appointment date
- * @body    {string} [time] - Updated appointment time
- * @body    {string} [status] - Updated appointment status ('scheduled', 'completed', 'cancelled')
- * @body    {string} [notes] - Updated appointment notes
- * @returns {Object} Updated appointment object with populated client/trainer info
- * @throws  {403} Access denied if not authorized
- * @throws  {404} Appointment not found
- * @throws  {500} Server error
- */
 router.put(
   '/:id',
   allowOnlyFields(['trainerId', 'date', 'time', 'status', 'notes'], true),
@@ -480,17 +669,6 @@ router.put(
   }
 );
 
-// DELETE /api/appointments/:id - Delete appointment
-/**
- * @route   DELETE /api/appointments/:id
- * @desc    Delete an appointment
- * @access  Private (Admin, appointment trainer, or appointment client)
- * @param   {string} id - Appointment ID
- * @returns {Object} Success message
- * @throws  {403} Access denied if not authorized
- * @throws  {404} Appointment not found
- * @throws  {500} Server error
- */
 router.delete('/:id', async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);

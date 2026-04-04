@@ -1,3 +1,25 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Medical Documents
+ *   description: Upload, manage, and view user medical documents
+ *
+ * @swagger
+ * components:
+ *   schemas:
+ *     MedicalDocument:
+ *       type: object
+ *       properties:
+ *         filename:
+ *           type: string
+ *         originalName:
+ *           type: string
+ *         size:
+ *           type: integer
+ *         mimeType:
+ *           type: string
+ */
+
 const express = require('express');
 
 const router = express.Router();
@@ -48,6 +70,45 @@ const upload = multer({
   fileFilter,
 });
 
+/**
+ * @swagger
+ * /medical-documents/upload:
+ *   post:
+ *     summary: Upload a medical document (PDF, DOC, DOCX, JPG, PNG — max 5MB)
+ *     tags: [Medical Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 filename:
+ *                   type: string
+ *       400:
+ *         description: No file uploaded or invalid file type
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // ================= Upload a document =================
 // Auth is applied at router level in server.js
 router.post('/upload', upload.single('file'), async (req, res) => {
@@ -77,6 +138,35 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /medical-documents/delete:
+ *   post:
+ *     summary: Delete a medical document by filename
+ *     tags: [Medical Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - filename
+ *             properties:
+ *               filename:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Document deleted successfully
+ *       400:
+ *         description: Filename is required or invalid user ID
+ *       404:
+ *         description: User or document not found
+ *       500:
+ *         description: Server error
+ */
 // ================= Delete a document =================
 // Auth is applied at router level in server.js
 router.post('/delete', async (req, res) => {
@@ -112,6 +202,38 @@ router.post('/delete', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /medical-documents/get:
+ *   get:
+ *     summary: Get the current user's medical documents and health info
+ *     tags: [Medical Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Medical documents and health info
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasMedical:
+ *                   type: boolean
+ *                 medicalConditions:
+ *                   type: string
+ *                   nullable: true
+ *                 documents:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MedicalDocument'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // ================= Get user's medical documents =================
 // Auth is applied at router level in server.js
 router.get('/get', async (req, res) => {
@@ -141,6 +263,48 @@ router.get('/get', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /medical-documents/save-info:
+ *   post:
+ *     summary: Save the user's medical condition info (hasMedical flag and conditions text)
+ *     tags: [Medical Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               hasMedical:
+ *                 type: boolean
+ *               medicalConditions:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Medical info saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 msg:
+ *                   type: string
+ *                 hasMedical:
+ *                   type: boolean
+ *                 medicalConditions:
+ *                   type: string
+ *                   nullable: true
+ *       400:
+ *         description: Invalid user ID
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 // ================= Save medical info =================
 // Auth is applied at router level in server.js
 router.post('/save-info', async (req, res) => {
@@ -170,6 +334,40 @@ router.post('/save-info', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /medical-documents/view/{filename}:
+ *   get:
+ *     summary: View a medical document inline in the browser
+ *     description: Requires a valid JWT either in the Authorization header or as a `token` query param. Trainers may access documents belonging to their clients.
+ *     tags: [Medical Documents]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         description: JWT token (alternative to Authorization header)
+ *     responses:
+ *       200:
+ *         description: File content streamed inline
+ *         content:
+ *           application/pdf: {}
+ *           image/jpeg: {}
+ *           image/png: {}
+ *       401:
+ *         description: No or invalid token
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Server error
+ */
 // ================= View a document in browser =================
 // This route has its own token verification - no auth middleware needed
 router.get('/view/:filename', async (req, res) => {
@@ -231,6 +429,34 @@ router.get('/view/:filename', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /medical-documents/download/{filename}:
+ *   get:
+ *     summary: Download a medical document as an attachment
+ *     tags: [Medical Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File download
+ *         content:
+ *           application/octet-stream: {}
+ *       400:
+ *         description: Invalid user ID
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Server error
+ */
 // ================= Download a document =================
 // Auth is applied at router level in server.js
 router.get('/download/:filename', async (req, res) => {

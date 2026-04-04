@@ -1,3 +1,10 @@
+/**
+ * @swagger
+ * tags:
+ *   name: Plans
+ *   description: Subscription plan catalog (public — no auth required)
+ */
+
 const express = require('express');
 
 const { logger } = require('../services/logger');
@@ -6,6 +13,49 @@ const { auth, protectedRoute } = require('../middleware'); // Optional auth
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /plans:
+ *   get:
+ *     summary: Get subscription plan catalog (public, no auth required)
+ *     tags: [Plans]
+ *     parameters:
+ *       - in: query
+ *         name: lookupKey
+ *         schema:
+ *           type: string
+ *         description: Filter by a specific plan lookup key
+ *       - in: query
+ *         name: active
+ *         schema:
+ *           type: string
+ *           enum: ["true", "false"]
+ *           default: "true"
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [interval, name, unitAmount]
+ *           default: interval
+ *     responses:
+ *       200:
+ *         description: List of subscription plans
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                 plans:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ */
 // GET /api/v1/plans - Frontend catalog query (no auth needed for public catalog)
 router.get('/', async (req, res) => {
   try {
@@ -67,6 +117,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /plans/{lookupKey}:
+ *   get:
+ *     summary: Get a single active plan by its lookup key (public)
+ *     tags: [Plans]
+ *     parameters:
+ *       - in: path
+ *         name: lookupKey
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Stripe price lookup key (e.g. "1-month", "12-month")
+ *     responses:
+ *       200:
+ *         description: Plan details
+ *       404:
+ *         description: Plan not found
+ *       500:
+ *         description: Server error
+ */
 // GET /api/v1/plans/:lookupKey - Single plan by lookup_key
 router.get('/:lookupKey', async (req, res) => {
   try {
