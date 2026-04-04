@@ -244,12 +244,33 @@ window.updateStatus = async (id, status, label, clientName, time, date) => {
         const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
         const logNote = `[${ts}] Marked as ${displayLabel}${when ? ' — ' + when : ''}.`;
 
+        // Validate MongoDB ObjectId format (24 hex chars)
+        function isValidObjectId(testId) {
+            return /^[0-9a-fA-F]{24}$/.test(testId);
+        }
+        
+        if (!isValidObjectId(id)) {
+            window.Toast.error('Invalid session ID. Refreshing schedule...');
+            await loadAppointments();
+            return;
+        }
+
         try {
             const res = await apiFetch(`/api/v1/trainer/appointments/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify({ status, notes: logNote }),
             });
-            if (!res.ok) throw new Error('Failed to update');
+            
+            if (!res.ok) {
+                if (res.status === 404) {
+                    window.Toast.error('Session no longer available. Refreshed schedule.');
+                } else {
+                    window.Toast.error('Failed to log session status.');
+                }
+                await loadAppointments();
+                return;
+            }
+            
             window.Toast.success(`${who}'s session logged as "${displayLabel}" and archived.`);
             // Switch to archive so the trainer immediately sees the logged record
             currentView = 'archive';
@@ -258,8 +279,9 @@ window.updateStatus = async (id, status, label, clientName, time, date) => {
             await loadAppointments();
         } catch (err) {
             if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
-            console.error(err);
-            window.Toast.error('Failed to log session status.');
+            console.error('Update status error:', err);
+            window.Toast.error('Failed to update session.');
+            await loadAppointments();
         }
     });
 };

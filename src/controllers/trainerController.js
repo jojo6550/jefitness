@@ -297,7 +297,15 @@ const trainerController = {
    */
   updateAppointment: asyncHandler(async (req, res) => {
     const appointment = await Appointment.findById(req.params.id);
-    if (!appointment) throw new NotFoundError('Appointment');
+    if (!appointment) {
+      logger.warn('Trainer attempted to update non-existent appointment', {
+        trainerId: req.user.id,
+        appointmentId: req.params.id,
+        attemptedStatus: req.body.status,
+        endpoint: '/api/v1/trainer/appointments/:id'
+      });
+      throw new NotFoundError('Appointment');
+    }
     if (appointment.trainerId.toString() !== req.user.id) throw new AuthorizationError();
 
     const { status, notes } = req.body;
