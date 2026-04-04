@@ -21,22 +21,35 @@ const authController = {
    * Register new user - Instant signup with token
    */
   signup: asyncHandler(async (req, res) => {
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      dataProcessingConsent,
-      healthDataConsent,
-    } = req.body;
+    const startTime = performance.now();
+    const clientRequestId = req.get('X-Request-ID') || req.ip;
+    
+    // Privacy-safe email hash
+    const emailHash = crypto
+      .createHash('sha256')
+      .update(email.toLowerCase())
+      .digest('hex')
+      .slice(0, 16);
+
+    logger.info('🔐 SIGNUP ATTEMPT START', {
+      emailHash,
+      clientRequestId,
+      ip: req.ip,
+    });
+
+    let dbTime = 0;
+
+    const dbStart = performance.now();
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    dbTime = performance.now() - dbStart;
+    if (existingUser) {
+      const totalTime = performance.now() - startTime;
+      logger.warn('❌ SIGNUP FAILED: User exists', { emailHash, clientRequestId, timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) } });
+      throw new ValidationError('User already exists');
+    }
 
     const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
-
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      throw new ValidationError('User already exists');
-    }
 
     const user = new User({
       firstName,
@@ -61,7 +74,17 @@ const authController = {
     user.emailVerificationToken = crypto.createHash('sha256').update(rawVerifyToken).digest('hex');
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+    const saveStart = performance.now();
     await user.save();
+    const saveTime = performance.now() - saveStart;
+
+    const totalTime = performance.now() - startTime;
+    logger.info('✅ SIGNUP SUCCESS', { 
+      emailHash, 
+      userId: user._id, 
+      clientRequestId, 
+      timings: { dbTime: dbTime.toFixed(2), saveTime: saveTime.toFixed(2), total: totalTime.toFixed(2) } 
+    });
 
     // Send verification email (non-blocking — failure doesn't abort signup)
     sendEmailVerification(user.email, user.firstName, rawVerifyToken).catch(err => {
@@ -73,6 +96,20 @@ const authController = {
       requiresEmailVerification: true,
       email: user.email,
     });
+  }),
+
+  // Wrap in try-catch for error logging
+  signup: asyncHandler(async (req, res) => {
+    // ... existing code with timings
+  }).catch((signupError) => {
+    const totalTime = performance.now() - startTime;
+    logger.error('💥 SIGNUP ERROR', {
+      emailHash,
+      clientRequestId,
+      error: signupError.message,
+      timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) }
+    });
+    throw signupError;
   }),
 
   /**
