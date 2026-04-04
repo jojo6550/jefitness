@@ -151,15 +151,53 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
   const query = String(req.query.q || '').trim().slice(0, 100);
   if (!query) return res.status(400).json({ error: 'Missing query' });
 
-  const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=5`;
-  https.get(url, { headers: { 'User-Agent': 'JEFitness/1.0' } }, (upstream) => {
+  const apiKey = process.env.USDA_API_KEY || 'DEMO_KEY';
+  const params = new URLSearchParams({
+    query,
+    dataType: 'Foundation,SR Legacy',
+    pageSize: '8',
+    api_key: apiKey,
+  });
+  const options = {
+    hostname: 'api.nal.usda.gov',
+    path: `/fdc/v1/foods/search?${params}`,
+    headers: { 'Accept': 'application/json' },
+  };
+
+  https.get(options, (upstream) => {
     let body = '';
     upstream.on('data', chunk => { body += chunk; });
     upstream.on('end', () => {
-      if (upstream.statusCode !== 200) return res.status(502).json({ error: 'Food search unavailable' });
-      try { res.json(JSON.parse(body)); } catch { res.status(502).json({ error: 'Invalid response from food API' }); }
+      if (upstream.statusCode !== 200) {
+        logger.warn(`USDA food search returned ${upstream.statusCode}`);
+        return res.status(502).json({ error: 'Food search unavailable' });
+      }
+      try {
+        const data = JSON.parse(body);
+        // Normalise to { foods: [{ name, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g }] }
+        const N = (nutrients, ...ids) => {
+          for (const id of ids) {
+            const n = nutrients.find(n => n.nutrientId === id);
+            if (n?.value != null) return Math.round(n.value * 10) / 10;
+          }
+          return 0;
+        };
+        const foods = (data.foods || []).map(f => ({
+          name: f.description,
+          kcalPer100g:    N(f.foodNutrients, 2048, 2047, 1008),
+          proteinPer100g: N(f.foodNutrients, 1003),
+          carbsPer100g:   N(f.foodNutrients, 1005),
+          fatPer100g:     N(f.foodNutrients, 1004),
+        })).filter(f => f.kcalPer100g > 0);
+        res.json({ foods });
+      } catch {
+        res.status(502).json({ error: 'Invalid response from food API' });
+      }
     });
-  }).on('error', () => res.status(502).json({ error: 'Food search unavailable' }));
+  }).on('error', (err) => {
+    logger.warn(`Food search proxy error: ${err.message}`);
+    res.status(502).json({ error: 'Food search unavailable' });
+  });
 });
 
 // -----------------------------

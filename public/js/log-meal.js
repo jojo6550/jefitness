@@ -3,6 +3,9 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 let foodCount = 0;
 let searchDebounceTimers = {};
 
+// per-100g macro data stored per food card id
+const foodBaseMacros = {};
+
 async function requireSubscription() {
     const token = localStorage.getItem('token');
     if (!token) { window.location.href = '/'; return false; }
@@ -45,7 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/dashboard';
     });
 
-    // Close search dropdowns when clicking outside
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.food-search-wrap')) {
             document.querySelectorAll('.food-search-results').forEach(el => el.classList.add('d-none'));
@@ -68,14 +70,27 @@ function addFoodItem() {
             <div class="card-body pb-2">
 
                 <!-- Search -->
-                <div class="mb-2">
-                    <label class="form-label small fw-semibold">Search food (Open Food Facts)</label>
-                    <div class="food-search-wrap">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Search food</label>
+                    <div class="food-search-wrap position-relative">
                         <input type="text" class="form-control form-control-sm food-search"
-                               placeholder="Type to search, e.g. chicken breast..." autocomplete="off">
+                               placeholder="e.g. chicken breast, cheddar cheese, brown rice..." autocomplete="off">
                         <div class="food-search-results d-none"></div>
                     </div>
-                    <small class="text-muted">Search to auto-fill macros, or fill in manually below</small>
+                    <small class="text-muted">Select a food to auto-fill macros, or fill in manually below</small>
+                </div>
+
+                <!-- Grams row — hidden until a food is selected from search -->
+                <div class="mb-3 grams-row d-none">
+                    <label class="form-label small fw-semibold">
+                        Amount (g) — macros will update automatically
+                    </label>
+                    <div class="input-group input-group-sm" style="max-width:200px">
+                        <input type="number" class="form-control food-grams"
+                               placeholder="100" min="1" step="1" value="100">
+                        <span class="input-group-text">g</span>
+                    </div>
+                    <div class="text-muted small mt-1 grams-preview"></div>
                 </div>
 
                 <!-- Food Name -->
@@ -94,7 +109,7 @@ function addFoodItem() {
                     <div class="invalid-feedback">Please enter calories.</div>
                 </div>
 
-                <!-- Macros -->
+                <!-- Macros row -->
                 <div class="macro-grid mb-2">
                     <div>
                         <label class="form-label small fw-semibold">Protein (g)</label>
@@ -140,10 +155,17 @@ function addFoodItem() {
     searchInput.addEventListener('input', () => {
         clearTimeout(searchDebounceTimers[id]);
         const query = searchInput.value.trim();
-        searchDebounceTimers[id] = setTimeout(() => searchFood(query, id), 300);
+        if (!query) {
+            card.querySelector('.food-search-results').classList.add('d-none');
+            return;
+        }
+        searchDebounceTimers[id] = setTimeout(() => searchFood(query, id), 350);
     });
 
     card.querySelector('.food-calories').addEventListener('input', updateTotalCalories);
+
+    // Grams input → recalculate macros live
+    card.querySelector('.food-grams').addEventListener('input', () => recalcFromGrams(id));
 }
 
 function removeFoodItem(id) {
@@ -152,8 +174,8 @@ function removeFoodItem(id) {
         showError('You must have at least one food item.');
         return;
     }
-    const card = document.querySelector(`.food-item-card[data-food-id="${id}"]`);
-    if (card) card.remove();
+    document.querySelector(`.food-item-card[data-food-id="${id}"]`)?.remove();
+    delete foodBaseMacros[id];
     updateTotalCalories();
 }
 
@@ -162,52 +184,39 @@ async function searchFood(query, foodId) {
     if (!card) return;
     const resultsDiv = card.querySelector('.food-search-results');
 
-    if (!query || query.length < 2) {
-        resultsDiv.classList.add('d-none');
-        return;
-    }
+    if (query.length < 2) { resultsDiv.classList.add('d-none'); return; }
 
     resultsDiv.innerHTML = '<div class="p-2 text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Searching...</div>';
     resultsDiv.classList.remove('d-none');
 
     try {
-        const url = `${window.API_BASE}/api/v1/nutrition/food-search?q=${encodeURIComponent(query)}`;
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error('Search failed');
-        const data = await resp.json();
+        const resp = await fetch(`${window.API_BASE}/api/v1/nutrition/food-search?q=${encodeURIComponent(query)}`);
+        if (!resp.ok) throw new Error();
+        const { foods } = await resp.json();
 
-        const products = (data.products || []).filter(p => p.product_name);
-        if (products.length === 0) {
-            resultsDiv.innerHTML = '<div class="p-2 text-muted small">No results found</div>';
+        if (!foods || foods.length === 0) {
+            resultsDiv.innerHTML = '<div class="p-2 text-muted small">No results — try a different term or fill in manually</div>';
             return;
         }
 
-        resultsDiv.innerHTML = products.map(p => {
-            const kcal  = Math.round(p.nutriments?.['energy-kcal']          || 0);
-            const prot  = Math.round(p.nutriments?.proteins_value            || 0);
-            const carbs = Math.round(p.nutriments?.carbohydrates_value       || 0);
-            const fat   = Math.round(p.nutriments?.fat_value                 || 0);
-            return `
-                <div class="food-result-item p-2 border-bottom food-result-item--clickable"
-                     data-name="${escapeHtml(p.product_name)}"
-                     data-kcal="${kcal}"
-                     data-protein="${prot}"
-                     data-carbs="${carbs}"
-                     data-fat="${fat}">
-                    <div class="fw-semibold small">${escapeHtml(p.product_name)}</div>
-                    <div class="text-muted" style="font-size:0.75rem">${kcal} kcal &middot; P: ${prot}g &middot; C: ${carbs}g &middot; F: ${fat}g</div>
-                </div>`;
-        }).join('');
+        resultsDiv.innerHTML = foods.map((f, i) => `
+            <div class="food-result-item" data-idx="${i}">
+                <div class="food-result-name">${escapeHtml(f.name)}</div>
+                <div class="food-result-macros">
+                    <span class="food-result-macro-pill pill-kcal">&#128293; ${f.kcalPer100g} kcal</span>
+                    <span class="food-result-macro-pill pill-protein">P ${f.proteinPer100g}g</span>
+                    <span class="food-result-macro-pill pill-carbs">C ${f.carbsPer100g}g</span>
+                    <span class="food-result-macro-pill pill-fat">F ${f.fatPer100g}g</span>
+                    <span class="text-muted" style="font-size:0.68rem;align-self:center">per 100g</span>
+                </div>
+            </div>`).join('');
 
-        resultsDiv.querySelectorAll('.food-result-item').forEach(item => {
+        resultsDiv.querySelectorAll('.food-result-item').forEach((item) => {
+            item.addEventListener('mouseenter', () => item.classList.add('bg-light'));
+            item.addEventListener('mouseleave', () => item.classList.remove('bg-light'));
             item.addEventListener('click', () => {
-                populateFoodFromResult(foodId, {
-                    name:    item.dataset.name,
-                    kcal:    parseFloat(item.dataset.kcal),
-                    protein: parseFloat(item.dataset.protein),
-                    carbs:   parseFloat(item.dataset.carbs),
-                    fat:     parseFloat(item.dataset.fat),
-                });
+                const f = foods[parseInt(item.dataset.idx)];
+                selectFood(foodId, f);
                 resultsDiv.classList.add('d-none');
                 card.querySelector('.food-search').value = '';
             });
@@ -217,14 +226,53 @@ async function searchFood(query, foodId) {
     }
 }
 
-function populateFoodFromResult(foodId, data) {
+function selectFood(foodId, food) {
     const card = document.querySelector(`.food-item-card[data-food-id="${foodId}"]`);
     if (!card) return;
-    card.querySelector('.food-name').value     = data.name;
-    card.querySelector('.food-calories').value = data.kcal;
-    card.querySelector('.food-protein').value  = data.protein;
-    card.querySelector('.food-carbs').value    = data.carbs;
-    card.querySelector('.food-fat').value      = data.fat;
+
+    // Store per-100g base values
+    foodBaseMacros[foodId] = {
+        kcal:    food.kcalPer100g,
+        protein: food.proteinPer100g,
+        carbs:   food.carbsPer100g,
+        fat:     food.fatPer100g,
+    };
+
+    card.querySelector('.food-name').value = food.name;
+
+    // Show grams row, default to 100g
+    const gramsRow = card.querySelector('.grams-row');
+    gramsRow.classList.remove('d-none');
+    card.querySelector('.food-grams').value = 100;
+
+    recalcFromGrams(foodId);
+}
+
+function recalcFromGrams(foodId) {
+    const card = document.querySelector(`.food-item-card[data-food-id="${foodId}"]`);
+    const base = foodBaseMacros[foodId];
+    if (!card || !base) return;
+
+    const grams = parseFloat(card.querySelector('.food-grams').value) || 0;
+    const ratio = grams / 100;
+
+    const kcal    = Math.round(base.kcal    * ratio * 10) / 10;
+    const protein = Math.round(base.protein * ratio * 10) / 10;
+    const carbs   = Math.round(base.carbs   * ratio * 10) / 10;
+    const fat     = Math.round(base.fat     * ratio * 10) / 10;
+
+    card.querySelector('.food-calories').value = kcal;
+    card.querySelector('.food-protein').value  = protein;
+    card.querySelector('.food-carbs').value    = carbs;
+    card.querySelector('.food-fat').value      = fat;
+
+    // sync quantity field to grams
+    card.querySelector('.food-quantity').value = grams;
+    card.querySelector('.food-unit').value     = 'g';
+
+    card.querySelector('.grams-preview').textContent =
+        `${kcal} kcal · P: ${protein}g · C: ${carbs}g · F: ${fat}g`;
+
     updateTotalCalories();
 }
 
@@ -290,9 +338,7 @@ async function handleSubmit(e) {
         });
 
         const data = await response.json();
-        if (!response.ok) {
-            throw new Error(data.error?.message || data.error || 'Failed to log meal');
-        }
+        if (!response.ok) throw new Error(data.error?.message || data.error || 'Failed to log meal');
 
         showSuccess();
         setTimeout(() => { window.location.href = '/nutrition-history'; }, 1500);
@@ -305,12 +351,10 @@ async function handleSubmit(e) {
 }
 
 function showSuccess() {
-    const toast = new bootstrap.Toast(document.getElementById('successToast'));
-    toast.show();
+    new bootstrap.Toast(document.getElementById('successToast')).show();
 }
 
 function showError(message) {
     document.getElementById('errorToastMessage').textContent = message || 'An error occurred.';
-    const toast = new bootstrap.Toast(document.getElementById('errorToast'));
-    toast.show();
+    new bootstrap.Toast(document.getElementById('errorToast')).show();
 }
