@@ -89,12 +89,12 @@ router.post('/consent', auth, authController.grantConsent);
  */
 router.get('/verify-email', requireDbConnection, async (req, res) => {
   try {
-    const { token } = req.query;
-    if (!token) {
-      return res.status(400).json({ success: false, error: 'Verification token is required.' });
-    }
+    const { verificationToken } = req.query;
+    if (!verificationToken) {
+    return res.status(400).json({ success: false, error: 'Verification token is required.' });
+  }
 
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
 
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
