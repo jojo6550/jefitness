@@ -167,6 +167,7 @@ const protectedRoutes = [
   ['/trainer', require('./routes/trainer')],
   ['/gdpr', require('./routes/gdpr')],
   ['/workouts', require('./routes/workouts')],
+  ['/nutrition', require('./routes/nutrition')],
 ];
 
 protectedRoutes.forEach(([route, router]) => {
@@ -177,7 +178,7 @@ protectedRoutes.forEach(([route, router]) => {
     apiLimiter,
     versioning,
   ];
-  if (['/logs', '/medical-documents', '/workouts'].includes(route)) {
+  if (['/logs', '/medical-documents', '/workouts', '/nutrition'].includes(route)) {
     middlewares.splice(2, 0, requireHealthDataConsent); // Insert health consent where needed
   }
   app.use(`/api/v1${route}`, ...middlewares, router);

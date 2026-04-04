@@ -3,6 +3,32 @@ const crypto = require('crypto');
 
 const bcrypt = require('bcryptjs');
 
+const MealFoodSchema = new mongoose.Schema(
+  {
+    foodName:  { type: String, required: true, trim: true, maxlength: 200 },
+    calories:  { type: Number, required: true, min: 0 },
+    protein:   { type: Number, default: 0, min: 0 },
+    carbs:     { type: Number, default: 0, min: 0 },
+    fat:       { type: Number, default: 0, min: 0 },
+    quantity:  { type: Number, required: true, min: 0.01 },
+    unit:      { type: String, enum: ['g', 'ml', 'oz', 'serving'], default: 'g' },
+  },
+  { _id: false }
+);
+
+const MealLogSchema = new mongoose.Schema({
+  date:          { type: Date, required: true, default: Date.now },
+  mealType:      { type: String, required: true, enum: ['breakfast', 'lunch', 'dinner', 'snack'] },
+  foods: {
+    type: [MealFoodSchema],
+    required: true,
+    validate: [arr => arr.length > 0, 'At least one food item is required'],
+  },
+  totalCalories: { type: Number, default: 0 },
+  notes:         { type: String, trim: true, maxlength: 500 },
+  deletedAt:     { type: Date },
+});
+
 const WorkoutSetSchema = new mongoose.Schema(
   {
     setNumber: { type: Number, required: true, min: 1 },
@@ -125,6 +151,7 @@ const UserSchema = new mongoose.Schema(
     goals: { type: String },
     reason: { type: String },
     workoutLogs: { type: [WorkoutLogSchema], default: [] },
+    mealLogs:    { type: [MealLogSchema], default: [] },
     schedule: {
       lastReset: { type: Date, default: Date.now },
       plans: [
@@ -308,6 +335,7 @@ UserSchema.index({ 'assignedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'purchasedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'workoutLogs.date': -1 }, { sparse: true });
 UserSchema.index({ 'workoutLogs.exercises.exerciseName': 1 }, { sparse: true });
+UserSchema.index({ 'mealLogs.date': -1 }, { sparse: true });
 
 // --------------------
 // Subscription Methods (Lazy Loading)
