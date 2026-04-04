@@ -68,32 +68,10 @@ const authController = {
       logger.error('Failed to send verification email', { userId: user._id, error: err.message });
     });
 
-    // SECURITY: Validate JWT_SECRET before signing
-    if (!process.env.JWT_SECRET) {
-      throw new ExternalServiceError(
-        'Authentication service',
-        'Server configuration error: JWT_SECRET missing'
-      );
-    }
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
     res.status(201).json({
       success: true,
-      data: {
-        token,
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          role: user.role,
-        },
-      },
+      requiresEmailVerification: true,
+      email: user.email,
     });
   }),
 
@@ -129,7 +107,7 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
       // DB Query timing - minimal fields first
       const dbStart = performance.now();
       let user = await User.findOne({ email: email.toLowerCase() }).select(
-        '+password +tokenVersion +twoFactorEnabled'
+        '+password +tokenVersion +twoFactorEnabled +isEmailVerified'
       );
       dbTime = performance.now() - dbStart;
 
@@ -155,6 +133,17 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
       }
 
       bcryptTime = performance.now() - dbStart;
+
+      // Block unverified accounts
+      if (!user.isEmailVerified) {
+        logger.warn('❌ LOGIN BLOCKED: email not verified', { emailHash, clientRequestId, ip: req.ip });
+        return res.status(403).json({
+          success: false,
+          requiresEmailVerification: true,
+          email: user.email,
+          error: { message: 'Please verify your email before logging in.' },
+        });
+      }
 
       // JWT signing timing
       const jwtStart = performance.now();

@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const express = require('express');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 const { body } = require('express-validator');
@@ -8,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const authController = require('../controllers/authController');
 const { auth, incrementUserTokenVersion } = require('../middleware/auth');
 const { requireDbConnection } = require('../middleware/dbConnection');
-const { authLimiter, signupLimiter } = require('../middleware/rateLimiter');
+const { authLimiter, signupLimiter, verificationPollLimiter } = require('../middleware/rateLimiter');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 const User = require('../models/User');
 const { sendPasswordReset, sendEmailVerification } = require('../services/email');
@@ -109,7 +110,17 @@ router.get('/verify-email', requireDbConnection, async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save({ validateBeforeSave: false });
 
-    res.json({ success: true, message: 'Email verified successfully. You can now log in.' });
+    const token = jwt.sign(
+      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+    });
   } catch (err) {
     logger.error('Email verification error', { error: err.message });
     res.status(500).json({ success: false, error: 'Server error' });
@@ -154,6 +165,46 @@ router.post(
       res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
     } catch (err) {
       logger.error('Resend verification error', { error: err.message });
+      res.status(500).json({ success: false, error: 'Server error' });
+    }
+  }
+);
+
+/**
+ * POST /api/v1/auth/check-verification
+ * Polling endpoint: returns whether the given email has been verified yet.
+ * Issues a full session JWT once verified so the frontend can log the user in.
+ */
+router.post(
+  '/check-verification',
+  requireDbConnection,
+  verificationPollLimiter,
+  [
+    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    handleValidationErrors,
+  ],
+  async (req, res) => {
+    try {
+      const user = await User.findOne({ email: req.body.email }).select('+tokenVersion');
+      if (!user) {
+        return res.json({ success: true, verified: false });
+      }
+      if (!user.isEmailVerified) {
+        return res.json({ success: true, verified: false });
+      }
+      const token = jwt.sign(
+        { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      res.json({
+        success: true,
+        verified: true,
+        token,
+        user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+      });
+    } catch (err) {
+      logger.error('Check verification error', { error: err.message });
       res.status(500).json({ success: false, error: 'Server error' });
     }
   }

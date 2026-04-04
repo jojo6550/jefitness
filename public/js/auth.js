@@ -113,6 +113,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (err) {
         console.error('Login error:', err);
+        if (err.response?.requiresEmailVerification) {
+          sessionStorage.setItem('pendingVerificationEmail', err.response.email || '');
+          window.location.href = '/verify-email';
+          return;
+        }
         if (err.message.includes('Backend service is currently unavailable') || err.message.includes('fetch')) {
           window.Toast.error('Backend service unavailable. Please check server connection.');
         } else if (err.message.includes('HTTP')) {
@@ -321,7 +326,13 @@ document.addEventListener('DOMContentLoaded', () => {
           healthDataConsent: { given: true }
         });
         
-        const { token, user } = data.data || data;
+        const responseData = data.data || data;
+        if (responseData.requiresEmailVerification) {
+          sessionStorage.setItem('pendingVerificationEmail', responseData.email || '');
+          window.location.href = '/verify-email';
+          return;
+        }
+        const { token, user } = responseData;
         localStorage.setItem('token', token);
         localStorage.setItem('userRole', user.role || 'user');
         window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);

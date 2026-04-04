@@ -150,6 +150,22 @@ const adminLimiter = rateLimit({
   },
 });
 
+/**
+ * Polling limiter for email verification status checks.
+ * Allows up to 120 checks per 15 minutes per email (one every ~7.5 seconds).
+ */
+const verificationPollLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  keyGenerator: identityAwareKeyGenerator,
+  message: { msg: 'Too many verification checks. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, _next, options) => {
+    res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
+  },
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
@@ -157,4 +173,5 @@ module.exports = {
   passwordResetLimiter,
   checkoutLimiter,
   adminLimiter,
+  verificationPollLimiter,
 };

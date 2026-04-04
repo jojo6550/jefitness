@@ -162,7 +162,7 @@ const UserSchema = new mongoose.Schema(
         },
       ],
     },
-    isEmailVerified: { type: Boolean, default: true },
+    isEmailVerified: { type: Boolean, default: false },
     emailVerificationToken: { type: String, select: false },
     emailVerificationExpires: { type: Date, select: false },
 
