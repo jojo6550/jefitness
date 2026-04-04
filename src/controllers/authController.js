@@ -23,16 +23,28 @@ const authController = {
   signup: asyncHandler(async (req, res) => {
     const startTime = performance.now();
     const clientRequestId = req.get('X-Request-ID') || req.ip;
+
+    // Extract and validate required fields from req.body (post-validation)
+    const { firstName, lastName, email, password, dataProcessingConsent, healthDataConsent } = req.body;
+    
+    if (!email || !firstName || !lastName || !password) {
+      throw new ValidationError('Missing required signup fields: firstName, lastName, email, or password');
+    }
+    
+    // Normalize email (defense-in-depth)
+    const normalizedEmail = email.trim().toLowerCase();
     
     // Privacy-safe email hash
     const emailHash = crypto
       .createHash('sha256')
-      .update(email.toLowerCase())
+      .update(normalizedEmail)
       .digest('hex')
       .slice(0, 16);
 
+    // Privacy-safe logging
     logger.info('🔐 SIGNUP ATTEMPT START', {
       emailHash,
+      hasPassword: !!password,
       clientRequestId,
       ip: req.ip,
     });
@@ -40,7 +52,7 @@ const authController = {
     let dbTime = 0;
 
     const dbStart = performance.now();
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     dbTime = performance.now() - dbStart;
     if (existingUser) {
       const totalTime = performance.now() - startTime;
@@ -54,7 +66,7 @@ const authController = {
     const user = new User({
       firstName,
       lastName,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
       dataProcessingConsent: {
         given: dataProcessingConsent?.given === true,
