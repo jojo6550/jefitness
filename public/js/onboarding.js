@@ -29,15 +29,26 @@
     if (!modalEl) return;
 
     const modal = new bootstrap.Modal(modalEl);
-    const step1    = document.getElementById('onboardingStep1');
-    const step2    = document.getElementById('onboardingStep2');
-    const btnBack  = document.getElementById('onboardingBack');
-    const btnNext  = document.getElementById('onboardingNext');
+    const step1     = document.getElementById('onboardingStep1');
+    const step2     = document.getElementById('onboardingStep2');
+    const step3     = document.getElementById('onboardingStep3');
+    const btnBack   = document.getElementById('onboardingBack');
+    const btnNext   = document.getElementById('onboardingNext');
     const btnFinish = document.getElementById('onboardingFinish');
-    const btnSkip  = document.getElementById('onboardingSkip');
-    const stepNum  = document.getElementById('ob-step-num');
-    const seg1     = document.getElementById('ob-seg-1');
-    const seg2     = document.getElementById('ob-seg-2');
+    const btnDone   = document.getElementById('onboardingDone');
+    const btnSkip   = document.getElementById('onboardingSkip');
+    const stepNum   = document.getElementById('ob-step-num');
+    const stepLabel = document.getElementById('ob-step-label');
+    const seg1      = document.getElementById('ob-seg-1');
+    const seg2      = document.getElementById('ob-seg-2');
+    const seg3      = document.getElementById('ob-seg-3');
+    const title     = document.getElementById('onboardingModalLabel');
+
+    const TITLES = [
+      'Let\'s Set Up Your Profile',
+      'A Little More About You',
+      'You\'re Ready — What\'s Next?',
+    ];
 
     let currentStep = 1;
 
@@ -45,22 +56,32 @@
       currentStep = n;
       step1.classList.toggle('d-none', n !== 1);
       step2.classList.toggle('d-none', n !== 2);
-      btnBack.classList.toggle('d-none', n === 1);
+      step3.classList.toggle('d-none', n !== 3);
+
+      btnBack.classList.toggle('d-none', n === 1 || n === 3);
       btnNext.classList.toggle('d-none', n !== 1);
       btnFinish.classList.toggle('d-none', n !== 2);
+      btnDone.classList.toggle('d-none', n !== 3);
+      btnSkip.classList.toggle('d-none', n === 3);
+
       if (stepNum) stepNum.textContent = n;
+      if (stepLabel) stepLabel.innerHTML = n < 3
+        ? `Step <span id="ob-step-num">${n}</span> of 3`
+        : `<span id="ob-step-num">All done!</span>`;
+      if (title) title.textContent = TITLES[n - 1];
 
       // Update progress segments
-      if (seg1 && seg2) {
-        seg1.className = 'gym-tour-seg' + (n === 1 ? ' current' : ' done');
-        seg2.className = 'gym-tour-seg' + (n === 2 ? ' current' : '');
+      if (seg1 && seg2 && seg3) {
+        seg1.className = 'gym-tour-seg' + (n > 1 ? ' done' : ' current');
+        seg2.className = 'gym-tour-seg' + (n === 2 ? ' current' : n > 2 ? ' done' : '');
+        seg3.className = 'gym-tour-seg' + (n === 3 ? ' current' : '');
       }
     }
 
     btnNext.addEventListener('click', () => showStep(2));
-    btnBack.addEventListener('click', () => showStep(1));
+    btnBack.addEventListener('click', () => showStep(currentStep - 1));
 
-    async function complete() {
+    async function saveAndAdvance() {
       const payload = {};
       const goals   = document.getElementById('onboardingGoals')?.value?.trim();
       const reason  = document.getElementById('onboardingReason')?.value?.trim();
@@ -77,11 +98,15 @@
       if (weight) payload.weight = Number(weight);
 
       await authFetch(`${API_BASE}/api/v1/users/onboarding`, { method: 'POST', body: JSON.stringify(payload) });
-      modal.hide();
-      afterOnboarding();
+      showStep(3);
     }
 
-    btnFinish.addEventListener('click', complete);
+    btnFinish.addEventListener('click', saveAndAdvance);
+
+    btnDone.addEventListener('click', () => {
+      modal.hide();
+      afterOnboarding();
+    });
 
     btnSkip.addEventListener('click', async () => {
       await authFetch(`${API_BASE}/api/v1/users/onboarding`, { method: 'POST', body: JSON.stringify({}) });

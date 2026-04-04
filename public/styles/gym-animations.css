@@ -812,6 +812,76 @@
   text-transform: uppercase;
 }
 
+/* Onboarding step 3 — next-step action cards */
+.ob-next-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ob-action-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: #1a1a20;
+  border: 1px solid #1e1e24;
+  border-radius: 0.625rem;
+  text-decoration: none;
+  color: #f1f5f9;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.ob-action-card:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: #1e1e26;
+  color: #f1f5f9;
+}
+
+.ob-action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: rgba(34, 211, 238, 0.1);
+  color: #22d3ee;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.ob-action-icon--amber {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+}
+
+.ob-action-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.2;
+}
+
+.ob-action-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+.ob-action-arrow {
+  margin-left: auto;
+  color: #334155;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: color 0.18s, transform 0.18s;
+}
+
+.ob-action-card:hover .ob-action-arrow {
+  color: #22d3ee;
+  transform: translateX(3px);
+}
+
 /* "Take tour" trigger button */
 .gym-take-tour-btn {
   display: inline-flex;

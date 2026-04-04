@@ -222,7 +222,7 @@
         <div class="modal-content ob-modal-content rounded-4 shadow border-0">
           <div class="modal-header border-0 pb-0">
             <div>
-              <p class="ob-step-label text-muted mb-0">Step <span id="ob-step-num">1</span> of 2</p>
+              <p class="ob-step-label text-muted mb-0" id="ob-step-label">Step <span id="ob-step-num">1</span> of 3</p>
               <h5 class="ob-modal-title modal-title fw-bold" id="onboardingModalLabel">
                 Let's Set Up Your Profile
               </h5>
@@ -233,6 +233,7 @@
             <div class="gym-tour-progress mb-3" id="ob-progress">
               <div class="gym-tour-seg current" id="ob-seg-1"></div>
               <div class="gym-tour-seg" id="ob-seg-2"></div>
+              <div class="gym-tour-seg" id="ob-seg-3"></div>
             </div>
 
             <!-- Step 1 -->
@@ -274,13 +275,37 @@
                 </div>
               </div>
             </div>
+
+            <!-- Step 3: Next steps -->
+            <div id="onboardingStep3" class="d-none">
+              <p class="ob-hint text-muted mb-3">You're all set! Here's how to get started.</p>
+              <div class="ob-next-steps">
+                <a href="/subscriptions" class="ob-action-card">
+                  <span class="ob-action-icon"><i class="bi bi-credit-card-fill"></i></span>
+                  <div>
+                    <div class="ob-action-title">Choose a Plan</div>
+                    <div class="ob-action-desc">Unlock full access to programs and trainer sessions.</div>
+                  </div>
+                  <i class="bi bi-arrow-right ob-action-arrow"></i>
+                </a>
+                <a href="/meet-your-trainer" class="ob-action-card">
+                  <span class="ob-action-icon ob-action-icon--amber"><i class="bi bi-calendar-check"></i></span>
+                  <div>
+                    <div class="ob-action-title">Book a Session</div>
+                    <div class="ob-action-desc">Schedule your first appointment with a trainer.</div>
+                  </div>
+                  <i class="bi bi-arrow-right ob-action-arrow"></i>
+                </a>
+              </div>
+            </div>
           </div>
           <div class="modal-footer border-0 justify-content-between pt-2">
             <button id="onboardingSkip" class="ob-skip-btn btn btn-link text-muted text-decoration-none">Skip</button>
             <div class="d-flex gap-2">
               <button id="onboardingBack" class="btn btn-outline-secondary btn-sm d-none">Back</button>
               <button id="onboardingNext" class="btn btn-primary px-4">Next</button>
-              <button id="onboardingFinish" class="btn btn-primary px-4 d-none">Finish</button>
+              <button id="onboardingFinish" class="btn btn-primary px-4 d-none">Next</button>
+              <button id="onboardingDone" class="btn btn-success px-4 d-none">Done</button>
             </div>
           </div>
         </div>
