@@ -89,7 +89,7 @@ router.post('/consent', auth, authController.grantConsent);
  */
 router.get('/verify-email', requireDbConnection, async (req, res) => {
   try {
-    const { verificationToken } = req.query;
+    const verificationToken = req.query.token;
     if (!verificationToken) {
     return res.status(400).json({ success: false, error: 'Verification token is required.' });
   }
