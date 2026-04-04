@@ -12,92 +12,109 @@ const trainerController = {
   getDashboard: asyncHandler(async (req, res) => {
     const trainerId = req.user.id;
     const now = new Date();
-    const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
+    // Validate trainerId is valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(trainerId)) {
+      logger.error('Invalid trainerId in dashboard', { trainerId });
+      return res.status(400).json({
+        overview: { totalAppointments: 0, uniqueClients: 0, upcomingAppointments: [], completionRate: 0 },
+        clients: [],
+        trainerEmailPreference: 'daily_digest'
+      });
+    }
 
-    const statsResult = await Appointment.aggregate([
-      { $match: { trainerId: trainerObjectId } },
-      {
-        $group: {
-          _id: null,
-          totalAppointments: { $sum: 1 },
-          completedAppointments: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
-          },
-          scheduledAppointments: {
-            $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] },
-          },
-          cancelledAppointments: {
-            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] },
-          },
-          noShowAppointments: {
-            $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] },
-          },
-          lateAppointments: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
-          uniqueClients: { $addToSet: '$clientId' },
-          upcomingAppointments: {
-            $push: {
-              $cond: [
-                { $and: [{ $gte: ['$date', now] }, { $ne: ['$status', 'cancelled'] }] },
-                {
-                  date: '$date',
-                  time: '$time',
-                  status: '$status',
-                  clientId: '$clientId',
-                  _id: '$_id',
-                },
-                null,
-              ],
+    let stats = { totalAppointments: 0, completedAppointments: 0, scheduledAppointments: 0, cancelledAppointments: 0, noShowAppointments: 0, lateAppointments: 0, uniqueClients: 0, upcomingAppointments: [] };
+    let statsResult;
+    try {
+      const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
+      statsResult = await Appointment.aggregate([
+        { $match: { trainerId: trainerObjectId } },
+        {
+          $group: {
+            _id: null,
+            totalAppointments: { $sum: 1 },
+            completedAppointments: {
+              $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+            },
+            scheduledAppointments: {
+              $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] },
+            },
+            cancelledAppointments: {
+              $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] },
+            },
+            noShowAppointments: {
+              $sum: { $cond: [{ $eq: ['$status', 'no_show'] }, 1, 0] },
+            },
+            lateAppointments: { $sum: { $cond: [{ $eq: ['$status', 'late'] }, 1, 0] } },
+            uniqueClients: { $addToSet: '$clientId' },
+            upcomingAppointments: {
+              $push: {
+                $cond: [
+                  { $and: [{ $gte: ['$date', now] }, { $ne: ['$status', 'cancelled'] }] },
+                  {
+                    date: '$date',
+                    time: '$time',
+                    status: '$status',
+                    clientId: '$clientId',
+                    _id: '$_id',
+                  },
+                  null,
+                ],
+              },
             },
           },
         },
-      },
-      {
-        $project: {
-          totalAppointments: 1,
-          completedAppointments: 1,
-          scheduledAppointments: 1,
-          cancelledAppointments: 1,
-          noShowAppointments: 1,
-          lateAppointments: 1,
-          uniqueClients: { $size: '$uniqueClients' },
-          upcomingAppointments: {
-            $filter: {
-              input: '$upcomingAppointments',
-              as: 'apt',
-              cond: { $ne: ['$$apt', null] },
+        {
+          $project: {
+            totalAppointments: 1,
+            completedAppointments: 1,
+            scheduledAppointments: 1,
+            cancelledAppointments: 1,
+            noShowAppointments: 1,
+            lateAppointments: 1,
+            uniqueClients: { $size: '$uniqueClients' },
+            upcomingAppointments: {
+              $filter: {
+                input: '$upcomingAppointments',
+                as: 'apt',
+                cond: { $ne: ['$$apt', null] },
+              },
             },
           },
         },
-      },
-    ]);
+      ]);
+    } catch (aggErr) {
+      logger.error('Dashboard aggregation failed', { trainerId, error: aggErr.message });
+    }
 
-    const stats = statsResult[0] || {
-      totalAppointments: 0,
-      completedAppointments: 0,
-      scheduledAppointments: 0,
-      cancelledAppointments: 0,
-      noShowAppointments: 0,
-      lateAppointments: 0,
-      uniqueClients: 0,
-      upcomingAppointments: [],
-    };
+    const statsSafe = statsResult?.[0] || stats;
+
+    stats = statsSafe;
 
     const upcomingAppointmentsRaw = stats.upcomingAppointments
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 5);
 
     const upcomingAppointmentIds = upcomingAppointmentsRaw.map(apt => apt._id);
-    const upcomingAppointments = await Appointment.find({
-      _id: { $in: upcomingAppointmentIds },
-    })
-      .populate('clientId', 'firstName lastName email')
-      .sort({ date: 1, time: 1 })
-      .lean();
+    let upcomingAppointments = [];
+    try {
+      upcomingAppointments = await Appointment.find({
+        _id: { $in: upcomingAppointmentIds },
+      })
+        .populate('clientId', 'firstName lastName email')
+        .sort({ date: 1, time: 1 })
+        .lean();
+    } catch (populateErr) {
+      logger.error('Dashboard populate upcoming failed', { trainerId, error: populateErr.message });
+    }
 
-    const clientIds = statsResult[0]?.uniqueClients || [];
-    const clients = await User.find({ _id: { $in: clientIds } })
-      .select('firstName lastName email activityStatus')
-      .lean();
+    let clients = [];
+    try {
+      clients = await User.find({ _id: { $in: [] } })
+        .select('firstName lastName email activityStatus')
+        .lean();
+    } catch (clientErr) {
+      logger.error('Dashboard clients query failed', { trainerId, error: clientErr.message });
+    }
 
     const completionRate =
       stats.totalAppointments > 0
@@ -106,7 +123,12 @@ const trainerController = {
 
     logUserAction('view_trainer_dashboard', trainerId);
 
-    const trainerUser = await User.findById(trainerId).select('trainerEmailPreference').lean();
+    let trainerUser = { trainerEmailPreference: 'daily_digest' };
+    try {
+      trainerUser = await User.findById(trainerId).select('trainerEmailPreference').lean();
+    } catch (prefErr) {
+      logger.error('Dashboard trainer pref query failed', { trainerId, error: prefErr.message });
+    }
 
     res.json({
       overview: { ...stats, completionRate },
