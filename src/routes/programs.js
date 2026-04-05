@@ -390,7 +390,9 @@ router.post('/checkout', auth, async (req, res) => {
  */
 router.get('/user/my-programs', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('purchasedPrograms.programId');
+    const user = await User.findById(req.user.id)
+      .select('purchasedPrograms')
+      .populate('purchasedPrograms.programId', 'title slug author goals description tags difficulty duration imageUrl features');
 
     if (!user) {
       return res.status(404).json({
@@ -438,7 +440,9 @@ router.get('/user/my-programs', auth, async (req, res) => {
 router.get('/user/access/:slug', auth, async (req, res) => {
   try {
     const { slug } = req.params;
-    const user = await User.findById(req.user.id).populate('purchasedPrograms.programId');
+    const user = await User.findById(req.user.id)
+      .select('purchasedPrograms')
+      .populate('purchasedPrograms.programId', 'slug');
 
     if (!user) {
       return res.status(404).json({

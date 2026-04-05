@@ -1,6 +1,11 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+function debounce(fn, ms) {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), ms); };
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 let allAppointments = [];
 let allClients = [];
@@ -40,12 +45,12 @@ function setupTabNavigation() {
     document.getElementById('refreshBtn')?.addEventListener('click', () => refreshCurrentTab());
 
     // Client search
-    document.getElementById('clientSearch')?.addEventListener('input', e => {
+    document.getElementById('clientSearch')?.addEventListener('input', debounce(e => {
         const term = e.target.value.toLowerCase().trim();
         renderClients(term ? allClients.filter(c =>
             `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(term)
         ) : allClients);
-    });
+    }, 200));
 }
 
 function switchTab(tab) {
@@ -291,13 +296,13 @@ function renderAppointments(appointments) {
 
 function setupScheduleListeners() {
     // Search
-    document.getElementById('appointmentSearch')?.addEventListener('input', e => {
+    document.getElementById('appointmentSearch')?.addEventListener('input', debounce(e => {
         const term = e.target.value.toLowerCase().trim();
         renderAppointments(term ? allAppointments.filter(apt => {
             const name = apt.clientId ? `${apt.clientId.firstName} ${apt.clientId.lastName}`.toLowerCase() : '';
             return name.includes(term);
         }) : allAppointments);
-    });
+    }, 200));
 
     // Status buttons (event delegation on the actions container)
     document.getElementById('appointmentsList').addEventListener('click', e => {

@@ -330,6 +330,7 @@ UserSchema.methods.comparePassword = function (candidatePassword) {
 // Indexes
 UserSchema.index({ role: 1 });
 UserSchema.index({ createdAt: -1 });
+UserSchema.index({ assignedTrainerId: 1 }, { sparse: true });
 
 UserSchema.index({ 'assignedPrograms.programId': 1 }, { sparse: true });
 UserSchema.index({ 'purchasedPrograms.programId': 1 }, { sparse: true });

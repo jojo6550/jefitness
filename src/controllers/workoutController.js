@@ -58,7 +58,7 @@ const workoutController = {
         : undefined,
     };
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -143,7 +143,7 @@ const workoutController = {
       throw new ValidationError('Invalid workout ID');
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -249,7 +249,7 @@ const workoutController = {
   getStatsSummary: asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }

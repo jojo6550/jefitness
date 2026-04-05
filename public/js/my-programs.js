@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionId = urlParams.get('session_id');
     if (sessionId) {
         showSuccessMessage('Program purchased successfully! It has been added to your library.');
-        // Clean URL
+        sessionStorage.removeItem(MY_PROGRAMS_CACHE_KEY);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -30,10 +30,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMyPrograms();
 });
 
+const MY_PROGRAMS_CACHE_KEY = 'myProgramsCache';
+
 // Load user's purchased programs
-async function loadMyPrograms() {
+async function loadMyPrograms(forceRefresh = false) {
     try {
         showLoading();
+
+        if (!forceRefresh) {
+            const cached = sessionStorage.getItem(MY_PROGRAMS_CACHE_KEY);
+            if (cached) {
+                myPrograms = JSON.parse(cached);
+                if (myPrograms.length === 0) { showEmpty(); } else { updateStats(); renderPrograms(); }
+                return;
+            }
+        }
 
         const response = await fetch(`${window.API_BASE}/api/v1/programs/user/my-programs`, {
             headers: {
@@ -47,6 +58,7 @@ async function loadMyPrograms() {
 
         const data = await response.json();
         myPrograms = data.programs || [];
+        sessionStorage.setItem(MY_PROGRAMS_CACHE_KEY, JSON.stringify(myPrograms));
 
         if (myPrograms.length === 0) {
             showEmpty();

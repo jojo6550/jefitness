@@ -292,7 +292,7 @@ const trainerController = {
    */
   getAppointmentById: asyncHandler(async (req, res) => {
     const appointment = await Appointment.findById(req.params.id)
-      .populate('clientId')
+      .populate('clientId', 'firstName lastName email phone')
       .populate('trainerId', 'firstName lastName email');
 
     if (!appointment) throw new NotFoundError('Appointment');

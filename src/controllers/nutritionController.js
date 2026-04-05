@@ -57,7 +57,7 @@ const nutritionController = {
         : undefined,
     };
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     user.mealLogs.push(mealLog);
@@ -126,7 +126,7 @@ const nutritionController = {
       throw new ValidationError('Invalid meal ID');
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     const meal = user.mealLogs.id(id);
@@ -145,7 +145,7 @@ const nutritionController = {
       throw new ValidationError('Invalid meal ID');
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     const meal = user.mealLogs.id(id);
@@ -162,7 +162,7 @@ const nutritionController = {
    * Get nutrition stats summary
    */
   getStatsSummary: asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     const active = user.mealLogs.filter(m => !m.deletedAt);
@@ -238,7 +238,7 @@ const nutritionController = {
   getDailyTotals: asyncHandler(async (req, res) => {
     const days = Math.min(parseInt(req.query.days) || 30, 90);
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     const cutoff = new Date();
