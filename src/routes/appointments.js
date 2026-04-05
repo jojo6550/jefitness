@@ -59,7 +59,13 @@ const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
 const { requireAdmin } = require('../middleware/auth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 const { allowOnlyFields } = require('../middleware/inputValidator');
-const { sendNewAppointmentNotification } = require('../services/email');
+const {
+  sendNewAppointmentNotification,
+  sendAppointmentCancelledTrainer,
+  sendAppointmentCancelledClient,
+  sendAppointmentUpdatedTrainer,
+  sendAppointmentUpdatedClient,
+} = require('../services/email');
 
 /**
  * @swagger
@@ -631,7 +637,7 @@ router.put(
 
       await appointment.save();
       await appointment.populate('clientId', 'firstName lastName email');
-      await appointment.populate('trainerId', 'firstName lastName email');
+      await appointment.populate('trainerId', 'firstName lastName email trainerEmailPreference');
 
       // Log the action
       if (appointment.clientId.toString() === req.user.id && status === 'cancelled') {
@@ -643,6 +649,41 @@ router.put(
           appointmentId: req.params.id,
           updates: req.body,
         });
+      }
+
+      // Send email notifications
+      const aptDate = new Date(appointment.date);
+      const dateStr = aptDate.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+      });
+      const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
+      const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
+
+      if (status === 'cancelled') {
+        // Always notify client
+        if (appointment.clientId.email) {
+          sendAppointmentCancelledClient(
+            appointment.clientId.email, appointment.clientId.firstName, trainerName, dateStr, appointment.time, 'cancelled'
+          ).catch(e => logger.warn('Failed to send cancellation email to client', { error: e.message }));
+        }
+        // Notify trainer only if they prefer individual emails
+        if (appointment.trainerId.trainerEmailPreference === 'individual' && appointment.trainerId.email) {
+          sendAppointmentCancelledTrainer(
+            appointment.trainerId.email, appointment.trainerId.firstName, clientName, dateStr, appointment.time, 'cancelled'
+          ).catch(e => logger.warn('Failed to send cancellation email to trainer', { error: e.message }));
+        }
+      } else if (date || time) {
+        // Date/time was changed — notify both parties of the update
+        if (appointment.clientId.email) {
+          sendAppointmentUpdatedClient(
+            appointment.clientId.email, appointment.clientId.firstName, trainerName, dateStr, appointment.time
+          ).catch(e => logger.warn('Failed to send update email to client', { error: e.message }));
+        }
+        if (appointment.trainerId.trainerEmailPreference === 'individual' && appointment.trainerId.email) {
+          sendAppointmentUpdatedTrainer(
+            appointment.trainerId.email, appointment.trainerId.firstName, clientName, dateStr, appointment.time
+          ).catch(e => logger.warn('Failed to send update email to trainer', { error: e.message }));
+        }
       }
 
       res.json(appointment);
@@ -679,7 +720,31 @@ router.delete('/:id', async (req, res) => {
       logUserAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
     }
 
+    // Populate before deleting so we have names/emails for notifications
+    await appointment.populate('clientId', 'firstName lastName email');
+    await appointment.populate('trainerId', 'firstName lastName email trainerEmailPreference');
+
     await Appointment.findByIdAndDelete(req.params.id);
+
+    // Send deletion notifications
+    const aptDate = new Date(appointment.date);
+    const dateStr = aptDate.toLocaleDateString('en-US', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+    });
+    const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
+    const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
+
+    if (appointment.clientId.email) {
+      sendAppointmentCancelledClient(
+        appointment.clientId.email, appointment.clientId.firstName, trainerName, dateStr, appointment.time, 'deleted'
+      ).catch(e => logger.warn('Failed to send deletion email to client', { error: e.message }));
+    }
+    if (appointment.trainerId.trainerEmailPreference === 'individual' && appointment.trainerId.email) {
+      sendAppointmentCancelledTrainer(
+        appointment.trainerId.email, appointment.trainerId.firstName, clientName, dateStr, appointment.time, 'deleted'
+      ).catch(e => logger.warn('Failed to send deletion email to trainer', { error: e.message }));
+    }
+
     res.json({ msg: 'Appointment deleted successfully' });
   } catch (err) {
     logger.error('Appointment operation failed', { error: err.message });
