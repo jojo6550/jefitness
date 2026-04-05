@@ -57,7 +57,7 @@ class CookieConsentManager {
             marketing: localStorage.getItem('marketing-consent') === 'true',
             healthData: localStorage.getItem('health-data-consent') === 'true',
             timestamp: localStorage.getItem('consent-timestamp'),
-            version: localStorage.getItem('consent-version') || '1.0'
+            version: localStorage.getItem('consent-version') || '1.1'
         };
 
         // Check if consent needs update (version mismatch)
@@ -138,7 +138,7 @@ class CookieConsentManager {
         localStorage.setItem('consent-version', '1.1');
 
         // If user is logged in, sync with backend
-        if (this.isLoggedIn && this.userToken) {
+        if (this.isLoggedIn) {
             try {
                 await this.syncWithBackend(consents);
             } catch (error) {
