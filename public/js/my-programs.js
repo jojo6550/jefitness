@@ -1,4 +1,6 @@
 
+const escapeHtml = str => Validators.escapeHtml(str);
+
 let myPrograms = [];
 let currentProgram = null;
 let programModal = null;
@@ -178,20 +180,7 @@ function showProgramDetails(programId) {
 
 // Show success message
 function showSuccessMessage(message) {
-    const successAlert = document.getElementById('successAlert');
-    const successMessage = document.getElementById('successMessage');
-    
-    successMessage.textContent = message;
-    successAlert.classList.remove('d-none');
-    successAlert.classList.add('show');
-
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-        successAlert.classList.remove('show');
-        setTimeout(() => {
-            successAlert.classList.add('d-none');
-        }, 150);
-    }, 5000);
+    window.Toast.success(message);
 }
 
 // Utility functions
@@ -210,7 +199,7 @@ function showEmpty() {
 }
 
 function showError(message) {
-    alert(message);
+    window.Toast.error(message);
 }
 
 function formatDate(date) {
@@ -218,8 +207,3 @@ function formatDate(date) {
     return date.toLocaleDateString('en-US', options);
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}

@@ -13,6 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+  function redirectByRole(role) {
+    if (role === 'admin') return '/admin-dashboard';
+    if (role === 'trainer') {
+      const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
+      return guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
+    }
+    return '/dashboard';
+  }
 
   // LOGIN
   if (loginForm) {
@@ -101,15 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
           window.location.href = redirectPath;
         } else {
           // Role-based redirection
-          let redirectPathRole = '/dashboard';
-          if (userRole === 'admin') {
-            redirectPathRole = '/admin-dashboard';
-          } else if (userRole === 'trainer') {
-            // First-time trainers go to the guide; returning trainers go straight to dashboard
-            const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
-            redirectPathRole = guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
-          }
-          window.location.href = redirectPathRole;
+          window.location.href = redirectByRole(userRole);
         }
       } catch (err) {
         console.error('Login error:', err);
@@ -337,13 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('userRole', user.role || 'user');
         window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);
         // Redirect based on role
-        let redirectPath = '/dashboard';
-        if (user.role === 'admin') redirectPath = '/admin-dashboard';
-        else if (user.role === 'trainer') {
-          const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
-          redirectPath = guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
-        }
-        setTimeout(() => window.location.href = redirectPath, 1500);
+        setTimeout(() => window.location.href = redirectByRole(user.role), 1500);
       } catch (err) {
         console.error('Signup error:', err);
         if (err.message.includes('Backend service is currently unavailable') || err.message.includes('fetch')) {
@@ -413,6 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = resetPasswordForm.password.value;
       const confirmPassword = resetPasswordForm.confirmPassword.value;
 
+      const strengthError = Validators.validatePasswordStrength(password);
+      if (strengthError) {
+        window.Toast.warning(strengthError);
+        return;
+      }
+
       if (password !== confirmPassword) {
         window.Toast.warning('Passwords do not match');
         return;
@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
       }
     } else {
-      alert(msg);
+      window.Toast.error(msg);
     }
   }
 

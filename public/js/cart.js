@@ -4,13 +4,9 @@ function hidePageLoader() {
   if (loading) loading.style.display = 'none';
 }
 
-let cart = JSON.parse(localStorage.getItem('jefitness_cart') || '[]');
+const escapeHtml = str => Validators.escapeHtml(str);
 
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = String(str ?? '');
-  return div.innerHTML;
-}
+let cart = JSON.parse(localStorage.getItem('jefitness_cart') || '[]');
 
 function saveCart() {
   localStorage.setItem('jefitness_cart', JSON.stringify(cart));
@@ -110,7 +106,7 @@ async function checkout() {
     } else throw new Error(data.error || 'Checkout failed');
   } catch (err) {
     console.error('Checkout failed:', err);
-    alert(err.message);
+    window.Toast.error(err.message);
   }
 }
 

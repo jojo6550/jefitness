@@ -1,11 +1,6 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = String(str ?? '');
-    return div.innerHTML;
-}
-
+const escapeHtml = str => Validators.escapeHtml(str);
 
 let currentPage = 1;
 let currentSearch = '';

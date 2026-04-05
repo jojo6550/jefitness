@@ -121,7 +121,7 @@ function clearCart() {
 
 // Checkout
 async function handleCheckout() {
-  if (!cart.length) return alert('Cart empty');
+  if (!cart.length) { window.Toast.error('Cart is empty.'); return; }
 
   const token = localStorage.getItem('token');
   if (!token) return window.location.href = '/login';
@@ -157,7 +157,7 @@ async function handleCheckout() {
     }
   } catch (err) {
     console.error(err);
-    alert(err.message);
+    window.Toast.error(err.message);
   }
 }
 

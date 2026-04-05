@@ -81,7 +81,7 @@ const workoutController = {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -119,7 +119,7 @@ const workoutController = {
       throw new ValidationError('Invalid workout ID');
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -168,7 +168,7 @@ const workoutController = {
     const exerciseName = decodeURIComponent(req.params.exerciseName);
     const limit = Math.min(parseInt(req.query.limit) || 30, 100);
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('workoutLogs');
     if (!user) {
       throw new NotFoundError('User');
     }

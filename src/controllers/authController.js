@@ -121,7 +121,6 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
     const { email, password } = req.body;
 
     // Privacy-safe email hash (SHA256 first 16 chars)
-    const crypto = require('crypto');
     const emailHash = crypto
       .createHash('sha256')
       .update(email.toLowerCase())

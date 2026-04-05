@@ -2,6 +2,8 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+const escapeHtml = str => Validators.escapeHtml(str);
+
 let allPrograms = [];
 let filteredPrograms = [];
 let selectedTags = new Set();
@@ -298,7 +300,7 @@ function showEmpty() {
 }
 
 function showError(message) {
-    alert(message);
+    window.Toast.error(message);
 }
 
 function getDifficultyBadgeClass(difficulty) {
@@ -308,12 +310,6 @@ function getDifficultyBadgeClass(difficulty) {
         'advanced': 'bg-danger'
     };
     return classes[difficulty] || 'bg-secondary';
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 function debounce(func, wait) {

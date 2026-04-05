@@ -1,5 +1,7 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+const escapeHtml = str => Validators.escapeHtml(str);
+
 async function requireSubscription() {
     const token = localStorage.getItem('token');
     if (!token) { window.location.href = '/'; return false; }
@@ -288,21 +290,10 @@ async function confirmDelete() {
     }
 }
 
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 function showSuccess(msg) {
-    document.getElementById('successToastMessage').textContent = msg || 'Done!';
-    new bootstrap.Toast(document.getElementById('successToast')).show();
+    window.Toast.success(msg || 'Done!');
 }
 
 function showError(msg) {
-    document.getElementById('errorToastMessage').textContent = msg || 'An error occurred.';
-    new bootstrap.Toast(document.getElementById('errorToast')).show();
+    window.Toast.error(msg || 'An error occurred.');
 }

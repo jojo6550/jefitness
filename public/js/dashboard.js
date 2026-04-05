@@ -19,8 +19,7 @@ window.initDashboard = async () => {
     if (!token) return; // not logged in
 
     try {
-      const res = await fetch(`${window.API_BASE}
-/api/v1/auth/me`, {
+      const res = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -119,8 +118,6 @@ async function loadSubscriptionStatus() {
             const data = await res.json();
             const subscription = data.data;
 
-            console.log('Subscription data:', subscription); // Debug log
-
             // Update status display
             let statusText = '';
             let statusClass = '';
@@ -144,36 +141,14 @@ async function loadSubscriptionStatus() {
             actionsElement.classList.remove('d-none');
 
             // Show appropriate buttons based on subscription status
-            console.log('Checking button visibility:', {
-                hasSubscription: subscription.hasSubscription,
-                status: subscription.status,
-                condition: subscription.hasSubscription && subscription.status === 'active'
-            }); // Debug log
-
             if (subscription.hasSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
-                // Show cancel button for active subscriptions
-                console.log('Showing cancel button'); // Debug log
                 document.getElementById('cancel-subscription-btn').classList.remove('d-none');
                 upgradeBtn.classList.add('d-none');
-
-                // Hide subscription card for users with active subscription
-                const subscriptionCard = document.getElementById('subscription-card');
-                if (subscriptionCard) {
-                    subscriptionCard.classList.add('d-none');
-                    console.log('Subscription card hidden for user with active/trialing subscription');
-                }
+                document.getElementById('subscription-card')?.classList.add('d-none');
             } else {
-                // Show upgrade button for non-active subscriptions
-                console.log('Showing upgrade button'); // Debug log
                 document.getElementById('cancel-subscription-btn').classList.add('d-none');
                 upgradeBtn.classList.remove('d-none');
-
-                // Show subscription card for users without active subscription
-                const subscriptionCard = document.getElementById('subscription-card');
-                if (subscriptionCard) {
-                    subscriptionCard.classList.remove('d-none');
-                    console.log('Subscription card shown for user without active subscription');
-                }
+                document.getElementById('subscription-card')?.classList.remove('d-none');
             }
         } else {
             statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
@@ -197,7 +172,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
 
     const token = localStorage.getItem('token');
     if (!token) {
-        alert('Please log in to cancel your subscription.');
+        window.Toast.error('Please log in to cancel your subscription.');
         return;
     }
 
@@ -221,8 +196,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         }
 
         // Cancel the subscription
-        const cancelRes = await fetch(`${window.API_BASE}
-/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
+        const cancelRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -236,7 +210,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         const cancelData = await cancelRes.json();
 
         if (cancelData.success) {
-            alert('✅ Subscription has been canceled immediately. You are now on the free tier.');
+            window.Toast.success('Subscription canceled. You are now on the free tier.');
             // Reload subscription status
             await loadSubscriptionStatus();
         } else {
@@ -245,7 +219,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
 
     } catch (error) {
         console.error('❌ Error canceling subscription:', error);
-        alert(`Failed to cancel subscription: ${error.message}`);
+        window.Toast.error(`Failed to cancel subscription: ${error.message}`);
     }
 });
 

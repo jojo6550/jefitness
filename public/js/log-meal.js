@@ -1,5 +1,7 @@
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
+const escapeHtml = str => Validators.escapeHtml(str);
+
 let foodCount = 0;
 let searchDebounceTimers = {};
 
@@ -24,15 +26,6 @@ async function requireSubscription() {
         window.location.href = '/subscriptions';
         return false;
     }
-}
-
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -171,7 +164,7 @@ function addFoodItem() {
 function removeFoodItem(id) {
     const cards = document.querySelectorAll('.food-item-card');
     if (cards.length <= 1) {
-        showError('You must have at least one food item.');
+        window.Toast.error('You must have at least one food item.');
         return;
     }
     document.querySelector(`.food-item-card[data-food-id="${id}"]`)?.remove();
@@ -315,7 +308,7 @@ async function handleSubmit(e) {
         });
 
         if (foods.length === 0) {
-            showError('Please add at least one food item with a name.');
+            window.Toast.error('Please add at least one food item with a name.');
             return;
         }
 
@@ -340,21 +333,13 @@ async function handleSubmit(e) {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error?.message || data.error || 'Failed to log meal');
 
-        showSuccess();
+        window.Toast.success('Meal logged successfully!');
         setTimeout(() => { window.location.href = '/nutrition-history'; }, 1500);
     } catch (err) {
-        showError(err.message);
+        window.Toast.error(err.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Save Meal';
     }
 }
 
-function showSuccess() {
-    new bootstrap.Toast(document.getElementById('successToast')).show();
-}
-
-function showError(message) {
-    document.getElementById('errorToastMessage').textContent = message || 'An error occurred.';
-    new bootstrap.Toast(document.getElementById('errorToast')).show();
-}

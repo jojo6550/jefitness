@@ -106,6 +106,12 @@ const Validators = {
     if (errorDiv) {
       errorDiv.classList.add('d-none');
     }
+  },
+
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
   }
 };
 

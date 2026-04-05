@@ -133,7 +133,7 @@ async function loadWorkoutHistory() {
 async function viewProgress() {
     const exerciseName = document.getElementById('exerciseSelect').value;
     if (!exerciseName) {
-        alert('Please select an exercise');
+        window.Toast.error('Please select an exercise');
         return;
     }
 
@@ -155,7 +155,7 @@ async function viewProgress() {
         const data = result.data;
 
         if (data.sessions.length === 0) {
-            alert('No data found for this exercise');
+            window.Toast.error('No data found for this exercise');
             return;
         }
 
@@ -163,7 +163,7 @@ async function viewProgress() {
 
     } catch (error) {
         console.error('Error fetching progress:', error);
-        alert('Failed to load progress data');
+        window.Toast.error('Failed to load progress data');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-graph-up me-1"></i>View Progress';

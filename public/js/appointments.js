@@ -8,16 +8,8 @@ if (window.API_BASE?.startsWith('https://localhost')) {
   window.API_BASE = window.API_BASE.replace(/^https:/, 'http:');
 }
 
-console.log('Appointments - Resolved API_BASE:', window.API_BASE, window.ApiConfig?.getDebugInfo?.());
-
 // ====== Helpers ======
-/** Escapes user-supplied strings before inserting into innerHTML to prevent XSS */
-function escapeHtml(str) {
-    if (str == null) return '';
-    const div = document.createElement('div');
-    div.appendChild(document.createTextNode(String(str)));
-    return div.innerHTML;
-}
+const escapeHtml = str => Validators.escapeHtml(str);
 
 // ====== State ======
 let currentViewAppointmentId = null;
@@ -69,13 +61,6 @@ async function checkSubscriptionStatus() {
         const isPeriodValid = !sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > new Date();
 
         userSubscriptionStatus = isActive && isPeriodValid;
-
-        console.log('Subscription check:', {
-            status: sub.status,
-            currentPeriodEnd: sub.currentPeriodEnd,
-            userSubscriptionStatus
-        });
-
         return userSubscriptionStatus;
     } catch (err) {
         console.error('Error checking subscription:', err);

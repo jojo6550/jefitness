@@ -70,7 +70,7 @@ function addExercise() {
 function removeExercise(exerciseId) {
     const exercises = document.querySelectorAll('.exercise-card');
     if (exercises.length <= 1) {
-        showError('You must have at least one exercise');
+        window.Toast.error('You must have at least one exercise');
         return;
     }
     
@@ -115,7 +115,7 @@ function addSet(setsContainer) {
     const setRow = setsContainer.lastElementChild;
     setRow.querySelector('.remove-set-btn').addEventListener('click', () => {
         if (setsContainer.children.length <= 1) {
-            showError('Each exercise must have at least one set');
+            window.Toast.error('Each exercise must have at least one set');
             return;
         }
         setRow.remove();
@@ -123,10 +123,8 @@ function addSet(setsContainer) {
     });
 }
 
-function renumberSets(exerciseId) {
-    const setsContainer = document.querySelector(`.sets-container[data-exercise-id="${exerciseId}"]`);
-    const setRows = setsContainer.querySelectorAll('.set-row');
-    setRows.forEach((row, index) => {
+function renumberSets(setsContainer) {
+    setsContainer.querySelectorAll('.set-row').forEach((row, index) => {
         row.querySelector('.set-number').value = index + 1;
     });
 }
@@ -192,7 +190,7 @@ async function handleSubmit(e) {
         });
         
         if (workoutData.exercises.length === 0) {
-            showError('Please add at least one exercise with sets');
+            window.Toast.error('Please add at least one exercise with sets');
             return;
         }
         
@@ -212,7 +210,7 @@ async function handleSubmit(e) {
             throw new Error(data.error || 'Failed to log workout');
         }
         
-        showSuccess();
+        window.Toast.success('Workout logged successfully!');
         
         // Reset form or redirect
         setTimeout(() => {
@@ -221,21 +219,10 @@ async function handleSubmit(e) {
         
     } catch (error) {
         console.error('Error logging workout:', error);
-        showError(error.message);
+        window.Toast.error(error.message);
     } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Save Workout';
     }
 }
 
-function showSuccess() {
-    const toast = new bootstrap.Toast(document.getElementById('successToast'));
-    toast.show();
-}
-
-function showError(message) {
-    const errorToast = document.getElementById('errorToast');
-    document.getElementById('errorToastMessage').textContent = message;
-    const toast = new bootstrap.Toast(errorToast);
-    toast.show();
-}

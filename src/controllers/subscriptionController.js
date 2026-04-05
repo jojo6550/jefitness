@@ -60,9 +60,7 @@ const subscriptionController = {
       // Update user record with verified customer ID (idempotent)
       if (user.stripeCustomerId !== stripeCustomerId) {
         user.stripeCustomerId = stripeCustomerId;
-        user.billingEnvironment = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production';
+        user.billingEnvironment = getBillingEnv();
         await user.save();
         logger.info(`[CHECKOUT] Updated user.stripeCustomerId: ${stripeCustomerId}`);
       }

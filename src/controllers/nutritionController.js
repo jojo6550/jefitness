@@ -79,7 +79,7 @@ const nutritionController = {
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
     const { startDate, endDate, mealType } = req.query;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select('mealLogs');
     if (!user) throw new NotFoundError('User');
 
     let meals = user.mealLogs.filter(log => !log.deletedAt);

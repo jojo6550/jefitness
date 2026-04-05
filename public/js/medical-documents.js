@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const validation = validateFile(file);
             validation.valid ? validFiles.push(file) : errors.push(validation.error);
         }
-        if (errors.length) alert('Validation errors:\n' + errors.join('\n'));
+        if (errors.length) window.Toast.error(errors.join(' '));
         validFiles.forEach(uploadFile);
     }
 

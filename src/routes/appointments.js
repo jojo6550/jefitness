@@ -56,6 +56,7 @@ const User = require('../models/User');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
 const { requireActiveSubscription } = require('../middleware/subscriptionAuth');
+const { requireAdmin } = require('../middleware/auth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 const { allowOnlyFields } = require('../middleware/inputValidator');
 const { sendNewAppointmentNotification } = require('../services/email');
@@ -149,11 +150,8 @@ const { sendNewAppointmentNotification } = require('../services/email');
  *       500:
  *         description: Server error
  */
-router.get('/', async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ msg: 'Access denied' });
-    }
 
     const {
       page = 1,
@@ -527,20 +525,6 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       return res.status(409).json({ msg: `Time slot is fully booked (max ${slotCapacity})` });
     }
 
-    // Check if this client already has an appointment at this exact date and time (across all trainers)
-    const clientExisting = await Appointment.findOne({
-      clientId,
-      date: appointmentDate,
-      time: time,
-      status: { $ne: 'cancelled' },
-    });
-
-    if (clientExisting) {
-      return res
-        .status(400)
-        .json({ msg: 'You already have an appointment in this time slot' });
-    }
-
     // Create appointment
     const appointment = new Appointment({
       clientId,
@@ -677,8 +661,9 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ msg: 'Appointment not found' });
     }
 
-    // Allow delete if user is the trainer or the client who owns the appointment
+    // Allow delete if user is the trainer, the client, or an admin
     if (
+      req.user.role !== 'admin' &&
       appointment.trainerId.toString() !== req.user.id &&
       appointment.clientId.toString() !== req.user.id
     ) {
