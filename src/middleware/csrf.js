@@ -124,9 +124,13 @@ class CSRFProtection {
         }
       }
 
-      // For JSON APIs with authorization header, don't require CSRF
-      // (JWT tokens provide CSRF protection implicitly)
+      // For JSON APIs with JWT auth (header or httpOnly cookie), don't require CSRF
+      // (JWT tokens provide CSRF protection implicitly; cookie auth relies on SameSite + auth middleware)
       if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+        return next();
+      }
+
+      if (req.cookies?.token) {
         return next();
       }
 
