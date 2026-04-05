@@ -7,6 +7,15 @@ let allClients = [];
 let currentView = 'active';   // 'active' | 'archive' (within Schedule tab)
 let currentTab = 'schedule';  // 'schedule' | 'clients' | 'availability'
 let myTrainerId = null;        // populated after first auth'd request
+let availabilityDirty = false; // tracks unsaved changes in availability tab
+
+// Pagination state
+let appointmentsPagination = { currentPage: 1, totalPages: 1 };
+let clientsPagination = { currentPage: 1, totalPages: 1 };
+const ITEMS_PER_PAGE = 50;
+
+// Bulk selection state
+let selectedAppointmentIds = new Set();
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 window.initTrainerDashboard = async () => {
@@ -29,9 +38,26 @@ function setupTabNavigation() {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
     document.getElementById('refreshBtn')?.addEventListener('click', () => refreshCurrentTab());
+
+    // Client search
+    document.getElementById('clientSearch')?.addEventListener('input', e => {
+        const term = e.target.value.toLowerCase().trim();
+        renderClients(term ? allClients.filter(c =>
+            `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(term)
+        ) : allClients);
+    });
 }
 
 function switchTab(tab) {
+    // Warn if leaving availability with unsaved changes
+    if (currentTab === 'availability' && availabilityDirty) {
+        showConfirm('You have unsaved changes to your availability. Discard them?', () => {
+            availabilityDirty = false;
+            switchTab(tab);
+        });
+        return;
+    }
+
     currentTab = tab;
 
     // Toggle tab button active state
@@ -62,8 +88,8 @@ function switchTab(tab) {
 }
 
 function refreshCurrentTab() {
-    if (currentTab === 'schedule') loadAppointments();
-    else if (currentTab === 'clients') loadClients();
+    if (currentTab === 'schedule') loadAppointments(1);
+    else if (currentTab === 'clients') loadClients(1);
     else if (currentTab === 'availability') loadAvailability();
 }
 
@@ -73,11 +99,17 @@ function authHeaders() {
 }
 
 async function apiFetch(url, opts = {}) {
-    opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
-    const res = await fetch(`${window.API_BASE}${url}`, opts);
-    if (res.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; throw new Error('Unauthorized'); }
-    if (res.status === 403) { window.Toast.error('Access denied.'); throw new Error('Forbidden'); }
-    return res;
+    try {
+        opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+        const res = await fetch(`${window.API_BASE}${url}`, opts);
+        if (res.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; throw new Error('Unauthorized'); }
+        if (res.status === 403) { window.Toast.error('Access denied.'); throw new Error('Forbidden'); }
+        return res;
+    } catch (err) {
+        if (err.message === 'Unauthorized' || err.message === 'Forbidden') throw err;
+        window.Toast.error('Network error. Check your connection.');
+        throw err;
+    }
 }
 
 function setFooter(msg) {
@@ -85,25 +117,91 @@ function setFooter(msg) {
     if (el) el.textContent = msg;
 }
 
+function renderPaginationControls(containerId, currentPage, totalPages, onPageChange) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const nav = document.createElement('nav');
+    nav.setAttribute('aria-label', 'Pagination');
+    nav.className = 'd-flex justify-content-center mt-3 mb-3';
+
+    const ul = document.createElement('ul');
+    ul.className = 'pagination pagination-sm';
+
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+    const prevBtn = document.createElement('a');
+    prevBtn.className = 'page-link';
+    prevBtn.href = '#';
+    prevBtn.textContent = '← Previous';
+    prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage > 1) onPageChange(currentPage - 1);
+    });
+    prevLi.appendChild(prevBtn);
+    ul.appendChild(prevLi);
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        const a = document.createElement('a');
+        a.className = 'page-link';
+        a.href = '#';
+        a.textContent = i;
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (i !== currentPage) onPageChange(i);
+        });
+        li.appendChild(a);
+        ul.appendChild(li);
+    }
+
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+    const nextBtn = document.createElement('a');
+    nextBtn.className = 'page-link';
+    nextBtn.href = '#';
+    nextBtn.textContent = 'Next →';
+    nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentPage < totalPages) onPageChange(currentPage + 1);
+    });
+    nextLi.appendChild(nextBtn);
+    ul.appendChild(nextLi);
+
+    nav.appendChild(ul);
+    container.appendChild(nav);
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SCHEDULE TAB
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function loadAppointments() {
+async function loadAppointments(page = 1) {
     const container = document.getElementById('appointmentsList');
     if (container) container.innerHTML = `<div class="window-loading"><div class="spinner-border text-primary spinner-border-sm me-2"></div><span>Synchronizing sessions...</span></div>`;
 
     try {
-        const res = await apiFetch(`/api/v1/trainer/appointments?limit=100&view=${currentView}`);
+        const res = await apiFetch(`/api/v1/trainer/appointments?page=${page}&limit=${ITEMS_PER_PAGE}&view=${currentView}`);
         if (!res.ok) throw new Error('Failed to load appointments');
         const data = await res.json();
         allAppointments = data.appointments || [];
+        appointmentsPagination = data.pagination || { currentPage: page, totalPages: 1 };
+
         // Capture trainer ID from first appointment or use a separate call
         if (!myTrainerId && allAppointments.length > 0) {
             myTrainerId = allAppointments[0].trainerId?.toString?.() || null;
         }
         renderAppointments(allAppointments);
-        setFooter(`${allAppointments.length} ${currentView} sessions loaded`);
+        renderPaginationControls('appointmentsPagination', page, appointmentsPagination.totalPages, (p) => loadAppointments(p));
+        if (currentView === 'archive') updateBulkActionPanel();
+        setFooter(`${data.pagination?.totalAppointments || 0} total ${currentView} sessions (page ${page})`);
     } catch (err) {
         if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
         console.error(err);
@@ -169,16 +267,18 @@ function renderAppointments(appointments) {
             </div>`;
         }
 
-        // Archive / read-only row
+        // Archive / read-only row with checkbox for bulk operations
         const statusLabel = { completed: 'On Time', late: 'Late', no_show: 'No Show', cancelled: 'Cancelled', scheduled: 'Scheduled' }[apt.status] || apt.status;
+        const checkboxHtml = currentView === 'archive' ? `<input type="checkbox" class="apt-checkbox" data-appointment-id="${apt._id}" style="min-width: 20px;">` : '';
         return `
-            <div class="apt-row">
-                <div class="apt-time-block">
+            <div class="apt-row d-flex align-items-center gap-2">
+                ${checkboxHtml}
+                <div class="apt-time-block flex-shrink-0">
                     <div class="apt-time">${timeLabel}</div>
                     <div class="apt-date">${dayLabel}</div>
                     <div class="apt-date">${dateLabel}</div>
                 </div>
-                <div class="apt-client">
+                <div class="apt-client flex-grow-1">
                     <div class="client-name text-truncate">${clientName}</div>
                     ${apt.statusUpdatedAt ? `<div class="small text-muted apt-updated-time">Logged: ${new Date(apt.statusUpdatedAt).toLocaleString()}</div>` : ''}
                 </div>
@@ -201,6 +301,18 @@ function setupScheduleListeners() {
 
     // Status buttons (event delegation on the actions container)
     document.getElementById('appointmentsList').addEventListener('click', e => {
+        // Handle checkbox selection
+        if (e.target.classList.contains('apt-checkbox')) {
+            const appointmentId = e.target.dataset.appointmentId;
+            if (e.target.checked) {
+                selectedAppointmentIds.add(appointmentId);
+            } else {
+                selectedAppointmentIds.delete(appointmentId);
+            }
+            updateBulkActionPanel();
+            return;
+        }
+
         const actionsEl = e.target.closest('.apt-card-actions');
         if (!actionsEl) return;
         const { appointmentId, clientName, time, date } = actionsEl.dataset;
@@ -212,21 +324,112 @@ function setupScheduleListeners() {
         updateStatus(appointmentId, status, label, clientName, time, date);
     });
 
-    // Active / Archive sub-tabs
+    // Active / Logged Sessions sub-tabs
     document.getElementById('activeTab')?.addEventListener('click', () => {
         if (currentView === 'active') return;
         currentView = 'active';
+        selectedAppointmentIds.clear();
         document.getElementById('activeTab').classList.add('active');
-        document.getElementById('archiveTab').classList.remove('active');
-        loadAppointments();
+        document.getElementById('loggedTab').classList.remove('active');
+        loadAppointments(1);
     });
 
-    document.getElementById('archiveTab')?.addEventListener('click', () => {
+    document.getElementById('loggedTab')?.addEventListener('click', () => {
         if (currentView === 'archive') return;
         currentView = 'archive';
-        document.getElementById('archiveTab').classList.add('active');
+        selectedAppointmentIds.clear();
+        document.getElementById('loggedTab').classList.add('active');
         document.getElementById('activeTab').classList.remove('active');
-        loadAppointments();
+        loadAppointments(1);
+    });
+}
+
+function updateBulkActionPanel() {
+    const panel = document.getElementById('bulkActionPanel');
+    if (!panel) return;
+
+    if (selectedAppointmentIds.size === 0) {
+        panel.innerHTML = '';
+        return;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'p-3 bg-light border-top d-flex align-items-center justify-content-between gap-3';
+
+    const info = document.createElement('span');
+    info.className = 'text-muted small';
+    info.textContent = `${selectedAppointmentIds.size} session(s) selected`;
+
+    const actions = document.createElement('div');
+    actions.className = 'd-flex gap-2';
+
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'btn btn-sm btn-outline-secondary';
+    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('.apt-checkbox').forEach(cb => {
+            cb.checked = true;
+            selectedAppointmentIds.add(cb.dataset.appointmentId);
+        });
+        updateBulkActionPanel();
+    });
+
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'btn btn-sm btn-outline-secondary';
+    clearBtn.textContent = 'Clear';
+    clearBtn.addEventListener('click', () => {
+        document.querySelectorAll('.apt-checkbox').forEach(cb => cb.checked = false);
+        selectedAppointmentIds.clear();
+        updateBulkActionPanel();
+    });
+
+    const markBtn = document.createElement('button');
+    markBtn.className = 'btn btn-sm btn-primary';
+    markBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Complete';
+    markBtn.addEventListener('click', () => bulkUpdateStatus('completed'));
+
+    actions.appendChild(selectAllBtn);
+    actions.appendChild(clearBtn);
+    actions.appendChild(markBtn);
+
+    container.appendChild(info);
+    container.appendChild(actions);
+
+    panel.innerHTML = '';
+    panel.appendChild(container);
+}
+
+async function bulkUpdateStatus(status) {
+    if (selectedAppointmentIds.size === 0) return;
+
+    const count = selectedAppointmentIds.size;
+    showConfirm(`Mark ${count} session(s) as complete?`, async () => {
+        const btn = document.querySelector('#bulkActionPanel .btn-primary');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating…'; }
+
+        try {
+            const res = await apiFetch('/api/v1/trainer/appointments/bulk-update', {
+                method: 'POST',
+                body: JSON.stringify({ appointmentIds: Array.from(selectedAppointmentIds), status }),
+            });
+
+            if (!res.ok) {
+                window.Toast.error('Failed to update appointments.');
+                return;
+            }
+
+            const data = await res.json();
+            window.Toast.success(`${data.updatedCount} session(s) marked as complete and archived.`);
+            selectedAppointmentIds.clear();
+            await loadAppointments(appointmentsPagination.currentPage);
+            updateBulkActionPanel();
+        } catch (err) {
+            if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
+            console.error('Bulk update error:', err);
+            window.Toast.error('Failed to update sessions.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Complete'; }
+        }
     });
 }
 
@@ -272,9 +475,9 @@ window.updateStatus = async (id, status, label, clientName, time, date) => {
             }
             
             window.Toast.success(`${who}'s session logged as "${displayLabel}" and archived.`);
-            // Switch to archive so the trainer immediately sees the logged record
+            // Switch to logged sessions so the trainer immediately sees the logged record
             currentView = 'archive';
-            document.getElementById('archiveTab')?.classList.add('active');
+            document.getElementById('loggedTab')?.classList.add('active');
             document.getElementById('activeTab')?.classList.remove('active');
             await loadAppointments();
         } catch (err) {
@@ -308,17 +511,20 @@ function showConfirm(message, callback) {
 // CLIENTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
 
-async function loadClients() {
+async function loadClients(page = 1) {
     const container = document.getElementById('clientsList');
     container.innerHTML = `<div class="window-loading"><div class="spinner-border text-primary spinner-border-sm me-2"></div><span>Loading clients...</span></div>`;
 
     try {
-        const res = await apiFetch('/api/v1/trainer/clients?limit=100');
+        const res = await apiFetch(`/api/v1/trainer/clients?page=${page}&limit=${ITEMS_PER_PAGE}`);
         if (!res.ok) throw new Error('Failed to load clients');
         const data = await res.json();
         allClients = data.clients || [];
+        clientsPagination = data.pagination || { currentPage: page, totalPages: 1 };
+
         renderClients(allClients);
-        setFooter(`${allClients.length} clients`);
+        renderPaginationControls('clientsPagination', page, clientsPagination.totalPages, (p) => loadClients(p));
+        setFooter(`${data.pagination?.totalClients || 0} total clients (page ${page})`);
     } catch (err) {
         if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
         console.error(err);
@@ -335,45 +541,65 @@ function renderClients(clients) {
         return;
     }
 
-    container.innerHTML = `<div class="row g-3">${clients.map(c => `
-        <div class="col-12 col-sm-6">
-            <div class="apt-row client-card d-flex align-items-center gap-3 p-3">
-                <div class="client-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0">
-                    ${(c.firstName || '?')[0].toUpperCase()}
-                </div>
-                <div class="flex-grow-1 min-w-0">
-                    <div class="fw-bold text-truncate">${c.firstName} ${c.lastName}</div>
-                    <div class="small text-muted text-truncate">${c.email}</div>
-                    <span class="badge badge-xs ${c.activityStatus === 'active' ? 'bg-success' : 'bg-secondary'} mt-1">${c.activityStatus || 'unknown'}</span>
-                </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0 view-client-btn btn-view-client"
-                        data-client-id="${c._id}">
-                    View
-                </button>
-            </div>
-        </div>`).join('')}</div>`;
+    container.innerHTML = `<div class="row g-3"></div>`;
+    const row = container.querySelector('.row');
 
-    // Wire up view buttons
-    container.querySelectorAll('.view-client-btn').forEach(btn => {
-        btn.addEventListener('click', () => openClientDetail(btn.dataset.clientId));
+    clients.forEach(c => {
+        const col = document.createElement('div');
+        col.className = 'col-12 col-sm-6';
+
+        const card = document.createElement('div');
+        card.className = 'apt-row client-card d-flex align-items-center gap-3 p-3';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'client-avatar rounded-circle d-flex align-items-center justify-content-center flex-shrink-0';
+        avatar.textContent = (c.firstName || '?')[0].toUpperCase();
+
+        const info = document.createElement('div');
+        info.className = 'flex-grow-1 min-w-0';
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'fw-bold text-truncate';
+        nameDiv.textContent = `${c.firstName} ${c.lastName}`;
+
+        const emailDiv = document.createElement('div');
+        emailDiv.className = 'small text-muted text-truncate';
+        emailDiv.textContent = c.email;
+
+        const badge = document.createElement('span');
+        badge.className = `badge badge-xs ${c.activityStatus === 'active' ? 'bg-success' : 'bg-secondary'} mt-1`;
+        badge.textContent = c.activityStatus || 'unknown';
+
+        const viewBtn = document.createElement('button');
+        viewBtn.className = 'btn btn-sm btn-outline-primary rounded-pill px-3 flex-shrink-0 view-client-btn btn-view-client';
+        viewBtn.dataset.clientId = c._id;
+        viewBtn.textContent = 'View';
+        viewBtn.addEventListener('click', () => openClientDetail(viewBtn.dataset.clientId));
+
+        info.appendChild(nameDiv);
+        info.appendChild(emailDiv);
+        info.appendChild(badge);
+
+        card.appendChild(avatar);
+        card.appendChild(info);
+        card.appendChild(viewBtn);
+
+        col.appendChild(card);
+        row.appendChild(col);
     });
 }
 
-// Client search
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('clientSearch')?.addEventListener('input', e => {
-        const term = e.target.value.toLowerCase().trim();
-        renderClients(term ? allClients.filter(c =>
-            `${c.firstName} ${c.lastName} ${c.email}`.toLowerCase().includes(term)
-        ) : allClients);
-    });
-});
+
+// Cache modal instance to avoid recreating it
+let clientDetailModal = null;
 
 async function openClientDetail(clientId) {
-    const modal = new bootstrap.Modal(document.getElementById('clientDetailModal'));
+    if (!clientDetailModal) {
+        clientDetailModal = new bootstrap.Modal(document.getElementById('clientDetailModal'));
+    }
     document.getElementById('clientDetailName').textContent = 'Loading…';
     document.getElementById('clientDetailBody').innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>`;
-    modal.show();
+    clientDetailModal.show();
 
     try {
         const res = await apiFetch(`/api/v1/trainer/client/${clientId}`);
@@ -382,46 +608,140 @@ async function openClientDetail(clientId) {
 
         document.getElementById('clientDetailName').textContent = `${client.firstName} ${client.lastName}`;
 
-        const token = localStorage.getItem('token');
-        const docRows = (client.medicalDocuments || []).map(doc => `
-            <div class="d-flex align-items-center gap-3 py-2 border-bottom doc-row">
-                <i class="bi bi-file-earmark-text text-muted"></i>
-                <div class="flex-grow-1 text-truncate small">${doc.originalName || doc.filename}</div>
-                <a href="${window.API_BASE}/api/v1/medical-documents/view/${encodeURIComponent(doc.filename)}?token=${token}"
-                   target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 btn-doc-view">
-                    View
-                </a>
-            </div>`).join('');
+        const body = document.getElementById('clientDetailBody');
+        body.innerHTML = '';
 
-        document.getElementById('clientDetailBody').innerHTML = `
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <p class="text-muted section-label mb-1">Contact</p>
-                    <p class="mb-1"><i class="bi bi-envelope me-2 text-muted"></i>${client.email}</p>
-                    ${client.phone ? `<p class="mb-1"><i class="bi bi-phone me-2 text-muted"></i>${client.phone}</p>` : ''}
-                    ${client.dob ? `<p class="mb-1"><i class="bi bi-calendar me-2 text-muted"></i>${new Date(client.dob).toLocaleDateString()}</p>` : ''}
-                    ${client.gender ? `<p class="mb-0"><i class="bi bi-person me-2 text-muted"></i>${client.gender}</p>` : ''}
-                </div>
-                <div class="col-md-6">
-                    <p class="text-muted section-label mb-1">Appointments</p>
-                    <p class="mb-0"><strong>${completedCount}</strong> completed / <strong>${appointmentCount}</strong> total</p>
-                </div>
-                ${client.hasMedical ? `
-                <div class="col-12">
-                    <p class="text-muted section-label mb-1">Medical Notes</p>
-                    <p class="mb-0 small">${client.medicalConditions || 'No notes recorded'}</p>
-                </div>` : ''}
-                ${(client.medicalDocuments || []).length > 0 ? `
-                <div class="col-12">
-                    <p class="text-muted section-label mb-2">
-                        Medical Documents (${client.medicalDocuments.length})
-                    </p>
-                    ${docRows}
-                </div>` : ''}
-            </div>`;
+        const row = document.createElement('div');
+        row.className = 'row g-4';
+
+        // Contact section
+        const contactCol = document.createElement('div');
+        contactCol.className = 'col-md-6';
+
+        const contactLabel = document.createElement('p');
+        contactLabel.className = 'text-muted section-label mb-1';
+        contactLabel.textContent = 'Contact';
+
+        const emailP = document.createElement('p');
+        emailP.className = 'mb-1';
+        emailP.innerHTML = '<i class="bi bi-envelope me-2 text-muted"></i>';
+        emailP.appendChild(document.createTextNode(client.email));
+
+        contactCol.appendChild(contactLabel);
+        contactCol.appendChild(emailP);
+
+        if (client.phone) {
+            const phoneP = document.createElement('p');
+            phoneP.className = 'mb-1';
+            phoneP.innerHTML = '<i class="bi bi-phone me-2 text-muted"></i>';
+            phoneP.appendChild(document.createTextNode(client.phone));
+            contactCol.appendChild(phoneP);
+        }
+
+        if (client.dob) {
+            const dobP = document.createElement('p');
+            dobP.className = 'mb-1';
+            dobP.innerHTML = '<i class="bi bi-calendar me-2 text-muted"></i>';
+            dobP.appendChild(document.createTextNode(new Date(client.dob).toLocaleDateString()));
+            contactCol.appendChild(dobP);
+        }
+
+        if (client.gender) {
+            const genderP = document.createElement('p');
+            genderP.className = 'mb-0';
+            genderP.innerHTML = '<i class="bi bi-person me-2 text-muted"></i>';
+            genderP.appendChild(document.createTextNode(client.gender));
+            contactCol.appendChild(genderP);
+        }
+
+        // Appointments section
+        const apptCol = document.createElement('div');
+        apptCol.className = 'col-md-6';
+
+        const apptLabel = document.createElement('p');
+        apptLabel.className = 'text-muted section-label mb-1';
+        apptLabel.textContent = 'Appointments';
+
+        const apptP = document.createElement('p');
+        apptP.className = 'mb-0';
+        const completed = document.createElement('strong');
+        completed.textContent = completedCount;
+        const slash = document.createTextNode(' completed / ');
+        const total = document.createElement('strong');
+        total.textContent = appointmentCount;
+        const finalText = document.createTextNode(' total');
+        apptP.appendChild(completed);
+        apptP.appendChild(slash);
+        apptP.appendChild(total);
+        apptP.appendChild(finalText);
+
+        apptCol.appendChild(apptLabel);
+        apptCol.appendChild(apptP);
+
+        row.appendChild(contactCol);
+        row.appendChild(apptCol);
+
+        // Medical notes
+        if (client.hasMedical) {
+            const medCol = document.createElement('div');
+            medCol.className = 'col-12';
+
+            const medLabel = document.createElement('p');
+            medLabel.className = 'text-muted section-label mb-1';
+            medLabel.textContent = 'Medical Notes';
+
+            const medP = document.createElement('p');
+            medP.className = 'mb-0 small';
+            medP.textContent = client.medicalConditions || 'No notes recorded';
+
+            medCol.appendChild(medLabel);
+            medCol.appendChild(medP);
+            row.appendChild(medCol);
+        }
+
+        // Medical documents
+        if ((client.medicalDocuments || []).length > 0) {
+            const docCol = document.createElement('div');
+            docCol.className = 'col-12';
+
+            const docLabel = document.createElement('p');
+            docLabel.className = 'text-muted section-label mb-2';
+            docLabel.textContent = `Medical Documents (${client.medicalDocuments.length})`;
+
+            docCol.appendChild(docLabel);
+
+            const token = localStorage.getItem('token');
+            client.medicalDocuments.forEach(doc => {
+                const docRow = document.createElement('div');
+                docRow.className = 'd-flex align-items-center gap-3 py-2 border-bottom doc-row';
+
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-file-earmark-text text-muted';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'flex-grow-1 text-truncate small';
+                nameDiv.textContent = doc.originalName || doc.filename;
+
+                const link = document.createElement('a');
+                link.href = `${window.API_BASE}/api/v1/medical-documents/view/${encodeURIComponent(doc.filename)}?token=${token}`;
+                link.target = '_blank';
+                link.className = 'btn btn-sm btn-outline-primary rounded-pill px-3 btn-doc-view';
+                link.textContent = 'View';
+
+                docRow.appendChild(icon);
+                docRow.appendChild(nameDiv);
+                docRow.appendChild(link);
+                docCol.appendChild(docRow);
+            });
+
+            row.appendChild(docCol);
+        }
+
+        body.appendChild(row);
     } catch (err) {
         if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
         console.error(err);
+        window.Toast.error('Failed to load client details.');
         document.getElementById('clientDetailBody').innerHTML = `<p class="text-danger text-center py-3">Failed to load client details.</p>`;
     }
 }
@@ -451,26 +771,21 @@ async function loadAvailability() {
     const grid = document.getElementById('availabilityGrid');
     grid.innerHTML = `<div class="window-loading"><div class="spinner-border text-primary spinner-border-sm me-2"></div><span>Loading schedule...</span></div>`;
 
-    // Get my trainer ID if we don't have it yet
+    // Get my trainer ID from /trainer/me endpoint if we don't have it yet
     if (!myTrainerId) {
         try {
-            const res = await apiFetch('/api/v1/trainer/dashboard');
+            const res = await apiFetch('/api/v1/trainer/me');
             if (res.ok) {
-                // We can't get the ID from dashboard response easily; decode from token
-                const token = localStorage.getItem('token');
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                myTrainerId = payload.id || payload._id || payload.sub;
+                const data = await res.json();
+                myTrainerId = data.trainerId || data._id;
+            } else {
+                console.error('Failed to get trainer info:', res.status);
+                window.Toast.error('Unable to load your availability.');
             }
-        } catch (e) { /* ignore */ }
-    }
-
-    if (!myTrainerId) {
-        // Fallback: decode from token
-        try {
-            const token = localStorage.getItem('token');
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            myTrainerId = payload.id || payload._id || payload.sub;
-        } catch(e) {}
+        } catch (e) {
+            console.error('Failed to get trainer info:', e);
+            window.Toast.error('Unable to load your availability.');
+        }
     }
 
     let existing = {};
@@ -480,8 +795,16 @@ async function loadAvailability() {
             if (res.ok) {
                 const data = await res.json();
                 (data.availability || []).forEach(s => { existing[s.dayOfWeek] = s; });
+            } else {
+                console.error('Failed to load availability:', res.status);
+                window.Toast.error('Failed to load availability.');
             }
-        } catch (e) { /* ignore, render empty grid */ }
+        } catch (e) {
+            console.error('Error loading availability:', e);
+            window.Toast.error('Failed to load availability.');
+        }
+    } else {
+        window.Toast.error('Unable to determine your trainer ID.');
     }
 
     renderAvailabilityGrid(existing);
@@ -525,9 +848,10 @@ function renderAvailabilityGrid(existing) {
             </div>`;
     }).join('');
 
-    // Wire up toggles
+    // Wire up toggles and mark dirty on change
     grid.querySelectorAll('.avail-toggle').forEach(toggle => {
         toggle.addEventListener('change', () => {
+            availabilityDirty = true;
             const dow = toggle.dataset.dow;
             const hours = document.getElementById(`hours-${dow}`);
             const offLabel = document.getElementById(`offLabel-${dow}`);
@@ -538,6 +862,13 @@ function renderAvailabilityGrid(existing) {
                 hours?.classList.add('d-none');
                 offLabel?.classList.remove('d-none');
             }
+        });
+    });
+
+    // Mark dirty on any input change in hours
+    grid.querySelectorAll('.avail-start, .avail-end, .avail-cap').forEach(input => {
+        input.addEventListener('change', () => {
+            availabilityDirty = true;
         });
     });
 }
@@ -578,6 +909,7 @@ async function saveAvailability() {
         if (availability.length === 0) {
             // No active days — send a no-op or just notify
             window.Toast.success('Schedule saved (no active days).');
+            availabilityDirty = false;
             return;
         }
         const res = await apiFetch('/api/v1/trainer/availability', {
@@ -585,6 +917,7 @@ async function saveAvailability() {
             body: JSON.stringify({ availability }),
         });
         if (!res.ok) throw new Error('Save failed');
+        availabilityDirty = false;
         window.Toast.success('Availability saved!');
         setFooter('Schedule saved');
     } catch (err) {
@@ -603,14 +936,19 @@ async function saveAvailability() {
 async function loadNotificationPreference() {
     try {
         const res = await apiFetch('/api/v1/trainer/dashboard');
-        if (!res.ok) return;
+        if (!res.ok) {
+            console.error('Failed to load notification preference:', res.status);
+            window.Toast.error('Failed to load notification preference.');
+            return;
+        }
         const data = await res.json();
         const pref = data.trainerEmailPreference || 'daily_digest';
         const radios = document.querySelectorAll('input[name="emailPref"]');
         radios.forEach(r => { r.checked = r.value === pref; });
     } catch (err) {
         if (err.message === 'Unauthorized' || err.message === 'Forbidden') return;
-        console.error('Failed to load notification preference', err);
+        console.error('Failed to load notification preference:', err);
+        window.Toast.error('Failed to load notification preference.');
     }
 
     document.getElementById('saveNotifPrefBtn')?.addEventListener('click', saveNotificationPreference);

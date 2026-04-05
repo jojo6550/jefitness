@@ -16,6 +16,22 @@ const { logger } = require('../services/logger');
 
 /**
  * @swagger
+ * /trainer/me:
+ *   get:
+ *     summary: Get authenticated trainer's info
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Trainer information
+ *       403:
+ *         description: Trainer access required
+ */
+router.get('/me', requireTrainer, trainerController.getMe);
+
+/**
+ * @swagger
  * /trainer/dashboard:
  *   get:
  *     summary: Get trainer dashboard summary
@@ -144,6 +160,41 @@ router.put('/appointments/:id', requireTrainer, trainerController.updateAppointm
  *         description: Client not found
  */
 router.get('/client/:clientId', requireTrainer, trainerController.getClientInfo);
+
+/**
+ * @swagger
+ * /trainer/appointments/bulk-update:
+ *   post:
+ *     summary: Bulk update appointment statuses (trainer only)
+ *     tags: [Trainer]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - appointmentIds
+ *               - status
+ *             properties:
+ *               appointmentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               status:
+ *                 type: string
+ *                 enum: [completed, no_show, late, cancelled]
+ *     responses:
+ *       200:
+ *         description: Appointments updated
+ *       400:
+ *         description: Invalid request
+ *       403:
+ *         description: Trainer access required or unauthorized
+ */
+router.post('/appointments/bulk-update', requireTrainer, trainerController.bulkUpdateAppointments);
 
 /**
  * @swagger

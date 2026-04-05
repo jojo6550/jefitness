@@ -7,6 +7,16 @@ const { logUserAction } = require('../services/logger');
 
 const trainerController = {
   /**
+   * Get authenticated trainer's info
+   */
+  getMe: asyncHandler(async (req, res) => {
+    const trainerId = req.user.id;
+    const trainer = await User.findById(trainerId).select('_id firstName lastName email trainerEmailPreference').lean();
+    if (!trainer) throw new NotFoundError('Trainer');
+    res.json({ trainerId: trainer._id, ...trainer });
+  }),
+
+  /**
    * Get trainer dashboard overview
    */
   getDashboard: asyncHandler(async (req, res) => {
@@ -364,6 +374,52 @@ const trainerController = {
       appointmentCount: appointments.length,
       completedCount: appointments.filter(apt => apt.status === 'completed').length,
     });
+  }),
+
+  /**
+   * Bulk update appointment statuses
+   */
+  bulkUpdateAppointments: asyncHandler(async (req, res) => {
+    const trainerId = req.user.id;
+    const { appointmentIds, status } = req.body;
+
+    if (!Array.isArray(appointmentIds) || appointmentIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'appointmentIds array is required' });
+    }
+
+    if (!['completed', 'no_show', 'late', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status' });
+    }
+
+    // Verify all appointments belong to this trainer
+    const appointments = await Appointment.find({
+      _id: { $in: appointmentIds },
+      trainerId,
+    });
+
+    if (appointments.length !== appointmentIds.length) {
+      throw new AuthorizationError();
+    }
+
+    const now = new Date();
+    const ts = now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const logNote = `[${ts}] Bulk marked as ${status.replace('_', ' ')}.`;
+
+    // Update all appointments
+    const result = await Appointment.updateMany(
+      { _id: { $in: appointmentIds }, trainerId },
+      {
+        $set: { status, statusUpdatedAt: now },
+        $push: { notes: logNote }
+      }
+    );
+
+    logUserAction('appointment_bulk_status_updated', trainerId, {
+      count: appointmentIds.length,
+      status,
+    });
+
+    res.json({ success: true, updatedCount: result.modifiedCount });
   }),
 };
 

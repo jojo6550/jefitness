@@ -43,11 +43,11 @@
                 </div>
             </header>
 
-            <!-- Schedule sub-tabs (Active / Archive) -->
+            <!-- Schedule sub-tabs (Active / Logged Sessions) -->
             <div id="scheduleSubtabs" class="window-search-bar">
                 <div class="d-flex gap-3 mb-3">
                     <button class="tab-btn active" id="activeTab">Active</button>
-                    <button class="tab-btn" id="archiveTab">Archive</button>
+                    <button class="tab-btn" id="loggedTab">Logged Sessions</button>
                 </div>
                 <div class="search-inner">
                     <i class="bi bi-search"></i>
@@ -88,13 +88,15 @@
             <div class="window-body">
 
                 <!-- SCHEDULE PANEL -->
-                <div id="panelSchedule" class="panel-content">
-                    <div id="appointmentsList">
+                <div id="panelSchedule" class="panel-content d-flex flex-column">
+                    <div id="appointmentsList" class="flex-grow-1">
                         <div class="window-loading">
                             <div class="spinner-border text-primary spinner-border-sm me-2"></div>
                             <span>Synchronizing sessions...</span>
                         </div>
                     </div>
+                    <div id="appointmentsPagination" class="p-3"></div>
+                    <div id="bulkActionPanel" class="flex-shrink-0"></div>
                 </div>
 
                 <!-- CLIENTS PANEL -->
@@ -105,6 +107,7 @@
                             <span>Loading clients...</span>
                         </div>
                     </div>
+                    <div id="clientsPagination" class="p-3"></div>
                 </div>
 
                 <!-- AVAILABILITY PANEL -->
