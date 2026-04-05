@@ -224,22 +224,6 @@ router.post(
 );
 
 /**
- * 🚀 POST /api/v1/auth/stress-bypass-verify (STRESS TEST ONLY)
- * Bypasses email verification when STRESS_BYPASS_VERIFY=true
- */
-router.post(
-  '/stress-bypass-verify',
-  requireDbConnection,
-  signupLimiter,
-  [
-    body('email').isEmail().withMessage('Valid email required').normalizeEmail({ gmail_remove_dots: false }),
-    handleValidationErrors,
-  ],
-  authController.stressVerify
-);
-
-
-/**
  * @swagger
  * /api/v1/auth/forgot-password:
  *   post:
