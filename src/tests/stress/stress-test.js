@@ -26,7 +26,7 @@ const { URL } = require('url');
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 
-const BASE_URL = 'https://jefitnessja.com';
+const BASE_URL = 'http://localhost:10000';
 const CONCURRENCY = parseInt('30', 10);
 const THINK_TIME = parseInt( '200', 10);
 const VERBOSE = '1';
