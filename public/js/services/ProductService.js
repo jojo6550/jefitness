@@ -9,21 +9,21 @@ const ProductService = {
     return handleApiResponse(res);
   },
 
-  checkout: async (userToken, items) => {
+  checkout: async (items) => {
     const res = await fetch(`${API_BASE}/api/v1/products/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`,
       },
+      credentials: 'include',
       body: JSON.stringify({ items }),
     });
     return handleApiResponse(res);
   },
 
-  getPurchases: async (userToken) => {
+  getPurchases: async () => {
     const res = await fetch(`${API_BASE}/api/v1/products/purchases`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },

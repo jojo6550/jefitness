@@ -4,80 +4,80 @@
  */
 
 const WorkoutService = {
-  log: async (userToken, workoutData) => {
+  log: async (workoutData) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`,
       },
+      credentials: 'include',
       body: JSON.stringify(workoutData),
     });
     return handleApiResponse(res);
   },
 
-  getAll: async (userToken, { limit = 20, page = 1 } = {}) => {
+  getAll: async ({ limit = 20, page = 1 } = {}) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts?limit=${limit}&page=${page}`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
 
-  getProgress: async (userToken, exerciseName) => {
+  getProgress: async (exerciseName) => {
     const res = await fetch(
       `${API_BASE}/api/v1/workouts/progress/${encodeURIComponent(exerciseName)}`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
+      { credentials: 'include' }
     );
     return handleApiResponse(res);
   },
 
-  getSummary: async (userToken) => {
+  getSummary: async () => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/stats/summary`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
 
-  remove: async (userToken, id) => {
+  remove: async (id) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
 
   // Goals
-  getGoals: async (userToken) => {
+  getGoals: async () => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/goals`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
 
-  addGoal: async (userToken, { exercise, targetWeight, targetDate }) => {
+  addGoal: async ({ exercise, targetWeight, targetDate }) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/goals`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`,
       },
+      credentials: 'include',
       body: JSON.stringify({ exercise, targetWeight, targetDate }),
     });
     return handleApiResponse(res);
   },
 
-  achieveGoal: async (userToken, goalId) => {
+  achieveGoal: async (goalId) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/goals/${goalId}/achieve`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
 
-  deleteGoal: async (userToken, goalId) => {
+  deleteGoal: async (goalId) => {
     const res = await fetch(`${API_BASE}/api/v1/workouts/goals/${goalId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },

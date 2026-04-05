@@ -93,23 +93,17 @@ beforeAll(() => {
     async handleCheckout() {
       if (!this.cart.length) return false;
       
-      // Simulate auth check
-      const token = localStorage.getItem('token');
-      if (!token) {
-        // Mock redirect
-        window.location.href = '/login';
-        return false;
-      }
-      
+      // Simulate auth check - now using credentials: 'include' (no token needed)
       global.fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true, checkoutUrl: 'https://checkout.stripe.com/test' })
       });
       
-      // Simulate checkout call
+      // Simulate checkout call with credentials: 'include'
       await global.fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ items: this.cart.map(i => ({ productKey: i.productKey, quantity: i.quantity })) })
       });
       
