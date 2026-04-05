@@ -25,7 +25,7 @@ function getResendClient() {
  * @param {string} opts.html - HTML body
  * @param {string} opts.text - Plain-text body
  */
-async function sendEmail({ to, subject, html, text }) {
+async function sendEmail({ to, subject, html, text, attachments }) {
   const client = getResendClient();
 
   if (!client) {
@@ -33,13 +33,19 @@ async function sendEmail({ to, subject, html, text }) {
     return;
   }
 
-  const { data, error } = await client.emails.send({
+  const payload = {
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to,
     subject,
     html,
     text,
-  });
+  };
+
+  if (attachments && attachments.length > 0) {
+    payload.attachments = attachments;
+  }
+
+  const { data, error } = await client.emails.send(payload);
 
   if (error) {
     logger.error('Resend failed to send email', { to, subject, error: error.message });
@@ -47,6 +53,137 @@ async function sendEmail({ to, subject, html, text }) {
   }
 
   logger.info('Email sent via Resend', { to, subject, id: data?.id });
+}
+
+/**
+ * Build an iCalendar (.ics) string for an appointment event.
+ * @param {object} opts
+ * @param {string} opts.uid        - Stable unique ID (MongoDB appointment _id)
+ * @param {string} opts.summary    - Event title
+ * @param {string} opts.description
+ * @param {string} opts.date       - ISO date string (appointment date)
+ * @param {string} opts.time       - "HH:MM" in 24-hour format
+ * @param {number} opts.durationMinutes - Default 60
+ * @param {string} opts.organizer  - Organizer display name
+ * @param {string} opts.method     - 'REQUEST' (new/update) | 'CANCEL'
+ * @param {number} opts.sequence   - 0 for new, 1+ for updates/cancels
+ * @returns {string} iCalendar content
+ */
+function buildIcs({ uid, summary, description, date, time, durationMinutes = 60, organizer, method = 'REQUEST', sequence = 0 }) {
+  // Parse date + time into UTC components
+  const [year, month, day] = date.split('T')[0].split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+
+  const pad = n => String(n).padStart(2, '0');
+  const dtStart = `${year}${pad(month)}${pad(day)}T${pad(hour)}${pad(minute)}00`;
+
+  // Calculate end time
+  const startMs = new Date(Date.UTC(year, month - 1, day, hour, minute)).getTime();
+  const endDate = new Date(startMs + durationMinutes * 60 * 1000);
+  const dtEnd = [
+    endDate.getUTCFullYear(),
+    pad(endDate.getUTCMonth() + 1),
+    pad(endDate.getUTCDate()),
+    'T',
+    pad(endDate.getUTCHours()),
+    pad(endDate.getUTCMinutes()),
+    '00',
+  ].join('');
+
+  const now = new Date();
+  const dtStamp = [
+    now.getUTCFullYear(),
+    pad(now.getUTCMonth() + 1),
+    pad(now.getUTCDate()),
+    'T',
+    pad(now.getUTCHours()),
+    pad(now.getUTCMinutes()),
+    pad(now.getUTCSeconds()),
+    'Z',
+  ].join('');
+
+  // Escape special chars for iCal text fields
+  const esc = s => (s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//JE Fitness//Appointment//EN',
+    `METHOD:${method}`,
+    'BEGIN:VEVENT',
+    `UID:${uid}@jefitnessja.com`,
+    `DTSTAMP:${dtStamp}`,
+    `DTSTART:${dtStart}`,
+    `DTEND:${dtEnd}`,
+    `SUMMARY:${esc(summary)}`,
+    `DESCRIPTION:${esc(description)}`,
+    `ORGANIZER;CN=${esc(organizer)}:mailto:${FROM_EMAIL}`,
+    `SEQUENCE:${sequence}`,
+    `STATUS:${method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED'}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ];
+
+  return lines.join('\r\n');
+}
+
+/**
+ * Build the calendar attachment object for Resend.
+ * @param {string} icsContent - Output of buildIcs()
+ * @returns {{ filename: string, content: string, contentType: string }}
+ */
+function icsAttachment(icsContent) {
+  return {
+    filename: 'appointment.ics',
+    content: Buffer.from(icsContent).toString('base64'),
+    contentType: 'text/calendar; method=REQUEST',
+  };
+}
+
+/**
+ * Build the "Add to calendar" HTML button block (Google + Apple/iCal links).
+ * @param {string} icsDataUri - data: URI of the ICS for Apple/Outlook download
+ * @param {object} gcalParams - params for Google Calendar URL
+ * @returns {string} HTML snippet
+ */
+function calendarButtonsHtml(gcalUrl) {
+  return `
+    <div style="margin:20px 0">
+      <p style="font-size:14px;color:#495057;margin-bottom:10px"><strong>Add to your calendar:</strong></p>
+      <a href="${gcalUrl}" target="_blank"
+         style="display:inline-block;margin-right:10px;padding:9px 18px;background:#4285f4;color:#fff;text-decoration:none;border-radius:5px;font-size:13px;font-family:Arial,sans-serif">
+        📅 Google Calendar
+      </a>
+      <span style="display:inline-block;padding:9px 18px;background:#f8f9fa;color:#343a40;border:1px solid #dee2e6;border-radius:5px;font-size:13px;font-family:Arial,sans-serif">
+        📎 Apple / Outlook: open the attached .ics file
+      </span>
+    </div>`;
+}
+
+/**
+ * Build Google Calendar "add event" URL.
+ */
+function buildGcalUrl({ summary, description, date, time, durationMinutes = 60 }) {
+  const [year, month, day] = date.split('T')[0].split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  const pad = n => String(n).padStart(2, '0');
+
+  const startMs = Date.UTC(year, month - 1, day, hour, minute);
+  const endMs = startMs + durationMinutes * 60 * 1000;
+
+  const fmt = ms => {
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  };
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: summary,
+    details: description,
+    dates: `${fmt(startMs)}/${fmt(endMs)}`,
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 /**
@@ -212,12 +349,16 @@ async function sendTrainerDailySchedule(to, trainerName, dateStr, appointments) 
  * @param {string} dateStr - Human-readable date (e.g. "Friday, April 4, 2026")
  * @param {string} time - Appointment time string (e.g. "09:00")
  */
-async function sendNewAppointmentNotification(to, trainerName, clientName, dateStr, time) {
-  // Format time to 12-hour for display
+async function sendNewAppointmentNotification(to, trainerName, clientName, dateStr, time, appointmentId, date) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+
+  const summary = `Fitness Session with ${clientName}`;
+  const description = `Appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
+  const gcalUrl = buildGcalUrl({ summary, description, date, time });
+  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 0 });
 
   return sendEmail({
     to,
@@ -230,6 +371,9 @@ async function sendNewAppointmentNotification(to, trainerName, clientName, dateS
       `  Client: ${clientName}`,
       `  Date:   ${dateStr}`,
       `  Time:   ${displayTime}`,
+      '',
+      `Add to Google Calendar: ${gcalUrl}`,
+      'Or open the attached .ics file to add to Apple Calendar / Outlook.',
       '',
       '— JE Fitness Team',
     ].join('\n'),
@@ -252,9 +396,11 @@ async function sendNewAppointmentNotification(to, trainerName, clientName, dateS
             <td style="padding:10px 14px">${displayTime}</td>
           </tr>
         </table>
+        ${calendarButtonsHtml(gcalUrl)}
         <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
         <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
       </div>`,
+    attachments: [icsAttachment(ics)],
   });
 }
 
@@ -267,13 +413,20 @@ async function sendNewAppointmentNotification(to, trainerName, clientName, dateS
  * @param {string} time - Appointment time string (e.g. "09:00")
  * @param {string} reason - 'cancelled' | 'deleted'
  */
-async function sendAppointmentCancelledTrainer(to, trainerName, clientName, dateStr, time, reason = 'cancelled') {
+async function sendAppointmentCancelledTrainer(to, trainerName, clientName, dateStr, time, reason = 'cancelled', appointmentId, date) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
   const verb = reason === 'deleted' ? 'removed' : 'cancelled';
   const Verb = reason === 'deleted' ? 'Removed' : 'Cancelled';
+
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary: `Fitness Session with ${clientName}`,
+    description: `Appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`,
+    date, time, organizer: FROM_NAME, method: 'CANCEL', sequence: 1,
+  });
 
   return sendEmail({
     to,
@@ -286,6 +439,8 @@ async function sendAppointmentCancelledTrainer(to, trainerName, clientName, date
       `  Client: ${clientName}`,
       `  Date:   ${dateStr}`,
       `  Time:   ${displayTime}`,
+      '',
+      'The attached .ics file will remove this event from your calendar.',
       '',
       '— JE Fitness Team',
     ].join('\n'),
@@ -308,9 +463,11 @@ async function sendAppointmentCancelledTrainer(to, trainerName, clientName, date
             <td style="padding:10px 14px">${displayTime}</td>
           </tr>
         </table>
+        <p style="font-size:14px;color:#495057">📎 Open the attached <strong>.ics file</strong> to remove this event from your calendar.</p>
         <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
         <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
       </div>`,
+    attachments: [icsAttachment(ics)],
   });
 }
 
@@ -323,13 +480,20 @@ async function sendAppointmentCancelledTrainer(to, trainerName, clientName, date
  * @param {string} time - Appointment time string (e.g. "09:00")
  * @param {string} reason - 'cancelled' | 'deleted'
  */
-async function sendAppointmentCancelledClient(to, clientName, trainerName, dateStr, time, reason = 'cancelled') {
+async function sendAppointmentCancelledClient(to, clientName, trainerName, dateStr, time, reason = 'cancelled', appointmentId, date) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
   const verb = reason === 'deleted' ? 'removed' : 'cancelled';
   const Verb = reason === 'deleted' ? 'Removed' : 'Cancelled';
+
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary: `Fitness Session with ${trainerName}`,
+    description: `Appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`,
+    date, time, organizer: FROM_NAME, method: 'CANCEL', sequence: 1,
+  });
 
   return sendEmail({
     to,
@@ -343,6 +507,7 @@ async function sendAppointmentCancelledClient(to, clientName, trainerName, dateS
       `  Date:    ${dateStr}`,
       `  Time:    ${displayTime}`,
       '',
+      'The attached .ics file will remove this event from your calendar.',
       'If you have questions, please contact us.',
       '',
       '— JE Fitness Team',
@@ -366,10 +531,12 @@ async function sendAppointmentCancelledClient(to, clientName, trainerName, dateS
             <td style="padding:10px 14px">${displayTime}</td>
           </tr>
         </table>
+        <p style="font-size:14px;color:#495057">📎 Open the attached <strong>.ics file</strong> to remove this event from your calendar.</p>
         <p>If you have any questions, please contact us.</p>
         <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
         <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
       </div>`,
+    attachments: [icsAttachment(ics)],
   });
 }
 
@@ -381,11 +548,16 @@ async function sendAppointmentCancelledClient(to, clientName, trainerName, dateS
  * @param {string} dateStr - Human-readable date (new)
  * @param {string} time - Appointment time string (new, e.g. "09:00")
  */
-async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateStr, time) {
+async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateStr, time, appointmentId, date) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+
+  const summary = `Fitness Session with ${clientName}`;
+  const description = `Updated appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
+  const gcalUrl = buildGcalUrl({ summary, description, date, time });
+  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 1 });
 
   return sendEmail({
     to,
@@ -398,6 +570,9 @@ async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateSt
       `  Client: ${clientName}`,
       `  Date:   ${dateStr}`,
       `  Time:   ${displayTime}`,
+      '',
+      `Add to Google Calendar: ${gcalUrl}`,
+      'Or open the attached .ics file to update in Apple Calendar / Outlook.',
       '',
       '— JE Fitness Team',
     ].join('\n'),
@@ -420,9 +595,11 @@ async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateSt
             <td style="padding:10px 14px">${displayTime}</td>
           </tr>
         </table>
+        ${calendarButtonsHtml(gcalUrl)}
         <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
         <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
       </div>`,
+    attachments: [icsAttachment(ics)],
   });
 }
 
@@ -434,11 +611,16 @@ async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateSt
  * @param {string} dateStr - Human-readable date (new)
  * @param {string} time - Appointment time string (new, e.g. "09:00")
  */
-async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr, time) {
+async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr, time, appointmentId, date) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
   const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+
+  const summary = `Fitness Session with ${trainerName}`;
+  const description = `Updated appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
+  const gcalUrl = buildGcalUrl({ summary, description, date, time });
+  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 1 });
 
   return sendEmail({
     to,
@@ -452,6 +634,8 @@ async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr
       `  Date:    ${dateStr}`,
       `  Time:    ${displayTime}`,
       '',
+      `Add to Google Calendar: ${gcalUrl}`,
+      'Or open the attached .ics file to update in Apple Calendar / Outlook.',
       'If you have questions, please contact us.',
       '',
       '— JE Fitness Team',
@@ -475,10 +659,12 @@ async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr
             <td style="padding:10px 14px">${displayTime}</td>
           </tr>
         </table>
+        ${calendarButtonsHtml(gcalUrl)}
         <p>If you have any questions, please contact us.</p>
         <hr style="border:none;border-top:1px solid #dee2e6;margin:24px 0">
         <p style="color:#6c757d;font-size:13px">— JE Fitness Team</p>
       </div>`,
+    attachments: [icsAttachment(ics)],
   });
 }
 
