@@ -207,8 +207,17 @@ async function signup(idx) {
   if (r.status === 200 || r.status === 201) {
     // 🚀 STRESS BYPASS: Auto-verify before login
     if (BYPASS_MODE) {
+      // Fetch CSRF token first
+      const csrfR = await req('GET', '/api/v1/csrf-token', {}, { user: label, step: 'get_csrf' });
+      const csrfToken = csrfR?.body?.token || csrfR?.body?.csrfToken;
+      
+      if (!csrfToken || csrfR.status !== 200) {
+        if (VERBOSE) console.log(`    [${label}/csrf] FAIL ${csrfR?.status || 'ERR'}`);
+        return null;
+      }
+      
       const bypassR = await req('POST', '/api/v1/auth/stress-bypass-verify', {
-        body: { email },
+        body: { email, _csrf: csrfToken },
       }, { user: label, step: 'bypass_verify' });
       
       if (VERBOSE) {
