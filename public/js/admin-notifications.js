@@ -46,9 +46,9 @@
             const response = await fetch(`${window.API_BASE}/api/notifications`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     title,
                     message,
@@ -88,9 +88,7 @@
     async function loadUsersForSelection() {
         try {
             const response = await fetch(`${window.API_BASE}/api/users`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
+                credentials: 'include'
             });
 
             if (response.ok) {
@@ -115,11 +113,8 @@
     // Load notifications history
     async function loadNotifications() {
         try {
-            const response = await fetch(`${window.API_BASE}
-/api/notifications/admin`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
+            const response = await fetch(`${window.API_BASE}/api/notifications/admin`, {
+                credentials: 'include'
             });
 
             if (response.ok) {

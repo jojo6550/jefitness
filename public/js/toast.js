@@ -65,3 +65,18 @@ class ToastManager {
 
 // Global instance
 window.Toast = new ToastManager();
+
+// Global error boundary — catches uncaught JS errors and unhandled promise rejections
+window.addEventListener('error', (event) => {
+    // Ignore cross-origin script errors (no useful info available)
+    if (!event.message || event.message === 'Script error.') return;
+    console.error('Uncaught error:', event.error || event.message);
+    window.Toast.error('Something went wrong. Please refresh the page.');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    // Ignore auth redirects — these are intentional control flow
+    if (event.reason?.message === 'Unauthorized' || event.reason?.message === 'Forbidden') return;
+    console.error('Unhandled promise rejection:', event.reason);
+    window.Toast.error('Something went wrong. Please try again.');
+});

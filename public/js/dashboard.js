@@ -1,29 +1,11 @@
 
-
-// Handle token passed via URL after Google OAuth redirect
-(function () {
-  const params = new URLSearchParams(window.location.search);
-  const oauthToken = params.get('token');
-  if (oauthToken) {
-    localStorage.setItem('token', oauthToken);
-    // Clean the token from the URL without reloading
-    const cleanUrl = window.location.pathname + (params.toString().replace(/token=[^&]*&?/, '').replace(/^&/, '') ? '?' + params.toString().replace(/token=[^&]*&?/, '').replace(/^&/, '') : '');
-    window.history.replaceState({}, '', cleanUrl);
-  }
-})();
-
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 window.initDashboard = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return; // not logged in
-
     try {
       const res = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -61,15 +43,9 @@ window.initDashboard = async () => {
 
 // Load cart count for dashboard
 async function loadCartCount() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
-        const res = await fetch(`${window.API_BASE}
-/api/cart`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+        const res = await fetch(`${window.API_BASE}/api/cart`, {
+            credentials: 'include'
         });
 
         if (res.ok) {
@@ -95,8 +71,6 @@ async function loadCartCount() {
 
 // Load subscription status for dashboard
 async function loadSubscriptionStatus() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
 
     const statusElement = document.getElementById('subscription-status');
     const actionsElement = document.getElementById('subscription-actions');
@@ -109,9 +83,7 @@ async function loadSubscriptionStatus() {
 
     try {
         const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (res.ok) {
@@ -170,18 +142,10 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.Toast.error('Please log in to cancel your subscription.');
-        return;
-    }
-
     try {
         // Get current subscription to find the subscription ID
         const currentRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!currentRes.ok) {
@@ -199,9 +163,9 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         const cancelRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
                 atPeriodEnd: false // Immediate cancellation
             })
@@ -225,14 +189,9 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
 
 // Load workout statistics
 async function loadWorkoutStats() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
     try {
         const res = await fetch(`${window.API_BASE}/api/v1/workouts/stats/summary`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (res.ok) {

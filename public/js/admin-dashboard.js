@@ -39,9 +39,9 @@ async function loadClients(page = 1, search = '', sortBy = 'firstName', sortOrde
 
         const response = await fetch(`${window.API_BASE}/api/clients?${params}`, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -125,9 +125,9 @@ function displayClients(clients) {
 async function fetchUserDetails(userId) {
     const response = await fetch(`${window.API_BASE}/api/clients/${userId}`, {
         headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include'
     });
     if (!response.ok) throw new Error(`HTTP ${response.status} - ${response.statusText}`);
     const data = await response.json();
@@ -317,12 +317,7 @@ async function showUserDetails(userId) {
 
 // View medical document in browser
 window.viewMedicalDoc = function(filename) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        showErrorModal('No authentication token found. Please log in again.');
-        return;
-    }
-    const viewUrl = `${window.API_BASE}/api/medical-documents/view/${filename}?token=${encodeURIComponent(token)}`;
+    const viewUrl = `${window.API_BASE}/api/medical-documents/view/${filename}`;
     
     // Open in new tab and handle errors
     const newTab = window.open(viewUrl, '_blank');
@@ -349,11 +344,8 @@ window.closeErrorModal = function() {
 
 // Download medical document
 window.downloadMedicalDoc = function(filename) {
-    const token = localStorage.getItem('token');
     fetch(`${window.API_BASE}/api/medical-documents/download/${filename}`, {
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
+        credentials: 'include'
     })
     .then(response => {
         if (!response.ok) throw new Error('Download failed');
@@ -473,12 +465,11 @@ function updatePagination(pagination) {
 // Update statistics from database
 async function updateStatistics() {
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/clients/statistics`, {
+        const response = await fetch(`${window.API_BASE}/api/clients/statistics`, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -650,9 +641,7 @@ async function deleteClient(clientId) {
     try {
         const response = await fetch(`${window.API_BASE}/api/v1/clients/${clientId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -679,12 +668,11 @@ async function loadAppointments(page = 1, search = '', sortBy = currentAppointme
             status
         });
 
-        const response = await fetch(`${window.API_BASE}
-/api/appointments?${params}`, {
+        const response = await fetch(`${window.API_BASE}/api/appointments?${params}`, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -882,12 +870,11 @@ async function viewAppointment(appointmentId) {
     content.querySelectorAll(':not(#appointmentDetailsLoading)').forEach(el => el.remove());
 
     try {
-        const response = await fetch(`${window.API_BASE}
-/api/appointments/${appointmentId}`, {
+        const response = await fetch(`${window.API_BASE}/api/appointments/${appointmentId}`, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -933,9 +920,7 @@ async function deleteAppointment(appointmentId) {
     try {
         const response = await fetch(`${window.API_BASE}/api/v1/appointments/${appointmentId}`, {
             method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -953,11 +938,8 @@ async function deleteAppointment(appointmentId) {
 // Export appointments to CSV
 function exportAppointments() {
     // Get all appointments for export
-    fetch(`${window.API_BASE}
-/api/appointments`, {
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
+    fetch(`${window.API_BASE}/api/appointments`, {
+        credentials: 'include'
     })
     .then(response => response.json())
     .then(data => {
@@ -1011,12 +993,11 @@ async function loadOrders(page = 1, search = '', sortBy = currentOrdersSortBy, s
             sortOrder
         });
 
-        const response = await fetch(`${window.API_BASE}
-/api/orders/admin/all?${params}`, {
+        const response = await fetch(`${window.API_BASE}/api/orders/admin/all?${params}`, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
-            }
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -1218,11 +1199,8 @@ function updateOrdersSortIndicators() {
 // Export orders to CSV
 function exportOrders() {
     // Get all orders for export
-    fetch(`${window.API_BASE}
-/api/orders/admin/all`, {
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
+    fetch(`${window.API_BASE}/api/orders/admin/all`, {
+        credentials: 'include'
     })
     .then(response => response.json())
     .then(data => {

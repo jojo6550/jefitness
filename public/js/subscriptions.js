@@ -252,16 +252,10 @@ function hasActiveSubscription(planId = null) {
 }
 
 async function refreshSubscription() {
-  const userToken = localStorage.getItem('token');
-  if (!userToken) {
-    showAlert('Please log in to refresh subscription status', 'warning');
-    return false;
-  }
-
   try {
     log('Refreshing subscription from Stripe...');
     const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/refresh`, {
-      headers: { Authorization: `Bearer ${userToken}` }
+      credentials: 'include'
     });
 
     const data = await handleApiResponse(response);
@@ -293,19 +287,10 @@ async function loadUserSubscriptions() {
   }
 
   isLoadingSubscriptions = true;
-  const userToken = localStorage.getItem('token');
-  log('loadUserSubscriptions - token:', userToken ? 'present' : 'missing');
-
-  if (!userToken) {
-    safeShow(getElement('plansSection'));
-    safeHide(activeSubscriptionSection);
-    isLoadingSubscriptions = false;
-    return;
-  }
 
   try {
     log('Fetching subscription data...');
-    const data = await SubscriptionService.getCurrentSubscription(userToken);
+    const data = await SubscriptionService.getCurrentSubscription();
     log('Subscription data:', data);
 
     userSubscriptions = data?.data?._id ? [data.data] : [];
@@ -407,13 +392,6 @@ const amount = formatCurrency((sub.amount || 0) / 100);
 async function selectPlan(planId) {
   selectedPlanId = planId;
 
-  const userToken = localStorage.getItem('token');
-  if (!userToken) {
-    showAlert('Please log in to subscribe', 'info');
-    setTimeout(() => { window.location.href = '/login?redirect=/subscriptions'; }, 1500);
-    return;
-  }
-
   await loadUserSubscriptions();
 
   if (hasActiveSubscription(planId)) {
@@ -423,7 +401,7 @@ async function selectPlan(planId) {
 
   showAlert('Redirecting to secure checkout...', 'info');
   try {
-    const data = await SubscriptionService.createCheckout(userToken, planId);
+    const data = await SubscriptionService.createCheckout(planId);
     if (data?.data?.url) {
       setTimeout(() => { window.location.href = data.data.url; }, 800);
     } else {
@@ -462,12 +440,10 @@ function renewSubscription() {
 
 /** Fetch invoices for a subscription from the API */
 async function fetchInvoices(subscriptionId) {
-  const userToken = localStorage.getItem('token');
-  if (!userToken) throw new Error('Not authenticated');
   const apiBase = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
   const res = await fetch(
     `${apiBase}/api/v1/subscriptions/${subscriptionId}/invoices`,
-    { headers: { Authorization: `Bearer ${userToken}` } }
+    { credentials: 'include' }
   );
   const data = await handleApiResponse(res);
   return data.data || [];
@@ -502,10 +478,6 @@ function renderInvoiceList(invoices) {
 
 /** Fetch and display invoices for a subscription */
 async function downloadInvoices(subscriptionId) {
-  if (!localStorage.getItem('token')) {
-    showAlert('Please log in to download invoices', 'error');
-    return;
-  }
   try {
     const invoices = await fetchInvoices(subscriptionId);
     if (!invoices.length) {
@@ -532,16 +504,10 @@ async function handleConfirmCancel() {
     return;
   }
 
-  const userToken = localStorage.getItem('token');
-  if (!userToken) {
-    showAlert('Please log in to continue', 'error');
-    return;
-  }
-
   const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
 
   try {
-    await SubscriptionService.cancelSubscription(userToken, currentSubscriptionId);
+    await SubscriptionService.cancelSubscription(currentSubscriptionId);
 
     showAlert(
       atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled',
@@ -572,11 +538,11 @@ async function handleSuccessRedirect() {
     return;
   }
 
-  if (success === 'true' && sessionId && localStorage.getItem('token')) {
+  if (success === 'true' && sessionId) {
     try {
       log('Verifying checkout session:', sessionId);
       showAlert('Verifying subscription purchase...', 'info');
-      const data = await SubscriptionService.verifySession(localStorage.getItem('token'), sessionId);
+      const data = await SubscriptionService.verifySession(sessionId);
 
       if (data.success && data.data) {
         showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
@@ -599,8 +565,6 @@ async function handleSuccessRedirect() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   log('Subscriptions page loaded');
-
-  const userToken = localStorage.getItem('token');
 
   document.getElementById('confirmCancelBtn')
     ?.addEventListener('click', handleConfirmCancel);
@@ -627,8 +591,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   await loadPlans();
-  if (userToken) {
-    await handleSuccessRedirect();
-    await loadUserSubscriptions();
-  }
+  await handleSuccessRedirect();
+  await loadUserSubscriptions();
 });

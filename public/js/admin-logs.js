@@ -103,9 +103,9 @@ class AdminLogsManager {
 
             const response = await fetch(`${window.API_BASE}/api/logs?${params}`, {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch logs');
@@ -126,9 +126,9 @@ class AdminLogsManager {
             const params = new URLSearchParams(this.currentFilters);
             const response = await fetch(`${window.API_BASE}/api/logs/stats?${params}`, {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
             if (!response.ok) {
                 throw new Error('Failed to fetch log statistics');
@@ -324,9 +324,7 @@ class AdminLogsManager {
             });
 
             const response = await fetch(`${window.API_BASE}/api/logs/export?${params}`, {
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
+                credentials: 'include'
             });
             if (!response.ok) {
                 throw new Error('Failed to export logs');

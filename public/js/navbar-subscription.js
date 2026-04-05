@@ -6,29 +6,16 @@ async function loadNavbarSubscriptionStatus() {
     const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            statusElement.textContent = 'Not logged in';
-            statusElement.className = 'badge bg-warning text-dark small';
-            return;
-        }
-
         window.API_BASE = window.ApiConfig.getAPI_BASE();
 
         if (isDevelopment) console.log('Fetching subscription status from:', `${window.API_BASE}/api/v1/subscriptions/current`);
 
         const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (response.status === 401 || response.status === 403) {
-            // Clear invalid token
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            sessionStorage.removeItem('userId');
+            // Session invalid — clear local role state
             localStorage.removeItem('userRole');
             sessionStorage.removeItem('userRole');
             statusElement.textContent = 'Not logged in';

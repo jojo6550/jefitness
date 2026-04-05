@@ -83,16 +83,13 @@ function clearCart() {
 }
 
 async function checkout() {
-  const token = localStorage.getItem('token');
-  if (!token) return location.href = '/login';
-
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify({ items: cart })
     });
 
@@ -121,12 +118,9 @@ function checkCheckoutStatus() {
 }
 
 async function loadOrderHistory() {
-  const token = localStorage.getItem('token');
-  if (!token) return;
-
   try {
     const res = await fetch(`${window.ApiConfig.getAPI_BASE()}/api/v1/products/purchases`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      credentials: 'include'
     });
 
     const data = await res.json();

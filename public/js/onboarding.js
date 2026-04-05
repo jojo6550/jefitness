@@ -6,9 +6,8 @@
   const API_BASE = window.ApiConfig.getAPI_BASE();
 
   async function authFetch(url, options = {}) {
-    const token = localStorage.getItem('token');
-    if (!token) return null;
-    options.headers = { ...options.headers, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    options.headers = { ...options.headers, 'Content-Type': 'application/json' };
+    options.credentials = 'include';
     const res = await fetch(url, options);
     if (!res.ok) return null;
     return res.json();

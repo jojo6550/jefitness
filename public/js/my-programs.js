@@ -7,12 +7,7 @@ let programModal = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
+    // auth enforced by httpOnly cookie
 
     // Initialize modal
     programModal = new bootstrap.Modal(document.getElementById('programDetailsModal'));
@@ -47,9 +42,7 @@ async function loadMyPrograms(forceRefresh = false) {
         }
 
         const response = await fetch(`${window.API_BASE}/api/v1/programs/user/my-programs`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {

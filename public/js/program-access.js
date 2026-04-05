@@ -20,14 +20,6 @@
     // Check if user has access to this program
     async function verifyProgramAccess() {
         try {
-            // Check authentication
-            const token = localStorage.getItem('token');
-            if (!token) {
-                // Redirect to login page
-                window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-
             // Get program slug
             const slug = getProgramSlug();
             if (!slug) {
@@ -38,15 +30,12 @@
 
             // Check access via API
             const response = await fetch(`${window.API_BASE}/api/v1/programs/user/access/${slug}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                credentials: 'include'
             });
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    // Token expired or invalid
-                    localStorage.removeItem('token');
+                    // Not authenticated
                     window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
                     return;
                 }

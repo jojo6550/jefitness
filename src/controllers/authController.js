@@ -229,10 +229,17 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
       // Update last login (use updateOne to avoid triggering validators on unrelated fields)
       await user.updateOne({ lastLoggedIn: new Date() });
 
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24h, matches JWT expiry
+      });
+
       res.json({
         success: true,
         data: {
-          token,
+          token, // kept for backward compat — clients should prefer the cookie
           user: {
             id: user._id,
             firstName: user.firstName,
@@ -288,6 +295,12 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
   logout: asyncHandler(async (req, res) => {
     const { incrementUserTokenVersion } = require('../middleware/auth');
     await incrementUserTokenVersion(req.user.id);
+
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
 
     res.json({ success: true, message: 'Logged out successfully' });
   }),

@@ -7,6 +7,17 @@ const { body } = require('express-validator');
 const bcrypt = require('bcryptjs');
 
 const authController = require('../controllers/authController');
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 24 * 60 * 60 * 1000, // 24h
+};
+
+function setAuthCookie(res, token) {
+  res.cookie('token', token, COOKIE_OPTIONS);
+}
 const { auth, incrementUserTokenVersion } = require('../middleware/auth');
 const { requireDbConnection } = require('../middleware/dbConnection');
 const { authLimiter, signupLimiter, verificationPollLimiter } = require('../middleware/rateLimiter');
@@ -116,6 +127,7 @@ router.get('/verify-email', requireDbConnection, async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    setAuthCookie(res, token);
     res.json({
       success: true,
       token,
@@ -197,6 +209,7 @@ router.post(
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
+      setAuthCookie(res, token);
       res.json({
         success: true,
         verified: true,
@@ -496,6 +509,7 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
     user.lastLoggedIn = new Date();
     await user.save({ validateBeforeSave: false });
 
+    setAuthCookie(res, token);
     logger.info('2FA login success', { userId: user._id });
     res.json({
       success: true,

@@ -1,91 +1,46 @@
 // logout.js
 
-// Determine the base URL
 window.API_BASE = window.ApiConfig.getAPI_BASE();
 
-// Function to handle the logout process
 async function logoutUser() {
-    const token = localStorage.getItem('token');
-
-    if (token) {
-        try {
-            // Call the logout API to invalidate the session on the server
-            const response = await fetch(`${window.API_BASE}
-/api/v1/auth/logout`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                console.log('Logout: Server-side logout successful.');
-            } else {
-                console.warn('Logout: Server-side logout failed, but proceeding with client-side cleanup.');
-            }
-        } catch (error) {
-            console.error('Logout: Error calling logout API:', error);
-            // Continue with client-side logout even if API call fails
-        }
+    try {
+        // Server clears the httpOnly cookie and increments token version
+        await fetch(`${window.API_BASE}/api/v1/auth/logout`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } catch (err) {
+        console.error('Logout: error calling logout API:', err);
     }
 
-    // Remove the JWT token from localStorage
-    localStorage.removeItem('token');
     localStorage.removeItem('userRole');
-    console.log('Logout: Token and user data removed from localStorage.');
-
-    // Redirect the user to the index page after logout
-    // Use replace to prevent back button from showing cached page
     window.location.replace('/');
 }
 
-// Function to attach the logout event listener
+async function checkSessionAndRedirect() {
+    try {
+        const response = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            window.location.replace('/login');
+        }
+    } catch {
+        window.location.replace('/login');
+    }
+}
+
 function attachLogoutListener() {
-    // Attach the logout function to the logout button
     const logoutButton = document.getElementById('logoutButton');
     if (logoutButton) {
-        logoutButton.addEventListener('click', function(event) {
-            event.preventDefault(); // Prevent default link behavior
+        logoutButton.addEventListener('click', (e) => {
+            e.preventDefault();
             logoutUser();
         });
     }
 }
 
-// Function to check session validity and redirect if invalid
-async function checkSessionAndRedirect() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        // No token, redirect to login
-        window.location.replace('/login');
-        return;
-    }
-
-    try {
-        // Try to access a protected endpoint to verify token
-        const response = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            // Token invalid, logout and redirect
-            console.warn('Session check failed, logging out.');
-            logoutUser();
-        }
-    } catch (error) {
-        console.error('Session check error:', error);
-        // On error, assume invalid and logout
-        logoutUser();
-    }
-}
-
-// Make functions globally available
 window.attachLogoutListener = attachLogoutListener;
 window.checkSessionAndRedirect = checkSessionAndRedirect;
 window.logoutUser = logoutUser;
-
-// You might also want to call logoutUser() if a certain API call returns 401/403
-// For example, in your fetchClients or profile fetch functions, if a 401 status
-// is received, you could programmatically call logoutUser().

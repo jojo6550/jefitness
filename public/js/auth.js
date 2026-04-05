@@ -89,12 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const data = await window.API.auth.login(email, password);
-        const { token, user } = data.data || data;
-        localStorage.setItem('token', token);
-        
-        // Ensure role is set, default to 'user' for safety
+        const { user } = data.data || data;
+        // Token is now an httpOnly cookie set by the server — no localStorage needed
         const userRole = user.role || 'user';
-        localStorage.setItem('userRole', userRole);
 
         // Show welcome back toast
         const userName = user.firstName || 'User';
@@ -332,9 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
           window.location.href = '/verify-email';
           return;
         }
-        const { token, user } = responseData;
-        localStorage.setItem('token', token);
-        localStorage.setItem('userRole', user.role || 'user');
+        const { user } = responseData;
+        // Token is now an httpOnly cookie set by the server — no localStorage needed
         window.Toast.success(`Welcome to JE Fitness, ${user.firstName || 'User'}!`);
         // Redirect based on role
         setTimeout(() => window.location.href = redirectByRole(user.role), 1500);
@@ -498,7 +494,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // If not on login page, redirect to login
         if (!window.location.pathname.includes('/login')) {
           setTimeout(() => {
-            localStorage.removeItem('token');
             window.location.href = '/login';
           }, 2000);
         }

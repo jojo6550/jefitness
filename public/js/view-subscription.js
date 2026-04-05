@@ -139,12 +139,12 @@ async function handleApiResponse(response) {
    Payment Method Details
 -------------------------------------------------- */
 
-async function fetchPaymentMethodDetails(subscriptionId, userToken) {
+async function fetchPaymentMethodDetails(subscriptionId) {
   try {
     log('Fetching payment method details...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/${subscriptionId}/payment-method`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
+      { credentials: 'include' }
     );
 
     const data = await handleApiResponse(res);
@@ -194,19 +194,11 @@ function setupPaymentMethodHover(cardData) {
 -------------------------------------------------- */
 
 async function loadSubscription() {
-  const userToken = localStorage.getItem('token');
-  log('loadSubscription - token:', userToken ? 'present' : 'missing');
-
-  if (!userToken) {
-    showNoSubscriptionState();
-    return;
-  }
-
   try {
     log('Fetching subscription data...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/user/current`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
+      { credentials: 'include' }
     );
 
     log('Response status:', res.status);
@@ -226,7 +218,7 @@ async function loadSubscription() {
     // Fetch invoices as well
     await Promise.all([
       renderSubscriptionDetails(),
-      loadInvoices(userToken)
+      loadInvoices()
     ]);
 
     showSubscriptionDetails();
@@ -340,7 +332,7 @@ function renderSubscriptionDetails() {
 
   // Fetch payment method details
   if (currentSubscriptionId) {
-    fetchPaymentMethodDetails(currentSubscriptionId, userToken);
+    fetchPaymentMethodDetails(currentSubscriptionId);
   }
 
   // Progress bar - calculate based on exact time elapsed, not rounded days
@@ -377,7 +369,7 @@ function renderSubscriptionDetails() {
    Invoices
 -------------------------------------------------- */
 
-async function loadInvoices(userToken) {
+async function loadInvoices() {
   if (!currentSubscriptionId) {
     showNoInvoicesState();
     return;
@@ -387,7 +379,7 @@ async function loadInvoices(userToken) {
     log('Fetching invoices...');
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/${currentSubscriptionId}/invoices`,
-      { headers: { Authorization: `Bearer ${userToken}` } }
+      { credentials: 'include' }
     );
 
     log('Invoices response status:', res.status);
@@ -473,8 +465,6 @@ function openCancelModal() {
 }
 
 async function handleConfirmCancel() {
-  const userToken = localStorage.getItem('token');
-  
   if (!currentSubscriptionId) {
     showAlert('Subscription not found', 'error');
     return;
@@ -488,9 +478,9 @@ async function handleConfirmCancel() {
       {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ atPeriodEnd })
       }
     );
@@ -525,16 +515,6 @@ window.handleConfirmCancel = handleConfirmCancel;
 
 document.addEventListener('DOMContentLoaded', async () => {
   log('View-Subscription page loaded');
-
-  // Check authentication
-  userToken = localStorage.getItem('token');
-  if (!userToken) {
-    showAlert('Please log in to view your subscription', 'info');
-    setTimeout(() => {
-      window.location.href = `/login?redirect=/view-subscription`;
-    }, 1500);
-    return;
-  }
 
   // Set up cancel button
   document.getElementById('confirmCancelBtn')?.addEventListener('click', handleConfirmCancel);

@@ -5,12 +5,7 @@ let volumeChart = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
-
+    // auth enforced by httpOnly cookie
     await loadExercises();
     await loadWorkoutHistory();
     await loadGoals();
@@ -27,7 +22,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ exercise, targetWeight, targetDate }),
             });
             if (!res.ok) throw new Error('Failed to save goal');
@@ -42,14 +38,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadExercises() {
-    const token = localStorage.getItem('token');
     const select = document.getElementById('exerciseSelect');
 
     try {
         const response = await fetch(`${window.API_BASE}/api/v1/workouts?limit=100`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) throw new Error('Failed to fetch workouts');
@@ -87,14 +80,11 @@ async function loadExercises() {
 }
 
 async function loadWorkoutHistory() {
-    const token = localStorage.getItem('token');
     const container = document.getElementById('workoutHistory');
 
     try {
         const response = await fetch(`${window.API_BASE}/api/v1/workouts?limit=10`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) throw new Error('Failed to fetch workouts');
@@ -137,16 +127,13 @@ async function viewProgress() {
         return;
     }
 
-    const token = localStorage.getItem('token');
     const btn = document.getElementById('viewProgressBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
 
     try {
         const response = await fetch(`${window.API_BASE}/api/v1/workouts/progress/${encodeURIComponent(exerciseName)}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) throw new Error('Failed to fetch progress data');
@@ -171,13 +158,12 @@ async function viewProgress() {
 }
 
 async function loadGoals() {
-    const token = localStorage.getItem('token');
     const container = document.getElementById('goalsList');
     if (!container) return;
 
     try {
         const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals`, {
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
         });
         if (!res.ok) throw new Error('Failed to fetch goals');
         const data = await res.json();
@@ -209,7 +195,7 @@ async function loadGoals() {
             btn.addEventListener('click', async () => {
                 const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals/${btn.dataset.id}/achieve`, {
                     method: 'PUT',
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: 'include',
                 });
                 if (res.ok) await loadGoals();
             });
@@ -219,7 +205,7 @@ async function loadGoals() {
             btn.addEventListener('click', async () => {
                 const res = await fetch(`${window.API_BASE}/api/v1/workouts/goals/${btn.dataset.id}`, {
                     method: 'DELETE',
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: 'include',
                 });
                 if (res.ok) await loadGoals();
             });

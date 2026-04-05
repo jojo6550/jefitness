@@ -3,11 +3,9 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 const escapeHtml = str => Validators.escapeHtml(str);
 
 async function requireSubscription() {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return false; }
     try {
         const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
-            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
         });
         const data = await res.json();
         const activeStatuses = ['active', 'trialing', 'past_due'];
@@ -63,9 +61,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function apiGet(path) {
-    const token = localStorage.getItem('token');
     const resp = await fetch(`${window.API_BASE}${path}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
     });
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
@@ -259,10 +256,9 @@ async function confirmDelete() {
     btn.textContent = 'Deleting...';
 
     try {
-        const token = localStorage.getItem('token');
         const resp = await fetch(`${window.API_BASE}/api/v1/nutrition/${pendingDeleteId}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
         });
         const data = await resp.json();
         if (!resp.ok) throw new Error(data.error?.message || 'Delete failed');

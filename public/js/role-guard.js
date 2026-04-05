@@ -1,9 +1,8 @@
 // role-guard.js - Frontend role-based access control
 document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
   const currentPage = window.location.pathname.split('/').pop();
-  
+
   // Define protected routes and their required roles
   const protectedRoutes = {
     'dashboard.html': 'user' // Both admin and user can access user dashboard
@@ -11,37 +10,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check if current page is protected
   if (protectedRoutes[currentPage]) {
-    const requiredRole = protectedRoutes[currentPage];
-
-    // If no token, redirect to login
-    if (!token) {
-      window.location.href = '/login';
-      return;
-    }
-
-    // Optional: Verify token validity with backend
-    verifyToken(token);
+    // Verify session validity with backend (cookie is sent automatically)
+    verifySession();
   }
-  
-  async function verifyToken(token) {
+
+  async function verifySession() {
     try {
-      const API_BASE = window.ApiConfig.getAPI_BASE();      
-      const response = await fetch(`${window.API_BASE}
-/api/v1/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const API_BASE = window.ApiConfig.getAPI_BASE();
+      const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+        credentials: 'include'
       });
-      
+
       if (!response.ok) {
-        // Token is invalid or expired
-        localStorage.removeItem('token');
+        // Session is invalid or expired
         localStorage.removeItem('userRole');
         window.location.href = '/login';
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('token');
+      console.error('Session verification failed:', error);
       localStorage.removeItem('userRole');
       window.location.href = '/login';
     }

@@ -4,11 +4,7 @@ let exerciseCount = 0;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
+    // auth enforced by httpOnly cookie
 
     // Set default date to today
     document.getElementById('workoutDate').valueAsDate = new Date();
@@ -139,7 +135,6 @@ async function handleSubmit(e) {
         return;
     }
     
-    const token = localStorage.getItem('token');
     const saveBtn = document.getElementById('saveWorkoutBtn');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
@@ -198,9 +193,9 @@ async function handleSubmit(e) {
         const response = await fetch(`${window.API_BASE}/api/v1/workouts/log`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(workoutData)
         });
         

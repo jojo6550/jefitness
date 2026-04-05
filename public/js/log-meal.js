@@ -9,11 +9,9 @@ let searchDebounceTimers = {};
 const foodBaseMacros = {};
 
 async function requireSubscription() {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/'; return false; }
     try {
         const res = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, {
-            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include',
         });
         const data = await res.json();
         const activeStatuses = ['active', 'trialing', 'past_due'];
@@ -286,7 +284,6 @@ async function handleSubmit(e) {
         return;
     }
 
-    const token = localStorage.getItem('token');
     const btn = document.getElementById('saveMealBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
@@ -325,8 +322,8 @@ async function handleSubmit(e) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
             },
+            credentials: 'include',
             body: JSON.stringify(payload),
         });
 

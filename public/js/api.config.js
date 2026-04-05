@@ -26,22 +26,21 @@
   // Backward compatibility - set globals as before
   window.API_BASE = API_BASE;
 
-  // API request utility (unchanged)
+  // API request utility
   window.API = {
     request: async (endpoint, options = {}) => {
       const url = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-      
-      const token = localStorage.getItem('token') || '';
+
       const headers = {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
         ...options.headers
       };
 
       try {
         const response = await fetch(url, {
           ...options,
-          headers
+          headers,
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -83,11 +82,12 @@
       
     },
 
-    getToken: () => localStorage.getItem('token'),
-    setToken: (token) => localStorage.setItem('token', token),
-    clearToken: () => localStorage.removeItem('token')
+    // Token is now stored in an httpOnly cookie — these are kept for
+    // backward compat but auth is handled automatically by the browser.
+    getToken: () => null,
+    setToken: () => {},
+    clearToken: () => {}
   };
 
-  console.log(`API configured: ${API_BASE} (${hostname}) via ApiConfig`);
 })();
 

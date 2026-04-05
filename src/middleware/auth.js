@@ -23,10 +23,13 @@ async function auth(req, res, next) {
   const authHeader = req.header('Authorization');
   let token;
 
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  // Prefer httpOnly cookie — falls back to Authorization header for API clients
+  if (req.cookies?.token) {
+    token = req.cookies.token;
+  } else if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.replace('Bearer ', '').trim();
   } else {
-    token = req.header('x-auth-token'); // Fallback
+    token = req.header('x-auth-token');
   }
 
   if (!token) {

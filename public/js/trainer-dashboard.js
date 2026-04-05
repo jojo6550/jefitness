@@ -24,8 +24,7 @@ let selectedAppointmentIds = new Set();
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 window.initTrainerDashboard = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) { window.location.href = '/login'; return; }
+    // auth enforced by httpOnly cookie
 
     try {
         setupTabNavigation();
@@ -99,15 +98,12 @@ function refreshCurrentTab() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function authHeaders() {
-    return { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
-}
-
 async function apiFetch(url, opts = {}) {
     try {
-        opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+        opts.headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+        opts.credentials = 'include';
         const res = await fetch(`${window.API_BASE}${url}`, opts);
-        if (res.status === 401) { localStorage.removeItem('token'); window.location.href = '/login'; throw new Error('Unauthorized'); }
+        if (res.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
         if (res.status === 403) { window.Toast.error('Access denied.'); throw new Error('Forbidden'); }
         return res;
     } catch (err) {
@@ -715,7 +711,6 @@ async function openClientDetail(clientId) {
 
             docCol.appendChild(docLabel);
 
-            const token = localStorage.getItem('token');
             client.medicalDocuments.forEach(doc => {
                 const docRow = document.createElement('div');
                 docRow.className = 'd-flex align-items-center gap-3 py-2 border-bottom doc-row';
@@ -728,7 +723,7 @@ async function openClientDetail(clientId) {
                 nameDiv.textContent = doc.originalName || doc.filename;
 
                 const link = document.createElement('a');
-                link.href = `${window.API_BASE}/api/v1/medical-documents/view/${encodeURIComponent(doc.filename)}?token=${token}`;
+                link.href = `${window.API_BASE}/api/v1/medical-documents/view/${encodeURIComponent(doc.filename)}`;
                 link.target = '_blank';
                 link.className = 'btn btn-sm btn-outline-primary rounded-pill px-3 btn-doc-view';
                 link.textContent = 'View';

@@ -12,12 +12,7 @@ let programModal = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/';
-        return;
-    }
+    // auth enforced by httpOnly cookie
 
     // Initialize modal
     programModal = new bootstrap.Modal(document.getElementById('programPreviewModal'));
@@ -51,9 +46,7 @@ async function loadPrograms() {
         showLoading();
 
         const response = await fetch(`${window.API_BASE}/api/v1/programs`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -254,9 +247,9 @@ async function handleBuyNow() {
         const response = await fetch(`${window.API_BASE}/api/v1/programs/checkout`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
                 programId: currentProgram._id
             })

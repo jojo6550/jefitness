@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch(`${window.API_BASE}/api/v1/medical-documents/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') },
+                credentials: 'include',
                 body: formData
             });
             if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
@@ -128,9 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     await fetch(`${window.API_BASE}/api/v1/medical-documents/delete`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + localStorage.getItem('token')
+                            'Content-Type': 'application/json'
                         },
+                        credentials: 'include',
                         body: JSON.stringify({ filename: fileToRemove.filename })
                     });
                 } catch (err) { console.error(err); }
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadMedicalData() {
         try {
             const res = await fetch(`${window.API_BASE}/api/v1/medical-documents/get`, {
-                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+                credentials: 'include'
             });
             if (!res.ok) throw new Error(`Failed to load: ${res.status}`);
             const data = await res.json();
@@ -200,9 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 await fetch(`${window.API_BASE}/api/v1/medical-documents/delete`, {
                                     method: 'POST',
                                     headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                                        'Content-Type': 'application/json'
                                     },
+                                    credentials: 'include',
                                     body: JSON.stringify({ filename: doc.filename })
                                 });
                                 uploadedFiles = uploadedFiles.filter(f => f.filename !== doc.filename);
@@ -228,9 +228,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetch(`${window.API_BASE}/api/v1/medical-documents/save-info`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                        'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({ hasMedical, medicalConditions: medicalConditionsValue })
                 });
             } catch (err) { console.error('Save info error:', err); }

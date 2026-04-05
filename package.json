@@ -44,6 +44,7 @@
     "@utcp/code-mode": "^1.2.9",
     "bcryptjs": "^3.0.2",
     "bull": "^4.12.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cypress": "^15.9.0",
     "dotenv": "^16.6.1",

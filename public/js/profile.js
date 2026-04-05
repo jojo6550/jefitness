@@ -22,9 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${window.API_BASE}/api/v1/users/profile`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
-                }
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include'
             });
             if (!response.ok) {
                 throw new Error('Failed to load profile data');
@@ -105,9 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${window.API_BASE}/api/v1/users/${currentUserId}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify(payload)
             });
 
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadMeasurements() {
         try {
             const res = await fetch(`${window.API_BASE}/api/v1/users/measurements`, {
-                headers: { Authorization: 'Bearer ' + localStorage.getItem('token') },
+                credentials: 'include',
             });
             if (!res.ok) return;
             const data = await res.json();
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const res = await fetch(`${window.API_BASE}/api/v1/users/measurements/${btn.dataset.id}`, {
                         method: 'DELETE',
-                        headers: { Authorization: 'Bearer ' + localStorage.getItem('token') },
+                        credentials: 'include',
                     });
                     if (res.ok) {
                         window.Toast.success('Measurement deleted.');
@@ -215,8 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + localStorage.getItem('token'),
                 },
+                credentials: 'include',
                 body: JSON.stringify(payload),
             });
             if (!res.ok) throw new Error('Failed to save');
@@ -246,8 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: 'Bearer ' + localStorage.getItem('token'),
                 },
+                credentials: 'include',
                 body: JSON.stringify({ currentPassword, newPassword }),
             });
             const data = await res.json();

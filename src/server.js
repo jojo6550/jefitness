@@ -8,6 +8,7 @@ const fs = require('fs');
 const cron = require('node-cron');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 // API Docs
 const swaggerUi = require('swagger-ui-express');
@@ -65,6 +66,7 @@ app.set('trust proxy', 1);
 // Body parsing
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
+app.use(cookieParser());
 
 // CORS
 app.use(cors(corsOptions));

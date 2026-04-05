@@ -123,18 +123,15 @@ function clearCart() {
 async function handleCheckout() {
   if (!cart.length) { window.Toast.error('Cart is empty.'); return; }
 
-  const token = localStorage.getItem('token');
-  if (!token) return window.location.href = '/login';
-
   try {
     const res = await fetch(
       `${window.ApiConfig.getAPI_BASE()}/api/v1/products/checkout`,
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           items: cart.map(i => ({
             productKey: i.productKey,

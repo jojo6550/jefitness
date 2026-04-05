@@ -46,8 +46,8 @@ class CookieConsentManager {
     }
 
     checkAuthStatus() {
-        this.userToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-        this.isLoggedIn = !!this.userToken;
+        this.userToken = null; // cookie is automatic, no need to pass it around
+        this.isLoggedIn = !!localStorage.getItem('userRole');
     }
 
     getStoredConsent() {
@@ -150,8 +150,7 @@ class CookieConsentManager {
 
     async syncWithBackend(consents) {
         const headers = {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.userToken}`
+            'Content-Type': 'application/json'
         };
 
         const promises = [];
@@ -161,7 +160,8 @@ class CookieConsentManager {
             promises.push(
                 fetch(`${this.apiBase}/api/v1/gdpr/consent/data-processing`, {
                     method: 'POST',
-                    headers
+                    headers,
+                    credentials: 'include'
                 })
             );
         }
@@ -171,7 +171,8 @@ class CookieConsentManager {
             promises.push(
                 fetch(`${this.apiBase}/api/v1/gdpr/consent/marketing`, {
                     method: 'POST',
-                    headers
+                    headers,
+                    credentials: 'include'
                 })
             );
         }
@@ -182,6 +183,7 @@ class CookieConsentManager {
                 fetch(`${this.apiBase}/api/v1/gdpr/consent/health-data`, {
                     method: 'POST',
                     headers,
+                    credentials: 'include',
                     body: JSON.stringify({ purpose: 'fitness_tracking' })
                 })
             );
