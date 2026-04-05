@@ -10,46 +10,48 @@ const SubscriptionService = {
     return handleApiResponse(res);
   },
 
-  getCurrentSubscription: async () => {
+  getCurrentSubscription: async (userToken) => {
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/current`,
-      { credentials: 'include' }
+      { headers: { Authorization: `Bearer ${userToken}` } }
     );
     return handleApiResponse(res);
   },
 
-  createCheckout: async (planId) => {
+  createCheckout: async (userToken, planId) => {
     const res = await fetch(`${API_BASE}/api/v1/subscriptions/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${userToken}`
       },
-      credentials: 'include',
       body: JSON.stringify({ planId })
     });
     return handleApiResponse(res);
   },
 
-  cancelSubscription: async (subscriptionId) => {
+  cancelSubscription: async (userToken, subscriptionId) => {
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/cancel/${subscriptionId}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+          Authorization: `Bearer ${userToken}`
+        }
       }
     );
     return handleApiResponse(res);
   },
 
-  verifySession: async (sessionId) => {
+  verifySession: async (userToken, sessionId) => {
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/verify-session/${sessionId}`,
       {
         method: 'POST',
-        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${userToken}`
+        }
       }
     );
     return handleApiResponse(res);

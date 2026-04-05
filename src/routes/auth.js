@@ -524,33 +524,4 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/v1/auth/me:
- *   get:
- *     summary: Get current authenticated user profile
- *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Current user profile
- */
-router.get('/me', auth, async (req, res) => {
-  try {
-    const User = require('../models/User');
-    const { logger } = require('../services/logger');
-    const user = await User.findById(req.user.id).select(
-      '-password -emailVerificationToken -passwordResetToken -pushSubscription -twoFactorSecret -twoFactorBackupCodes'
-    );
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
-    res.json({ success: true, data: user });
-  } catch (err) {
-    logger.error('Auth /me error', { userId: req.user?.id, error: err.message });
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
-
 module.exports = router;
