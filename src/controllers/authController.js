@@ -304,6 +304,81 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
 
     res.json({ success: true, message: 'Logged out successfully' });
   }),
+
+  /**
+   * 🚀 STRESS BYPASS: Instantly verify email for stress testing (env-gated)
+   * Only enabled when STRESS_BYPASS_VERIFY=true. Logs prominently.
+   */
+  stressVerify: asyncHandler(async (req, res) => {
+    const startTime = performance.now();
+    
+    // CRITICAL SECURITY: Only enabled in stress test environment
+    if (process.env.STRESS_BYPASS_VERIFY !== 'true') {
+      const msg = 'STRESS BYPASS DISABLED: STRESS_BYPASS_VERIFY must be "true"';
+      logger.error('🚫 [STRESS BYPASS BLOCKED]', { message: msg });
+      throw new ValidationError(msg);
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      throw new ValidationError('Email required for stress bypass');
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailHash = crypto
+      .createHash('sha256')
+      .update(normalizedEmail)
+      .digest('hex')
+      .slice(0, 16);
+
+    logger.info('🚀 [STRESS BYPASS] START', { 
+      emailHash, 
+      ip: req.ip,
+      userAgent: req.get('User-Agent')?.slice(0, 100)
+    });
+
+    const dbStart = performance.now();
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      '+emailVerificationToken +emailVerificationExpires +isEmailVerified'
+    );
+    const dbTime = performance.now() - dbStart;
+
+    if (!user) {
+      logger.warn('🚫 [STRESS BYPASS] User not found', { emailHash });
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    if (user.isEmailVerified) {
+      logger.info('ℹ️ [STRESS BYPASS] Already verified', { emailHash, userId: user._id });
+      return res.json({ 
+        success: true, 
+        message: 'Already verified',
+        userId: user._id 
+      });
+    }
+
+    // Verify the account
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    const totalTime = performance.now() - startTime;
+    logger.info('✅ [STRESS BYPASS] SUCCESS', { 
+      emailHash, 
+      userId: user._id, 
+      timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) }
+    });
+
+    res.json({ 
+      success: true, 
+      message: '🚀 STRESS BYPASS: Email verified instantly',
+      userId: user._id 
+    });
+  }),
 };
 
 module.exports = authController;

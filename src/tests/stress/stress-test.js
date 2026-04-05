@@ -31,6 +31,14 @@ const CONCURRENCY = parseInt('30', 10);
 const THINK_TIME = parseInt( '200', 10);
 const VERBOSE = '1';
 
+const BYPASS_MODE = 'true';
+
+if (BYPASS_MODE) {
+  console.log('\n🚀 STRESS BYPASS MODE ENABLED - Email verification auto-bypassed\n');
+} else {
+  console.log('\nℹ️  Normal mode - Email verification required (expect login failures)\n');
+}
+
 // Use a real-looking domain so express-validator's isEmail() accepts it.
 // These accounts are created and deleted within the test run.
 const TEST_EMAIL_DOMAIN = 'mailtest.jefitnessja.com';
@@ -189,17 +197,34 @@ async function signup(idx) {
   const password = `StressPass${idx}Abc!`;
   const label = `new_user_${idx}`;
 
+
   const r = await req('POST', '/api/v1/auth/signup', {
     body: { firstName: 'Stress', lastName: `User${idx}`, email, password },
   }, { user: label, step: 'signup' });
 
   if (!r) return null;
 
-  if (r.status === 200 || r.status === 201) return { email, password };
+  if (r.status === 200 || r.status === 201) {
+    // 🚀 STRESS BYPASS: Auto-verify before login
+    if (BYPASS_MODE) {
+      const bypassR = await req('POST', '/api/v1/auth/stress-bypass-verify', {
+        body: { email },
+      }, { user: label, step: 'bypass_verify' });
+      
+      if (VERBOSE) {
+        console.log(`    [${label}] BYPASS ${bypassR ? bypassR.status : 'ERR'}`);
+      }
+      
+      await sleep(100); // Brief pause after bypass
+    }
+    
+    return { email, password };
+  }
 
   // Surface the reason so we can fix it
   console.error(`  [SIGNUP FAIL] user_${idx} → HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}`);
   return null;
+
 }
 
 /**
