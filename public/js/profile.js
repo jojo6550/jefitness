@@ -78,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const activityStatus = document.getElementById('activityStatus').value || null;
         const startWeight = parseFloat(document.getElementById('startWeight').value) || null;
         const currentWeight = parseFloat(document.getElementById('currentWeight').value) || null;
-        const goals = document.getElementById('goals').value.trim() || null;
-        const reason = document.getElementById('reason').value.trim() || null;
+        const goals = document.getElementById('goals').value.trim() || '';
+        const reason = document.getElementById('reason').value.trim() || '';
 
         // Validate required fields
         if (!firstName || !lastName) {

@@ -304,6 +304,26 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
 
     res.json({ success: true, message: 'Logged out successfully' });
   }),
+
+  /**
+   * GET /api/v1/auth/me - Get current authenticated user profile
+   * @swagger
+   * /api/v1/auth/me:
+   *   get:
+   *     summary: Get current user profile
+   *     tags: [Authentication]
+   *     security:
+   *       - cookieAuth: []
+   */
+  getMe: asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user.id).select(
+      '-password -emailVerificationToken -passwordResetToken -twoFactorSecret -twoFactorBackupCodes -tokenVersion'
+    );
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    res.json({ success: true, data: user });
+  }),
 };
 
 module.exports = authController;

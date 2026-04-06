@@ -84,6 +84,17 @@ router.post('/logout', auth, authController.logout);
 
 /**
  * @swagger
+ * /api/v1/auth/me:
+ *   get:
+ *     summary: Get current authenticated user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - cookieAuth: []
+ */
+router.get('/me', requireDbConnection, auth, authController.getMe);
+
+/**
+ * @swagger
  * /api/v1/auth/consent:
  *   post:
  *     summary: Grant data processing consent (auto-called for existing users missing consent)
