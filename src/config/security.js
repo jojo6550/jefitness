@@ -23,6 +23,7 @@ const securityConfig = {
           'https://unpkg.com',
           'https://js.stripe.com',
           'https://checkout.stripe.com',
+          'https://static.cloudflareinsights.com',
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrcAttr: ["'unsafe-inline'"],
