@@ -364,6 +364,7 @@ const subscriptionController = {
    */
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
+    const atPeriodEnd = req.body.atPeriodEnd || false;
 
     const subscription = await Subscription.findOne({
       _id: subscriptionId,
@@ -377,7 +378,7 @@ const subscriptionController = {
     // Cancel on Stripe first (source of truth)
     if (subscription.stripeSubscriptionId) {
       try {
-        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, false);
+        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, atPeriodEnd);
       } catch (stripeErr) {
         const msg = stripeErr.message || '';
         const alreadyGone =
@@ -399,12 +400,16 @@ const subscriptionController = {
     await Subscription.findByIdAndUpdate(
       subscription._id,
       {
-        $set: { status: 'canceled', canceledAt: now },
+        $set: { 
+          status: atPeriodEnd ? 'cancel_at_period_end' : 'canceled', 
+          canceledAt: now,
+          cancelAtPeriodEnd: atPeriodEnd
+        },
         $push: {
           statusHistory: {
-            status: 'canceled',
+            status: atPeriodEnd ? 'cancel_at_period_end' : 'canceled',
             changedAt: now,
-            reason: 'User requested cancellation',
+            reason: `User requested cancellation ${atPeriodEnd ? '(at period end)' : '(immediate)'}`,
           },
         },
       },
@@ -414,7 +419,7 @@ const subscriptionController = {
     // Best-effort user record sync
     try {
       await User.findByIdAndUpdate(req.user.id, {
-        $set: { subscriptionStatus: 'canceled' },
+        $set: { subscriptionStatus: atPeriodEnd ? 'cancel_at_period_end' : 'canceled' },
       });
     } catch (userUpdateError) {
       logger.error('Failed to update user record after cancel', {
@@ -422,7 +427,7 @@ const subscriptionController = {
       });
     }
 
-    res.json({ success: true, message: 'Subscription canceled successfully' });
+    res.json({ success: true, message: `Subscription ${atPeriodEnd ? 'scheduled to end at period end' : 'canceled successfully'}` });
   }),
 
   /**

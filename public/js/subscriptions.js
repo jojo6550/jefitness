@@ -10,7 +10,7 @@
 window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 
 const STRIPE_PUBLIC_KEY =
-  'pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252MbWbTj9xGMhhlHKpGXQXPmUex2WOVb2kuiVzsqSKAQp36q00qAufxywd';
+  'pk_test_51TD7C5DZMERb0GrCsw8m5w1I7pF1AWfSjQ5H4I0RXhzTB0LJmPy9NuuicIxyTEdHrwPjMjckAZsJls05OFMk5RIQ00YftZpxyg';
 
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -507,7 +507,7 @@ async function handleConfirmCancel() {
   const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
 
   try {
-    await SubscriptionService.cancelSubscription(currentSubscriptionId);
+    await SubscriptionService.cancelSubscription(currentSubscriptionId, atPeriodEnd);
 
     showAlert(
       atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled',

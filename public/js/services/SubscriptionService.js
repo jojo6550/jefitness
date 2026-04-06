@@ -30,15 +30,14 @@ const SubscriptionService = {
     return handleApiResponse(res);
   },
 
-  cancelSubscription: async (userToken, subscriptionId) => {
+  cancelSubscription: async (subscriptionId, atPeriodEnd = false) => {
     const res = await fetch(
       `${API_BASE}/api/v1/subscriptions/cancel/${subscriptionId}`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`
-        }
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ atPeriodEnd })
       }
     );
     return handleApiResponse(res);
