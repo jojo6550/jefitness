@@ -15,9 +15,6 @@ async function loadNavbarSubscriptionStatus() {
         });
 
         if (response.status === 401 || response.status === 403) {
-            // Session invalid — clear local role state
-            localStorage.removeItem('userRole');
-            sessionStorage.removeItem('userRole');
             statusElement.textContent = 'Not logged in';
             statusElement.className = 'badge bg-warning text-dark small';
             return;
