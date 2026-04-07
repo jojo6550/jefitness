@@ -9,11 +9,12 @@ if (window.API_BASE?.startsWith('https://localhost')) {
 }
 
 // ====== Helpers ======
-function escapeHtml(str) {
+const escapeHtml = str => {
+  if (Validators?.escapeHtml) return Validators.escapeHtml(str);
   const div = document.createElement('div');
   div.textContent = String(str ?? '');
   return div.innerHTML;
-}
+};
 
 // ====== State ======
 let currentViewAppointmentId = null;
