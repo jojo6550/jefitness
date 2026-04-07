@@ -4,48 +4,48 @@
  */
 
 const AppointmentService = {
-  getAll: async (userToken) => {
+  getAll: async () => {
     const res = await fetch(`${API_BASE}/api/v1/appointments/user`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include'
     });
     return handleApiResponse(res);
   },
 
-  getById: async (userToken, id) => {
+  getById: async (id) => {
     const res = await fetch(`${API_BASE}/api/v1/appointments/${id}`, {
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include'
     });
     return handleApiResponse(res);
   },
 
-  create: async (userToken, { trainerId, date, time, notes }) => {
+  create: async ({ trainerId, date, time, notes }) => {
     const res = await fetch(`${API_BASE}/api/v1/appointments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`,
       },
+      credentials: 'include',
       body: JSON.stringify({ trainerId, date, time, notes }),
     });
     return handleApiResponse(res);
   },
 
-  update: async (userToken, id, fields) => {
+  update: async (id, fields) => {
     const res = await fetch(`${API_BASE}/api/v1/appointments/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${userToken}`,
       },
+      credentials: 'include',
       body: JSON.stringify(fields),
     });
     return handleApiResponse(res);
   },
 
-  remove: async (userToken, id) => {
+  remove: async (id) => {
     const res = await fetch(`${API_BASE}/api/v1/appointments/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${userToken}` },
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },
