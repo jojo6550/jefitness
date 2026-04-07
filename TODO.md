@@ -1,26 +1,28 @@
-# JE Fitness Stress Test Fix TODO
+# Jamaican Local Time for Logs - Implementation Plan
 
-## Status: [4/7] Steps completed
+## Status: ✅ In Progress
 
-✅ **Done**
-- [x] 1. Add stressVerify handler to src/controllers/authController.js ✓
-- [ ] 2. Add POST /api/v1/auth/stress-bypass-verify route to src/routes/auth.js  
-- [x] 3. Add STRESS_BYPASS_VERIFY env parsing + bypass API call in regularUserScenario ✓
-- [] 4. Add random stagger delay (50-250ms) before each regular user scenario start ✓
-- [ ] 5. Add console logging for BYPASS MODE detection
-- [ ] 6. Test bypass endpoint manually (curl localhost:10000/api/v1/auth/stress-bypass-verify)
-- [ ] 7. Run full stress test with STRESS_BYPASS_VERIFY=true and verify completion
+### Completed Steps:
+- [x] 1. Created TODO.md with breakdown ✅
+- [x] 2. Created `src/utils/timezone.js` ✅
 
-- [ ] 3. Add STRESS_BYPASS_VERIFY env parsing + bypass API call in regularUserScenario (src/tests/stress/stress-test.js)
-- [ ] 4. Add random stagger delay (50-250ms) before each regular user scenario start
-- [ ] 5. Add console logging for BYPASS MODE detection
-- [ ] 6. Test bypass endpoint manually (curl localhost:10000/api/v1/auth/stress-bypass-verify)
-- [ ] 7. Run full stress test with STRESS_BYPASS_VERIFY=true and verify completion
+### Pending Steps:
+1. ~~**Create TZ Helper** `src/utils/timezone.js`~~ ✅
+2. ~~**Update Models** `src/models/Log.js`, `src/models/UserActionLog.js`~~ ✅
+3. ~~**Fix Server Logs** `src/routes/logs.js`~~ ✅
+4. ~~**Fix Client Logger** `public/js/logger.js`~~ ✅
+5. ~~**Update requestLogger** `src/middleware/requestLogger.js`~~ ✅
+6. **Fix Admin Displays** `public/js/admin-logs.js`, `public/js/admin-dashboard.js`  
+   - Use `Intl.DateTimeFormat('en-US', {timeZone: 'America/Jamaica'})`  
+7. **Test Changes**  
+   - Verify admin logs show JST  
+   - Check DB storage  
+   - Browser consistency  
+8. **attempt_completion** ✅
 
-## Next Action
-Edit src/routes/auth.js (step 2)
+**Next Step:** Fix admin displays `admin-logs.js`, `admin-dashboard.js`
 
-**Run:** `node src/tests/stress/stress-test.js` (without bypass → should fail at login)
-**With bypass:** `STRESS_BYPASS_VERIFY=true node src/tests/stress/stress-test.js` (should complete all flows)
+
+
 
 

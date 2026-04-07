@@ -1,11 +1,12 @@
 const mongoose = require('mongoose');
 
+const timezone = require('../utils/timezone');
 const LogSchema = new mongoose.Schema(
   {
     timestamp: {
       type: Date,
       required: true,
-      default: Date.now,
+      default: () => new Date(timezone.getJamaicanISOString()),
     },
     level: {
       type: String,
@@ -44,7 +45,9 @@ const LogSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      currentDate: () => new Date(timezone.getJamaicanISOString())
+    },
   }
 );
 

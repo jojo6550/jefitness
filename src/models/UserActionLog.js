@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const timezone = require('../utils/timezone');
 const UserActionLogSchema = new mongoose.Schema(
   {
     userId: {
@@ -15,7 +16,7 @@ const UserActionLogSchema = new mongoose.Schema(
     },
     timestamp: {
       type: Date,
-      default: Date.now,
+      default: () => new Date(timezone.getJamaicanISOString()),
       index: true,
     },
     ipAddress: {
@@ -31,7 +32,9 @@ const UserActionLogSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: {
+      currentDate: () => new Date(timezone.getJamaicanISOString())
+    },
   }
 );
 

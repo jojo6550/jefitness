@@ -29,10 +29,12 @@ const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 
+const timezone = require('../utils/timezone');
+
 // Helper function to add log entry
 const addLogEntry = (level, category, message) => {
   const logEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp: timezone.getJamaicanISOString(),
     level,
     category,
     message,
