@@ -58,7 +58,7 @@ LogSchema.index({ category: 1, timestamp: -1 });
 LogSchema.index({ userId: 1, timestamp: -1 });
 
 // Static method to clean old logs (keep only last 30 days)
-LogSchema.statics.cleanOldLogs = function (daysToKeep = 30) {
+LogSchema.statics.cleanOldLogs = function (daysToKeep = 90) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 

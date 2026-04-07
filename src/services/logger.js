@@ -73,30 +73,47 @@ class Logger {
 
   info(msg, meta = {}) {
     const fullMeta = { level: 'info', ...meta };
+    const readableMsg = Object.keys(fullMeta).length > 1 
+      ? `${msg}\n${JSON.stringify(fullMeta, null, 2)}` 
+      : msg;
     this.logger.info(msg, fullMeta);
-    this._logToDBIfAudit('info', msg, fullMeta);
+    this._asyncLogToDB('info', readableMsg, fullMeta);
   }
 
   warn(msg, meta = {}) {
     const fullMeta = { level: 'warn', ...meta };
+    const readableMsg = Object.keys(fullMeta).length > 1 
+      ? `${msg}\n${JSON.stringify(fullMeta, null, 2)}` 
+      : msg;
     this.logger.warn(msg, fullMeta);
-    this._logToDBIfAudit('warn', msg, fullMeta);
+    this._asyncLogToDB('warn', readableMsg, fullMeta);
   }
 
   error(msg, meta = {}) {
     const fullMeta = { level: 'error', ...meta };
+    const readableMsg = Object.keys(fullMeta).length > 1 
+      ? `${msg}\n${JSON.stringify(fullMeta, null, 2)}` 
+      : msg;
     this.logger.error(msg, fullMeta);
-    this._asyncLogToDB('error', msg, fullMeta);
+    this._asyncLogToDB('error', readableMsg, fullMeta);
   }
 
   debug(msg, meta = {}) {
     const fullMeta = { level: 'debug', ...meta };
+    const readableMsg = Object.keys(fullMeta).length > 1 
+      ? `${msg}\n${JSON.stringify(fullMeta, null, 2)}` 
+      : msg;
     this.logger.debug(msg, fullMeta);
+    this._asyncLogToDB('debug', readableMsg, fullMeta);
   }
 
   http(msg, meta = {}) {
     const fullMeta = { level: 'http', ...meta };
+    const readableMsg = Object.keys(fullMeta).length > 1 
+      ? `${msg}\n${JSON.stringify(fullMeta, null, 2)}` 
+      : msg;
     this.logger.http(msg, fullMeta);
+    this._asyncLogToDB('http', readableMsg, fullMeta);
   }
 
   // Convenience methods
@@ -175,29 +192,24 @@ class Logger {
       const mongoose = require('mongoose');
       if (mongoose.connection.readyState !== 1) return;
 
-      // Audit-worthy: security/user/admin + errors
-      if (['security', 'user', 'admin'].includes(meta.category) || level === 'error') {
-        await Log.create({
-          level,
-          category: meta.category || 'general',
-          message,
-          userId: meta.userId,
-          ip: meta.ip,
-          userAgent: meta.userAgent,
-          requestId: meta.requestId,
-          metadata: meta,
-        });
-      }
+      // ALL logs to DB - readable format
+      await Log.create({
+        level,
+        category: meta.category || 'general',
+        message,
+        userId: meta.userId || meta.userId,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+        requestId: meta.requestId || meta.requestId,
+        metadata: meta,
+      });
     } catch (dbErr) {
       // Fail silently
+      console.error('DB log insert failed:', dbErr.message);
     }
   }
 
-  _logToDBIfAudit(level, message, meta) {
-    if (['security', 'user', 'admin'].includes(meta?.category)) {
-      this._asyncLogToDB(level, message, meta);
-    }
-  }
+
 }
 
 // Singleton export
