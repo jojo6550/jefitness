@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { logger } = require('../src/services/logger');
 
 const connectDB = async () => {
   const maxRetries = 5;
@@ -9,20 +10,21 @@ const connectDB = async () => {
       await mongoose.connect(process.env.MONGO_URI, {
         serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
       });
-      console.log('MongoDB connected');
+      logger.info('MongoDB connected');
       return;
     } catch (err) {
       retries++;
-      console.error(`MongoDB connection attempt ${retries} failed: ${err.message}`);
+      logger.error(`MongoDB connection attempt ${retries} failed`, { error: err.message });
       if (retries < maxRetries) {
         const delay = Math.pow(2, retries) * 1000; // Exponential backoff
-        console.log(`Retrying in ${delay}ms...`);
+        logger.info(`Retrying MongoDB connection in ${delay}ms`, { retries });
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
-  console.error('Failed to connect to MongoDB after maximum retries');
+  logger.error('Failed to connect to MongoDB after maximum retries');
   process.exit(1);
 };
 
 module.exports = connectDB;
+
