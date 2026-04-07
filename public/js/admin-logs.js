@@ -1,4 +1,8 @@
-const escapeHtml = str => Validators.escapeHtml(str);
+const escapeHtml = (str) => {
+  const div = document.createElement('div');
+  div.textContent = String(str ?? '');
+  return div.innerHTML;
+};
 
 class AdminLogsManager {
     constructor() {

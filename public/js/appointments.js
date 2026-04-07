@@ -9,8 +9,7 @@ if (window.API_BASE?.startsWith('https://localhost')) {
 }
 
 // ====== Helpers ======
-const escapeHtml = str => {
-  if (Validators?.escapeHtml) return Validators.escapeHtml(str);
+const escapeHtml = (str) => {
   const div = document.createElement('div');
   div.textContent = String(str ?? '');
   return div.innerHTML;
