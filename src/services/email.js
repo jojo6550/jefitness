@@ -668,8 +668,6 @@ async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr
   });
 }
 
-const sendNewAppointmentClient = require('./sendNewAppointmentClient');
-
 module.exports = {
   sendEmail,
   sendPasswordReset,
@@ -677,7 +675,6 @@ module.exports = {
   sendEmailVerification,
   sendTrainerDailySchedule,
   sendNewAppointmentNotification,
-  sendNewAppointmentClient,
   sendAppointmentCancelledTrainer,
   sendAppointmentCancelledClient,
   sendAppointmentUpdatedTrainer,
