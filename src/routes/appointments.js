@@ -61,6 +61,7 @@ const { logger, logError, logAdminAction, logUserAction } = require('../services
 const { allowOnlyFields } = require('../middleware/inputValidator');
 const {
   sendNewAppointmentNotification,
+  sendNewAppointmentClient,
   sendAppointmentCancelledTrainer,
   sendAppointmentCancelledClient,
   sendAppointmentUpdatedTrainer,
@@ -552,7 +553,37 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       time,
     });
 
-    // Send individual email notification if trainer prefers it
+    // Log the successful booking
+    logUserAction('book_appointment', req.user.id, {
+      appointmentId: appointment._id,
+      trainerId,
+      date,
+      time,
+    });
+
+    // Always send confirmation to client
+    if (appointment.clientId.email) {
+      try {
+        const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
+        const aptDate = new Date(date);
+        const dateStr = aptDate.toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        });
+        await sendNewAppointmentClient(
+          appointment.clientId.email,
+          appointment.clientId.firstName,
+          trainerName,
+          dateStr,
+          appointment.time,
+          appointment._id.toString(),
+          date
+        );
+      } catch (emailErr) {
+        logger.warn('Failed to send client appointment confirmation', { clientId: appointment.clientId._id, error: emailErr.message });
+      }
+    }
+
+    // Send individual email notification to trainer if they prefer it
     if (trainer.trainerEmailPreference === 'individual' && trainer.email) {
       try {
         const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
@@ -562,7 +593,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
         });
         await sendNewAppointmentNotification(trainer.email, trainer.firstName, clientName, dateStr, time, appointment._id.toString(), date);
       } catch (emailErr) {
-        logger.warn('Failed to send individual appointment notification', { trainerId, error: emailErr.message });
+        logger.warn('Failed to send individual appointment notification to trainer', { trainerId, error: emailErr.message });
       }
     }
 
