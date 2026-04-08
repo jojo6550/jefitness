@@ -8,8 +8,10 @@ const { logger, logSecurityEvent } = require('../services/logger');
 /**
  * Generate unique request ID
  */
+const timezone = require('../utils/timezone');
+
 function generateRequestId() {
-  return `REQ_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `REQ_${timezone.getJamaicanISOString()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
