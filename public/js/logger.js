@@ -5,13 +5,8 @@ class FElogger {
   }
 
   _log(level, msg, meta = {}) {
-    // Jamaican timezone logger - consistent with server
-    const jamaicaTime = new Date().toLocaleString('sv', { 
-      timeZone: 'America/Jamaica' 
-    }).replace(/ /g, 'T') + 'Z';
-    
     const logEntry = {
-      timestamp: jamaicaTime,
+      timestamp: new Date().toISOString(),
       level,
       service: this.service,
       message: msg,
