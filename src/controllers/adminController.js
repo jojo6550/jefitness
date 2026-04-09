@@ -132,15 +132,45 @@ async function createSubscription(req, res) {
       return res.status(400).json({ msg: `No active Stripe plan found for ${planKey}` });
     }
 
-    // Ensure Stripe customer exists
+// Ensure Stripe customer exists (DEFENSIVE: verify even if DB has ID)
     let stripeCustomerId = user.stripeCustomerId;
     if (!stripeCustomerId) {
+      // Create fresh customer
       const customer = await stripeClient.customers.create({
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
         metadata: { userId: user._id.toString() },
       });
       stripeCustomerId = customer.id;
+      logger.info('Admin: created new Stripe customer', { customerId: stripeCustomerId, userId: user._id.toString() });
+    } else {
+      // Verify existing customer ID is valid
+      try {
+        await stripeClient.customers.retrieve(stripeCustomerId);
+        logger.debug('Admin: verified existing Stripe customer', { customerId: stripeCustomerId });
+      } catch (custErr) {
+        if (custErr.code === 'resource_missing') {
+          logger.warn('Admin: stale customer ID found, creating fresh customer', { 
+            oldCustomerId: stripeCustomerId, 
+            userId: user._id.toString() 
+          });
+          // Clear stale DB record and create new
+          user.stripeCustomerId = null;
+          await user.save();
+          
+          const customer = await stripeClient.customers.create({
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            metadata: { userId: user._id.toString() },
+          });
+          stripeCustomerId = customer.id;
+        } else {
+          throw custErr; // Other Stripe errors bubble up
+        }
+      }
+    }
+
+    if (user.stripeCustomerId !== stripeCustomerId) {
       user.stripeCustomerId = stripeCustomerId;
       await user.save();
     }

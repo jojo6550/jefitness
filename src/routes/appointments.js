@@ -495,14 +495,25 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     // Set clientId from authenticated user
     const clientId = req.user.id;
 
-    // Check if this client already has an appointment on this date (across all trainers)
+// Check if this client already has an appointment on this date (across all trainers)
+// Compute UTC start/end of the requested date to handle timezone issues
+    const dateStr = date; // YYYY-MM-DD from input
+    const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
+    const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
+
     const clientExistingOnDate = await Appointment.findOne({
       clientId,
-      date: appointmentDate,
+      date: { $gte: startOfDay, $lt: endOfDay },
       status: { $ne: 'cancelled' },
     });
 
     if (clientExistingOnDate) {
+      logger.info('Client already has appointment on this day', { 
+        clientId, 
+        requestedDate: dateStr, 
+        existingAppointmentId: clientExistingOnDate._id,
+        existingDate: clientExistingOnDate.date 
+      });
       return res.status(400).json({ msg: 'You can only book one appointment per day' });
     }
 
