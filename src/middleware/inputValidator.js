@@ -156,13 +156,19 @@ const preventNoSQLInjection = (req, res, next) => {
       return null;
     }
 
-    // SECURITY: Skip arrays to prevent hasOwnProperty error on query params like ?ids[]=1
+    // SECURITY: Prevent hasOwnProperty error on arrays - skip before for...in loop
     if (Array.isArray(obj)) {
       return null;
     }
 
+    // SECURITY: Defensive check before iteration
+    if (!obj || typeof obj !== 'object') {
+      logger.warn('Security: Invalid object in checkForInjection', { path, typeofObj: typeof obj, path: req?.path });
+      return null;
+    }
+
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         // SECURITY: Detect MongoDB operators
         if (key.startsWith('$')) {
           return `NoSQL operator detected: ${key} at ${path}`;
