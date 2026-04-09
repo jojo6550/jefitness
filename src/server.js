@@ -118,6 +118,11 @@ app.use(cacheControl);
 app.use('/admin', require('./routes/admin'));
 app.use('/api/v1/admin', require('./routes/admin-api'));
 
+// Favicon route (fixes 404)
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public/favicons/favicon.ico'));
+});
+
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
