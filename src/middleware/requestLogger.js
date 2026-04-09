@@ -5,6 +5,8 @@
 
 const { logger, logSecurityEvent } = require('../services/logger');
 
+const SLOW_MS = parseInt(process.env.SLOW_REQUEST_THRESHOLD_MS, 10) || 2000;
+
 /**
  * Generate unique request ID
  */
@@ -40,7 +42,7 @@ const requestLogger = (req, res, next) => {
     const duration = Date.now() - req.startTime;
 
     // Log slow requests (> 1s)
-    if (duration > 1000) {
+    if (duration > SLOW_MS) {
       logger.warn('Slow request detected', {
         requestId: req.id,
         method: req.method,
