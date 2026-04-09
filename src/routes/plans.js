@@ -9,7 +9,7 @@ const express = require('express');
 
 const { logger } = require('../services/logger');
 const StripePlan = require('../models/StripePlan');
-const { auth, protectedRoute } = require('../middleware'); // Optional auth
+// Removed unused middleware imports (public route - no auth needed)
 
 const router = express.Router();
 

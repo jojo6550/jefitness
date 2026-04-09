@@ -253,6 +253,7 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
 const apiRoutes = [
   ['/subscriptions', require('./routes/subscriptions')],
   ['/auth', require('./routes/auth')],
+  ['/plans', require('./routes/plans')],
 ];
 
 apiRoutes.forEach(([route, router]) => app.use(`/api/v1${route}`, versioning, router));
