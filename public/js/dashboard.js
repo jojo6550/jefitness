@@ -33,34 +33,6 @@ window.initDashboard = async () => {
     }
   };
 
-// Load cart count for dashboard
-async function loadCartCount() {
-    try {
-        const res = await fetch(`${window.API_BASE}/api/cart`, {
-            credentials: 'include'
-        });
-
-        if (res.ok) {
-            const cart = await res.json();
-            const count = cart.items ? cart.items.length : 0;
-
-            const dashboardCartCount = document.getElementById('dashboard-cart-count');
-            if (dashboardCartCount) {
-                dashboardCartCount.textContent = count;
-            }
-
-            // Update navbar badge
-            const navbarBadge = document.querySelector('.cart-badge');
-            if (navbarBadge) {
-                navbarBadge.textContent = count;
-                navbarBadge.classList.toggle('d-none', count === 0);
-            }
-        }
-    } catch (err) {
-        console.error('Error loading cart count:', err);
-    }
-}
-
 // Load subscription status for dashboard
 async function loadSubscriptionStatus() {
 

@@ -210,9 +210,7 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
 // API Routes
 // -----------------------------
 const apiRoutes = [
-  ['/products', require('./routes/products')],
   ['/subscriptions', require('./routes/subscriptions')],
-  ['/programs', require('./routes/programs')],
   ['/auth', require('./routes/auth')],
 ];
 

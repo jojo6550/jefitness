@@ -642,72 +642,6 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
 }
 
 /**
- * Create a checkout session for program purchase (one-time payment)
- * @param {string} customerId - Stripe customer ID
- * @param {string} programId - Program ID or slug
- * @param {string} successUrl - URL to redirect on successful payment
- * @param {string} cancelUrl - URL to redirect if payment is canceled
- * @returns {Promise<Object>} Checkout session object
- */
-async function createProgramCheckoutSession(
-  customerId,
-  programId,
-  successUrl,
-  cancelUrl
-) {
-  try {
-    const stripe = getStripe();
-    if (!stripe) {
-      throw new Error('Stripe not initialized');
-    }
-    // Get program details to find the product ID
-    const Program = require('../models/Program');
-    const program = await Program.findById(programId);
-    if (!program) {
-      throw new Error(`Program not found: ${programId}`);
-    }
-
-    // Use program slug to find product ID from environment
-    const productId =
-      PROGRAM_PRODUCT_IDS[program.slug] ||
-      process.env[`STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')}`];
-    if (!productId) {
-      throw new Error(
-        `No product ID found for program: ${program.slug}. Please set STRIPE_PROGRAM_${program.slug.toUpperCase().replace(/-/g, '_')} in environment variables.`
-      );
-    }
-
-    const priceId = await getPriceIdForProduct(productId);
-    if (!priceId) {
-      throw new Error(`No active price found for program: ${program.slug}`);
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      mode: 'payment', // One-time payment for programs
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      billing_address_collection: 'required',
-      metadata: {
-        programId: programId,
-        programSlug: program.slug,
-      },
-    });
-
-    return session;
-  } catch (error) {
-    throw new Error(`Failed to create program checkout session: ${error.message}`);
-  }
-}
-
-/**
  * Get payment methods for a customer
  * @param {string} customerId - Stripe customer ID
  * @returns {Promise<Array>} Array of payment method objects
@@ -825,94 +759,6 @@ async function getAllActivePrices() {
     return formattedPrices;
   } catch (error) {
     throw new Error(`Failed to fetch active prices: ${error.message}`);
-  }
-}
-
-/**
- * Create a checkout session for product purchases (one-time payment with quantity)
- * @param {string} customerId - Stripe customer ID
- * @param {Array} items - Array of { productKey, name, quantity }
- * @param {string} successUrl - URL to redirect on successful payment
- * @param {string} cancelUrl - URL to redirect if payment is canceled
- * @returns {Promise<Object>} Checkout session object
- */
-async function createProductCheckoutSession(customerId, items, successUrl, cancelUrl) {
-  try {
-    const stripe = getStripe();
-    if (!stripe) {
-      throw new Error('Stripe not initialized');
-    }
-
-    // Validate items
-    if (!items || items.length === 0) {
-      throw new Error('No items provided for checkout');
-    }
-
-    // Validate product keys and build line items
-    const lineItems = [];
-    const validatedItems = [];
-
-    for (const item of items) {
-      if (!item.productKey || !item.quantity || item.quantity < 1) {
-        throw new Error(`Invalid item: ${JSON.stringify(item)}`);
-      }
-
-      const productInfo = PRODUCT_MAP[item.productKey];
-      if (!productInfo) {
-        throw new Error(`Invalid product key: ${item.productKey}`);
-      }
-
-      if (!productInfo.priceId) {
-        throw new Error(`Product ${item.productKey} has no configured price ID`);
-      }
-
-      lineItems.push({
-        price: productInfo.priceId,
-        quantity: item.quantity,
-      });
-
-      validatedItems.push({
-        productKey: item.productKey,
-        name: productInfo.name,
-        quantity: item.quantity,
-      });
-    }
-
-    // Get user info for metadata
-    const User = require('../models/User');
-    const user = await User.findOne({ stripeCustomerId: customerId });
-    if (!user) {
-      throw new Error('User not found for customer ID');
-    }
-
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      mode: 'payment', // One-time payment
-      line_items: lineItems,
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      billing_address_collection: 'required',
-      locale: 'en', // Set locale to English to avoid module loading issues
-      metadata: {
-        userId: user._id.toString(),
-        type: 'product_purchase',
-        itemCount: validatedItems.length.toString(),
-        // Store cart items as JSON string
-        items: JSON.stringify(validatedItems),
-        environment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-          ? 'test'
-          : 'production',
-      },
-    });
-
-    logger.info('Product checkout session created', { sessionId: session.id, customerId, itemCount: validatedItems.length });
-
-    return session;
-  } catch (error) {
-    logger.error('Failed to create product checkout session', { error: error.message });
-    throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
 
@@ -1162,8 +1008,7 @@ module.exports = {
   resumeSubscription,
   getSubscriptionInvoices,
   createCheckoutSession,
-  createProgramCheckoutSession,
-  createProductCheckoutSession,
+
   getCheckoutSession,
   getOrCreateProductCustomer,
   getPaymentMethods,
