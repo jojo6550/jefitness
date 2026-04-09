@@ -97,6 +97,7 @@ app.use(cacheControl);
 // Admin dashboard page (auth + admin role enforced inside the router)
 // -----------------------------
 app.use('/admin', require('./routes/admin'));
+app.use('/api/v1/admin', require('./routes/admin-api'));
 
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
