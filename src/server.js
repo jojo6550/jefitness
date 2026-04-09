@@ -73,8 +73,8 @@ function validateConfig() {
 app.set('trust proxy', 1);
 
 // Body parsing
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ limit: '10kb', extended: false }));
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ limit: '100kb', extended: false }));
 app.use(cookieParser());
 
 // Compression (gzip/deflate)
