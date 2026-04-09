@@ -6,6 +6,15 @@ window.AdminOverview = (() => {
   let logPollInterval = null;
 
   // ── Helpers ─────────────────────────────────────────────
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function formatJMD(cents) {
     return 'JMD $' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0 });
   }
@@ -24,7 +33,7 @@ window.AdminOverview = (() => {
       if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
       return '<span class="pill pill-green">Active</span>';
     }
-    return `<span class="pill pill-gray">${subscription.status}</span>`;
+    return `<span class="pill pill-gray">${escapeHtml(subscription?.status)}</span>`;
   }
 
   function avatarColor(name) {
@@ -111,13 +120,13 @@ window.AdminOverview = (() => {
       const color = avatarColor(c.firstName);
       return `
         <tr>
-          <td><span class="avatar" style="background:${color}">${initials(c)}</span>${c.firstName} ${c.lastName}</td>
-          <td style="color:#64748b">${c.email}</td>
+          <td><span class="avatar" style="background:${color}">${initials(c)}</span>${escapeHtml(c.firstName)} ${escapeHtml(c.lastName)}</td>
+          <td style="color:#64748b">${escapeHtml(c.email)}</td>
           <td>${sub?.plan ?? '—'}</td>
           <td>${statusPill(sub)}</td>
           <td style="color:${days !== null && days <= 14 ? '#fbbf24' : '#4ade80'}">${days !== null ? days : '—'}</td>
           <td>
-            <button class="btn-sm btn-sm-green overview-add-sub" data-id="${c._id}" data-name="${c.firstName} ${c.lastName}" data-email="${c.email}">+ Sub</button>
+            <button class="btn-sm btn-sm-green overview-add-sub" data-id="${c._id}" data-name="${escapeHtml(c.firstName)} ${escapeHtml(c.lastName)}" data-email="${escapeHtml(c.email)}">+ Sub</button>
           </td>
         </tr>`;
     }).join('');
@@ -148,7 +157,7 @@ window.AdminOverview = (() => {
       <div class="log-entry">
         <span class="log-time">${time}</span>
         <span class="log-level ${logLevelClass(log.level)}">${log.level.toUpperCase()}</span>
-        <span class="log-msg">${log.message}</span>
+        <span class="log-msg">${escapeHtml(log.message)}</span>
       </div>`;
   }
 

@@ -19,6 +19,15 @@ window.AdminLogs = (() => {
 
   const LEVEL_CLASSES = { error: 'log-error', warn: 'log-warn', info: 'log-info', debug: 'log-debug', http: 'log-http' };
 
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function buildParams(forExport = false) {
     const p = new URLSearchParams();
     if (state.levels.size) p.set('level', Array.from(state.levels).join(','));
@@ -64,9 +73,9 @@ window.AdminLogs = (() => {
     return `
       <div class="log-entry">
         <span class="log-time" style="width:120px">${time}</span>
-        <span class="log-level ${cls}">${log.level.toUpperCase()}</span>
-        <span class="log-level" style="color:#64748b;width:60px">${log.category || ''}</span>
-        <span class="log-msg">${log.message}${log.action ? ` <span style="color:#475569">[${log.action}]</span>` : ''}</span>
+        <span class="log-level ${cls}">${escapeHtml(log.level).toUpperCase()}</span>
+        <span class="log-level" style="color:#64748b;width:60px">${escapeHtml(log.category)}</span>
+        <span class="log-msg">${escapeHtml(log.message)}${log.action ? ` <span style="color:#475569">[${escapeHtml(log.action)}]</span>` : ''}</span>
       </div>`;
   }
 

@@ -8,18 +8,18 @@ const API = window.ApiConfig.getAPI_BASE();
 // ── Auth guard ────────────────────────────────────────────
 async function checkAdminAuth() {
   try {
-    const res = await fetch(`${API}/api/v1/users/me`, { credentials: 'include' });
+    const res = await fetch(`${API}/api/v1/auth/me`, { credentials: 'include' });
     if (res.status === 401) {
       window.location.href = '/login';
       return null;
     }
     if (!res.ok) throw new Error('Auth check failed');
     const data = await res.json();
-    if (data.user.role !== 'admin') {
+    if (data.data?.role !== 'admin') {
       window.location.href = '/dashboard';
       return null;
     }
-    return data.user;
+    return data.data;
   } catch {
     window.location.href = '/login';
     return null;

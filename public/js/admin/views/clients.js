@@ -9,6 +9,15 @@ window.AdminClients = (() => {
   let debounceTimer = null;
 
   // ── Helpers ─────────────────────────────────────────────
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function daysLeft(isoDate) {
     if (!isoDate) return null;
     return Math.max(0, Math.ceil((new Date(isoDate) - Date.now()) / 86400000));
@@ -22,7 +31,7 @@ window.AdminClients = (() => {
       if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
       return '<span class="pill pill-green">Active</span>';
     }
-    return `<span class="pill pill-gray">${sub.status}</span>`;
+    return `<span class="pill pill-gray">${escapeHtml(sub?.status)}</span>`;
   }
 
   function avatarColor(name) {
@@ -80,7 +89,7 @@ window.AdminClients = (() => {
 
   // ── Actions ──────────────────────────────────────────────
   async function deleteClient(id, name) {
-    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${escapeHtml(name)}? This cannot be undone.`)) return;
     const res = await fetch(`${API}/api/v1/clients/${id}`, { method: 'DELETE', credentials: 'include' });
     if (!res.ok) {
       alert('Failed to delete client');
@@ -120,9 +129,9 @@ window.AdminClients = (() => {
         <td><input type="checkbox" class="cb" data-id="${client._id}" ${isSelected ? 'checked' : ''}></td>
         <td style="display:flex;align-items:center">
           <span class="avatar" style="background:${color}">${initials(client)}</span>
-          <span>${client.firstName} ${client.lastName}</span>
+          <span>${escapeHtml(client.firstName)} ${escapeHtml(client.lastName)}</span>
         </td>
-        <td style="color:#64748b">${client.email}</td>
+        <td style="color:#64748b">${escapeHtml(client.email)}</td>
         <td>${sub?.plan ?? '—'}</td>
         <td>${statusPill(sub)}</td>
         <td style="color:${days !== null ? daysColor : '#475569'}">${days !== null ? days : '—'}</td>
@@ -130,11 +139,11 @@ window.AdminClients = (() => {
           <button class="btn-sm btn-sm-blue client-view" data-id="${client._id}">View</button>
           <button class="btn-sm btn-sm-green client-add-sub"
             data-id="${client._id}"
-            data-name="${client.firstName} ${client.lastName}"
-            data-email="${client.email}">+ Sub</button>
+            data-name="${escapeHtml(client.firstName)} ${escapeHtml(client.lastName)}"
+            data-email="${escapeHtml(client.email)}">+ Sub</button>
           <button class="btn-sm btn-sm-red client-delete"
             data-id="${client._id}"
-            data-name="${client.firstName} ${client.lastName}">Delete</button>
+            data-name="${escapeHtml(client.firstName)} ${escapeHtml(client.lastName)}">Delete</button>
         </td>
       </tr>`;
   }
@@ -211,7 +220,7 @@ window.AdminClients = (() => {
       document.getElementById('page-prev')?.addEventListener('click', () => { state.page--; loadAndRender(); });
       document.getElementById('page-next')?.addEventListener('click', () => { state.page++; loadAndRender(); });
     } catch (err) {
-      container.innerHTML = `<div style="padding:20px;text-align:center;color:#f87171">Error: ${err.message}</div>`;
+      container.innerHTML = `<div style="padding:20px;text-align:center;color:#f87171">Error: ${escapeHtml(err.message)}</div>`;
     }
   }
 

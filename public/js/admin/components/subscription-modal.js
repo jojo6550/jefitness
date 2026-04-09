@@ -18,6 +18,15 @@ window.AdminSubModal = (() => {
   let context = null;
   let isBulk = false;
 
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function formatDate(daysFromNow) {
     const d = new Date(Date.now() + daysFromNow * 86400000);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -62,7 +71,7 @@ window.AdminSubModal = (() => {
     isBulk = false;
     context = { userId, name, email, onSuccess };
     selectedPlan = PLANS[1];
-    _show(`Client: <strong style="color:#a5b4fc">${name}</strong> · ${email}`);
+    _show(`Client: <strong style="color:#a5b4fc">${escapeHtml(name)}</strong> · ${escapeHtml(email)}`);
   }
 
   function openBulk(userIds, onSuccess) {
@@ -99,13 +108,6 @@ window.AdminSubModal = (() => {
         updateSummary();
       });
     });
-
-    document.getElementById('override-toggle').addEventListener('change', (e) => {
-      document.getElementById('days-row').style.display = e.target.checked ? 'flex' : 'none';
-      updateSummary();
-    });
-
-    document.getElementById('days-input').addEventListener('input', updateSummary);
   }
 
   async function submit() {
@@ -128,9 +130,9 @@ window.AdminSubModal = (() => {
           });
           if (!res.ok) failed++;
         }
+        if (failed) alert(`${failed} subscription(s) failed. Check logs for details.`);
         close();
         if (context.onSuccess) context.onSuccess();
-        if (failed) alert(`${failed} subscription(s) failed. Check logs for details.`);
       } else {
         const res = await fetch(`${API}/api/v1/admin/subscriptions`, {
           method: 'POST',
@@ -157,6 +159,11 @@ window.AdminSubModal = (() => {
     document.getElementById('sub-modal')?.addEventListener('click', (e) => {
       if (e.target === e.currentTarget) close();
     });
+    document.getElementById('override-toggle')?.addEventListener('change', (e) => {
+      document.getElementById('days-row').style.display = e.target.checked ? 'flex' : 'none';
+      updateSummary();
+    });
+    document.getElementById('days-input')?.addEventListener('input', updateSummary);
   }
 
   document.addEventListener('DOMContentLoaded', init);
