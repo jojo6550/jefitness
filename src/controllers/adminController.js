@@ -177,17 +177,22 @@ async function createSubscription(req, res) {
     await Subscription.findOneAndUpdate(
       { stripeSubscriptionId: stripeSub.id },
       {
-        userId: user._id,
-        stripeCustomerId,
-        stripeSubscriptionId: stripeSub.id,
-        plan: planKey,
-        stripePriceId: plan.stripePriceId,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        status: 'trialing',
-        amount: plan.unitAmount,
-        currency: plan.currency || 'jmd',
-        billingEnvironment: process.env.NODE_ENV === 'production' ? 'production' : 'test',
+        $set: {
+          userId: user._id,
+          stripeCustomerId,
+          stripeSubscriptionId: stripeSub.id,
+          plan: planKey,
+          stripePriceId: plan.stripePriceId,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          status: 'trialing',
+          amount: plan.unitAmount,
+          currency: plan.currency || 'jmd',
+          billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'production' : 'test',
+        },
+        $push: {
+          statusHistory: { status: 'trialing', changedAt: new Date(), reason: 'Admin created' },
+        },
       },
       { upsert: true, new: true }
     );

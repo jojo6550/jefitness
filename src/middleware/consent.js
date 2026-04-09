@@ -20,7 +20,8 @@ const requireDataProcessingConsent = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(userId);
+    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
+    const user = req.userDoc || await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -87,7 +88,8 @@ const requireHealthDataConsent = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(userId);
+    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
+    const user = req.userDoc || await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -160,7 +162,8 @@ const requireMarketingConsent = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(userId);
+    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
+    const user = req.userDoc || await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -204,7 +207,8 @@ const checkDataRestriction = async (req, res, next) => {
       return next();
     }
 
-    const user = await User.findById(userId);
+    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
+    const user = req.userDoc || await User.findById(userId);
     if (!user) {
       return next();
     }

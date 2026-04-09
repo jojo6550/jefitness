@@ -57,8 +57,9 @@ async function auth(req, res, next) {
     const userId = decoded.userId || decoded.id;
     const tokenVersion = decoded.tokenVersion || 0;
 
-    // SECURITY: Verify token version against database (restart-safe)
-    const user = await User.findById(userId, 'tokenVersion role').lean();
+    // SECURITY: Fetch user once — includes all fields needed by downstream middleware
+    // (consent, role checks, data restriction) so they don't need to re-query
+    const user = await User.findById(userId, '+tokenVersion').lean();
 
     if (!user) {
       throw new AuthenticationError('Account not found. Please sign up or log in again.');
@@ -76,6 +77,9 @@ async function auth(req, res, next) {
     // Normalize user ID for consistency across routes
     req.user.id = userId;
     req.user.role = user.role; // SECURITY: Always use fresh role from DB
+    // Attach full user doc so downstream middleware (consent, role checks) can
+    // read from it without issuing additional DB queries
+    req.userDoc = user;
     next();
   } catch (err) {
     // SECURITY: Don't leak error details about JWT internals
@@ -133,28 +137,14 @@ async function getUserTokenVersion(userId) {
  * JWT claims can be stale if role was changed after token issuance
  */
 async function requireAdmin(req, res, next) {
-  try {
-    // SECURITY: Fetch current role from database for authoritative check
-    const user = await User.findById(req.user.id).select('role');
-
-    if (!user) {
-      return next(new AuthenticationError('User not found.'));
-    }
-
-    // SECURITY: Verify role from database
-    if (user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied. Admin privileges required.',
-      });
-    }
-
-    // Update req.user with fresh role from database
-    req.user.role = user.role;
-    next();
-  } catch (err) {
-    return next(err);
+  // auth middleware already fetched a fresh role from DB and set req.user.role
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied. Admin privileges required.',
+    });
   }
+  next();
 }
 
 /**
@@ -163,37 +153,15 @@ async function requireAdmin(req, res, next) {
  * JWT claims can be stale if role was changed after token issuance
  */
 async function requireTrainer(req, res, next) {
-  try {
-    // SECURITY: Fetch current role from database for authoritative check
-    const user = await User.findById(req.user.id).select('role');
-
-    if (!user) {
-      logger.warn('Security event: trainer_access_denied', { reason: 'user_not_found', userId: req.user.id });
-      return res.status(401).json({
-        success: false,
-        error: 'User not found',
-      });
-    }
-
-    // SECURITY: Verify role from database, not from potentially stale JWT
-    if (user.role !== 'trainer') {
-      logger.warn('Security event: trainer_access_denied', { userId: req.user.id, role: user.role });
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied. Trainer privileges required.',
-      });
-    }
-
-    // Update req.user with fresh role from database
-    req.user.role = user.role;
-    next();
-  } catch (err) {
-    logger.error('Trainer verification error', { error: err.message });
-    return res.status(500).json({
+  // auth middleware already fetched a fresh role from DB and set req.user.role
+  if (req.user?.role !== 'trainer') {
+    logger.warn('Security event: trainer_access_denied', { userId: req.user?.id, role: req.user?.role });
+    return res.status(403).json({
       success: false,
-      error: 'Failed to verify trainer status',
+      error: 'Access denied. Trainer privileges required.',
     });
   }
+  next();
 }
 
 /**
