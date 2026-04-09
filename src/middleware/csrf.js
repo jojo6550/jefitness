@@ -6,8 +6,15 @@ const { logger } = require('../services/logger');
  * Generates tokens for safe methods (GET, HEAD, OPTIONS)
  * Validates tokens for state-changing methods (POST, PUT, DELETE, PATCH)
  *
- * SECURITY: Uses in-memory storage with TTL for token management
- * Tokens are single-use and expire after 1 hour
+ * SECURITY: Uses in-memory storage with TTL for token management.
+ * Tokens are single-use and expire after 1 hour.
+ *
+ * NOTE: The in-memory store is intentional for the current single-instance
+ * deployment on Render. Tokens are lost on server restart, but this only
+ * affects unauthenticated form submissions — all authenticated API routes
+ * bypass CSRF because they carry an httpOnly JWT cookie (SameSite: strict)
+ * which provides equivalent CSRF protection. If this app ever scales to
+ * multiple instances, replace this.tokens with a shared Redis/DB store.
  */
 class CSRFProtection {
   constructor() {

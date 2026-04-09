@@ -315,10 +315,16 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
  * @returns {Promise<Object>} Stripe subscription object
  */
 async function createSubscription(customerId, plan) {
+  // This function is deprecated — all subscriptions go through createCheckoutSession.
+  // PRODUCT_IDS was removed; calling this will throw to surface the miscall clearly.
+  throw new Error(
+    'createSubscription is deprecated. Use createCheckoutSession instead.'
+  );
+  /* eslint-disable no-unreachable */
   try {
     logger.info('createSubscription called', { customerId, plan });
 
-    const productId = PRODUCT_IDS[plan];
+    const productId = undefined; // PRODUCT_IDS removed — see deprecation above
     logger.debug('Product ID for plan', { plan, productId });
     if (!productId) {
       throw new Error(`Invalid plan: ${plan}`);

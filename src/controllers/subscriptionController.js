@@ -280,6 +280,16 @@ const subscriptionController = {
           logger.warn('[VERIFY-SESSION] User not found for customer:', {
             customer: session.customer,
           });
+        } else if (user._id.toString() !== req.user.id) {
+          logger.warn('[VERIFY-SESSION] Authenticated user does not own this checkout session', {
+            authenticatedUserId: req.user.id,
+            sessionCustomerUserId: user._id,
+            sessionId,
+          });
+          return res.status(403).json({
+            success: false,
+            message: 'Session does not belong to the authenticated user',
+          });
         } else {
           const priceItem = stripeSub.items?.data[0];
           const priceId = priceItem?.price?.id;

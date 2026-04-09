@@ -155,7 +155,7 @@ const startRenewalReminderJob = () => {
  * client names and times.
  */
 const startTrainerDailyEmailJob = () => {
-  cron.schedule('0 0 * * *', async () => {
+  cron.schedule('0 4 * * *', async () => {
     logger.info('Running daily trainer schedule email job');
     try {
       const now = new Date();
@@ -215,7 +215,7 @@ const startTrainerDailyEmailJob = () => {
     }
   });
 
-  logger.info('Trainer daily schedule email job scheduled (0 0 * * *)');
+  logger.info('Trainer daily schedule email job scheduled (0 4 * * * — 4 AM daily)');
 };
 
 module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob };

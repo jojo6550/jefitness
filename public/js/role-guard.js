@@ -1,39 +1,18 @@
-// role-guard.js - Frontend role-based access control
+// role-guard.js - Frontend session verification for protected pages.
+// Uses AuthCache (backed by the httpOnly cookie) instead of localStorage,
+// which was never populated by the login flow and made this guard a no-op.
 document.addEventListener('DOMContentLoaded', () => {
-  const userRole = localStorage.getItem('userRole');
+  const protectedPages = ['dashboard.html', 'trainer-dashboard.html', 'admin.html'];
   const currentPage = window.location.pathname.split('/').pop();
 
-  // Define protected routes and their required roles
-  const protectedRoutes = {
-    'dashboard.html': 'user' // Both admin and user can access user dashboard
-  };
+  // Also guard the root path (/dashboard clean URL served by Express)
+  const isProtected =
+    protectedPages.includes(currentPage) ||
+    protectedPages.some(p => window.location.pathname.endsWith('/' + p.replace('.html', '')));
 
-  // Check if current page is protected
-  if (protectedRoutes[currentPage]) {
-    // Verify session validity with backend (cookie is sent automatically)
-    verifySession();
-  }
-
-  async function verifySession() {
-    try {
-      await window.AuthCache.getMe();
-    } catch (error) {
-      console.error('Session verification failed:', error);
-      localStorage.removeItem('userRole');
+  if (isProtected) {
+    window.AuthCache.getMe().catch(() => {
       window.location.href = '/login';
-    }
+    });
   }
 });
-
-// Utility function to check if user has required role
-function hasRole(requiredRole) {
-  const userRole = localStorage.getItem('userRole');
-  return userRole === requiredRole;
-}
-
-// Utility function to logout
-function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('userRole');
-  window.location.href = '/login';
-}

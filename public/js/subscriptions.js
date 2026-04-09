@@ -9,7 +9,7 @@
 
 window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 
-const STRIPE_PUBLIC_KEY ='pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252MbWbTj9xGMhhlHKpGXQXPmUex2WOVb2kuiVzsqSKAQp36q00qAufxywd';
+const STRIPE_PUBLIC_KEY = 'pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252MbWbTj9xGMhhlHKpGXQXPmUex2WOVb2kuiVzsqSKAQp36q00qAufxywd';
 
 
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -152,14 +152,14 @@ function parseDate(value, fallback) {
 }
 
 /**
- * Safely format timestamp/Date/string to Date object for display.
- * Handles backend ms timestamps, raw Stripe seconds, strings. Prevents double-multiplication bug.
+ * Safely format timestamp/Date/string to YYYY-MM-DD for display.
+ * Returns '—' when value is missing or unparseable, so the UI never shows
+ * a misleading "today" date for subscriptions with no period data.
  */
 function safeFormatDate(value) {
-  if (!value || value === 0) return new Date(); // Today fallback
+  if (!value || value === 0) return '—';
   const parsed = parseDate(value, null);
-  // Format as ISO date string for consistent display (YYYY-MM-DD)
-  return parsed && !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+  return parsed && !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : '—';
 }
 
 
@@ -449,31 +449,55 @@ async function fetchInvoices(subscriptionId) {
   return data.data || [];
 }
 
-/** Build the invoice list HTML from an array of invoice objects */
+/** Build the invoice list DOM node from an array of invoice objects.
+ *  Uses textContent for all dynamic data to prevent XSS. */
 function renderInvoiceList(invoices) {
-  let html = '<div class="invoices-scroll-container"><h5 class="mb-3">Recent Invoices</h5>';
+  const container = document.createElement('div');
+  container.className = 'invoices-scroll-container';
+
+  const heading = document.createElement('h5');
+  heading.className = 'mb-3';
+  heading.textContent = 'Recent Invoices';
+  container.appendChild(heading);
+
   invoices.forEach(invoice => {
     const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
     if (!pdfUrl) return;
+
     const date = parseDate(invoice.created, new Date()).toLocaleDateString();
     const amount = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100, invoice.currency || 'JMD');
     const status = invoice.status === 'paid' ? '✓ Paid' : 'Pending';
-    html += `
-      <div class="mb-2 p-2 border-bottom">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <strong>Invoice #${invoice.number || invoice.id.slice(-8)}</strong>
-            <div class="small text-muted">${date} - ${amount} - ${status}</div>
-          </div>
-          <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
-            Download
-          </a>
-        </div>
-      </div>
-    `;
+    const invoiceLabel = 'Invoice #' + (invoice.number || invoice.id.slice(-8));
+
+    const row = document.createElement('div');
+    row.className = 'mb-2 p-2 border-bottom';
+
+    const inner = document.createElement('div');
+    inner.className = 'd-flex justify-content-between align-items-center';
+
+    const info = document.createElement('div');
+    const strong = document.createElement('strong');
+    strong.textContent = invoiceLabel;
+    const meta = document.createElement('div');
+    meta.className = 'small text-muted';
+    meta.textContent = `${date} - ${amount} - ${status}`;
+    info.appendChild(strong);
+    info.appendChild(meta);
+
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'btn btn-sm btn-outline-primary';
+    link.textContent = 'Download';
+
+    inner.appendChild(info);
+    inner.appendChild(link);
+    row.appendChild(inner);
+    container.appendChild(row);
   });
-  html += '</div>';
-  return html;
+
+  return container;
 }
 
 /** Fetch and display invoices for a subscription */
@@ -486,10 +510,13 @@ async function downloadInvoices(subscriptionId) {
     }
     const alertDiv = document.createElement('div');
     alertDiv.className = 'alert alert-info alert-dismissible fade show';
-    alertDiv.innerHTML = `
-      ${renderInvoiceList(invoices)}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
+    alertDiv.appendChild(renderInvoiceList(invoices));
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close';
+    closeBtn.setAttribute('data-bs-dismiss', 'alert');
+    closeBtn.setAttribute('aria-label', 'Close');
+    alertDiv.appendChild(closeBtn);
     alertContainer.innerHTML = '';
     alertContainer.appendChild(alertDiv);
   } catch (err) {

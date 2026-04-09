@@ -20,7 +20,11 @@ window.AuthCache = (() => {
             return res.json();
           })
           .catch(err => {
-            _promise = null; // reset so next caller retries
+            // Defer the reset to the next microtask tick so all concurrent callers
+            // that already hold a reference to this promise receive the rejection
+            // before it's cleared. Without this, a second caller that runs between
+            // the throw and the null assignment would fire a duplicate fetch.
+            Promise.resolve().then(() => { _promise = null; });
             throw err;
           });
       }

@@ -72,6 +72,12 @@ function validateConfig() {
 
 app.set('trust proxy', 1);
 
+// Webhooks MUST be registered BEFORE body parsers.
+// The webhook router applies express.raw() internally so Stripe can verify
+// the raw Buffer body for signature checking. If express.json() runs first,
+// the body stream is already consumed and constructEvent() will always throw.
+app.use(['/webhooks', '/webhook'], webhookRouter);
+
 // Body parsing
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ limit: '100kb', extended: false }));
@@ -127,13 +133,6 @@ app.get('/favicon.ico', (req, res) => {
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // -----------------------------
-// Webhooks
-// -----------------------------
-// Webhooks BEFORE body parsers for raw Stripe signature verification
-// (CSRF bypassed via UA+sig check for root / misconfigs)
-app.use(['/webhooks', '/webhook'], webhookRouter);
-
-// -----------------------------
 // Clean URL handler for frontend pages
 // -----------------------------
 app.use((req, res, next) => {
@@ -162,8 +161,13 @@ app.use((req, res, next) => {
 // -----------------------------
 // Health & CSRF
 // -----------------------------
+// Cache Stripe connectivity result for 5 minutes to avoid a live API call on
+// every health ping (keep-alive fires every 10 min; transient blips shouldn't
+// flip the health status on every single request).
+let stripeHealthCache = { result: null, checkedAt: 0 };
+const STRIPE_HEALTH_TTL = 5 * 60 * 1000; // 5 minutes
+
 app.get('/api/health', async (req, res) => {
-  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
   const checks = {
     db: isDbConnected(),
     timestamp: new Date().toISOString(),
@@ -171,14 +175,22 @@ app.get('/api/health', async (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   };
 
-  // Check Stripe API connectivity
-  try {
-    await stripe.customers.list({ limit: 1 });
-    checks.stripe = true;
-  } catch (err) {
-    logger.warn('Stripe API health check failed', { error: err.message });
-    checks.stripe = false;
+  // Check Stripe API connectivity (cached)
+  const now = Date.now();
+  if (now - stripeHealthCache.checkedAt > STRIPE_HEALTH_TTL) {
+    try {
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
+        maxNetworkRetries: 0, // no retries — this is a probe, not a critical call
+        timeout: 5000,
+      });
+      await stripe.customers.list({ limit: 1 });
+      stripeHealthCache = { result: true, checkedAt: now };
+    } catch (err) {
+      logger.warn('Stripe API health check failed', { error: err.message });
+      stripeHealthCache = { result: false, checkedAt: now };
+    }
   }
+  checks.stripe = stripeHealthCache.result;
 
   // Overall status
   const allHealthy = checks.db && checks.stripe;
@@ -311,7 +323,13 @@ app.use(errorHandler);
 // -----------------------------
 // Cron Jobs
 // -----------------------------
+let cleanupJobRunning = false;
 cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
+  if (cleanupJobRunning) {
+    logger.warn('Cleanup job skipped — previous run still in progress');
+    return;
+  }
+  cleanupJobRunning = true;
   try {
     const cleanupTime = parseInt(process.env.CLEANUP_TIME, 10) || 30;
     const cutoff = new Date(Date.now() - cleanupTime * 60 * 1000);
@@ -323,6 +341,8 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
       logger.info(`Deleted ${result.deletedCount} unverified accounts`);
   } catch (err) {
     logger.error('Cleanup job failed', err);
+  } finally {
+    cleanupJobRunning = false;
   }
 });
 

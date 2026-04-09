@@ -58,7 +58,7 @@ async function loadSubscriptionStatus() {
             let statusText = '';
             let statusClass = '';
 
-            if (subscription.hasSubscription && subscription.status === 'active') {
+            if (subscription && subscription.status === 'active') {
                 // Display "Active Plan: X Months"
                 const planDisplay = subscription.plan.replace('-', ' ').toUpperCase();
                 statusText = `Active Plan: ${planDisplay}`;
@@ -77,7 +77,7 @@ async function loadSubscriptionStatus() {
             actionsElement.classList.remove('d-none');
 
             // Show appropriate buttons based on subscription status
-            if (subscription.hasSubscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+            if (subscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
                 document.getElementById('cancel-subscription-btn').classList.remove('d-none');
                 upgradeBtn.classList.add('d-none');
                 document.getElementById('subscription-card')?.classList.add('d-none');
@@ -119,13 +119,13 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         const currentData = await currentRes.json();
         const subscription = currentData.data;
 
-        if (!subscription || !subscription.id) {
+        if (!subscription || !subscription._id) {
             throw new Error('No active subscription found');
         }
 
-        // Cancel the subscription
-        const cancelRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/${subscription.stripeSubscriptionId}/cancel`, {
-            method: 'DELETE',
+        // Cancel the subscription — POST /cancel/:mongoId (not Stripe ID)
+        const cancelRes = await fetch(`${window.API_BASE}/api/v1/subscriptions/cancel/${subscription._id}`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },

@@ -97,6 +97,9 @@ const requireHealthDataConsent = async (req, res, next) => {
       });
     }
 
+    // Admin users are exempt from consent requirements — they manage platform data
+    if (user.role === 'admin') return next();
+
     if (!user.healthDataConsent.given) {
       monitoringService.recordSecurityEvent('health_consent_required', {
         userId,
