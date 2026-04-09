@@ -20,12 +20,7 @@ async function logoutUser() {
 
 async function checkSessionAndRedirect() {
     try {
-        const response = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
-            credentials: 'include',
-        });
-        if (!response.ok) {
-            window.location.replace('/login');
-        }
+        await window.AuthCache.getMe();
     } catch {
         window.location.replace('/login');
     }

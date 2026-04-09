@@ -16,16 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function verifySession() {
     try {
-      const API_BASE = window.ApiConfig.getAPI_BASE();
-      const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        // Session is invalid or expired
-        localStorage.removeItem('userRole');
-        window.location.href = '/login';
-      }
+      await window.AuthCache.getMe();
     } catch (error) {
       console.error('Session verification failed:', error);
       localStorage.removeItem('userRole');

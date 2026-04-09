@@ -3,19 +3,14 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 window.initDashboard = async () => {
     try {
-      const res = await fetch(`${window.API_BASE}/api/v1/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-      });
+      const user = await window.AuthCache.getMe().catch(() => null);
 
-      if (!res.ok) {
+      if (!user) {
         console.warn('User data fetch failed');
         const adminLink = document.querySelector('a[href="/admin"]');
         if (adminLink) adminLink.classList.add('d-none');
         return;
       }
-
-      const user = await res.json();
 
       // Hide Admin Dashboard link if not admin
       if (user.role !== 'admin') {

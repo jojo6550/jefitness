@@ -114,9 +114,7 @@ window.AdminClientModal = (() => {
   async function getRole() {
     if (_role) return _role;
     try {
-      const res = await fetch(`${API}/api/v1/auth/me`, { credentials: 'include' });
-      if (!res.ok) return null;
-      const data = await res.json();
+      const data = await window.AuthCache.getMe();
       _role = data.data?.role || null;
     } catch { _role = null; }
     return _role;
