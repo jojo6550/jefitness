@@ -111,7 +111,8 @@ app.use((req, res, next) => {
     req.path.startsWith('/api') ||
     req.path.startsWith('/webhook') ||
     req.path.startsWith('/api-docs') ||
-    req.path.startsWith('/redoc')
+    req.path.startsWith('/redoc') ||
+    req.path.startsWith('/admin')
   ) {
     return next();
   }
@@ -197,6 +198,11 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
     res.status(502).json({ error: 'Food search unavailable' });
   });
 });
+
+// -----------------------------
+// Admin dashboard page (auth + admin role enforced inside the router)
+// -----------------------------
+app.use('/admin', require('./routes/admin'));
 
 // -----------------------------
 // API Routes
