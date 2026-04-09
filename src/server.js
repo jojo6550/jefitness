@@ -123,7 +123,8 @@ app.use((req, res, next) => {
     return next();
   }
 
-  const match = req.path.match(/^\/([\w-]+)$/);
+  // Match single-segment paths (/dashboard) and two-segment paths (/clients/:id)
+  const match = req.path.match(/^\/([\w-]+)(?:\/([\w-]+))?$/);
   if (!match) return next();
 
   const filePath = path.join(__dirname, '..', 'public', 'pages', `${match[1]}.html`);

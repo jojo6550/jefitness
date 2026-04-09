@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Profile — JE Fitness</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+  <style>
+    :root {
+      --ink:        #080c12;
+      --ink-1:      #0d1420;
+      --ink-2:      #111c2e;
+      --ink-3:      #172138;
+      --border:     #1e2d45;
+      --border-hi:  #2a3f5f;
+      --text-dim:   #3d5a80;
+      --text-mid:   #6b8cae;
+      --text-body:  #a8bfd8;
+      --text-hi:    #dce8f5;
+      --text-bright:#f0f7ff;
+      --amber:      #f59e0b;
+      --amber-dim:  #1a1000;
+      --amber-glow: rgba(245,158,11,.15);
+      --indigo:     #6366f1;
+      --indigo-dim: #0d0e2e;
+      --indigo-glow:rgba(99,102,241,.15);
+      --green:      #22d3a5;
+      --green-dim:  #001a12;
+      --red:        #f43f5e;
+      --red-dim:    #1a0009;
+      --cyan:       #22d3ee;
+      --mono:       'Space Mono', monospace;
+      --sans:       'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--ink);
+      color: var(--text-body);
+      font-family: var(--sans);
+      font-size: 13px;
+      min-height: 100vh;
+      /* subtle grid texture */
+      background-image:
+        linear-gradient(rgba(99,102,241,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* ── Loading state ─────────────────────────────── */
+    #page-loading {
+      position: fixed; inset: 0; background: var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; z-index: 999;
+    }
+    .loading-logo {
+      font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+      letter-spacing: .15em; text-transform: uppercase;
+      animation: blink 1.2s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .loading-bar-wrap { width: 200px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+    .loading-bar { height: 100%; background: var(--indigo); border-radius: 1px; animation: loadprogress 1.5s ease-out forwards; }
+    @keyframes loadprogress { from{width:0} to{width:100%} }
+
+    /* ── Error state ───────────────────────────────── */
+    #page-error {
+      position: fixed; inset: 0; background: var(--ink);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+    }
+    #page-error.visible { display: flex; }
+    .error-code { font-family: var(--mono); font-size: 48px; font-weight: 700; color: var(--red); opacity: .3; }
+    .error-msg { font-family: var(--mono); font-size: 12px; color: var(--text-mid); }
+
+    /* ── Layout ────────────────────────────────────── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    #app.visible { display: flex; }
+
+    /* ── Topbar ────────────────────────────────────── */
+    #topbar {
+      height: 52px; background: var(--ink-1);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-back {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--text-dim); text-decoration: none;
+      letter-spacing: .1em; text-transform: uppercase;
+      padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border);
+      transition: all .15s;
+    }
+    .topbar-back:hover { border-color: var(--indigo); color: var(--indigo); }
+    .topbar-crumb {
+      font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+      letter-spacing: .08em;
+    }
+    .topbar-crumb span { color: var(--text-hi); }
+    .topbar-spacer { flex: 1; }
+    .topbar-id {
+      font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+      background: var(--ink-2); border: 1px solid var(--border);
+      padding: 3px 8px; border-radius: 4px; letter-spacing: .05em;
+    }
+
+    /* ── Hero ──────────────────────────────────────── */
+    #hero {
+      background: var(--ink-1);
+      border-bottom: 1px solid var(--border);
+      padding: 28px 24px 24px;
+      position: relative; overflow: hidden;
+      opacity: 0; animation: fadeUp .4s ease .1s forwards;
+    }
+    #hero::before {
+      content: '';
+      position: absolute; top: -60px; right: -60px;
+      width: 240px; height: 240px;
+      background: radial-gradient(circle, var(--indigo-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { display: flex; align-items: center; gap: 20px; max-width: 1100px; margin: 0 auto; }
+    .hero-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 20px; font-weight: 700; color: white;
+      flex-shrink: 0; position: relative;
+    }
+    .hero-avatar::after {
+      content: '';
+      position: absolute; inset: -3px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.1);
+    }
+    .hero-info { flex: 1; min-width: 0; }
+    .hero-name {
+      font-family: var(--sans); font-size: 22px; font-weight: 700;
+      color: var(--text-bright); letter-spacing: -.01em; line-height: 1.2;
+    }
+    .hero-email { font-family: var(--mono); font-size: 11px; color: var(--text-mid); margin-top: 3px; }
+    .hero-meta { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .hero-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .hp-green { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,211,165,.15); }
+    .hp-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(244,63,94,.15); }
+    .hp-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,158,11,.15); }
+    .hp-indigo{ background: var(--indigo-dim);color: var(--indigo);border: 1px solid rgba(99,102,241,.2); }
+    .hp-gray  { background: var(--ink-2);     color: var(--text-mid); border: 1px solid var(--border); }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .hero-stats {
+      display: grid; grid-template-columns: repeat(3, auto);
+      gap: 0; border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .hero-stat {
+      padding: 12px 20px; border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .hero-stat:last-child { border-right: none; }
+    .hero-stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--text-bright); line-height: 1; }
+    .hero-stat-label { font-size: 9px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: .08em; margin-top: 4px; }
+
+    /* ── Tabs ──────────────────────────────────────── */
+    #tabs-bar {
+      background: var(--ink-1); border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; gap: 2px;
+      position: sticky; top: 52px; z-index: 40;
+      overflow-x: auto;
+    }
+    #tabs-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 12px 16px; font-family: var(--mono); font-size: 10px;
+      font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text-dim); background: transparent; border: none;
+      border-bottom: 2px solid transparent; cursor: pointer;
+      white-space: nowrap; transition: color .15s, border-color .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text-body); }
+    .tab-btn.active { color: var(--indigo); border-bottom-color: var(--indigo); }
+    .tab-count {
+      font-size: 8px; background: var(--ink-3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1px 5px; color: var(--text-mid);
+    }
+    .tab-btn.active .tab-count { background: var(--indigo-dim); border-color: rgba(99,102,241,.3); color: var(--indigo); }
+
+    /* ── Content ───────────────────────────────────── */
+    #tab-content { flex: 1; padding: 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active {
+      display: block;
+      animation: fadeUp .25s ease forwards;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Section cards ─────────────────────────────── */
+    .section { margin-bottom: 20px; }
+    .section-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: var(--mono); font-size: 9px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim);
+    }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+
+    .card {
+      background: var(--ink-1); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+    }
+
+    /* ── Data grid ─────────────────────────────────── */
+    .data-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+    .data-cell {
+      padding: 14px 16px; border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-cell:nth-child(n) { }
+    .data-label {
+      font-family: var(--mono); font-size: 8px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em; color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+    .data-val {
+      font-size: 13px; font-weight: 500; color: var(--text-hi);
+    }
+    .data-val.mono { font-family: var(--mono); font-size: 12px; }
+    .data-val.dim { color: var(--text-mid); }
+
+    /* ── Table ─────────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      padding: 10px 14px; font-family: var(--mono); font-size: 8px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--text-dim); border-bottom: 1px solid var(--border);
+      text-align: left; background: var(--ink-2);
+    }
+    .data-table td {
+      padding: 10px 14px; font-size: 12px; color: var(--text-body);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: rgba(99,102,241,.04); }
+
+    /* ── Empty state ───────────────────────────────── */
+    .empty-state {
+      padding: 40px 20px; text-align: center;
+      font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    }
+    .empty-icon { font-size: 28px; margin-bottom: 10px; opacity: .4; }
+
+    /* ── Consent indicators ────────────────────────── */
+    .consent-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+    .consent-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 8px;
+      background: var(--ink-2); border: 1px solid var(--border);
+    }
+    .consent-icon { font-size: 18px; flex-shrink: 0; }
+    .consent-name { font-size: 12px; font-weight: 600; color: var(--text-hi); }
+    .consent-date { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+    .consent-check { margin-left: auto; font-size: 16px; }
+
+    /* ── Rights grid ───────────────────────────────── */
+    .rights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 16px; }
+    .right-item {
+      padding: 12px; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--ink-2);
+    }
+    .right-name { font-size: 11px; font-weight: 600; color: var(--text-hi); margin-bottom: 4px; }
+    .right-status { font-family: var(--mono); font-size: 9px; }
+    .right-pending { color: var(--amber); }
+    .right-none    { color: var(--text-dim); }
+    .right-done    { color: var(--green); }
+
+    /* ── Sub bar ───────────────────────────────────── */
+    .sub-bar-wrap { height: 6px; background: var(--ink-3); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .sub-bar { height: 100%; border-radius: 3px; transition: width .4s ease; }
+
+    /* ── Workout / meal rows ───────────────────────── */
+    .log-date { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+    .exercise-tag {
+      display: inline-block; padding: 1px 7px; border-radius: 4px;
+      font-size: 10px; font-weight: 600; background: var(--ink-3);
+      border: 1px solid var(--border); color: var(--text-body);
+      margin: 1px 2px;
+    }
+    .kcal-badge {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      color: var(--amber);
+    }
+
+    /* ── Goal item ─────────────────────────────────── */
+    .goal-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-bottom: 1px solid var(--border);
+    }
+    .goal-item:last-child { border-bottom: none; }
+    .goal-exercise { font-size: 13px; font-weight: 600; color: var(--text-hi); flex: 1; }
+    .goal-target { font-family: var(--mono); font-size: 11px; color: var(--text-mid); }
+    .goal-achieved { font-size: 16px; }
+
+    /* ── Measurement row ───────────────────────────── */
+    .meas-val { font-family: var(--mono); font-size: 12px; color: var(--cyan); }
+
+    /* ── Scrollable table container ────────────────── */
+    .table-scroll { overflow-x: auto; }
+
+    /* ── Program badge ─────────────────────────────── */
+    .prog-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 600;
+      background: var(--indigo-dim); color: var(--indigo);
+      border: 1px solid rgba(99,102,241,.2);
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loading">
+  <div class="loading-logo">JE FITNESS ■ LOADING CLIENT PROFILE</div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+</div>
+
+<div id="page-error">
+  <div class="error-code">404</div>
+  <div class="error-msg">CLIENT_NOT_FOUND // ACCESS_DENIED</div>
+  <a href="/admin" style="margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--indigo);text-decoration:none;border:1px solid rgba(99,102,241,.3);padding:6px 14px;border-radius:5px">← BACK TO ADMIN</a>
+</div>
+
+<div id="app">
+  <!-- Topbar -->
+  <div id="topbar">
+    <a href="/admin" class="topbar-back"><i class="bi bi-arrow-left"></i> Admin</a>
+    <span class="topbar-crumb">Clients / <span id="crumb-name">—</span></span>
+    <div class="topbar-spacer"></div>
+    <span class="topbar-id" id="topbar-id">—</span>
+  </div>
+
+  <!-- Hero -->
+  <div id="hero">
+    <div class="hero-inner">
+      <div class="hero-avatar" id="hero-avatar">?</div>
+      <div class="hero-info">
+        <div class="hero-name" id="hero-name">Loading…</div>
+        <div class="hero-email" id="hero-email">—</div>
+        <div class="hero-meta" id="hero-meta"></div>
+      </div>
+      <div class="hero-stats" id="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="stat-workouts">—</div>
+          <div class="hero-stat-label">Workouts</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="stat-meals">—</div>
+          <div class="hero-stat-label">Meals</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="stat-goals">—</div>
+          <div class="hero-stat-label">Goals</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div id="tabs-bar">
+    <button class="tab-btn active" data-tab="overview"><i class="bi bi-person-lines-fill"></i> Overview</button>
+    <button class="tab-btn" data-tab="workouts"><i class="bi bi-activity"></i> Workouts <span class="tab-count" id="tc-workouts">0</span></button>
+    <button class="tab-btn" data-tab="nutrition"><i class="bi bi-egg-fried"></i> Nutrition <span class="tab-count" id="tc-nutrition">0</span></button>
+    <button class="tab-btn" data-tab="programs"><i class="bi bi-collection-play"></i> Programs <span class="tab-count" id="tc-programs">0</span></button>
+    <button class="tab-btn" data-tab="appointments"><i class="bi bi-calendar-event"></i> Appts <span class="tab-count" id="tc-appts">0</span></button>
+    <button class="tab-btn" data-tab="medical"><i class="bi bi-file-medical"></i> Medical <span class="tab-count" id="tc-medical">0</span></button>
+    <button class="tab-btn" data-tab="gdpr"><i class="bi bi-shield-lock"></i> GDPR</button>
+  </div>
+
+  <!-- Content -->
+  <div id="tab-content">
+
+    <!-- Overview -->
+    <div class="tab-panel active" id="panel-overview">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Personal</span><div class="section-line"></div></div>
+        <div class="card"><div class="data-grid" id="grid-personal"></div></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Subscription</span><div class="section-line"></div></div>
+        <div class="card" id="sub-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Body Measurements</span><div class="section-line"></div></div>
+        <div class="card" id="measurements-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Workout Goals</span><div class="section-line"></div></div>
+        <div class="card" id="goals-card"></div>
+      </div>
+    </div>
+
+    <!-- Workouts -->
+    <div class="tab-panel" id="panel-workouts">
+      <div class="card">
+        <div class="table-scroll">
+          <table class="data-table" id="table-workouts">
+            <thead><tr><th>Date</th><th>Workout</th><th>Exercises</th><th>Sets Total</th></tr></thead>
+            <tbody id="tbody-workouts"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nutrition -->
+    <div class="tab-panel" id="panel-nutrition">
+      <div class="card">
+        <div class="table-scroll">
+          <table class="data-table" id="table-nutrition">
+            <thead><tr><th>Date</th><th>Meal</th><th>Foods</th><th>Calories</th></tr></thead>
+            <tbody id="tbody-nutrition"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Programs -->
+    <div class="tab-panel" id="panel-programs">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Assigned Programs</span><div class="section-line"></div></div>
+        <div class="card" id="assigned-programs-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Purchased Programs</span><div class="section-line"></div></div>
+        <div class="card" id="purchased-programs-card"></div>
+      </div>
+    </div>
+
+    <!-- Appointments -->
+    <div class="tab-panel" id="panel-appointments">
+      <div class="card" id="appointments-card">
+        <div class="empty-state"><div class="empty-icon">📅</div>Loading appointments…</div>
+      </div>
+    </div>
+
+    <!-- Medical -->
+    <div class="tab-panel" id="panel-medical">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Medical Info</span><div class="section-line"></div></div>
+        <div class="card" id="medical-info-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Documents</span><div class="section-line"></div></div>
+        <div class="card" id="medical-docs-card"></div>
+      </div>
+    </div>
+
+    <!-- GDPR -->
+    <div class="tab-panel" id="panel-gdpr">
+      <div class="section">
+        <div class="section-head"><span class="section-title">Consent Status</span><div class="section-line"></div></div>
+        <div class="card" id="consent-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Data Subject Rights</span><div class="section-line"></div></div>
+        <div class="card" id="rights-card"></div>
+      </div>
+      <div class="section">
+        <div class="section-head"><span class="section-title">Privacy Settings</span><div class="section-line"></div></div>
+        <div class="card"><div class="data-grid" id="grid-privacy"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+</div><!-- /app -->
+
+<script src="/js/api.config.js"></script>
+<script src="/js/client-profile.js"></script>
+</body>
+</html>

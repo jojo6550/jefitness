@@ -230,4 +230,27 @@ async function createSubscription(req, res) {
   }
 }
 
-module.exports = { getMonthlyRevenue, bulkDeleteClients, createSubscription };
+/**
+ * GET /api/v1/admin/clients/:id
+ * Returns full client profile: user doc + active subscription.
+ */
+async function getClientProfile(req, res) {
+  try {
+    const { id } = req.params;
+
+    const [user, subscription] = await Promise.all([
+      User.findById(id).select('-password -tokenVersion -emailVerificationToken -emailVerificationExpires -passwordResetToken -resetPasswordExpires -twoFactorSecret -twoFactorBackupCodes').lean(),
+      Subscription.findOne({ userId: id, status: { $in: ['active', 'trialing'] } }).lean(),
+    ]);
+
+    if (!user) return res.status(404).json({ msg: 'Client not found' });
+    if (user.role === 'admin') return res.status(403).json({ msg: 'Cannot view admin accounts' });
+
+    res.json({ client: { ...user, subscription: subscription || null } });
+  } catch (err) {
+    logger.error('Failed to fetch client profile', { error: err.message });
+    res.status(500).json({ msg: 'Failed to fetch client profile' });
+  }
+}
+
+module.exports = { getMonthlyRevenue, bulkDeleteClients, createSubscription, getClientProfile };

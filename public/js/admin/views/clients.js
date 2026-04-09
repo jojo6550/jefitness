@@ -198,7 +198,7 @@ window.AdminClients = (() => {
 
       container.querySelectorAll('.client-view').forEach((btn) => {
         btn.addEventListener('click', () => {
-          window.open(`/clients/${btn.dataset.id}`, '_blank');
+          window.AdminClientModal.open(btn.dataset.id);
         });
       });
 

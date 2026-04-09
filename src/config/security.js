@@ -50,11 +50,12 @@ const securityConfig = {
           'https://via.placeholder.com',
           'https://cdn.jsdelivr.net',
           'https://*.stripe.com',
+          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:10000', 'http://127.0.0.1:10000'] : []),
         ],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],
-        upgradeInsecureRequests: [],
+        ...(process.env.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
       },
     },
     hsts: {
