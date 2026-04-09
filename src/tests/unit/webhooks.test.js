@@ -6,21 +6,23 @@ const request = require('supertest');
 // 🔒 ENV SETUP
 // --------------------
 process.env.NODE_ENV = 'test';
+process.env.STRIPE_SECRET_KEY = 'sk_test_mock_secret_key';
 process.env.STRIPE_WEBHOOK_SECRET =
   'whsec_4c5978863ce9b952c5f9f7a48da28b6136a1b8d63191a99262064360bfac29a8';
 // --------------------
 // 🧪 MOCK STRIPE
 // --------------------
+const mockStripeInstance = {
+  webhooks: {
+    constructEvent: jest.fn(),
+  },
+};
+
 jest.mock('stripe', () => {
-  return jest.fn(() => ({
-    webhooks: {
-      constructEvent: jest.fn(),
-    },
-  }));
+  return jest.fn(() => mockStripeInstance);
 });
 
 const stripe = require('stripe');
-const mockStripeInstance = stripe();
 
 // --------------------
 // 🧪 MOCK MIDDLEWARE

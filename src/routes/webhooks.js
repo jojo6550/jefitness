@@ -33,10 +33,7 @@ const ALLOWED_WEBHOOK_EVENTS = new Set(ALLOWED_EVENTS_ARRAY);
 // Middleware to parse Stripe webhook payload as raw buffer
 // IMPORTANT: This route must be registered BEFORE express.json() in server.js
 // so the body stream is not consumed before Stripe signature verification.
-const webhookMiddleware =
-  process.env.NODE_ENV === 'test'
-    ? express.json()
-    : express.raw({ type: 'application/json' });
+const webhookMiddleware = express.raw({ type: 'application/json' });
 
 // ===== ROUTE =====
 // Handler extracted so it can be registered at both /stripe and / (for CLI compatibility)
@@ -96,10 +93,9 @@ async function handleStripeWebhook(req, res) {
       .json({ received: true, processed: false, reason: 'Event already processed' });
   }
 
-  // SECURITY: Mark event as processed BEFORE handling (prevents race conditions on retries)
-  await markWebhookEventProcessed(event.id, event.type);
-
   try {
+    // SECURITY: Mark event as processed BEFORE handling (prevents race conditions on retries)
+    await markWebhookEventProcessed(event.id, event.type);
     switch (event.type) {
       case 'customer.created':
         await handleCustomerCreated(event.data.object);
