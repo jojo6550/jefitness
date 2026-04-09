@@ -93,6 +93,11 @@ if (process.env.NODE_ENV !== 'production') {
 const cacheControl = require('./middleware/cacheControl');
 app.use(cacheControl);
 
+// -----------------------------
+// Admin dashboard page (auth + admin role enforced inside the router)
+// -----------------------------
+app.use('/admin', require('./routes/admin'));
+
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -198,11 +203,6 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
     res.status(502).json({ error: 'Food search unavailable' });
   });
 });
-
-// -----------------------------
-// Admin dashboard page (auth + admin role enforced inside the router)
-// -----------------------------
-app.use('/admin', require('./routes/admin'));
 
 // -----------------------------
 // API Routes
