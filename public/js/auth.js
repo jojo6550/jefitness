@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.API_BASE = window.ApiConfig.getAPI_BASE();
 
   function redirectByRole(role) {
-    if (role === 'admin') return '/admin-dashboard';
+    if (role === 'admin') return '/admin';
     if (role === 'trainer') {
       const guideViewed = localStorage.getItem('trainerGuideViewed') === 'true';
       return guideViewed ? '/trainer-dashboard' : '/trainer-guide?onboarding=1';
