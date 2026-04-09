@@ -161,7 +161,7 @@ const verificationPollLimiter = rateLimit({
   message: { msg: 'Too many verification checks. Please wait a moment.' },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res, _next, options) => {
+  handler: (_req, res, _next, options) => {
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });

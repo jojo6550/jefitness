@@ -330,11 +330,55 @@ async function handleInvoicePaymentFailed(invoice) {
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
-  logger.info('Payment intent succeeded', { paymentIntentId: paymentIntent.id });
+  try {
+    logger.info('Payment intent succeeded', { paymentIntentId: paymentIntent.id });
+
+    // Find purchase by payment intent ID
+    const Purchase = require('../models/Purchase');
+    const purchase = await Purchase.findOne({ stripePaymentIntentId: paymentIntent.id });
+
+    if (!purchase) {
+      logger.warn('No purchase found for payment intent', { paymentIntentId: paymentIntent.id });
+      return;
+    }
+
+    // Update purchase status to completed
+    purchase.status = 'completed';
+    await purchase.save();
+
+    logger.info('Purchase marked as completed', { purchaseId: purchase._id, paymentIntentId: paymentIntent.id });
+  } catch (err) {
+    logger.error('Error handling payment intent succeeded', {
+      paymentIntentId: paymentIntent.id,
+      error: err.message
+    });
+  }
 }
 
 async function handlePaymentIntentFailed(paymentIntent) {
-  logger.warn('Payment intent failed', { paymentIntentId: paymentIntent.id });
+  try {
+    logger.warn('Payment intent failed', { paymentIntentId: paymentIntent.id });
+
+    // Find purchase by payment intent ID
+    const Purchase = require('../models/Purchase');
+    const purchase = await Purchase.findOne({ stripePaymentIntentId: paymentIntent.id });
+
+    if (!purchase) {
+      logger.warn('No purchase found for payment intent', { paymentIntentId: paymentIntent.id });
+      return;
+    }
+
+    // Update purchase status to failed
+    purchase.status = 'failed';
+    await purchase.save();
+
+    logger.info('Purchase marked as failed', { purchaseId: purchase._id, paymentIntentId: paymentIntent.id });
+  } catch (err) {
+    logger.error('Error handling payment intent failed', {
+      paymentIntentId: paymentIntent.id,
+      error: err.message
+    });
+  }
 }
 
 /**

@@ -9,6 +9,12 @@ const connectDB = async () => {
     try {
       await mongoose.connect(process.env.MONGO_URI, {
         serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+        maxPoolSize: 20,                // Max connections in pool
+        minPoolSize: 5,                 // Min connections to maintain
+        maxIdleTimeMS: 30000,           // Close idle connections after 30s
+        socketTimeoutMS: 45000,         // Socket timeout for operations
+        retryWrites: true,              // Automatically retry writes
+        retryReads: true,               // Automatically retry reads
       });
       logger.info('MongoDB connected');
       return;

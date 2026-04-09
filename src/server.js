@@ -4,6 +4,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
+const compression = require('compression');
 
 const cron = require('node-cron');
 const helmet = require('helmet');
@@ -31,6 +32,7 @@ const {
 // Middleware
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
+const { preventNoSQLInjection } = require('./middleware/inputValidator');
 const csrfProtection = require('./middleware/csrf');
 const { corsOptions } = require('./middleware/corsConfig');
 const {
@@ -55,6 +57,15 @@ const User = require('./models/User');
 const PORT = process.env.PORT || 10000;
 const app = express();
 
+// Validate critical environment variables at startup
+function validateConfig() {
+  const required = ['JWT_SECRET', 'STRIPE_SECRET_KEY', 'MONGO_URI'];
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    throw new Error(`Critical environment variables missing: ${missing.join(', ')}`);
+  }
+}
+
 // -----------------------------
 // App Config
 // -----------------------------
@@ -66,6 +77,9 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ limit: '10kb', extended: false }));
 app.use(cookieParser());
 
+// Compression (gzip/deflate)
+app.use(compression());
+
 // CORS
 app.use(cors(corsOptions));
 
@@ -74,9 +88,10 @@ app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 
 
-// Logging, sanitization, and CSRF
+// Logging, sanitization, security, and CSRF
 app.use(requestLogger);
 app.use(sanitizeInput);
+app.use(preventNoSQLInjection); // Apply globally for defense-in-depth
 app.use(csrfProtection.middleware());
 
 // Disable caching in development
@@ -138,13 +153,30 @@ app.use((req, res, next) => {
 // -----------------------------
 // Health & CSRF
 // -----------------------------
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: isDbConnected() ? 'healthy' : 'degraded',
-    dbStatus: getDbStatus(),
+app.get('/api/health', async (req, res) => {
+  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  const checks = {
+    db: isDbConnected(),
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
+  };
+
+  // Check Stripe API connectivity
+  try {
+    await stripe.customers.list({ limit: 1 });
+    checks.stripe = true;
+  } catch (err) {
+    logger.warn('Stripe API health check failed', { error: err.message });
+    checks.stripe = false;
+  }
+
+  // Overall status
+  const allHealthy = checks.db && checks.stripe;
+  res.status(allHealthy ? 200 : 503).json({
+    status: allHealthy ? 'healthy' : 'degraded',
+    checks,
+    dbStatus: getDbStatus(),
   });
 });
 
@@ -289,6 +321,10 @@ cron.schedule(process.env.CRON_SCHEDULE || '*/30 * * * *', async () => {
 // -----------------------------
 async function startServer() {
   try {
+    // Validate critical config before connecting to anything
+    validateConfig();
+    logger.info('Configuration validated');
+
     logger.info('Connecting to MongoDB...');
     await connectDB();
     logger.info('MongoDB connected successfully');
@@ -323,12 +359,34 @@ async function startServer() {
       logger.info('Shutting down gracefully', { signal });
       stopFileWatching();
       csrfProtection.stop();
+
+      const SHUTDOWN_TIMEOUT = 10000; // 10 seconds
+      const shutdownTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timeout exceeded, force exiting');
+        process.exit(1);
+      }, SHUTDOWN_TIMEOUT);
+
       server.close(async () => {
-        await mongoose.connection.close();
-        logger.info('MongoDB connection closed');
+        clearTimeout(shutdownTimer);
+        try {
+          await mongoose.connection.close();
+          logger.info('MongoDB connection closed');
+        } catch (err) {
+          logger.error('Error closing MongoDB connection', { error: err.message });
+        }
         process.exit(0);
       });
     };
+
+    // Unhandled exception handlers
+    process.on('uncaughtException', (err) => {
+      logger.error('Uncaught Exception', { error: err.message, stack: err.stack });
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection', { reason, promise: promise.toString() });
+    });
 
     process.on('SIGINT', gracefulShutdown);
     process.on('SIGTERM', gracefulShutdown);
