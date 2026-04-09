@@ -22,15 +22,11 @@
 
     /**
      * Update all stylesheet links with version parameter
+     * DISABLED: Avoids [object Promise] bug and MIME issues
      */
-    async updateStylesheets() {
-      const links = document.querySelectorAll('link[rel="stylesheet"]');
-      for (const link of links) {
-        const href = link.getAttribute('href');
-        if (href && !href.includes('cdn.') && !href.includes('fonts.googleapis') && !href.includes('cdnjs')) {
-          link.setAttribute('href', await this.addVersionParam(href));
-        }
-      }
+    updateStylesheets() {
+      console.log('CacheVersionManager: Stylesheet versioning DISABLED to fix MIME type errors');
+      // TODO: Re-enable with proper sync version endpoint after server /version API added
     },
 
     /**

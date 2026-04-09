@@ -15,7 +15,13 @@ const cacheControl = (req, res, next) => {
   }
 
   // CSS & JS files: Cache for 1 month (will be cache-busted by version param)
-  if (path.endsWith('.css') || path.endsWith('.js')) {
+  if (path.endsWith('.css')) {
+    res.set('Content-Type', 'text/css; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=2592000'); // 30 days
+    return next();
+  }
+
+  if (path.endsWith('.js')) {
     res.set('Cache-Control', 'public, max-age=2592000'); // 30 days
     return next();
   }
