@@ -156,6 +156,11 @@ const preventNoSQLInjection = (req, res, next) => {
       return null;
     }
 
+    // SECURITY: Skip arrays to prevent hasOwnProperty error on query params like ?ids[]=1
+    if (Array.isArray(obj)) {
+      return null;
+    }
+
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         // SECURITY: Detect MongoDB operators
