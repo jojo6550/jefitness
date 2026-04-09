@@ -131,7 +131,12 @@ const trainerController = {
         ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
         : 0;
 
-    logUserAction('view_trainer_dashboard', trainerId);
+    // Fetch trainer info for logging
+    const trainer = await User.findById(trainerId).select('firstName lastName email').lean().catch(() => ({}));
+    logUserAction('view_trainer_dashboard', trainerId, {
+      trainerName: trainer?.firstName && trainer?.lastName ? `${trainer.firstName} ${trainer.lastName}` : 'Unknown',
+      trainerEmail: trainer?.email || 'Unknown',
+    });
 
     let trainerUser = { trainerEmailPreference: 'daily_digest' };
     try {
@@ -341,8 +346,10 @@ const trainerController = {
     };
     logUserAction(actionNames[status] || 'appointment_notes_updated', req.user.id, {
       appointmentId: req.params.id,
-      clientId: appointment.clientId._id,
+      trainerName: `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
+      trainerEmail: appointment.trainerId.email,
       clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+      clientEmail: appointment.clientId.email,
       date: appointment.date,
       time: appointment.time,
       status,
@@ -417,7 +424,11 @@ const trainerController = {
       }
     );
 
+    // Fetch trainer info for logging
+    const trainer = await User.findById(trainerId).select('firstName lastName email').lean().catch(() => ({}));
     logUserAction('appointment_bulk_status_updated', trainerId, {
+      trainerName: trainer?.firstName && trainer?.lastName ? `${trainer.firstName} ${trainer.lastName}` : 'Unknown',
+      trainerEmail: trainer?.email || 'Unknown',
       count: appointmentIds.length,
       status,
     });

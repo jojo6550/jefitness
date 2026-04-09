@@ -548,7 +548,10 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     // Log the successful booking
     logUserAction('book_appointment', req.user.id, {
       appointmentId: appointment._id,
-      trainerId,
+      clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+      clientEmail: appointment.clientId.email,
+      trainerName: `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
+      trainerEmail: appointment.trainerId.email,
       date,
       time,
     });
@@ -659,10 +662,18 @@ router.put(
       if (appointment.clientId.toString() === req.user.id && status === 'cancelled') {
         logUserAction('cancel_appointment', req.user.id, {
           appointmentId: req.params.id,
+          clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+          clientEmail: appointment.clientId.email,
+          trainerName: `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
+          trainerEmail: appointment.trainerId.email,
         });
       } else {
         logAdminAction('update_appointment', req.user.id, {
           appointmentId: req.params.id,
+          clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
+          clientEmail: appointment.clientId.email,
+          trainerName: `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
+          trainerEmail: appointment.trainerId.email,
           updates: req.body,
         });
       }
@@ -730,18 +741,22 @@ router.delete('/:id', async (req, res) => {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
-    // Log the action
-    if (req.user.role === 'admin') {
-      logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
-    } else if (appointment.trainerId.toString() === req.user.id) {
-      logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
-    } else {
-      logUserAction('delete_appointment', req.user.id, { appointmentId: req.params.id });
-    }
-
-    // Populate before deleting so we have names/emails for notifications
+    // Populate before deleting so we have names/emails for notifications and logging
     await appointment.populate('clientId', 'firstName lastName email');
     await appointment.populate('trainerId', 'firstName lastName email trainerEmailPreference');
+
+    // Log the action
+    const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
+    const clientEmail = appointment.clientId.email;
+    const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
+    const trainerEmail = appointment.trainerId.email;
+    if (req.user.role === 'admin') {
+      logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
+    } else if (appointment.trainerId.toString() === req.user.id) {
+      logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
+    } else {
+      logUserAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
+    }
 
     await Appointment.findByIdAndDelete(req.params.id);
 
@@ -750,8 +765,6 @@ router.delete('/:id', async (req, res) => {
     const dateStr = aptDate.toLocaleDateString('en-US', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
     });
-    const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
-    const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
 
     const apptId = appointment._id.toString();
     const apptDate = appointment.date instanceof Date ? appointment.date.toISOString() : appointment.date;

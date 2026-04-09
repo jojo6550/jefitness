@@ -58,7 +58,7 @@ const workoutController = {
         : undefined,
     };
 
-    const user = await User.findById(userId).select('workoutLogs');
+    const user = await User.findById(userId).select('workoutLogs firstName lastName email');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -67,7 +67,11 @@ const workoutController = {
     await user.save();
 
     const createdLog = user.workoutLogs[user.workoutLogs.length - 1];
-    logUserAction(userId, 'workout_logged', { workoutName: workoutLog.workoutName });
+    logUserAction(userId, 'workout_logged', {
+      userName: `${user.firstName} ${user.lastName}`,
+      userEmail: user.email,
+      workoutName: workoutLog.workoutName,
+    });
 
     res.status(201).json({ success: true, workout: createdLog });
   }),
@@ -143,7 +147,7 @@ const workoutController = {
       throw new ValidationError('Invalid workout ID');
     }
 
-    const user = await User.findById(userId).select('workoutLogs');
+    const user = await User.findById(userId).select('workoutLogs firstName lastName email');
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -156,7 +160,11 @@ const workoutController = {
     workout.deletedAt = new Date();
     await user.save();
 
-    logUserAction(userId, 'workout_deleted', { workoutId });
+    logUserAction(userId, 'workout_deleted', {
+      userName: `${user.firstName} ${user.lastName}`,
+      userEmail: user.email,
+      workoutId,
+    });
     res.json({ success: true, message: 'Workout deleted successfully' });
   }),
 

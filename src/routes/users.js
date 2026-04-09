@@ -610,7 +610,11 @@ router.get('/data-export', async (req, res) => {
     };
 
     // Log the data export request for compliance
-    logger.logUserAction('gdpr_data_export', req.user.id, { requestedAt: new Date().toISOString() }, req);
+    logger.logUserAction('gdpr_data_export', req.user.id, {
+      userName: `${user.firstName} ${user.lastName}`,
+      userEmail: user.email,
+      requestedAt: new Date().toISOString(),
+    }, req);
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
@@ -683,7 +687,11 @@ router.delete(
       }
 
       // Log the deletion request for compliance and legal purposes
-      logger.logUserAction('gdpr_data_deletion', req.user.id, { reason: req.body.reason }, req);
+      logger.logUserAction('gdpr_data_deletion', req.user.id, {
+        userName: `${user.firstName} ${user.lastName}`,
+        userEmail: user.email,
+        reason: req.body.reason,
+      }, req);
 
       // Instead of hard deleting, we anonymize the data to maintain referential integrity
       // This is a common GDPR compliance approach

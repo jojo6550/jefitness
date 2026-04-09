@@ -57,14 +57,19 @@ const nutritionController = {
         : undefined,
     };
 
-    const user = await User.findById(userId).select('mealLogs');
+    const user = await User.findById(userId).select('mealLogs firstName lastName email');
     if (!user) throw new NotFoundError('User');
 
     user.mealLogs.push(mealLog);
     await user.save();
 
     const createdLog = user.mealLogs[user.mealLogs.length - 1];
-    logUserAction(userId, 'meal_logged', { mealType, totalCalories });
+    logUserAction(userId, 'meal_logged', {
+      userName: `${user.firstName} ${user.lastName}`,
+      userEmail: user.email,
+      mealType,
+      totalCalories,
+    });
 
     res.status(201).json({ success: true, meal: createdLog });
   }),
@@ -145,7 +150,7 @@ const nutritionController = {
       throw new ValidationError('Invalid meal ID');
     }
 
-    const user = await User.findById(req.user.id).select('mealLogs');
+    const user = await User.findById(req.user.id).select('mealLogs firstName lastName email');
     if (!user) throw new NotFoundError('User');
 
     const meal = user.mealLogs.id(id);
@@ -154,7 +159,11 @@ const nutritionController = {
     meal.deletedAt = new Date();
     await user.save();
 
-    logUserAction(req.user.id, 'meal_deleted', { mealId: id });
+    logUserAction(req.user.id, 'meal_deleted', {
+      userName: `${user.firstName} ${user.lastName}`,
+      userEmail: user.email,
+      mealId: id,
+    });
     res.json({ success: true, message: 'Meal deleted successfully' });
   }),
 
