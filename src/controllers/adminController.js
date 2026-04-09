@@ -81,6 +81,7 @@ async function bulkDeleteClients(req, res) {
  *   overrideDays: number (optional) — if set, uses trial_end to set a custom period end
  */
 async function createSubscription(req, res) {
+  let stripeSub = null;
   try {
     const { userId, planKey, overrideDays } = req.body;
     const adminId = req.user.id;
@@ -103,6 +104,9 @@ async function createSubscription(req, res) {
         return res.status(400).json({ msg: `overrideDays cannot exceed ${maxDays} for the ${planKey} plan` });
       }
     }
+
+    // Validate userId
+    if (!userId) return res.status(400).json({ msg: 'userId is required' });
 
     // Find user
     const user = await User.findById(userId);
@@ -159,7 +163,7 @@ async function createSubscription(req, res) {
     }
 
     // Create Stripe subscription with trial_end to set custom period
-    const stripeSub = await stripeClient.subscriptions.create({
+    stripeSub = await stripeClient.subscriptions.create({
       customer: stripeCustomerId,
       items: [{ price: plan.stripePriceId }],
       trial_end: trialEnd,
@@ -188,9 +192,10 @@ async function createSubscription(req, res) {
       { upsert: true, new: true }
     );
 
-    // Update user's subscription reference
-    user.stripeSubscriptionId = stripeSub.id;
-    await user.save();
+    // Update user's subscription reference (use findByIdAndUpdate to bypass Mongoose strict mode)
+    await User.findByIdAndUpdate(user._id, {
+      $set: { stripeSubscriptionId: stripeSub.id },
+    });
 
     logger.logAdminAction('subscription_created', adminId, {
       userId,
@@ -211,8 +216,12 @@ async function createSubscription(req, res) {
       },
     });
   } catch (err) {
-    logger.error('Admin subscription creation failed', { error: err.message, stack: err.stack });
-    res.status(500).json({ msg: 'Failed to create subscription', error: err.message });
+    logger.error('Admin subscription creation failed', {
+      error: err.message,
+      stack: err.stack,
+      stripeSubscriptionId: stripeSub ? stripeSub.id : undefined,
+    });
+    res.status(500).json({ msg: 'Failed to create subscription' });
   }
 }
 
