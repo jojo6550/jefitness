@@ -388,7 +388,18 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
                 window.Toast?.success?.('Appointment booked successfully!') || alert('Appointment booked successfully!');
             } catch (innerErr) {
                 console.error('Error creating appointment:', innerErr);
-                window.Toast?.error?.('Failed to create appointment.') || alert('Failed to create appointment.');
+                // Extract error message from API response if available
+                let errorMsg = innerErr.message || 'Failed to create appointment.';
+                if (errorMsg.startsWith('HTTP 400 - ')) {
+                    try {
+                        const jsonStr = errorMsg.replace('HTTP 400 - ', '');
+                        const parsed = JSON.parse(jsonStr);
+                        errorMsg = parsed.msg || parsed.error || errorMsg;
+                    } catch (e) {
+                        // Keep original error message if JSON parse fails
+                    }
+                }
+                window.Toast?.error?.(errorMsg) || alert(errorMsg);
             }
         });
     } catch (err) {

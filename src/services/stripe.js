@@ -11,11 +11,6 @@ const getStripe = () => {
   return stripeInstance;
 };
 
-const {
-  PRODUCT_MAP,
-  PROGRAM_PRODUCT_IDS,
-  DYNAMIC_PLANS,
-} = require('../config/stripeConfig');
 
 // Price caching for getPlanPricing() - 5min TTL in-memory
 let priceCache = {};
@@ -1184,5 +1179,4 @@ module.exports = {
   getProductPrice,
   formatProductForFrontend,
   formatProductsForFrontend,
-  PRODUCT_MAP,
 };
