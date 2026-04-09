@@ -361,12 +361,15 @@ const trainerController = {
     const hasRelationship = await Appointment.exists({ trainerId, clientId });
     if (!hasRelationship) throw new AuthorizationError();
 
-    const client = await User.findById(clientId).select(
-      'firstName lastName email phone dob gender activityStatus hasMedical medicalConditions medicalDocuments'
-    );
+    const [client, appointments] = await Promise.all([
+      User.findById(clientId).select(
+        'firstName lastName email phone dob gender activityStatus hasMedical medicalConditions medicalDocuments ' +
+        'workoutLogs mealLogs workoutGoals measurements assignedPrograms purchasedPrograms ' +
+        'startWeight currentWeight height goals createdAt lastLoggedIn isEmailVerified'
+      ),
+      Appointment.find({ trainerId, clientId }).sort({ date: -1 }),
+    ]);
     if (!client) throw new NotFoundError('Client');
-
-    const appointments = await Appointment.find({ trainerId, clientId }).sort({ date: -1 });
 
     res.json({
       client,

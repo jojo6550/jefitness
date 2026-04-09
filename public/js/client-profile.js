@@ -49,13 +49,16 @@
   }
 
   // ── Auth guard ────────────────────────────────────────────
+  // Returns 'admin', 'trainer', or null
   async function checkAuth() {
     try {
       const res = await fetch(`${API}/api/v1/auth/me`, { credentials: 'include' });
-      if (!res.ok) return false;
+      if (!res.ok) return null;
       const data = await res.json();
-      return data.data?.role === 'admin';
-    } catch { return false; }
+      const role = data.data?.role;
+      if (role === 'admin' || role === 'trainer') return role;
+      return null;
+    } catch { return null; }
   }
 
   // ── Tab routing ───────────────────────────────────────────
@@ -245,6 +248,22 @@
     }
   }
 
+  // ── Render appointments (inline — data already fetched) ───
+  function renderAppointmentsInline(appts) {
+    const el = document.getElementById('appointments-card');
+    document.getElementById('tc-appts').textContent = appts.length;
+    if (!appts.length) { el.innerHTML = empty('📅', 'No appointments'); return; }
+    el.innerHTML = `<div class="table-scroll"><table class="data-table">
+      <thead><tr><th>Date</th><th>Type</th><th>Status</th><th>Notes</th></tr></thead>
+      <tbody>${appts.map(a => `<tr>
+        <td><span class="log-date">${fmtDateTime(a.date || a.scheduledAt)}</span></td>
+        <td>${esc(a.type || a.appointmentType || '—')}</td>
+        <td>${esc(a.status || '—')}</td>
+        <td style="color:var(--text-dim)">${esc(a.notes || '—')}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
   // ── Render medical ────────────────────────────────────────
   function renderMedical(client) {
     const docs = client.medicalDocuments || [];
@@ -365,17 +384,25 @@
     }
     const clientId = match[1];
 
-    const isAdmin = await checkAuth();
-    if (!isAdmin) {
+    const role = await checkAuth();
+    if (!role) {
       window.location.href = '/login';
       return;
     }
 
-    try {
-      const res = await fetch(`${API}/api/v1/admin/clients/${clientId}`, { credentials: 'include' });
-      if (!res.ok) { showError(); return; }
-      const { client } = await res.json();
+    // Admins use admin endpoint; trainers use their own (relationship-gated) endpoint
+    const endpoint = role === 'admin'
+      ? `${API}/api/v1/admin/clients/${clientId}`
+      : `${API}/api/v1/trainer/client/${clientId}`;
 
+    try {
+      const res = await fetch(endpoint, { credentials: 'include' });
+      if (!res.ok) { showError(); return; }
+      const data = await res.json();
+      // Admin endpoint returns { client }, trainer endpoint returns { client, appointmentHistory, ... }
+      const client = data.client;
+
+      setBackLink(role);
       renderHero(client);
       renderOverview(client);
       renderWorkouts(client);
@@ -383,13 +410,27 @@
       renderPrograms(client);
       renderMedical(client);
       renderGdpr(client);
-      renderAppointments(clientId); // async, non-blocking
+      // Trainer response already includes appointmentHistory; admins fetch separately
+      if (data.appointmentHistory) {
+        renderAppointmentsInline(data.appointmentHistory);
+      } else {
+        renderAppointments(clientId); // async, non-blocking (admin path)
+      }
 
       initTabs();
       showApp();
     } catch {
       showError();
     }
+  }
+
+  function setBackLink(role) {
+    const dest = role === 'trainer' ? '/trainer-dashboard' : '/admin';
+    const label = role === 'trainer' ? 'Trainer Portal' : 'Admin';
+    const backLink = document.getElementById('back-link');
+    const errorBack = document.getElementById('error-back-link');
+    if (backLink) { backLink.href = dest; document.getElementById('back-label').textContent = label; }
+    if (errorBack) { errorBack.href = dest; errorBack.textContent = `← BACK TO ${label.toUpperCase()}`; }
   }
 
   function showApp() {

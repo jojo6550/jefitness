@@ -109,7 +109,20 @@ window.AdminClientModal = (() => {
     `;
   }
 
-  function open(clientId) {
+  // Detect role once, cache it
+  let _role = null;
+  async function getRole() {
+    if (_role) return _role;
+    try {
+      const res = await fetch(`${API}/api/v1/auth/me`, { credentials: 'include' });
+      if (!res.ok) return null;
+      const data = await res.json();
+      _role = data.data?.role || null;
+    } catch { _role = null; }
+    return _role;
+  }
+
+  async function open(clientId) {
     const backdrop = document.getElementById('client-modal-backdrop');
     const box = document.getElementById('client-modal-box');
     if (!backdrop || !box) return;
@@ -117,10 +130,16 @@ window.AdminClientModal = (() => {
     box.innerHTML = `<div class="cm-loading"><div class="cm-spinner"></div><span>Loading…</span></div>`;
     backdrop.classList.add('visible');
 
-    fetch(`${API}/api/v1/admin/clients/${clientId}`, { credentials: 'include' })
+    const role = await getRole();
+    const endpoint = role === 'trainer'
+      ? `${API}/api/v1/trainer/client/${clientId}`
+      : `${API}/api/v1/admin/clients/${clientId}`;
+
+    fetch(endpoint, { credentials: 'include' })
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(({ client }) => {
-        box.innerHTML = renderContent(client);
+      .then((data) => {
+        // Admin returns { client }, trainer returns { client, appointmentHistory, ... }
+        box.innerHTML = renderContent(data.client);
 
         document.getElementById('cm-close-btn')?.addEventListener('click', close);
         document.getElementById('cm-cancel-btn')?.addEventListener('click', close);

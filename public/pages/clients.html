@@ -339,13 +339,13 @@
 <div id="page-error">
   <div class="error-code">404</div>
   <div class="error-msg">CLIENT_NOT_FOUND // ACCESS_DENIED</div>
-  <a href="/admin" style="margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--indigo);text-decoration:none;border:1px solid rgba(99,102,241,.3);padding:6px 14px;border-radius:5px">← BACK TO ADMIN</a>
+  <a id="error-back-link" href="/admin" style="margin-top:16px;font-family:var(--mono);font-size:10px;color:var(--indigo);text-decoration:none;border:1px solid rgba(99,102,241,.3);padding:6px 14px;border-radius:5px">← BACK</a>
 </div>
 
 <div id="app">
   <!-- Topbar -->
   <div id="topbar">
-    <a href="/admin" class="topbar-back"><i class="bi bi-arrow-left"></i> Admin</a>
+    <a href="#" id="back-link" class="topbar-back"><i class="bi bi-arrow-left"></i> <span id="back-label">Back</span></a>
     <span class="topbar-crumb">Clients / <span id="crumb-name">—</span></span>
     <div class="topbar-spacer"></div>
     <span class="topbar-id" id="topbar-id">—</span>
