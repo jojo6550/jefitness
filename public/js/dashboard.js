@@ -18,11 +18,8 @@ window.initDashboard = async () => {
         if (adminLink) adminLink.classList.add('d-none');
       }
 
-      // Load subscription status
-      await loadSubscriptionStatus();
-
-      // Load workout statistics
-      await loadWorkoutStats();
+      // Load subscription and workout data in parallel (independent endpoints)
+      await Promise.all([loadSubscriptionStatus(), loadWorkoutStats()]);
 
       // Reveal real content, hide skeletons
       if (window._revealDashboard) window._revealDashboard();
