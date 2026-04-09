@@ -28,6 +28,9 @@ const requireDataProcessingConsent = async (req, res, next) => {
       });
     }
 
+    // Admin users are exempt from consent requirements — they manage platform data
+    if (user.role === 'admin') return next();
+
     if (!user.dataProcessingConsent.given) {
       monitoringService.recordSecurityEvent('consent_required', {
         userId,
