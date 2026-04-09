@@ -61,7 +61,8 @@ async function checkSubscriptionStatus() {
             return false;
         }
 
-        const isActive = sub.status === 'active';
+        const validStatuses = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+        const isActive = validStatuses.includes(sub.status);
         const isPeriodValid = !sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > new Date();
 
         userSubscriptionStatus = isActive && isPeriodValid;

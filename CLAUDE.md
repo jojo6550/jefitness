@@ -26,6 +26,14 @@ npm run test:frontend
 # Run tests with coverage
 npm run test:coverage
 
+# Run a single test file
+npx jest src/tests/unit/dateUtils.test.js
+
+# Lint and format
+npm run lint
+npm run lint:fix
+npm run format
+
 # Build Tailwind CSS
 npm run build:css
 
@@ -34,6 +42,9 @@ npm run sync:plans
 
 # Seed fitness programs into DB
 npm run seed:programs
+
+# Bust static asset cache (updates hash in cache-version.js)
+npm run cache:bust
 ```
 
 ## Architecture Overview
@@ -46,36 +57,59 @@ The app is **not** a SPA — it's a multi-page HTML app where each page (`public
 
 - **Entry**: `src/server.js` — Express app, MongoDB connect, middleware stack, route mounting, cron jobs
 - **Routes** (`src/routes/`) → **Controllers** (`src/controllers/`) pattern; all routes are prefixed `/api/v1/`
-- **Auth**: JWT-based (`src/middleware/auth.js`). Tokens stored in `localStorage` on the frontend and sent as `Authorization: Bearer <token>` headers
+- **Auth**: JWT-based (`src/middleware/auth.js`). Tokens accepted from: httpOnly cookie (preferred), `Authorization: Bearer` header, or `x-auth-token` header. Role is always re-fetched from DB — never trust JWT claims for authorization
 - **Stripe**: All Stripe logic goes through `src/services/stripe.js`. Subscription state is persisted to MongoDB (`Subscription` model) and synced from Stripe via webhooks (`src/routes/webhooks.js`) and on-demand via the `/refresh` endpoint
 - **Date math**: All subscription date calculations (period end, days left, next renewal) must use `src/utils/dateUtils.js` — never raw `Date.now() + N * 86400000` arithmetic
+- **Error classes**: `src/middleware/errorHandler.js` exports `AppError`, `ValidationError`, `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `DatabaseError` — use these instead of generic `Error`
+
+### Route Protection
+
+Unprotected API routes: `/api/v1/products`, `/api/v1/subscriptions`, `/api/v1/programs`, `/api/v1/auth`
+
+Protected routes use this middleware stack (in order): `auth` → `requireDataProcessingConsent` → (health routes also get `requireHealthDataConsent`) → `checkDataRestriction` → `apiLimiter` → `versioning`. Health-related routes (`/logs`, `/medical-documents`, `/workouts`, `/nutrition`) include the health consent check.
 
 ### Frontend (`public/js/`)
 
-- `api.config.js` — resolves `API_BASE` (localhost vs production). Always use `window.ApiConfig.getAPI_BASE()` for API calls, never hardcode URLs
+- `api.config.js` — resolves `API_BASE` (localhost vs production). Always use `window.ApiConfig.getAPI_BASE()` for API calls, never hardcode URLs. **Must load before `auth-cache.js`**
+- `auth-cache.js` — singleton Promise cache for `/auth/me`. Fires one fetch per page load; all callers share the same Promise. Reset on failure so the next call retries
 - `services/SubscriptionService.js` — thin fetch wrapper for all subscription API calls
 - `subscriptions.js` — main subscription page logic: loads plans, renders active subscription summary, handles checkout flow
 - `navbar-subscription.js` — loaded on every page to show subscription badge in the navbar
+- `role-guard.js` — restricts page access by user role
 
 ### Subscription Flow
 
 1. User selects plan → `subscriptions.js:selectPlan()` → POST `/api/v1/subscriptions/checkout` → Stripe Checkout redirect
 2. On return: `?success=true&session_id=cs_xxx` → `verifyCheckoutSession` upserts the `Subscription` document from Stripe data
-3. Stripe webhooks (`src/routes/webhooks.js`) keep the DB in sync for renewals, cancellations, etc.
+3. Stripe webhooks (`src/routes/webhooks.js`) keep the DB in sync for renewals, cancellations, etc. Webhook replay protection is handled via the `WebhookEvent` model with a 24-hour TTL
 4. `getCurrentSubscription` has an auto-heal path: if `currentPeriodEnd` is missing or stale for an active sub, it re-fetches from Stripe inline
 
 ### Key Models
 
-- `Subscription` — one document per Stripe subscription; `currentPeriodStart`/`currentPeriodEnd` are stored as JS `Date` objects (UTC). The pre-save hook auto-cancels on Stripe when `status` is set to `'canceled'`
+- `Subscription` — one document per Stripe subscription; `currentPeriodStart`/`currentPeriodEnd` are stored as JS `Date` objects (UTC). The pre-save hook auto-cancels on Stripe when `status` is set to `'canceled'`. Stripe is the authoritative source of truth — the cleanup job (`src/jobs.js`) always verifies with Stripe before marking a subscription canceled
 - `StripePlan` — cached Stripe price/product data, populated by `npm run sync:plans`
-- `User` — stores `stripeCustomerId` and `stripeSubscriptionId` as denormalized references
+- `User` — stores `stripeCustomerId` and `stripeSubscriptionId` as denormalized references; also embeds `MealLog[]` and `WorkoutLog[]` subdocuments directly on the user document
+- `WebhookEvent` — persists processed Stripe event IDs with TTL for replay protection across restarts/instances
+
+### Cron Jobs (`src/jobs.js`)
+
+- **Subscription cleanup**: `0 0 * * *` (midnight) — verifies expired subs with Stripe before canceling
+- **Renewal reminders**: `0 8 * * *` (8 AM) — emails users 3 and 7 days before renewal
+- **Trainer daily schedule**: `0 0 * * *` (midnight) — sends daily appointment digest to trainers
+
+### API Docs (Dev Only)
+
+- Swagger UI: `http://localhost:PORT/api-docs`
+- ReDoc: `http://localhost:PORT/redoc`
 
 ### Environment
 
-Copy `.env.example` to `.env`. Required variables: `MONGO_URI`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and all `STRIPE_PRODUCT_*` / `STRIPE_PRICE_*` keys for the four subscription tiers (`1-month`, `3-month`, `6-month`, `12-month`).
+Copy `.env.example` to `.env`. Required variables: `MONGO_URI`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and all `STRIPE_PRODUCT_*` / `STRIPE_PRICE_*` keys for the four subscription tiers (`1-month`, `3-month`, `6-month`, `12-month`). Optional: `USDA_API_KEY` (food search, falls back to `DEMO_KEY`), `CLEANUP_TIME` (minutes before deleting unverified accounts, default 30), `SLOW_REQUEST_THRESHOLD_MS`.
 
 ### Testing
 
-- Jest config (`jest.config.js`) has two projects: `backend` (Node env) and `frontend` (jsdom)
-- Backend tests live in `src/tests/unit/`, frontend tests in `public/tests/unit/`
+- Jest config (`jest.config.js`) has two projects: `backend` (Node env, matches `src/tests/unit/**/*.test.js`) and `frontend` (jsdom, matches `public/tests/unit/**/*.test.js`)
+- Backend test setup: `src/tests/unit/setup.js`; shared mocks: `src/tests/unit/mocks.js`
+- Frontend test setup: `public/tests/setup-jsdom.js`
 - Integration/E2E: Cypress (`cypress/`)
+- Stress tests: `npm run test:stress`
