@@ -25,3 +25,4 @@ fixes
 .claude/settings.local.json
 .env.example
 scripts/
+.superpowers/brainstorm/

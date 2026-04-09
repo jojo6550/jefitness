@@ -31,5 +31,8 @@
       "Bash(wc -l /c/Users/josia/jefitness/public/pages/*.html)",
       "Bash(python _add_fonts.py)"
     ]
+  },
+  "enabledPlugins": {
+    "stripe@claude-plugins-official": true
   }
 }

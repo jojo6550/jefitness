@@ -1,30 +1,50 @@
-<<<<<<< HEAD
-# JE Fitness Fix: Validators.escapeHtml Error\n\n## Plan Progress\nStatus: ✅ Completed Primary Fix\n\n### Step 1: Fix appointments.js (Primary - Approved)\n- [x] Create TODO.md for tracking\n- [x] Replace broken `const escapeHtml = str => Validators.escapeHtml(str);` with standalone `escapeHtml` function in `public/js/appointments.js`\n- [ ] Test appointments loading (no console error, HTML safe)\n- [x] Update TODO.md with test results\n\n### Step 2: Project-wide Consistency (Optional)\n- [ ] Identify/prioritize other affected files (admin-dashboard.js, cart.js, etc.)\n- [ ] Apply same fix to top-priority files\n- [ ] Full search verification\n\n### Step 3: Final Verification\n- [ ] Reload relevant pages\n- [ ] Check console for errors\n- [ ] Inspect HTML output for XSS safety\n- [ ] attempt_completion\n\n**Next Action**: Test the fix by loading an appointments page and checking browser console.
-=======
-# JE Fitness Stress Test Fix TODO
 
-## Status: [4/7] Steps completed
 
-✅ **Done**
-- [x] 1. Add stressVerify handler to src/controllers/authController.js ✓
-- [ ] 2. Add POST /api/v1/auth/stress-bypass-verify route to src/routes/auth.js  
-- [x] 3. Add STRESS_BYPASS_VERIFY env parsing + bypass API call in regularUserScenario ✓
-- [] 4. Add random stagger delay (50-250ms) before each regular user scenario start ✓
-- [ ] 5. Add console logging for BYPASS MODE detection
-- [ ] 6. Test bypass endpoint manually (curl localhost:10000/api/v1/auth/stress-bypass-verify)
-- [ ] 7. Run full stress test with STRESS_BYPASS_VERIFY=true and verify completion
+2. API Rate Limiting Edge Cases
+Rate limiter exists but may not cover all endpoints. Audit:
 
-- [ ] 3. Add STRESS_BYPASS_VERIFY env parsing + bypass API call in regularUserScenario (src/tests/stress/stress-test.js)
-- [ ] 4. Add random stagger delay (50-250ms) before each regular user scenario start
-- [ ] 5. Add console logging for BYPASS MODE detection
-- [ ] 6. Test bypass endpoint manually (curl localhost:10000/api/v1/auth/stress-bypass-verify)
-- [ ] 7. Run full stress test with STRESS_BYPASS_VERIFY=true and verify completion
+Unauthenticated endpoints (auth, checkout)
+Webhook endpoints (should have higher limits)
+Admin endpoints (should have different limits)
 
-## Next Action
-Edit src/routes/auth.js (step 2)
+5. Export User Data (GDPR Compliance)
+You have GDPR routes but missing user data export as JSON/CSV:
 
-**Run:** `node src/tests/stress/stress-test.js` (without bypass → should fail at login)
-**With bypass:** `STRESS_BYPASS_VERIFY=true node src/tests/stress/stress-test.js` (should complete all flows)
+All workouts, nutrition, appointments
+Subscription history
+User action logs Critical for GDPR/compliance.
+6. Error Recovery & Retry Logic
+Missing graceful handling for:
 
->>>>>>> parent of 8e620b3 (feat: implement Jamaican timezone utilities and update logging to use local time)
+Failed Stripe webhook delivery (implement idempotency keys)
+Failed email sends (retry with exponential backoff)
+Job queue failures (Bull queue needs better error handling)
+7. Admin Bulk Operations
+No bulk actions for admin:
 
+Bulk user deactivation
+Bulk appointment cancellation
+Bulk subscription updates Would save admin time significantly.
+8. Frontend Form Validation Edge Cases
+Likely incomplete validation on:
+
+Medical documents (file size, type restrictions)
+Appointment booking (overlapping times, trainer availability)
+Program/workout creation (required fields, min/max values)
+9. Caching Strategy Improvements
+You have caching but missing:
+
+Cache invalidation for related data (e.g., user subscription updated → invalidate user profile cache)
+Stale-while-revalidate headers
+Cache warming for frequently accessed data (plans, programs)
+10. Email Template System
+Currently using hardcoded emails (Mailjet, Resend). Need:
+
+Template management (separate from code)
+HTML email templates with preview
+Email status tracking (sent, bounced, opened)
+Unsubscribe management
+Quick Win to Start:
+Add pagination to list endpoints — it's straightforward, improves UX, and has immediate perf benefits. Would take ~2-3 hours.
+
+Which of these interests you most? I can help plan/implement any of them.
