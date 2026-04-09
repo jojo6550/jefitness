@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const Log = require('../models/Log');
-const { auth, requireAdmin } = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const logger = require('../services/logger');
 
-// All log routes require admin
-router.use(auth, requireAdmin);
+// All log routes require admin (auth already applied by server.js when mounting this router)
+router.use(requireAdmin);
+
+// Helper to validate and parse a date param, returns null if invalid
+function parseDate(val) {
+  if (!val) return null;
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 /**
  * GET /api/v1/logs
@@ -51,18 +58,25 @@ router.get('/', async (req, res) => {
       else if (cats.length > 1) query.category = { $in: cats };
     }
 
-    // Search filter (regex on message)
+    // Search filter (regex on message — escape input to prevent ReDoS)
     if (search && search.trim()) {
-      query.message = { $regex: search.trim(), $options: 'i' };
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.message = { $regex: escaped, $options: 'i' };
     }
 
     // Time range
     if (live === 'true' && after) {
-      query.timestamp = { $gt: new Date(after) };
+      const afterDate = parseDate(after);
+      if (after && !afterDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+      if (afterDate) query.timestamp = { $gt: afterDate };
     } else {
+      const fromDate = parseDate(from);
+      const toDate = parseDate(to);
+      if (from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+      if (to && !toDate) return res.status(400).json({ msg: 'Invalid date parameter' });
       const timeFilter = {};
-      if (from) timeFilter.$gte = new Date(from);
-      if (to) timeFilter.$lte = new Date(to);
+      if (fromDate) timeFilter.$gte = fromDate;
+      if (toDate) timeFilter.$lte = toDate;
       if (Object.keys(timeFilter).length > 0) query.timestamp = timeFilter;
     }
 
@@ -106,10 +120,12 @@ router.get('/', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
   try {
-    const to = req.query.to ? new Date(req.query.to) : new Date();
-    const from = req.query.from
-      ? new Date(req.query.from)
-      : new Date(to.getTime() - 24 * 60 * 60 * 1000);
+    const toDate = parseDate(req.query.to);
+    const fromDate = parseDate(req.query.from);
+    if (req.query.to && !toDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+    if (req.query.from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+    const to = toDate || new Date();
+    const from = fromDate || new Date(to.getTime() - 24 * 60 * 60 * 1000);
 
     const stats = await Log.getLogStats(from, to);
 
@@ -159,16 +175,21 @@ router.get('/export', async (req, res) => {
       query.category = cats.length === 1 ? cats[0] : { $in: cats };
     }
     if (search && search.trim()) {
-      query.message = { $regex: search.trim(), $options: 'i' };
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.message = { $regex: escaped, $options: 'i' };
     }
+    const fromDate = parseDate(from);
+    const toDate = parseDate(to);
+    if (from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+    if (to && !toDate) return res.status(400).json({ msg: 'Invalid date parameter' });
     const timeFilter = {};
-    if (from) timeFilter.$gte = new Date(from);
-    if (to) timeFilter.$lte = new Date(to);
+    if (fromDate) timeFilter.$gte = fromDate;
+    if (toDate) timeFilter.$lte = toDate;
     if (Object.keys(timeFilter).length > 0) query.timestamp = timeFilter;
 
     const logs = await Log.find(query).sort({ timestamp: -1 }).limit(5000).lean();
 
-    const csvHeader = 'Timestamp,Level,Category,Message,User,IP,Action\n';
+    const csvHeader = 'Timestamp,Level,Category,Message,UserId,IP,Action\n';
     const csvRows = logs
       .map((log) => {
         const ts = new Date(log.timestamp).toISOString();
@@ -185,7 +206,7 @@ router.get('/export', async (req, res) => {
       })
       .join('\n');
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="logs-${Date.now()}.csv"`);
     res.send(csvHeader + csvRows);
   } catch (err) {
