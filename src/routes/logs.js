@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
       const afterDate = parseDate(after);
       if (after && !afterDate) return res.status(400).json({ msg: 'Invalid date parameter' });
       if (afterDate) query.timestamp = { $gt: afterDate };
-    } else {
+    } else if (live !== 'true') {
       const fromDate = parseDate(from);
       const toDate = parseDate(to);
       if (from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
