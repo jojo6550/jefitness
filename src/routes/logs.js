@@ -1,301 +1,197 @@
-/**
- * @swagger
- * tags:
- *   name: Logs
- *   description: Real-time application log viewer, stats, and CSV export
- */
-
 const express = require('express');
 const router = express.Router();
-// Note: Auth middleware is applied at the router level in server.js
-// Remove redundant auth imports and route-level auth
+const Log = require('../models/Log');
+const { auth, requireAdmin } = require('../middleware/auth');
+const logger = require('../services/logger');
 
-// In-memory storage for real-time logs
-let realtimeLogs = [];
-const MAX_LOGS = 500; // Reduced from 1000 to 500 for memory efficiency
-const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
-// Periodic cleanup to prevent memory leaks
-setInterval(() => {
-  if (realtimeLogs.length > MAX_LOGS) {
-    const removedCount = realtimeLogs.length - MAX_LOGS;
-    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
-    originalConsoleLog(`Log cleanup: Removed ${removedCount} old log entries`);
-  }
-}, CLEANUP_INTERVAL);
-
-// Store original console methods
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
-const originalConsoleWarn = console.warn;
-
-// Helper function to add log entry
-const addLogEntry = (level, category, message) => {
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    level,
-    category,
-    message,
-    user: null,
-    ip: null,
-    userAgent: null,
-  };
-  realtimeLogs.push(logEntry);
-  // Keep only the last MAX_LOGS entries
-  if (realtimeLogs.length > MAX_LOGS) {
-    realtimeLogs = realtimeLogs.slice(-MAX_LOGS);
-  }
-};
-
-// Override console methods to capture logs
-console.log = function (...args) {
-  const message = args.join(' ');
-  addLogEntry('info', 'app', message);
-  originalConsoleLog.apply(console, args);
-};
-
-console.error = function (...args) {
-  const message = args.join(' ');
-  addLogEntry('error', 'error', message);
-  originalConsoleError.apply(console, args);
-};
-
-console.warn = function (...args) {
-  const message = args.join(' ');
-  addLogEntry('warn', 'warn', message);
-  originalConsoleWarn.apply(console, args);
-};
+// All log routes require admin
+router.use(auth, requireAdmin);
 
 /**
- * @swagger
- * /logs:
- *   get:
- *     summary: Get in-memory application logs with pagination and filtering
- *     tags: [Logs]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 50
- *       - in: query
- *         name: level
- *         schema:
- *           type: string
- *           enum: [info, warn, error]
- *         description: Filter by log level
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *         description: Filter by log category
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Full-text search in log messages
- *     responses:
- *       200:
- *         description: Paginated log entries
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 logs:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       timestamp:
- *                         type: string
- *                         format: date-time
- *                       level:
- *                         type: string
- *                       category:
- *                         type: string
- *                       message:
- *                         type: string
- *                 pagination:
- *                   type: object
- *       500:
- *         description: Server error
+ * GET /api/v1/logs
+ * Query MongoDB Log collection with filters.
+ * Query params:
+ *   level      - comma-separated: error,warn,info,debug,http
+ *   category   - comma-separated: general,admin,user,security,auth
+ *   search     - regex on message field
+ *   from       - ISO date string (start of range)
+ *   to         - ISO date string (end of range)
+ *   page       - default 1
+ *   limit      - default 50, max 200
+ *   live       - if 'true', use `after` param
+ *   after      - ISO date string; return only entries newer than this
  */
-// GET /api/logs - Get logs with pagination and filtering
-// Auth is applied at router level in server.js
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-    const level = req.query.level;
-    const category = req.query.category;
-    const search = req.query.search;
+    const {
+      level,
+      category,
+      search,
+      from,
+      to,
+      page = 1,
+      limit = 50,
+      live,
+      after,
+    } = req.query;
 
-    let filteredLogs = [...realtimeLogs];
+    const query = {};
 
-    // Apply filters
+    // Level filter (comma-separated)
     if (level) {
-      filteredLogs = filteredLogs.filter(log => log.level === level);
-    }
-    if (category) {
-      filteredLogs = filteredLogs.filter(log => log.category === category);
-    }
-    if (search) {
-      filteredLogs = filteredLogs.filter(log =>
-        log.message.toLowerCase().includes(search.toLowerCase())
-      );
+      const levels = level.split(',').map((l) => l.trim()).filter(Boolean);
+      if (levels.length === 1) query.level = levels[0];
+      else if (levels.length > 1) query.level = { $in: levels };
     }
 
-    // Pagination
-    const totalLogs = filteredLogs.length;
-    const totalPages = Math.ceil(totalLogs / limit);
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedLogs = filteredLogs.slice(startIndex, endIndex);
+    // Category filter (comma-separated)
+    if (category) {
+      const cats = category.split(',').map((c) => c.trim()).filter(Boolean);
+      if (cats.length === 1) query.category = cats[0];
+      else if (cats.length > 1) query.category = { $in: cats };
+    }
+
+    // Search filter (regex on message)
+    if (search && search.trim()) {
+      query.message = { $regex: search.trim(), $options: 'i' };
+    }
+
+    // Time range
+    if (live === 'true' && after) {
+      query.timestamp = { $gt: new Date(after) };
+    } else {
+      const timeFilter = {};
+      if (from) timeFilter.$gte = new Date(from);
+      if (to) timeFilter.$lte = new Date(to);
+      if (Object.keys(timeFilter).length > 0) query.timestamp = timeFilter;
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10)));
+    const skip = (pageNum - 1) * limitNum;
+
+    if (live === 'true') {
+      // Live mode: just return newest entries, no pagination
+      const logs = await Log.find(query)
+        .sort({ timestamp: -1 })
+        .limit(limitNum)
+        .lean();
+      return res.json({ logs: logs.reverse(), live: true });
+    }
+
+    const [logs, total] = await Promise.all([
+      Log.find(query).sort({ timestamp: -1 }).skip(skip).limit(limitNum).lean(),
+      Log.countDocuments(query),
+    ]);
 
     res.json({
-      logs: paginatedLogs,
+      logs,
       pagination: {
-        currentPage: page,
-        totalPages: totalPages,
-        totalLogs: totalLogs,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
       },
     });
-  } catch (error) {
-    originalConsoleError('Error fetching logs:', error);
-    res.status(500).json({ msg: 'Server error' });
+  } catch (err) {
+    logger.error('Failed to fetch logs', { error: err.message });
+    res.status(500).json({ msg: 'Failed to fetch logs' });
   }
 });
 
 /**
- * @swagger
- * /logs/stats:
- *   get:
- *     summary: Get log statistics (counts by level and category, recent errors)
- *     tags: [Logs]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Log statistics
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total:
- *                   type: integer
- *                 byLevel:
- *                   type: object
- *                 byCategory:
- *                   type: object
- *                 recentErrors:
- *                   type: array
- *                   items:
- *                     type: object
- *       500:
- *         description: Server error
+ * GET /api/v1/logs/stats
+ * Returns log counts by level and category for a time window.
+ * Query params: from, to (ISO date strings; defaults to last 24 hours)
  */
-// GET /api/logs/stats - Get log statistics
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    const stats = {
-      total: realtimeLogs.length,
-      byLevel: {},
-      byCategory: {},
-      recentErrors: realtimeLogs.filter(log => log.level === 'error').slice(0, 10),
-    };
+    const to = req.query.to ? new Date(req.query.to) : new Date();
+    const from = req.query.from
+      ? new Date(req.query.from)
+      : new Date(to.getTime() - 24 * 60 * 60 * 1000);
 
-    realtimeLogs.forEach(log => {
-      stats.byLevel[log.level] = (stats.byLevel[log.level] || 0) + 1;
-      stats.byCategory[log.category] = (stats.byCategory[log.category] || 0) + 1;
+    const stats = await Log.getLogStats(from, to);
+
+    // getLogStats returns array from aggregation pipeline; reshape for frontend
+    const byLevel = {};
+    const byCategory = {};
+    let total = 0;
+
+    stats.forEach((entry) => {
+      if (entry._id && entry._id.level) {
+        byLevel[entry._id.level] = (byLevel[entry._id.level] || 0) + entry.count;
+      }
+      if (entry._id && entry._id.category) {
+        byCategory[entry._id.category] = (byCategory[entry._id.category] || 0) + entry.count;
+      }
+      total += entry.count || 0;
     });
 
-    res.json(stats);
-  } catch (error) {
-    originalConsoleError('Error fetching log stats:', error);
-    res.status(500).json({ msg: 'Server error' });
+    // Recent errors (last 10)
+    const recentErrors = await Log.find({ level: 'error', timestamp: { $gte: from, $lte: to } })
+      .sort({ timestamp: -1 })
+      .limit(10)
+      .lean();
+
+    res.json({ total, byLevel, byCategory, recentErrors });
+  } catch (err) {
+    logger.error('Failed to fetch log stats', { error: err.message });
+    res.status(500).json({ msg: 'Failed to fetch log stats' });
   }
 });
 
 /**
- * @swagger
- * /logs/export:
- *   get:
- *     summary: Export logs as a CSV file
- *     tags: [Logs]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: level
- *         schema:
- *           type: string
- *           enum: [info, warn, error]
- *       - in: query
- *         name: category
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: CSV file download
- *         content:
- *           text/csv: {}
- *       500:
- *         description: Server error
+ * GET /api/v1/logs/export
+ * Download logs as CSV. Applies same filters as GET /logs.
  */
-// GET /api/logs/export - Export logs as CSV
-router.get('/export', (req, res) => {
+router.get('/export', async (req, res) => {
   try {
-    const level = req.query.level;
-    const category = req.query.category;
+    const { level, category, search, from, to } = req.query;
 
-    let exportLogs = [...realtimeLogs];
-
+    const query = {};
     if (level) {
-      exportLogs = exportLogs.filter(log => log.level === level);
+      const levels = level.split(',').map((l) => l.trim()).filter(Boolean);
+      query.level = levels.length === 1 ? levels[0] : { $in: levels };
     }
     if (category) {
-      exportLogs = exportLogs.filter(log => log.category === category);
+      const cats = category.split(',').map((c) => c.trim()).filter(Boolean);
+      query.category = cats.length === 1 ? cats[0] : { $in: cats };
     }
+    if (search && search.trim()) {
+      query.message = { $regex: search.trim(), $options: 'i' };
+    }
+    const timeFilter = {};
+    if (from) timeFilter.$gte = new Date(from);
+    if (to) timeFilter.$lte = new Date(to);
+    if (Object.keys(timeFilter).length > 0) query.timestamp = timeFilter;
 
-    // Create CSV content
-    const csvHeaders = 'Timestamp,Level,Category,Message,User,IP,User Agent\n';
-    const csvContent = exportLogs
-      .map(
-        log =>
-          `"${log.timestamp}","${log.level}","${log.category}","${log.message.replace(/"/g, '""')}","${log.user || ''}","${log.ip || ''}","${log.userAgent || ''}"`
-      )
+    const logs = await Log.find(query).sort({ timestamp: -1 }).limit(5000).lean();
+
+    const csvHeader = 'Timestamp,Level,Category,Message,User,IP,Action\n';
+    const csvRows = logs
+      .map((log) => {
+        const ts = new Date(log.timestamp).toISOString();
+        const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+        return [
+          escape(ts),
+          escape(log.level),
+          escape(log.category),
+          escape(log.message),
+          escape(log.userId || ''),
+          escape(log.ip || ''),
+          escape(log.action || ''),
+        ].join(',');
+      })
       .join('\n');
 
-    const csv = csvHeaders + csvContent;
-
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename="logs.csv"');
-    res.send(csv);
-  } catch (error) {
-    originalConsoleError('Error exporting logs:', error);
-    res.status(500).json({ msg: 'Server error' });
+    res.setHeader('Content-Disposition', `attachment; filename="logs-${Date.now()}.csv"`);
+    res.send(csvHeader + csvRows);
+  } catch (err) {
+    logger.error('Failed to export logs', { error: err.message });
+    res.status(500).json({ msg: 'Failed to export logs' });
   }
-});
-
-// Attach realtimeLogs to router for testing (as a getter to always return current logs)
-Object.defineProperty(router, 'realtimeLogs', {
-  get() {
-    return realtimeLogs;
-  },
-  set(value) {
-    realtimeLogs = value;
-  },
 });
 
 module.exports = router;
