@@ -28,17 +28,15 @@ const securityConfig = {
 
         scriptSrc: [
           "'self'",
-          "'unsafe-inline'",
+          "'sha256-ieoeWczDHkReVBsRBqaal5AFMlBtNjMzgwKvLqi/tSU='",
           (req, res) => `'nonce-${res.locals.cspNonce}'`, 
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
           'https://js.stripe.com',
           'https://checkout.stripe.com',
-          'https://static.cloudflareinsights.com',
         ],
         scriptSrcAttr: [
-          "'unsafe-inline'",
           (req, res) => `'nonce-${res.locals.cspNonce}'`
         ],
         styleSrcAttr: ["'unsafe-inline'"],
