@@ -265,14 +265,14 @@ router.get('/', requireAdmin, async (req, res) => {
     };
 
     // Log admin action
-    logAdminAction('view_all_appointments', req.user.id, { query: req.query });
+    logAdminAction('view_all_appointments', req.user.id, { query: req.query, resultCount: appointments.length });
 
     res.json({
       appointments,
       pagination,
     });
   } catch (err) {
-    logger.error('Appointment operation failed', { error: err.message });
+    logger.error('Failed to fetch appointments list', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -450,7 +450,7 @@ router.get('/:id', async (req, res) => {
 
     res.json(appointment);
   } catch (err) {
-    logger.error('Appointment operation failed', { error: err.message });
+    logger.error('Failed to fetch appointment by ID', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -584,7 +584,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
     res.status(201).json(appointment);
   } catch (err) {
-    logger.error('Appointment operation failed', { error: err.message });
+    logger.error('Failed to create appointment', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -707,7 +707,7 @@ router.put(
 
       res.json(appointment);
     } catch (err) {
-      logger.error('Appointment operation failed', { error: err.message });
+      logger.error('Failed to update appointment', { error: err.message });
       res.status(500).json({ msg: 'Server error' });
     }
   }
@@ -769,7 +769,7 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ msg: 'Appointment deleted successfully' });
   } catch (err) {
-    logger.error('Appointment operation failed', { error: err.message });
+    logger.error('Failed to delete appointment', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });

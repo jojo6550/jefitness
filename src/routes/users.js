@@ -183,7 +183,7 @@ router.get('/admins', requireAdmin, async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('User route error', { error: err.message });
+    logger.error('Failed to fetch admins list', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });

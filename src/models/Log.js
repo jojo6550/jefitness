@@ -21,6 +21,14 @@ const LogSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    action: {
+      type: String,
+      default: null,
+    },
+    displayTimestamp: {
+      type: String,
+      default: null,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -53,6 +61,7 @@ LogSchema.index({ timestamp: -1 });
 LogSchema.index({ level: 1, timestamp: -1 });
 LogSchema.index({ category: 1, timestamp: -1 });
 LogSchema.index({ userId: 1, timestamp: -1 });
+LogSchema.index({ action: 1, timestamp: -1 });
 
 // Static method to clean old logs (keep only last 30 days)
 LogSchema.statics.cleanOldLogs = function (daysToKeep = 90) {

@@ -2,6 +2,7 @@ const User = require('../models/User');
 const UserActionLog = require('../models/UserActionLog');
 
 const monitoringService = require('./monitoring');
+const { logUserAction } = require('./logger');
 
 /**
  * GDPR/HIPAA Compliance Service
@@ -67,6 +68,7 @@ class ComplianceService {
           consentType: 'data_processing',
         }
       );
+      logUserAction('data_processing_consent_granted', userId, { consentType: 'data_processing', ipAddress });
 
       this.logger.info('Data processing consent granted', { userId, ipAddress });
 
@@ -114,6 +116,7 @@ class ComplianceService {
           purpose,
         }
       );
+      logUserAction('health_data_consent_granted', userId, { consentType: 'health_data', purpose, ipAddress });
 
       this.logger.info('Health data consent granted', { userId, purpose, ipAddress });
 
@@ -160,6 +163,7 @@ class ComplianceService {
           consentType: 'marketing',
         }
       );
+      logUserAction('marketing_consent_granted', userId, { consentType: 'marketing', ipAddress });
 
       this.logger.info('Marketing consent granted', { userId, ipAddress });
 
@@ -203,6 +207,7 @@ class ComplianceService {
           consentType: 'marketing',
         }
       );
+      logUserAction('marketing_consent_withdrawn', userId, { consentType: 'marketing', ipAddress });
 
       this.logger.info('Marketing consent withdrawn', { userId, ipAddress });
 
@@ -251,6 +256,7 @@ class ComplianceService {
       await UserActionLog.logAction(userId, 'consent_withdrawn', ipAddress, userAgent, {
         consentType,
       });
+      logUserAction('consent_withdrawn', userId, { consentType, ipAddress });
 
       this.logger.info('Consent withdrawn', { userId, consentType, ipAddress });
 
@@ -294,6 +300,7 @@ class ComplianceService {
           right: 'access',
         }
       );
+      logUserAction('data_access_requested', userId, { right: 'access', ipAddress });
 
       // In a real implementation, this would trigger a process to collect and provide user data
       // For now, we'll mark it as provided immediately for demo purposes
@@ -345,6 +352,7 @@ class ComplianceService {
           rectificationData,
         }
       );
+      logUserAction('data_rectification_requested', userId, { right: 'rectification', ipAddress });
 
       // In a real implementation, this would trigger a manual review process
       this.logger.info('Data rectification requested', {
@@ -395,6 +403,7 @@ class ComplianceService {
           reason,
         }
       );
+      logUserAction('data_erasure_requested', userId, { right: 'erasure', reason, ipAddress });
 
       // In a real implementation, this would trigger a data anonymization/deletion process
       // For demo purposes, we'll simulate completion
@@ -449,6 +458,7 @@ class ComplianceService {
           right: 'portability',
         }
       );
+      logUserAction('data_portability_requested', userId, { right: 'portability', ipAddress });
 
       // In a real implementation, this would generate and provide a data export
       // For demo purposes, we'll mark it as completed
@@ -500,6 +510,7 @@ class ComplianceService {
           reason,
         }
       );
+      logUserAction('processing_objection_requested', userId, { right: 'objection', reason, ipAddress });
 
       this.logger.info('Processing objection requested', { userId, reason, ipAddress });
 
@@ -545,6 +556,7 @@ class ComplianceService {
           reason,
         }
       );
+      logUserAction('processing_restriction_requested', userId, { right: 'restriction', reason, ipAddress });
 
       this.logger.info('Processing restriction requested', { userId, reason, ipAddress });
 
@@ -654,8 +666,11 @@ class ComplianceService {
             affected: true,
           })
         );
+        const appLogPromises = details.affectedUserIds.map(userId =>
+          logUserAction('data_breach_affected', userId, { breachId, event })
+        );
 
-        await Promise.all(logPromises);
+        await Promise.all([...logPromises, ...appLogPromises]);
       }
 
       return {

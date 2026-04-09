@@ -123,7 +123,7 @@ router.get('/', async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('Client route error', { error: err.message });
+    logger.error('Failed to fetch clients list', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -214,7 +214,7 @@ router.get('/statistics', async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('Client route error', { error: err.message });
+    logger.error('Failed to fetch client statistics', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -278,7 +278,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({ client });
   } catch (err) {
-    logger.error('Client route error', { error: err.message });
+    logger.error('Failed to fetch client details', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -299,7 +299,7 @@ router.delete('/:id', async (req, res) => {
     await User.findByIdAndDelete(req.params.id);
     res.json({ msg: 'Client deleted successfully' });
   } catch (err) {
-    logger.error('Client route error', { error: err.message });
+    logger.error('Failed to delete client', { error: err.message });
     res.status(500).json({ msg: 'Server error' });
   }
 });
