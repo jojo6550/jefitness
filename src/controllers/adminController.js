@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Subscription = require('../models/Subscription');
 const StripePlan = require('../models/StripePlan');
-const logger = require('../services/logger');
+const { logger } = require('../services/logger');
 const { daysLeftUntil } = require('../utils/dateUtils');
 const stripeClient = require('stripe')(process.env.STRIPE_SECRET_KEY);
 

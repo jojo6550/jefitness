@@ -11,6 +11,7 @@ const express = require('express');
 const router = express.Router();
 const { logger } = require('../services/logger');
 const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 // Note: Auth middleware is applied at the router level in server.js
 // Remove redundant auth imports and route-level auth
 
@@ -105,19 +106,36 @@ router.get('/', async (req, res) => {
     const totalCount = await User.countDocuments(query);
 
     // Get clients with pagination and sorting (case-insensitive for string fields)
-    const clients = await User.find(query)
+    const users = await User.find(query)
       .select('-password')
       .collation({ locale: 'en', strength: 2 })
       .sort({ [sortBy]: sortDirection })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit))
+      .lean();
 
+    // Join active/trialing subscription for each client
+    const userIds = users.map((u) => u._id);
+    const subs = await Subscription.find({
+      userId: { $in: userIds },
+      status: { $in: ['active', 'trialing'] },
+    }).lean();
+
+    const subByUser = {};
+    for (const sub of subs) subByUser[sub.userId.toString()] = sub;
+
+    const clients = users.map((u) => ({
+      ...u,
+      subscription: subByUser[u._id.toString()] || null,
+    }));
+
+    const totalPages = Math.ceil(totalCount / limit);
     res.json({
       clients,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalCount / limit),
-        totalClients: totalCount,
+        page: parseInt(page),
+        pages: totalPages,
+        total: totalCount,
         hasNext: page * limit < totalCount,
         hasPrev: page > 1,
       },

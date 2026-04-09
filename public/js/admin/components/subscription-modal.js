@@ -7,16 +7,32 @@
 window.AdminSubModal = (() => {
   const API = window.ApiConfig.getAPI_BASE();
 
-  const PLANS = [
-    { key: '1-month',  label: '1 Month',   days: 30,  price: 'JMD $2,500',  badge: null },
-    { key: '3-month',  label: '3 Months',  days: 90,  price: 'JMD $6,500',  badge: 'POPULAR' },
-    { key: '6-month',  label: '6 Months',  days: 180, price: 'JMD $11,000', badge: null },
-    { key: '12-month', label: '12 Months', days: 365, price: 'JMD $18,000', badge: 'BEST VALUE' },
-  ];
+  const PLAN_META = {
+    '1-month':  { label: '1 Month',   days: 30,  badge: null },
+    '3-month':  { label: '3 Months',  days: 90,  badge: 'POPULAR' },
+    '6-month':  { label: '6 Months',  days: 180, badge: null },
+    '12-month': { label: '12 Months', days: 365, badge: 'BEST VALUE' },
+  };
 
+  let PLANS = Object.entries(PLAN_META).map(([key, m]) => ({ key, ...m, price: '...' }));
   let selectedPlan = PLANS[1];
   let context = null;
   let isBulk = false;
+
+  async function loadPlans() {
+    try {
+      const res = await fetch(`${API}/api/v1/plans`, { credentials: 'include' });
+      if (!res.ok) return;
+      const { plans } = await res.json();
+      // Merge real prices into PLANS by lookupKey
+      PLANS = PLANS.map((p) => {
+        const stripe = plans.find((s) => s.lookupKey === p.key);
+        if (!stripe) return p;
+        const jmd = Math.round(stripe.unitAmount / 100);
+        return { ...p, price: `JMD $${jmd.toLocaleString()}` };
+      });
+    } catch (_) { /* keep placeholder prices on error */ }
+  }
 
   function escapeHtml(str) {
     return String(str ?? '')
@@ -70,14 +86,14 @@ window.AdminSubModal = (() => {
   function open({ userId, name, email, onSuccess }) {
     isBulk = false;
     context = { userId, name, email, onSuccess };
-    selectedPlan = PLANS[1];
+    selectedPlan = PLANS.find((p) => p.key === '3-month') || PLANS[0];
     _show(`Client: <strong style="color:#a5b4fc">${escapeHtml(name)}</strong> · ${escapeHtml(email)}`);
   }
 
   function openBulk(userIds, onSuccess) {
     isBulk = true;
     context = { userIds, onSuccess };
-    selectedPlan = PLANS[1];
+    selectedPlan = PLANS.find((p) => p.key === '3-month') || PLANS[0];
     _show(`Bulk: <strong style="color:#a5b4fc">${userIds.length} client(s)</strong> — same plan applied to all`);
   }
 
@@ -166,7 +182,7 @@ window.AdminSubModal = (() => {
     document.getElementById('days-input')?.addEventListener('input', updateSummary);
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => { loadPlans(); init(); });
 
   return { open, openBulk, close };
 })();
