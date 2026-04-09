@@ -55,10 +55,6 @@ jest.mock('../../models/User', () => ({
   findOneAndUpdate: jest.fn(),
 }));
 
-jest.mock('../../models/Program', () => ({
-  findById: jest.fn(),
-}));
-
 jest.mock('../../models/Purchase', () => ({
   findOne: jest.fn(),
 }));

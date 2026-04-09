@@ -61,6 +61,7 @@ The app is **not** a SPA — it's a multi-page HTML app where each page (`public
 - **Stripe**: All Stripe logic goes through `src/services/stripe.js`. Subscription state is persisted to MongoDB (`Subscription` model) and synced from Stripe via webhooks (`src/routes/webhooks.js`) and on-demand via the `/refresh` endpoint
 - **Date math**: All subscription date calculations (period end, days left, next renewal) must use `src/utils/dateUtils.js` — never raw `Date.now() + N * 86400000` arithmetic
 - **Error classes**: `src/middleware/errorHandler.js` exports `AppError`, `ValidationError`, `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `DatabaseError` — use these instead of generic `Error`
+- **User cache**: `src/services/userCache.js` provides per-request and process-level caching for user lookups. Similar to frontend `auth-cache.js`, reduces DB round-trips. Usage: `const user = await userCache.findById(userId, req)` or `const users = await userCache.findByIds([id1, id2], req)`. Auto-initialized on every request via middleware
 
 ### Route Protection
 

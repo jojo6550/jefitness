@@ -94,6 +94,10 @@ app.use(sanitizeInput);
 app.use(preventNoSQLInjection); // Apply globally for defense-in-depth
 app.use(csrfProtection.middleware());
 
+// User cache — initialize per-request cache for user lookups
+const userCacheMiddleware = require('./middleware/userCacheMiddleware');
+app.use(userCacheMiddleware);
+
 // Disable caching in development
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
