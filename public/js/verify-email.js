@@ -55,12 +55,8 @@
     }
   }
 
-  // ── After successful verification: store token and go to dashboard ────────
+  // ── After successful verification: cookie is set by server, go to dashboard ─
   function handleVerified(data) {
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userRole', data.user?.role || 'user');
-    }
     show('stateSuccess');
     setTimeout(() => {
       window.location.href = '/dashboard';

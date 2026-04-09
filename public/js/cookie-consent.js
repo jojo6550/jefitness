@@ -26,8 +26,8 @@ class CookieConsentManager {
     }
 
     async init() {
-        // Check authentication status
-        this.checkAuthStatus();
+        // Check authentication status via server (httpOnly cookie)
+        await this.checkAuthStatus();
 
         // Check existing consent
         const existingConsent = this.getStoredConsent();
@@ -45,9 +45,13 @@ class CookieConsentManager {
         this.bindEvents();
     }
 
-    checkAuthStatus() {
+    async checkAuthStatus() {
         this.userToken = null; // cookie is automatic, no need to pass it around
-        this.isLoggedIn = !!localStorage.getItem('userRole');
+        this.isLoggedIn = false;
+        try {
+            await window.AuthCache.getMe();
+            this.isLoggedIn = true;
+        } catch {}
     }
 
     getStoredConsent() {

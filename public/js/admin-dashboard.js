@@ -717,23 +717,23 @@ function displayAppointments(appointments) {
                            appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                            'bg-yellow-100 text-yellow-800';
 
-        const clientName = appointment.clientId ? `${appointment.clientId.firstName || 'N/A'} ${appointment.clientId.lastName || ''}` : 'N/A';
-        const trainerName = appointment.trainerId ? `${appointment.trainerId.firstName || 'N/A'} ${appointment.trainerId.lastName || ''}` : 'N/A';
+        const clientName = appointment.clientId ? `${escapeHtml(appointment.clientId.firstName || 'N/A')} ${escapeHtml(appointment.clientId.lastName || '')}` : 'N/A';
+        const trainerName = appointment.trainerId ? `${escapeHtml(appointment.trainerId.firstName || 'N/A')} ${escapeHtml(appointment.trainerId.lastName || '')}` : 'N/A';
 
         row.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${date}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${appointment.time}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(appointment.time)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${clientName}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${trainerName}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                    ${appointment.status}
+                    ${escapeHtml(appointment.status)}
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button data-id="${appointment._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-appointment-btn">View</button>
-                <button data-id="${appointment._id}" class="text-blue-600 hover:text-blue-900 mr-3 edit-appointment-btn">Edit</button>
-                <button data-id="${appointment._id}" class="text-red-600 hover:text-red-900 delete-appointment-btn">Delete</button>
+                <button data-id="${escapeHtml(appointment._id)}" class="text-blue-600 hover:text-blue-900 mr-3 view-appointment-btn">View</button>
+                <button data-id="${escapeHtml(appointment._id)}" class="text-blue-600 hover:text-blue-900 mr-3 edit-appointment-btn">Edit</button>
+                <button data-id="${escapeHtml(appointment._id)}" class="text-red-600 hover:text-red-900 delete-appointment-btn">Delete</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -1051,24 +1051,24 @@ function displayOrders(orders) {
 
     orders.forEach(order => {
         const row = document.createElement('tr');
-        const customerName = order.user ? `${order.user.firstName || 'N/A'} ${order.user.lastName || ''}` : 'N/A';
+        const customerName = order.user ? `${escapeHtml(order.user.firstName || 'N/A')} ${escapeHtml(order.user.lastName || '')}` : 'N/A';
         const statusClass = order.status === 'completed' ? 'bg-green-100 text-green-800' :
                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                            order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                            'bg-gray-100 text-gray-800';
 
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.orderNumber}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${escapeHtml(order.orderNumber)}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${customerName}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$${order.total.toFixed(2)}</td>
             <td class="px-6 py-4 whitespace-nowrap">
                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                    ${order.status}
+                    ${escapeHtml(order.status)}
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(order.createdAt).toLocaleDateString()}</td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button data-id="${order._id}" class="text-blue-600 hover:text-blue-900 mr-3 view-order-btn">View</button>
+                <button data-id="${escapeHtml(order._id)}" class="text-blue-600 hover:text-blue-900 mr-3 view-order-btn">View</button>
             </td>
         `;
         tbody.appendChild(row);

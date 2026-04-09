@@ -3,6 +3,10 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 
 const router = express.Router();
+
+// Auth routes never need large payloads — enforce a strict body size limit
+router.use(express.json({ limit: '10kb' }));
+router.use(express.urlencoded({ limit: '10kb', extended: false }));
 const { body } = require('express-validator');
 const bcrypt = require('bcryptjs');
 
