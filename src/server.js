@@ -302,17 +302,19 @@ async function startServer() {
     startRenewalReminderJob();
     startTrainerDailyEmailJob();
 
-    // Self-ping keep-alive for production (prevents sleep on free hosts like Render)
+    // Keep-alive pings for production (prevents sleep on free hosts like Render)
     if (process.env.NODE_ENV === 'production') {
       const pingUrl = `http://localhost:${PORT}/api/health`;
       setInterval(async () => {
         try {
           await fetch(pingUrl);
+          // Also ping MongoDB to prevent connection from going cold
+          await mongoose.connection.db.command({ ping: 1 });
           logger.info('Self-ping sent');
         } catch (err) {
           // Silent fail - do not log errors
         }
-      }, 10 * 60 * 1000);  // Every 50 seconds
+      }, 10 * 60 * 1000);  // Every 10 minutes
     }
 
     const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));

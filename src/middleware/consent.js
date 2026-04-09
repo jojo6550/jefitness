@@ -52,8 +52,8 @@ const requireDataProcessingConsent = async (req, res, next) => {
       });
     }
 
-    // Log consent verification
-    await logAuditEvent(user, 'consent_verified', {
+    // Fire-and-forget audit log — do not block the request
+    logAuditEvent(user, 'consent_verified', {
       consentType: 'data_processing',
       endpoint: req.path,
       method: req.method,
@@ -117,23 +117,15 @@ const requireHealthDataConsent = async (req, res, next) => {
       });
     }
 
-    // Log health data access
-    try {
-      await logAuditEvent(user, 'health_data_accessed', {
-        consentType: 'health_data',
-        purpose: user.healthDataConsent.purpose,
-        endpoint: req.path,
-        method: req.method,
-        ipAddress: getClientIP(req),
-        userAgent: req.get('User-Agent'),
-      });
-    } catch (logError) {
-      monitoringService.recordError(logError, {
-        context: 'health_data_access_logging',
-        userId: user._id,
-        endpoint: req.path,
-      });
-    }
+    // Fire-and-forget audit log — do not block the request
+    logAuditEvent(user, 'health_data_accessed', {
+      consentType: 'health_data',
+      purpose: user.healthDataConsent.purpose,
+      endpoint: req.path,
+      method: req.method,
+      ipAddress: getClientIP(req),
+      userAgent: req.get('User-Agent'),
+    });
 
     next();
   } catch (error) {
