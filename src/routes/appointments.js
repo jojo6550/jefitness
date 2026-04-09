@@ -60,6 +60,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { logger, logError, logAdminAction, logUserAction } = require('../services/logger');
 const { allowOnlyFields } = require('../middleware/inputValidator');
 const {
+  sendAppointmentConfirmationClient,
   sendNewAppointmentNotification,
   sendAppointmentCancelledTrainer,
   sendAppointmentCancelledClient,
@@ -551,6 +552,21 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       date,
       time,
     });
+
+    // Always send booking confirmation to the client
+    if (appointment.clientId.email) {
+      try {
+        const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
+        const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
+        const aptDate = new Date(date);
+        const dateStr = aptDate.toLocaleDateString('en-US', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+        });
+        await sendAppointmentConfirmationClient(appointment.clientId.email, appointment.clientId.firstName, trainerName, dateStr, time, appointment._id.toString(), date);
+      } catch (emailErr) {
+        logger.warn('Failed to send booking confirmation to client', { clientId: req.user.id, error: emailErr.message });
+      }
+    }
 
     // Send individual email notification if trainer prefers it
     if (trainer.trainerEmailPreference === 'individual' && trainer.email) {
