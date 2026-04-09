@@ -11,13 +11,25 @@ const securityConfig = {
   },
 
   // Helmet Configuration
-  helmetOptions: {
+    helmetOptions: {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://jefitnessja.com',
+          'https://via.placeholder.com',
+          'https://cdn.jsdelivr.net',
+          'https://*.stripe.com',
+          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:10000', 'http://127.0.0.1:10000'] : []),
+        ],
+
         scriptSrc: [
           "'self'",
           "'unsafe-inline'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`, 
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
@@ -25,7 +37,10 @@ const securityConfig = {
           'https://checkout.stripe.com',
           'https://static.cloudflareinsights.com',
         ],
-        scriptSrcAttr: ["'unsafe-inline'"],
+        scriptSrcAttr: [
+          "'unsafe-inline'",
+          (req, res) => `'nonce-${res.locals.cspNonce}'`
+        ],
         styleSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
           "'self'",

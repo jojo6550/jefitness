@@ -8,4 +8,9 @@ router.get('/', auth, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, '../../public/pages/admin.html'));
 });
 
+// Serve admin dashboard at /admin-dashboard
+router.get('/dashboard', auth, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, '../../public/pages/admin.html'));
+});
+
 module.exports = router;
