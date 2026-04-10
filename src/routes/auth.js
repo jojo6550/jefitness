@@ -384,8 +384,10 @@ router.post('/2fa/setup', auth, async (req, res) => {
     });
 
     // Store pending secret in a short-lived JWT so we don't write to DB until verified
+    // SECURITY: Embed tokenVersion from the fresh DB doc so this setupToken is invalidated
+    // if the user logs out (which bumps tokenVersion) before completing 2FA setup
     const setupToken = jwt.sign(
-      { id: req.user.id, twoFactorSecret: secret.base32, setupPending: true },
+      { id: req.user.id, twoFactorSecret: secret.base32, setupPending: true, tokenVersion: req.userDoc.tokenVersion || 0 },
       process.env.JWT_SECRET,
       { expiresIn: '10m' }
     );
@@ -420,6 +422,12 @@ router.post('/2fa/verify', auth, async (req, res) => {
 
     if (!payload.setupPending || payload.id !== req.user.id) {
       return res.status(400).json({ success: false, error: 'Invalid setup token' });
+    }
+
+    // SECURITY: Verify the setupToken was issued in the current session (not a stale pre-logout token)
+    const currentUser = await User.findById(req.user.id).select('+tokenVersion');
+    if (!currentUser || (payload.tokenVersion ?? 0) !== (currentUser.tokenVersion || 0)) {
+      return res.status(400).json({ success: false, error: 'Setup token is no longer valid. Please restart 2FA setup.' });
     }
 
     const valid = speakeasy.totp.verify({
