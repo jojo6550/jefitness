@@ -351,6 +351,26 @@ router.get('/google/callback', (_req, res) => res.redirect('/login?error=google_
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
+// Per-tempToken brute-force protection: max 5 attempts per issued tempToken
+// Map key: `${userId}:${iat}` — unique per token issuance
+const _2faAttempts = new Map();
+function _check2faAttempt(userId, iat) {
+  const key = `${userId}:${iat}`;
+  const record = _2faAttempts.get(key) || { count: 0, expiresAt: Date.now() + 5 * 60 * 1000 };
+  if (Date.now() > record.expiresAt) {
+    _2faAttempts.delete(key);
+    return { allowed: true, key, record: { count: 0, expiresAt: Date.now() + 5 * 60 * 1000 } };
+  }
+  return { allowed: record.count < 5, key, record };
+}
+function _record2faAttempt(key, record) {
+  record.count += 1;
+  _2faAttempts.set(key, record);
+}
+function _clear2faAttempt(key) {
+  _2faAttempts.delete(key);
+}
+
 /**
  * POST /api/v1/auth/2fa/setup
  * Generate a TOTP secret + QR code URI for the authenticated user.
@@ -495,6 +515,13 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid token type' });
     }
 
+    // Brute-force guard: max 5 failed attempts per tempToken
+    const { allowed, key: attemptKey, record: attemptRecord } = _check2faAttempt(payload.id, payload.iat);
+    if (!allowed) {
+      logger.warn('2FA brute-force limit reached', { userId: payload.id });
+      return res.status(429).json({ success: false, error: 'Too many failed attempts. Please log in again.' });
+    }
+
     const user = await User.findById(payload.id).select('+twoFactorSecret +twoFactorBackupCodes +tokenVersion');
     if (!user) return res.status(401).json({ success: false, error: 'User not found' });
 
@@ -524,9 +551,12 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
     }
 
     if (!valid) {
+      _record2faAttempt(attemptKey, attemptRecord);
       logger.warn('2FA authentication failed', { userId: user._id });
       return res.status(401).json({ success: false, error: 'Invalid authentication code' });
     }
+
+    _clear2faAttempt(attemptKey);
 
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
