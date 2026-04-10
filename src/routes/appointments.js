@@ -658,7 +658,7 @@ router.put(
           appointment.status = status;
         } else if (
           req.user.role === 'trainer' &&
-          appointment.trainerId.toString() === req.user.id
+          appointment.trainerId?.toString() === req.user.id
         ) {
           // Allow trainers to update status to completed, no_show, late
           if (['completed', 'no_show', 'late'].includes(status)) {
@@ -668,7 +668,7 @@ router.put(
               msg: 'Trainers can only update status to completed, no_show, or late',
             });
           }
-        } else if (req.user.id === appointment.clientId.toString()) {
+        } else if (req.user.id === appointment.clientId?.toString()) {
           // Clients can only cancel
           if (status === 'cancelled') {
             appointment.status = status;
