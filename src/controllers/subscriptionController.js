@@ -509,6 +509,21 @@ const subscriptionController = {
       });
     }
 
+    // Security: verify this Stripe subscription belongs to the requesting user's customer
+    if (stripeSub.customer !== user.stripeCustomerId) {
+      logger.warn('[REFRESH] Stripe subscription customer mismatch — possible data corruption', {
+        userId: user._id,
+        stripeSubId: stripeSub.id,
+        subCustomer: stripeSub.customer,
+        userCustomer: user.stripeCustomerId,
+      });
+      return res.json({
+        success: true,
+        data: null,
+        message: 'No active Stripe subscription found',
+      });
+    }
+
     const priceItem = stripeSub.items?.data[0];
     const priceId = priceItem?.price?.id;
     const billingEnv = getBillingEnv();
