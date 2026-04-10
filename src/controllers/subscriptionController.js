@@ -509,8 +509,12 @@ const subscriptionController = {
       });
     }
 
-    // Security: verify this Stripe subscription belongs to the requesting user's customer
-    if (stripeSub.customer !== user.stripeCustomerId) {
+    // Security: verify this Stripe subscription belongs to the requesting user's customer.
+    // stripeSub.customer can be an expanded object if Stripe auto-expands it — normalize to ID string.
+    const stripeSubCustomerId = typeof stripeSub.customer === 'object'
+      ? stripeSub.customer?.id
+      : stripeSub.customer;
+    if (stripeSubCustomerId !== user.stripeCustomerId) {
       logger.warn('[REFRESH] Stripe subscription customer mismatch — possible data corruption', {
         userId: user._id,
         stripeSubId: stripeSub.id,

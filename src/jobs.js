@@ -79,6 +79,13 @@ const startSubscriptionCleanupJob = () => {
           }
         }
 
+        // No stripeSubscriptionId and no currentPeriodEnd means we cannot
+        // verify the subscription state — skip rather than incorrectly canceling.
+        if (!sub.stripeSubscriptionId && !sub.currentPeriodEnd) {
+          logger.warn('Skipping subscription with no Stripe ID and no period end', { subscriptionId: sub._id });
+          continue;
+        }
+
         // No Stripe ID, or Stripe confirmed inactive — mark canceled in DB.
         // Use findByIdAndUpdate (bypasses pre-save hook) + explicit $push to avoid
         // duplicate statusHistory entries (the pre-save hook also pushes on status change).

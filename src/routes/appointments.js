@@ -463,16 +463,16 @@ router.post('/', requireActiveSubscription, async (req, res) => {
   try {
     const { trainerId, date, time, notes } = req.body;
 
-    // Normalize date to YYYY-MM-DD (strip any time component the client may have included)
-    const normalizedDate = typeof date === 'string' ? date.slice(0, 10) : new Date(date).toISOString().slice(0, 10);
-    // Build an explicit UTC midnight Date for all DB operations — ensures consistent slot counting
-    const appointmentDate = new Date(normalizedDate + 'T00:00:00.000Z');
-
-    // Validate required fields
+    // Validate required fields before any normalization to avoid RangeError on undefined date
     if (!trainerId || !date || !time) {
       logger.warn('Validation failed: missing required fields', { trainerId, date, time });
       return res.status(400).json({ msg: 'Please provide all required fields' });
     }
+
+    // Normalize date to YYYY-MM-DD (strip any time component the client may have included)
+    const normalizedDate = typeof date === 'string' ? date.slice(0, 10) : new Date(date).toISOString().slice(0, 10);
+    // Build an explicit UTC midnight Date for all DB operations — ensures consistent slot counting
+    const appointmentDate = new Date(normalizedDate + 'T00:00:00.000Z');
 
     // Check if trainer exists and is trainer
     const trainer = await User.findById(trainerId);

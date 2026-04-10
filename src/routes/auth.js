@@ -322,13 +322,14 @@ router.post(
         return res.status(400).json({ success: false, error: 'Invalid or expired reset token.' });
       }
 
+      // Bump tokenVersion inline so it is atomic with the password save.
+      // Using a separate incrementUserTokenVersion call risks the bump silently
+      // failing (it swallows errors) while the password still saves, leaving old
+      // sessions valid. Inline bump guarantees both changes land in one document write.
       user.password = req.body.password;
       user.passwordResetToken = undefined;
       user.resetPasswordExpires = undefined;
-
-      // Invalidate all existing sessions BEFORE saving new password
-      // This closes the window where old sessions remain valid with the new password
-      await incrementUserTokenVersion(user._id);
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
       await user.save();
 
       res.json({ success: true, message: 'Password reset successfully. Please log in.' });
@@ -364,6 +365,10 @@ function _check2faAttempt(userId, iat) {
   return { allowed: record.count < 5, key, record };
 }
 function _record2faAttempt(key, record) {
+  // Anchor the window start on the first recorded attempt so the 5-minute
+  // window is consistent even if _check2faAttempt created a fresh record
+  // slightly earlier (e.g. expired-window branch).
+  if (record.count === 0) record.expiresAt = Date.now() + 5 * 60 * 1000;
   record.count += 1;
   _2faAttempts.set(key, record);
 }
