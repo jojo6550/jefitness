@@ -24,7 +24,10 @@ const startSubscriptionCleanupJob = () => {
 
       const expiredSubscriptions = await Subscription.find({
         status: { $in: ['active', 'past_due'] },
-        currentPeriodEnd: { $lt: now },
+        $or: [
+          { currentPeriodEnd: { $lt: now } },
+          { currentPeriodEnd: null },
+        ],
       });
 
       if (!expiredSubscriptions.length) {
@@ -77,14 +80,22 @@ const startSubscriptionCleanupJob = () => {
         }
 
         // No Stripe ID, or Stripe confirmed inactive — mark canceled in DB.
-        sub.status = 'canceled';
-        sub.statusHistory.push({
-          status: 'canceled',
-          changedAt: now,
-          reason: `Automatically canceled after Stripe verification (period end: ${sub.currentPeriodEnd})`,
-        });
-
-        await sub.save();
+        // Use findByIdAndUpdate (bypasses pre-save hook) + explicit $push to avoid
+        // duplicate statusHistory entries (the pre-save hook also pushes on status change).
+        await Subscription.findByIdAndUpdate(
+          sub._id,
+          {
+            $set: { status: 'canceled' },
+            $push: {
+              statusHistory: {
+                status: 'canceled',
+                changedAt: now,
+                reason: `Automatically canceled after Stripe verification (period end: ${sub.currentPeriodEnd})`,
+              },
+            },
+          },
+          { runValidators: false }
+        );
         logger.info('Subscription marked as canceled', { subscriptionId: sub._id, userId: sub.userId });
       }
     } catch (error) {
@@ -112,11 +123,11 @@ const startRenewalReminderJob = () => {
 
       for (const days of REMINDER_DAYS) {
         const windowStart = new Date(now);
-        windowStart.setDate(windowStart.getDate() + days);
-        windowStart.setHours(0, 0, 0, 0);
+        windowStart.setUTCDate(windowStart.getUTCDate() + days);
+        windowStart.setUTCHours(0, 0, 0, 0);
 
         const windowEnd = new Date(windowStart);
-        windowEnd.setHours(23, 59, 59, 999);
+        windowEnd.setUTCHours(23, 59, 59, 999);
 
         const subs = await Subscription.find({
           status: { $in: ['active', 'trialing'] },
