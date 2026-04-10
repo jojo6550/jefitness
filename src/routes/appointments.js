@@ -463,6 +463,11 @@ router.post('/', requireActiveSubscription, async (req, res) => {
   try {
     const { trainerId, date, time, notes } = req.body;
 
+    // Normalize date to YYYY-MM-DD (strip any time component the client may have included)
+    const normalizedDate = typeof date === 'string' ? date.slice(0, 10) : new Date(date).toISOString().slice(0, 10);
+    // Build an explicit UTC midnight Date for all DB operations — ensures consistent slot counting
+    const appointmentDate = new Date(normalizedDate + 'T00:00:00.000Z');
+
     // Validate required fields
     if (!trainerId || !date || !time) {
       logger.warn('Validation failed: missing required fields', { trainerId, date, time });
@@ -476,7 +481,6 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     }
 
     // Validate against trainer's availability
-    const appointmentDate = new Date(date);
     const dayOfWeek = appointmentDate.getUTCDay();
     const [hours, minutes] = time.split(':').map(Number);
 
@@ -522,8 +526,8 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     }
 
     // Appointments must be booked at least one day in advance (no same-day bookings)
-    const todayUTCStr = new Date().toISOString().split('T')[0];
-    if (date <= todayUTCStr) {
+    const todayUTCStr = new Date().toISOString().slice(0, 10);
+    if (normalizedDate <= todayUTCStr) {
       return res.status(400).json({ msg: 'Appointments must be booked at least one day in advance' });
     }
 
@@ -551,12 +555,20 @@ router.post('/', requireActiveSubscription, async (req, res) => {
     const appointment = new Appointment({
       clientId,
       trainerId,
-      date,
+      date: appointmentDate,
       time,
       notes,
     });
 
-    await appointment.save();
+    try {
+      await appointment.save();
+    } catch (saveErr) {
+      if (saveErr.code === 11000) {
+        // Unique index violation — slot was taken by a concurrent request
+        return res.status(409).json({ msg: 'Time slot is fully booked (concurrent booking conflict)' });
+      }
+      throw saveErr;
+    }
     await appointment.populate('clientId', 'firstName lastName email');
     await appointment.populate('trainerId', 'firstName lastName email');
 
