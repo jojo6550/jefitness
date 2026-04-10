@@ -241,6 +241,10 @@ async function handleSubscriptionDeleted(subscription) {
           ? new Date(subscription.canceled_at * 1000)
           : new Date(),
         lastWebhookEventAt: new Date(),
+        // NOTE: cancelAtPeriodEnd is intentionally NOT updated here.
+        // It was set by the user's explicit cancel request and should be preserved
+        // for audit history. By the time this event fires, Stripe has already reset
+        // cancel_at_period_end to false — overwriting it would lose the audit trail.
       },
     },
     { new: true }
