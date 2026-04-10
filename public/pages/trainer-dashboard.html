@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trainer Portal | JE Fitness</title>
+    <title>JE Fitness Trainer Portal — Schedule &amp; Clients</title>
+    <meta name="description" content="JE Fitness trainer portal for managing your schedule, client roster, availability, and appointment notifications. Restricted to authorized trainers." />
+    <link rel="canonical" href="https://jefitness.com/trainer-dashboard" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="JE Fitness Trainer Portal — Schedule &amp; Clients" />
+    <meta property="og:description" content="JE Fitness trainer portal for managing your schedule, client roster, availability, and appointment notifications. Restricted to authorized trainers." />
+    <meta property="og:url" content="https://jefitness.com/trainer-dashboard" />
+    <meta property="og:site_name" content="JE Fitness" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
@@ -16,6 +24,7 @@
         <div class="app-window animate__animated animate__zoomIn">
             <!-- Window Header -->
             <header class="window-header">
+                <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">JE Fitness Trainer Portal</h1>
                 <div class="window-controls">
                     <span class="control close"></span>
                     <span class="control minimize"></span>
@@ -32,13 +41,13 @@
                     <span id="windowTitleText">Schedule Manager</span>
                 </div>
                 <div class="window-actions">
-                    <button id="refreshBtn" class="action-btn" title="Refresh">
+                    <button id="refreshBtn" class="action-btn" title="Refresh" aria-label="Refresh">
                         <i class="bi bi-arrow-clockwise"></i>
                     </button>
-                    <a href="/trainer-guide" class="action-btn no-underline" title="Trainer Guide">
+                    <a href="/trainer-guide" class="action-btn no-underline" title="Trainer Guide" aria-label="Trainer Guide">
                         <i class="bi bi-question-circle"></i>
                     </a>
-                    <button id="logoutButton" class="action-btn text-danger" title="Logout">
+                    <button id="logoutButton" class="action-btn text-danger" title="Logout" aria-label="Logout">
                         <i class="bi bi-power"></i>
                     </button>
                 </div>
