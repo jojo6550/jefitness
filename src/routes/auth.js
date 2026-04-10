@@ -219,6 +219,12 @@ router.post(
       if (!user.isEmailVerified) {
         return res.json({ success: true, verified: false });
       }
+
+      // Guard: account was soft-deleted after verification — do not issue a session
+      if (user.dataDeletedAt) {
+        return res.json({ success: true, verified: false });
+      }
+
       const token = jwt.sign(
         { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
         process.env.JWT_SECRET,
