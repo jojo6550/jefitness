@@ -325,10 +325,11 @@ router.post(
       user.password = req.body.password;
       user.passwordResetToken = undefined;
       user.resetPasswordExpires = undefined;
-      await user.save();
 
-      // Invalidate all existing sessions
+      // Invalidate all existing sessions BEFORE saving new password
+      // This closes the window where old sessions remain valid with the new password
       await incrementUserTokenVersion(user._id);
+      await user.save();
 
       res.json({ success: true, message: 'Password reset successfully. Please log in.' });
     } catch (err) {
