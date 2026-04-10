@@ -299,6 +299,7 @@ const UserSchema = new mongoose.Schema(
         notes: { type: String, maxlength: 200 },
       },
     ],
+    notes: [{ type: String, maxlength: 500, trim: true }], // Top-level notes array - defensive field for legacy data
   },
   { timestamps: true }
 );
