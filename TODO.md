@@ -1,1 +1,14 @@
-# Fix Admin Subscription Creation Error\n\n## Status: Planned\n\n### Step 1: Create TODO.md [✅ COMPLETE]\n### Step 2: Edit src/controllers/adminController.js - Add defensive Stripe customer verification (PENDING)\n### Step 3: Test API endpoint POST /api/v1/admin/subscriptions (PENDING)\n### Step 4: Restart server and verify admin UI (PENDING)\n### Step 5: Test with affected customer ID 'cus_UIkuLPihCWNanh' (PENDING)\n### Step 6: Update TODO.md with results and attempt_completion (PENDING)\n\n**Plan approved? Reply 'proceed' or provide feedback.**
+# JE Fitness Notes Field Fix - TODO
+
+
+
+### 1. [x] Create data migration script (fix-notes-migration.js)
+### 2. [x] Update User schema to include top-level notes: [String]
+### 3. [ ] Run migration script on specific document + all users
+### 4. [ ] Add notes normalization to input validators/controllers
+### 5. [ ] Test User operations (create/update)
+### 6. [ ] Run full test suite (npm test)
+### 7. [ ] Update TODO progress after each step
+### 8. [ ] Attempt completion
+
+**Next step: Create migration script**

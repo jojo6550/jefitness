@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Branch Workflow Protocol
+
+**All new feature work must happen on the `dev` branch, never directly on `main`.**
+
+1. Before starting any feature, switch to `dev`: `git checkout dev && git pull origin dev`
+2. Do all development work on `dev`
+3. Once the feature is verified working, merge to `main` (production): `git checkout main && git merge dev && git push origin main`
+
+`main` = production. `dev` = staging/active development. Never commit features directly to `main`.
+
 ## Development Commands
 
 ```bash
