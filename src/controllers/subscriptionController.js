@@ -277,8 +277,13 @@ const subscriptionController = {
             : session.customer;
         const user = await User.findOne({ stripeCustomerId: customerId });
         if (!user) {
-          logger.warn('[VERIFY-SESSION] User not found for customer:', {
+          logger.warn('[VERIFY-SESSION] No user found for Stripe customer — denying access', {
             customer: session.customer,
+            authenticatedUserId: req.user.id,
+          });
+          return res.status(403).json({
+            success: false,
+            message: 'Session does not belong to the authenticated user',
           });
         } else if (user._id.toString() !== req.user.id) {
           logger.warn('[VERIFY-SESSION] Authenticated user does not own this checkout session', {
