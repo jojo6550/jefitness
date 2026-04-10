@@ -505,7 +505,7 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
 // Check if this client already has an appointment on this date (across all trainers)
 // Compute UTC start/end of the requested date to handle timezone issues
-    const dateStr = date; // YYYY-MM-DD from input
+    const dateStr = normalizedDate; // normalized YYYY-MM-DD (already stripped of time component)
     const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
     const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
 
@@ -633,8 +633,8 @@ router.put(
       // Allow update if user is admin, or the trainer or the client who owns the appointment
       if (
         req.user.role !== 'admin' &&
-        appointment.trainerId.toString() !== req.user.id &&
-        appointment.clientId.toString() !== req.user.id
+        appointment.trainerId?.toString() !== req.user.id &&
+        appointment.clientId?.toString() !== req.user.id
       ) {
         return res.status(403).json({ msg: 'Access denied' });
       }
@@ -762,8 +762,8 @@ router.delete('/:id', async (req, res) => {
     // Allow delete if user is the trainer, the client, or an admin
     if (
       req.user.role !== 'admin' &&
-      appointment.trainerId.toString() !== req.user.id &&
-      appointment.clientId.toString() !== req.user.id
+      appointment.trainerId?.toString() !== req.user.id &&
+      appointment.clientId?.toString() !== req.user.id
     ) {
       return res.status(403).json({ msg: 'Access denied' });
     }
