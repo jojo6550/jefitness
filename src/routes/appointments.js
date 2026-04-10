@@ -441,10 +441,14 @@ router.get('/:id', async (req, res) => {
     }
 
     // Allow access if user is the client or trainer of the appointment
-    if (
-      appointment.clientId._id.toString() !== req.user.id &&
-      appointment.trainerId._id.toString() !== req.user.id
-    ) {
+    const clientIdStr = appointment.clientId?._id?.toString();
+    const trainerIdStr = appointment.trainerId?._id?.toString();
+
+    if (!clientIdStr && !trainerIdStr) {
+      return res.status(404).json({ msg: 'Appointment participants not found' });
+    }
+
+    if (clientIdStr !== req.user.id && trainerIdStr !== req.user.id) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
@@ -670,7 +674,7 @@ router.put(
       await appointment.populate('trainerId', 'firstName lastName email trainerEmailPreference');
 
       // Log the action
-      if (appointment.clientId.toString() === req.user.id && status === 'cancelled') {
+      if (appointment.clientId?._id?.toString() === req.user.id && status === 'cancelled') {
         logUserAction('cancel_appointment', req.user.id, {
           appointmentId: req.params.id,
           clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
@@ -757,13 +761,17 @@ router.delete('/:id', async (req, res) => {
     await appointment.populate('trainerId', 'firstName lastName email trainerEmailPreference');
 
     // Log the action
-    const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
-    const clientEmail = appointment.clientId.email;
-    const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
-    const trainerEmail = appointment.trainerId.email;
+    const clientName = appointment.clientId
+      ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}`
+      : 'Unknown Client';
+    const clientEmail = appointment.clientId?.email || '';
+    const trainerName = appointment.trainerId
+      ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`
+      : 'Unknown Trainer';
+    const trainerEmail = appointment.trainerId?.email || '';
     if (req.user.role === 'admin') {
       logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
-    } else if (appointment.trainerId.toString() === req.user.id) {
+    } else if (appointment.trainerId?._id?.toString() === req.user.id || appointment.trainerId?.toString() === req.user.id) {
       logAdminAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
     } else {
       logUserAction('delete_appointment', req.user.id, { appointmentId: req.params.id, clientName, clientEmail, trainerName, trainerEmail });
