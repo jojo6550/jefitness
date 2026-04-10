@@ -497,6 +497,12 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
     const user = await User.findById(payload.id).select('+twoFactorSecret +twoFactorBackupCodes +tokenVersion');
     if (!user) return res.status(401).json({ success: false, error: 'User not found' });
 
+    // Guard: reject deleted accounts — they must not be able to complete login
+    if (user.dataDeletedAt) {
+      logger.warn('2FA authenticate blocked for deleted account', { userId: payload.id });
+      return res.status(401).json({ success: false, error: 'Account not found' });
+    }
+
     // Check TOTP first
     let valid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
