@@ -71,7 +71,7 @@ async function handleApiResponse(response) {
 
   const data = await response.json();
   if (!response.ok) {
-    let errorMsg = data?.error?.message || `HTTP ${response.status}`;
+    let errorMsg = data?.message || data?.error?.message || `HTTP ${response.status}`;
     if (response.status === 400 && errorMsg.includes('price')) {
       errorMsg = 'Subscription plans temporarily unavailable. Please contact support.';
     } else if (response.status === 401) {
@@ -185,7 +185,9 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  if (hasActiveSubscription()) {
+  // Only hide plans for truly active/trialing subs — past_due/paused users should still see plans
+  const blockingStatuses = ['active', 'trialing'];
+  if (userSubscriptions.some(sub => blockingStatuses.includes(sub.status))) {
     safeHide(getElement('plansSection'));
     return;
   }
@@ -322,7 +324,6 @@ function renderActiveSubscriptionSummary() {
   if (!sub) return;
 
   const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
-const amount = formatCurrency((sub.amount || 0) / 100);
 
   const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
   const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);

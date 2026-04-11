@@ -23,7 +23,7 @@ const startSubscriptionCleanupJob = () => {
       const now = new Date();
 
       const expiredSubscriptions = await Subscription.find({
-        status: { $in: ['active', 'past_due'] },
+        status: { $in: ['active', 'past_due', 'trialing', 'paused'] },
         $or: [
           { currentPeriodEnd: { $lt: now } },
           { currentPeriodEnd: null },

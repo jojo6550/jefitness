@@ -33,11 +33,11 @@ async function loadNavbarSubscriptionStatus() {
             let statusClass = 'bg-secondary';
 
             // API returns raw DB doc — use status directly (no hasSubscription/isActive flags)
-            const { status, plan } = subscription;
+            const { status, plan, cancelAtPeriodEnd } = subscription;
             if (status === 'active' || status === 'trialing') {
-                statusText = `${plan} Plan`;
-                statusClass = 'bg-success';
-            } else if (status === 'canceled' || status === 'cancel_pending') {
+                statusText = cancelAtPeriodEnd ? `${plan} (Canceling)` : `${plan} Plan`;
+                statusClass = cancelAtPeriodEnd ? 'bg-warning text-dark' : 'bg-success';
+            } else if (status === 'canceled') {
                 statusText = `${plan} (Canceled)`;
                 statusClass = 'bg-warning text-dark';
             } else if (status === 'past_due') {
