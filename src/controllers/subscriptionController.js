@@ -411,18 +411,21 @@ const subscriptionController = {
 
     // Update DB record — use findByIdAndUpdate with runValidators:false to avoid
     // Mongoose validation failures on older documents missing newly added fields
+    // When canceling at period end, keep status 'active' — cancelAtPeriodEnd:true is the signal.
+    // 'cancel_at_period_end' is not a valid Stripe/schema status and causes findOne queries to miss the subscription.
+    const newStatus = atPeriodEnd ? subscription.status : 'canceled';
     const now = new Date();
     await Subscription.findByIdAndUpdate(
       subscription._id,
       {
-        $set: { 
-          status: atPeriodEnd ? 'cancel_at_period_end' : 'canceled', 
+        $set: {
+          status: newStatus,
           canceledAt: now,
           cancelAtPeriodEnd: atPeriodEnd
         },
         $push: {
           statusHistory: {
-            status: atPeriodEnd ? 'cancel_at_period_end' : 'canceled',
+            status: newStatus,
             changedAt: now,
             reason: `User requested cancellation ${atPeriodEnd ? '(at period end)' : '(immediate)'}`,
           },
@@ -434,7 +437,7 @@ const subscriptionController = {
     // Best-effort user record sync
     try {
       await User.findByIdAndUpdate(req.user.id, {
-        $set: { subscriptionStatus: atPeriodEnd ? 'cancel_at_period_end' : 'canceled' },
+        $set: { subscriptionStatus: newStatus },
       });
     } catch (userUpdateError) {
       logger.error('Failed to update user record after cancel', {

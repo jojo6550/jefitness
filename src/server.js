@@ -367,6 +367,15 @@ async function startServer() {
     startRenewalReminderJob();
     startTrainerDailyEmailJob();
 
+    // Sync Stripe plans to DB on every startup so StripePlan collection is always current.
+    try {
+      const { syncStripeToDB } = require('../scripts/sync-stripe-to-db');
+      await syncStripeToDB({ skipConnect: true });
+      logger.info('STARTUP: Stripe plan sync complete');
+    } catch (syncErr) {
+      logger.warn('STARTUP: Stripe plan sync failed (non-fatal)', { error: syncErr.message });
+    }
+
     // Keep-alive pings for production (prevents sleep on free hosts like Render)
     if (process.env.NODE_ENV === 'production') {
       const pingUrl = `http://localhost:${PORT}/api/health`;

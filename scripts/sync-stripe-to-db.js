@@ -16,8 +16,8 @@ async function connectDB() {
   }
 }
 
-async function syncStripeToDB() {
-  await connectDB();
+async function syncStripeToDB({ skipConnect = false } = {}) {
+  if (!skipConnect) await connectDB();
 
   const stripeSecret = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecret) {
@@ -116,7 +116,7 @@ async function syncStripeToDB() {
     console.error('❌ Sync error:', error.message);
     process.exit(1);
   } finally {
-    await mongoose.connection.close();
+    if (!skipConnect) await mongoose.connection.close();
   }
 }
 

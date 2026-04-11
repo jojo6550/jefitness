@@ -18,19 +18,6 @@ let cacheExpiry = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get all active Stripe plans from database
- */
-async function getStripePlans() {
-  try {
-    const plans = await StripePlan.find({ active: true, type: 'recurring' }).lean();
-    return plans;
-  } catch (error) {
-    logger.error('Failed to fetch StripePlans', { error: error.message });
-    return [];
-  }
-}
-
-/**
  * Get price ID for a plan name using DB (source of truth)
  * @param {string} plan - Plan name like '1-month', '3-month'
  * @returns {Promise<string|null>} Stripe price ID
@@ -153,15 +140,6 @@ async function getPlanPricing() {
 }
 
 /**
- * Fallback all plans pricing
- */
-
-function getFallbackPricingAll() {
-  logger.warn('getPlanPricing fallback: no DB records');
-  return {};
-}
-
-/**
  * Derive the internal plan name from a StripePlan record's authoritative
  * interval data.  Stripe's nickname/lookupKey strings vary per account
  * ('1-year', '1-month-subscription', 'annual', …) and cannot be trusted to
@@ -205,52 +183,6 @@ async function getPlanNameFromPriceId(priceId) {
 }
 
 /**
- * Fallback pricing when Stripe is unavailable or prices not found
- * @param {string} planKey - Plan key
- * @returns {Object} Fallback pricing object
- */
-function getFallbackPricing(planKey) {
-  const fallbacks = {
-    '1-month': {
-      amount: 999,
-      displayPrice: new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(9.99),
-      duration: '1 Month',
-    },
-    '3-month': {
-      amount: 2799,
-      displayPrice: new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(27.99),
-      duration: '3 Months',
-      savings: '$2.98',
-    },
-    '6-month': {
-      amount: 4999,
-      displayPrice: new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(49.99),
-      duration: '6 Months',
-      savings: '$9.95',
-    },
-    '12-month': {
-      amount: 8999,
-      displayPrice: new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(89.99),
-      duration: '12 Months',
-      savings: '$29.89',
-    },
-  };
-  return fallbacks[planKey] || fallbacks['1-month'];
-}
-
-/**
  * Create or retrieve a Stripe customer
  * @param {string} email - Customer email
  * @param {string} paymentMethodId - Stripe Payment Method ID (optional)
@@ -263,15 +195,16 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
     if (!stripe) {
       throw new Error('Stripe not initialized');
     }
-    // Check if customer already exists with this email
-    const existingCustomers = await stripe.customers.list({
-      email: email,
-      limit: 1,
-    });
+    // Check if customer already exists with this email in the current environment (test vs live).
+    // Stripe's customer.list returns customers across both modes — filter by livemode so we don't
+    // accidentally reuse a test customer in production or vice versa.
+    const isLive = !process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_');
+    const allCustomers = await stripe.customers.list({ email, limit: 100 });
+    const matchingCustomers = allCustomers.data.filter(c => c.livemode === isLive);
 
     let customer;
-    if (existingCustomers.data.length > 0) {
-      customer = existingCustomers.data[0];
+    if (matchingCustomers.length > 0) {
+      customer = matchingCustomers[0];
       // Update metadata if provided
       if (Object.keys(metadata).length > 0) {
         customer = await stripe.customers.update(customer.id, { metadata });
@@ -291,14 +224,14 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
     } else {
       // Create new customer
       customer = await stripe.customers.create({
-        email: email,
+        email,
         ...(paymentMethodId && {
           payment_method: paymentMethodId,
           invoice_settings: {
             default_payment_method: paymentMethodId,
           },
         }),
-        metadata: metadata,
+        metadata,
       });
     }
 
