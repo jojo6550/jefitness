@@ -201,7 +201,8 @@ router.get('/', requireAdmin, async (req, res) => {
 
     // Add search filter
     if (search) {
-      const searchRegex = new RegExp(search, 'i');
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(escapedSearch, 'i');
       pipeline.push({
         $match: {
           $or: [

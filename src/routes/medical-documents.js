@@ -40,6 +40,19 @@ const { logger } = require('../services/logger');
 const uploadsDir = path.join(__dirname, '../uploads/medical-documents');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
+/**
+ * Resolve a filename to an absolute path strictly inside uploadsDir.
+ * Returns null if the resolved path escapes the uploads directory (path traversal attempt).
+ */
+function safeUploadPath(filename) {
+  if (!filename || typeof filename !== 'string') return null;
+  // Reject filenames containing path separators or null bytes
+  if (/[/\\]/.test(filename) || filename.includes('\0')) return null;
+  const resolved = path.resolve(uploadsDir, path.basename(filename));
+  if (!resolved.startsWith(uploadsDir + path.sep) && resolved !== uploadsDir) return null;
+  return resolved;
+}
+
 // Multer configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
@@ -185,7 +198,8 @@ router.post('/delete', async (req, res) => {
     const docIndex = user.medicalDocuments.findIndex(doc => doc.filename === filename);
     if (docIndex === -1) return res.status(404).json({ msg: 'Document not found' });
 
-    const filePath = path.join(uploadsDir, filename);
+    const filePath = safeUploadPath(filename);
+    if (!filePath) return res.status(400).json({ msg: 'Invalid filename' });
     try {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (err) {
@@ -390,7 +404,8 @@ router.get('/view/:filename', async (req, res) => {
     const currentUser = await User.findById(decoded.id);
     if (!currentUser) return res.status(404).json({ msg: 'User not found' });
 
-    const filePath = path.join(uploadsDir, filename);
+    const filePath = safeUploadPath(filename);
+    if (!filePath) return res.status(400).json({ msg: 'Invalid filename' });
     try {
       if (!fs.existsSync(filePath))
         return res.status(404).json({ msg: 'File not found' });
@@ -421,7 +436,9 @@ router.get('/view/:filename', async (req, res) => {
       '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     };
     res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
-    res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
+    // Use path.basename to strip any remaining path components and encode for header safety
+    const safeBasename = encodeURIComponent(path.basename(filename));
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${safeBasename}`);
     res.sendFile(filePath);
   } catch (err) {
     logger.error('View error', { error: err.message, stack: err.stack });
@@ -470,7 +487,8 @@ router.get('/download/:filename', async (req, res) => {
     const currentUser = await User.findById(req.user.id);
     if (!currentUser) return res.status(404).json({ msg: 'User not found' });
 
-    const filePath = path.join(uploadsDir, filename);
+    const filePath = safeUploadPath(filename);
+    if (!filePath) return res.status(400).json({ msg: 'Invalid filename' });
     try {
       if (!fs.existsSync(filePath))
         return res.status(404).json({ msg: 'File not found' });

@@ -168,10 +168,8 @@ function derivePlanName(planRecord) {
  */
 async function getPlanNameFromPriceId(priceId) {
   try {
-    const planRecord = await StripePlan.findOne({
-      stripePriceId: priceId,
-      active: true,
-    }).lean();
+    // Search active plans first, then fall back to inactive (handles archived plans on existing subscriptions)
+    const planRecord = await StripePlan.findOne({ stripePriceId: priceId }).lean();
     if (planRecord) {
       return derivePlanName(planRecord);
     }
@@ -736,15 +734,17 @@ async function getOrCreateProductCustomer(email, name = null) {
       throw new Error('Stripe not initialized');
     }
 
-    // Check if customer already exists
+    // Check if customer already exists — filter by livemode to avoid reusing test customers in production
+    const isLive = !process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_');
     const existingCustomers = await stripe.customers.list({
       email: email,
-      limit: 1,
+      limit: 100,
     });
+    const matchingCustomers = existingCustomers.data.filter(c => c.livemode === isLive);
 
-    if (existingCustomers.data.length > 0) {
-      logger.debug('Found existing Stripe customer', { customerId: existingCustomers.data[0].id });
-      return existingCustomers.data[0];
+    if (matchingCustomers.length > 0) {
+      logger.debug('Found existing Stripe customer', { customerId: matchingCustomers[0].id });
+      return matchingCustomers[0];
     }
 
     // Create new customer

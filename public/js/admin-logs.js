@@ -105,7 +105,7 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${window.API_BASE}/api/logs?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/v1/logs?${params}`, {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -128,7 +128,7 @@ class AdminLogsManager {
     async loadLogStats() {
         try {
             const params = new URLSearchParams(this.currentFilters);
-            const response = await fetch(`${window.API_BASE}/api/logs/stats?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/v1/logs/stats?${params}`, {
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -327,7 +327,7 @@ class AdminLogsManager {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`${window.API_BASE}/api/logs/export?${params}`, {
+            const response = await fetch(`${window.API_BASE}/api/v1/logs/export?${params}`, {
                 credentials: 'include'
             });
             if (!response.ok) {

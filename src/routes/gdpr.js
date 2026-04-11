@@ -109,7 +109,7 @@ router.get('/consent', async (req, res) => {
 router.post('/consent/data-processing', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.grantDataProcessingConsent(
@@ -160,7 +160,7 @@ router.post('/consent/health-data', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { purpose } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.grantHealthDataConsent(
@@ -202,7 +202,7 @@ router.post('/consent/health-data', async (req, res) => {
 router.post('/consent/marketing', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.grantMarketingConsent(
@@ -254,7 +254,7 @@ router.delete('/consent/:consentType', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { consentType } = req.params;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const validConsentTypes = ['data_processing', 'health_data', 'marketing'];
@@ -305,7 +305,7 @@ router.delete('/consent/:consentType', async (req, res) => {
 router.post('/data-access', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.requestDataAccess(
@@ -361,7 +361,7 @@ router.put('/data-rectification', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { rectificationData } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     if (!rectificationData || typeof rectificationData !== 'object') {
@@ -420,7 +420,7 @@ router.delete('/data-erasure', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { reason } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.requestDataErasure(
@@ -462,7 +462,7 @@ router.delete('/data-erasure', async (req, res) => {
 router.post('/data-portability', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     const result = await complianceService.requestDataPortability(
@@ -518,7 +518,7 @@ router.post('/object-to-processing', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { reason } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     if (!reason) {
@@ -582,7 +582,7 @@ router.post('/restrict-processing', async (req, res) => {
   try {
     const userId = req.user.id || req.user.user.id;
     const { reason } = req.body;
-    const ipAddress = req.ip || req.connection.remoteAddress;
+    const ipAddress = req.ip;
     const userAgent = req.get('User-Agent');
 
     if (!reason) {

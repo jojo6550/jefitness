@@ -425,6 +425,7 @@ async function startServer() {
 
     process.on('unhandledRejection', (reason, promise) => {
       logger.error('Unhandled Rejection', { reason, promise: promise.toString() });
+      process.exit(1);
     });
 
     process.on('SIGINT', gracefulShutdown);

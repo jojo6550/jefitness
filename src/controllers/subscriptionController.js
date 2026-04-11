@@ -415,12 +415,13 @@ const subscriptionController = {
     // 'cancel_at_period_end' is not a valid Stripe/schema status and causes findOne queries to miss the subscription.
     const newStatus = atPeriodEnd ? subscription.status : 'canceled';
     const now = new Date();
+    const canceledAtUpdate = atPeriodEnd ? {} : { canceledAt: now };
     await Subscription.findByIdAndUpdate(
       subscription._id,
       {
         $set: {
           status: newStatus,
-          canceledAt: now,
+          ...canceledAtUpdate,
           cancelAtPeriodEnd: atPeriodEnd
         },
         $push: {

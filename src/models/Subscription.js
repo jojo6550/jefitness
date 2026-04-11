@@ -70,6 +70,16 @@ const SubscriptionSchema = new mongoose.Schema(
       default: null,
     },
 
+    checkoutSessionId: {
+      type: String,
+      default: null,
+    },
+
+    lastWebhookEventAt: {
+      type: Date,
+      default: null,
+    },
+
     cancelAtPeriodEnd: {
       type: Boolean,
       default: false,

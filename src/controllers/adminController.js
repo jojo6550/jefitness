@@ -2,8 +2,16 @@ const User = require('../models/User');
 const Subscription = require('../models/Subscription');
 const StripePlan = require('../models/StripePlan');
 const { logger } = require('../services/logger');
-const { daysLeftUntil } = require('../utils/dateUtils');
-const stripeClient = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { daysLeftUntil, addMonths, addYears } = require('../utils/dateUtils');
+
+let _stripeClient = null;
+function getStripeClient() {
+  if (!_stripeClient) {
+    if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY is not set');
+    _stripeClient = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  }
+  return _stripeClient;
+}
 
 /**
  * GET /api/v1/admin/revenue
@@ -136,7 +144,7 @@ async function createSubscription(req, res) {
     let stripeCustomerId = user.stripeCustomerId;
     if (!stripeCustomerId) {
       // Create fresh customer
-      const customer = await stripeClient.customers.create({
+      const customer = await getStripeClient().customers.create({
         email: user.email,
         name: `${user.firstName} ${user.lastName}`,
         metadata: { userId: user._id.toString() },
@@ -146,7 +154,7 @@ async function createSubscription(req, res) {
     } else {
       // Verify existing customer ID is valid
       try {
-        await stripeClient.customers.retrieve(stripeCustomerId);
+        await getStripeClient().customers.retrieve(stripeCustomerId);
         logger.debug('Admin: verified existing Stripe customer', { customerId: stripeCustomerId });
       } catch (custErr) {
         if (custErr.code === 'resource_missing') {
@@ -158,7 +166,7 @@ async function createSubscription(req, res) {
           user.stripeCustomerId = null;
           await user.save();
           
-          const customer = await stripeClient.customers.create({
+          const customer = await getStripeClient().customers.create({
             email: user.email,
             name: `${user.firstName} ${user.lastName}`,
             metadata: { userId: user._id.toString() },
@@ -175,15 +183,30 @@ async function createSubscription(req, res) {
       await user.save();
     }
 
-    // Calculate trial_end for override (trial_end sets the period without charging)
-    const days = overrideDays !== undefined ? parseInt(overrideDays, 10) : planDurations[planKey];
-    const trialEnd = Math.floor(Date.now() / 1000) + days * 86400;
+    // Calculate trial_end for Stripe (Unix seconds). Use calendar arithmetic to avoid DST drift.
+    const now = new Date();
+    let trialEndDate;
+    if (overrideDays !== undefined) {
+      // overrideDays is an admin override — use exact day count via addMonths approximation isn't needed;
+      // for arbitrary day counts we add days at the millisecond level which is fine (admin-only path).
+      trialEndDate = new Date(now.getTime() + parseInt(overrideDays, 10) * 24 * 60 * 60 * 1000);
+    } else {
+      // Standard plan: use calendar-safe arithmetic from dateUtils
+      const planIntervalMap = {
+        '1-month': () => addMonths(now, 1),
+        '3-month': () => addMonths(now, 3),
+        '6-month': () => addMonths(now, 6),
+        '12-month': () => addYears(now, 1),
+      };
+      trialEndDate = planIntervalMap[planKey]();
+    }
+    const trialEnd = Math.floor(trialEndDate.getTime() / 1000);
 
     // Cancel any existing active subscription first
     const existingSub = await user.getActiveSubscription();
     if (existingSub && existingSub.stripeSubscriptionId) {
       try {
-        await stripeClient.subscriptions.cancel(existingSub.stripeSubscriptionId);
+        await getStripeClient().subscriptions.cancel(existingSub.stripeSubscriptionId);
         existingSub.status = 'canceled';
         existingSub.canceledAt = new Date();
         await existingSub.save();
@@ -193,14 +216,13 @@ async function createSubscription(req, res) {
     }
 
     // Create Stripe subscription with trial_end to set custom period
-    stripeSub = await stripeClient.subscriptions.create({
+    stripeSub = await getStripeClient().subscriptions.create({
       customer: stripeCustomerId,
       items: [{ price: plan.stripePriceId }],
       trial_end: trialEnd,
       metadata: { adminCreated: 'true', adminId: adminId.toString(), userId: userId.toString() },
     });
 
-    const now = new Date();
     const periodEnd = new Date(stripeSub.trial_end * 1000);
 
     // Upsert Subscription document
@@ -235,7 +257,7 @@ async function createSubscription(req, res) {
     logger.logAdminAction('subscription_created', adminId, {
       userId,
       planKey,
-      days,
+      overrideDays: overrideDays !== undefined ? parseInt(overrideDays, 10) : null,
       stripeSubscriptionId: stripeSub.id,
       periodEnd: periodEnd.toISOString(),
     });
