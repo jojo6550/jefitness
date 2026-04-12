@@ -108,7 +108,12 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: [
+        function () {
+          return !this.googleId && !this.facebookId && !this.twitterId && !this.appleId;
+        },
+        'Password is required',
+      ],
       minlength: [8, 'Password must be at least 8 characters long'],
       select: false, // SECURITY: Don't include password in queries by default
     },
@@ -275,7 +280,10 @@ const UserSchema = new mongoose.Schema(
 
     onboardingCompleted: { type: Boolean, default: false },
 
-    googleId: { type: String, unique: true, sparse: true },
+    googleId:   { type: String, unique: true, sparse: true },
+    facebookId: { type: String, unique: true, sparse: true },
+    twitterId:  { type: String, unique: true, sparse: true },
+    appleId:    { type: String, unique: true, sparse: true },
 
     workoutGoals: [
       {
