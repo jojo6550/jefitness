@@ -75,7 +75,7 @@ window.AdminTickets = (() => {
     const statusLabels = { '': 'All', submitted: 'Submitted', seen: 'Seen', resolved: 'Resolved', draft: 'Draft' };
     const filterPills = statuses.map(s =>
       `<button class="filter-pill ${state.statusFilter === s ? 'active' : ''}"
-        onclick="window.AdminTickets._setStatus('${s}')">${statusLabels[s]}</button>`
+        data-action="set-status" data-status="${escapeHtml(s)}">${statusLabels[s]}</button>`
     ).join('');
 
     const catOptions = Object.entries(CATEGORY_LABELS).map(([v, l]) =>
@@ -85,7 +85,7 @@ window.AdminTickets = (() => {
     return `
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         ${filterPills}
-        <select id="cat-filter" onchange="window.AdminTickets._setCat(this.value)"
+        <select id="cat-filter"
           style="margin-left:auto;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:4px 10px;color:#e2e8f0;font-size:11px;outline:none">
           <option value="">All Categories</option>
           ${catOptions}
@@ -122,7 +122,7 @@ window.AdminTickets = (() => {
         <td>${pillHtml(t.status)}</td>
         <td style="white-space:nowrap">${fmtDate(t.createdAt)}</td>
         <td>
-          <button class="btn btn-sm btn-sm-blue" onclick="window.AdminTickets._openModal('${t._id}')">
+          <button class="btn btn-sm btn-sm-blue" data-action="open-modal" data-ticket-id="${escapeHtml(t._id)}">
             View
           </button>
         </td>
@@ -151,11 +151,11 @@ window.AdminTickets = (() => {
     if (!pagination || pagination.pages <= 1) return '';
     const { page, pages } = pagination;
     let html = `<div class="pagination">`;
-    html += `<button class="page-btn" onclick="window.AdminTickets._page(${page - 1})" ${page === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>`;
+    html += `<button class="page-btn" data-action="set-page" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><i class="bi bi-chevron-left"></i></button>`;
     for (let i = 1; i <= pages; i++) {
-      html += `<button class="page-btn ${i === page ? 'current' : ''}" onclick="window.AdminTickets._page(${i})">${i}</button>`;
+      html += `<button class="page-btn ${i === page ? 'current' : ''}" data-action="set-page" data-page="${i}">${i}</button>`;
     }
-    html += `<button class="page-btn" onclick="window.AdminTickets._page(${page + 1})" ${page === pages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>`;
+    html += `<button class="page-btn" data-action="set-page" data-page="${page + 1}" ${page === pages ? 'disabled' : ''}><i class="bi bi-chevron-right"></i></button>`;
     html += `<span class="page-info">${pagination.total} ticket${pagination.total !== 1 ? 's' : ''}</span>`;
     html += `</div>`;
     return html;
@@ -200,6 +200,16 @@ window.AdminTickets = (() => {
           <div class="modal-box" style="width:520px;max-width:95vw" id="ticket-modal-content"></div>
         </div>`;
 
+      // Attach category filter change listener after render
+      const catFilter = document.getElementById('cat-filter');
+      if (catFilter) {
+        catFilter.addEventListener('change', (e) => {
+          state.categoryFilter = e.target.value;
+          state.page = 1;
+          loadView();
+        });
+      }
+
     } catch (err) {
       container.innerHTML = `<div style="padding:20px;color:#f87171;font-size:13px">Failed to load tickets: ${escapeHtml(err.message)}</div>`;
     }
@@ -228,7 +238,7 @@ window.AdminTickets = (() => {
       content.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div class="modal-title" style="margin-bottom:0">Ticket Detail</div>
-          <button onclick="window.AdminTickets._closeModal()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1">&times;</button>
+          <button data-action="close-modal" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;line-height:1">&times;</button>
         </div>
 
         <!-- User info -->
@@ -272,14 +282,14 @@ window.AdminTickets = (() => {
           <textarea id="modal-admin-note" rows="3" maxlength="1000" placeholder="Add a note for the user…"
             style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:13px;font-family:inherit;resize:vertical;outline:none;margin-bottom:16px"></textarea>
           <div style="display:flex;justify-content:flex-end;gap:8px">
-            <button class="btn btn-ghost" onclick="window.AdminTickets._closeModal()">Close</button>
+            <button class="btn btn-ghost" data-action="close-modal">Close</button>
             <button class="btn btn-sm-green" style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#052e16;color:#4ade80"
-              id="btn-resolve" onclick="window.AdminTickets._resolve()">
+              id="btn-resolve" data-action="resolve">
               <i class="bi bi-check-circle me-1"></i> Mark as Resolved
             </button>
           </div>` : `
           <div style="display:flex;justify-content:flex-end">
-            <button class="btn btn-ghost" onclick="window.AdminTickets._closeModal()">Close</button>
+            <button class="btn btn-ghost" data-action="close-modal">Close</button>
           </div>`}`;
 
       // Refresh table silently to reflect new "seen" status
@@ -335,10 +345,30 @@ window.AdminTickets = (() => {
     currentTicketId = null;
   }
 
-  // Close modal on backdrop click
+  // Single delegated click listener for all dynamic actions
   document.addEventListener('click', (e) => {
+    // Close modal on backdrop click
     const modal = document.getElementById('ticket-modal');
-    if (modal && e.target === modal) closeModal();
+    if (modal && e.target === modal) { closeModal(); return; }
+
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const action = target.dataset.action;
+    if (action === 'set-status') {
+      state.statusFilter = target.dataset.status;
+      state.page = 1;
+      loadView();
+    } else if (action === 'open-modal') {
+      openModal(target.dataset.ticketId);
+    } else if (action === 'set-page') {
+      const p = Number(target.dataset.page);
+      if (!isNaN(p)) { state.page = p; loadView(); }
+    } else if (action === 'close-modal') {
+      closeModal();
+    } else if (action === 'resolve') {
+      resolve();
+    }
   });
 
   function render() {
@@ -349,15 +379,8 @@ window.AdminTickets = (() => {
     closeModal();
   }
 
-  // Public API for inline event handlers
   return {
     render,
     destroy,
-    _openModal: openModal,
-    _closeModal: closeModal,
-    _resolve: resolve,
-    _setStatus(s) { state.statusFilter = s; state.page = 1; loadView(); },
-    _setCat(c) { state.categoryFilter = c; state.page = 1; loadView(); },
-    _page(p) { state.page = p; loadView(); },
   };
 })();
