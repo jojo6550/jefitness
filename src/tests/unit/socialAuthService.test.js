@@ -32,6 +32,30 @@ describe('User model - social auth fields', () => {
     expect(err?.errors?.password).toBeUndefined();
   });
 
+  it('validates without password when twitterId is present', () => {
+    const user = new User({
+      email: 'tw@test.com',
+      firstName: 'Test',
+      lastName: 'User',
+      twitterId: 'twid_123',
+      isEmailVerified: true,
+    });
+    const err = user.validateSync();
+    expect(err?.errors?.password).toBeUndefined();
+  });
+
+  it('validates without password when appleId is present', () => {
+    const user = new User({
+      email: 'apple@test.com',
+      firstName: 'Test',
+      lastName: 'User',
+      appleId: 'aid_123',
+      isEmailVerified: true,
+    });
+    const err = user.validateSync();
+    expect(err?.errors?.password).toBeUndefined();
+  });
+
   it('requires password when no social ID present', () => {
     const user = new User({
       email: 'pw@test.com',
