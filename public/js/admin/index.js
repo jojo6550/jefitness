@@ -46,12 +46,24 @@ const VIEWS = {
 let currentView = null;
 
 function navigateTo(viewKey) {
-  if (!VIEWS[viewKey]) return;
-  if (currentView === viewKey) return;
+  console.log('[ADMIN] navigateTo called:', viewKey);
+  
+  if (!VIEWS[viewKey]) {
+    console.error('[ADMIN] No VIEW for:', viewKey, 'Available:', Object.keys(VIEWS));
+    return;
+  }
+  if (currentView === viewKey) {
+    console.log('[ADMIN] Already on view:', viewKey);
+    return;
+  }
 
   // Cleanup previous view (stop live polls etc.)
   if (currentView && window[`Admin${capitalize(currentView)}`]?.destroy) {
-    window[`Admin${capitalize(currentView)}`].destroy();
+    try {
+      window[`Admin${capitalize(currentView)}`].destroy();
+    } catch(e) {
+      console.error('[ADMIN] Destroy error:', currentView, e);
+    }
   }
 
   currentView = viewKey;
@@ -62,8 +74,22 @@ function navigateTo(viewKey) {
   });
 
   setTopbarTitle(VIEWS[viewKey].title);
-  document.getElementById('view-container').innerHTML = '';
-  VIEWS[viewKey].render();
+  
+  const container = document.getElementById('view-container');
+  if (!container) {
+    console.error('[ADMIN] No #view-container');
+    return;
+  }
+  container.innerHTML = '<div style="padding:20px;color:#64748b">Loading...</div>';
+  
+  try {
+    console.log('[ADMIN] Calling render for:', viewKey);
+    VIEWS[viewKey].render();
+    console.log('[ADMIN] Render complete:', viewKey);
+  } catch(e) {
+    console.error('[ADMIN] Render ERROR:', viewKey, e);
+    container.innerHTML = `<div style="padding:20px;color:#f87171">Error loading ${viewKey}: ${e.message}</div>`;
+  }
 }
 
 function capitalize(s) {
@@ -72,8 +98,14 @@ function capitalize(s) {
 
 // ── Init ──────────────────────────────────────────────────
 async function init() {
+  console.log('[ADMIN] init() START');
+  
   const user = await checkAdminAuth();
-  if (!user) return;
+  if (!user) {
+    console.log('[ADMIN] init() ABORT: no user');
+    return;
+  }
+  console.log('[ADMIN] User auth OK:', user.role);
 
   // Set admin initials in sidebar
   const initials = document.getElementById('admin-initials');
@@ -84,12 +116,25 @@ async function init() {
   setTopbarDate();
 
   // Wire sidebar buttons
-  document.querySelectorAll('.nav-item[data-view]').forEach((btn) => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.view));
+  const navBtns = document.querySelectorAll('.nav-item[data-view]');
+  console.log('[ADMIN] Found nav buttons:', navBtns.length);
+  navBtns.forEach((btn, i) => {
+    console.log('[ADMIN] Attaching listener to btn', i, btn.dataset.view);
+    btn.addEventListener('click', (e) => {
+      console.log('[ADMIN] CLICK on:', btn.dataset.view);
+      navigateTo(btn.dataset.view);
+    });
   });
 
+  // Check modules
+  console.log('[ADMIN] AdminTickets exists?', !!window.AdminTickets);
+  console.log('[ADMIN] VIEWS:', Object.keys(VIEWS));
+
   // Default view
+  console.log('[ADMIN] Loading default: overview');
   navigateTo('overview');
+  
+  console.log('[ADMIN] init() COMPLETE');
 }
 
 document.addEventListener('DOMContentLoaded', init);
