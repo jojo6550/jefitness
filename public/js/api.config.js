@@ -8,18 +8,17 @@
   'use strict';
 
   const hostname = window.location.hostname;
-  const API_BASE = (hostname === 'jefitnessja.com' || hostname.includes('onrender.com'))
-    ? 'https://jefitnessja.com' 
-    : 'http://localhost:10000';
+  // Use the current page's origin so any allowed server works without hardcoding
+  const API_BASE = window.location.origin;
 
   // Define the expected ApiConfig interface
   window.ApiConfig = {
     getAPI_BASE: () => API_BASE,
-    
+
     getDebugInfo: () => ({
       base: API_BASE,
       hostname: hostname,
-      isProduction: hostname === 'jefitnessja.com' || hostname.includes('onrender.com')
+      isProduction: window.location.protocol === 'https:'
     })
   };
 

@@ -7,19 +7,33 @@ const cors = require('cors');
 const { logger } = require('../services/logger');
 
 /**
+ * Parse allowed origins from APP_URL env var (comma-separated).
+ * Always include localhost variants for local dev.
+ */
+function getAllowedOrigins() {
+  const fromEnv = (process.env.APP_URL || '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean);
+
+  // Deduplicate and always include localhost variants
+  const base = new Set([
+    'http://localhost:10000',
+    'http://127.0.0.1:10000',
+    ...fromEnv,
+  ]);
+
+  return [...base];
+}
+
+/**
  * SECURITY: CORS options configuration
  * Restricts cross-origin requests to trusted origins only
  * IMPORTANT: Never use wildcard (*) origins in production
  */
 const corsOptions = {
   origin: function (origin, callback) {
-    // Hardcoded allowed origins ONLY - localhost:10000 and jefitnessja.com
-    const allowedOrigins = [
-      'https://jefitnessja.com',
-      'https://www.jefitnessja.com',
-      'http://localhost:10000',
-      'http://127.0.0.1:10000',
-    ];
+    const allowedOrigins = getAllowedOrigins();
 
     // SECURITY: Allow requests with no origin (same-origin, server-to-server, or mobile apps)
     if (!origin) {
@@ -55,10 +69,6 @@ const corsOptions = {
   optionsSuccessStatus: 204, // SECURITY: Use 204 for OPTIONS instead of 200
 };
 
-/**
- * SECURITY: CORS preflight handler
- * Explicitly handles OPTIONS requests with security headers
- */
 module.exports = {
   corsOptions,
 };

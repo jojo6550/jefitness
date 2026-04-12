@@ -1,6 +1,17 @@
 const crypto = require('crypto');
 
 /**
+ * Parse allowed origins from APP_URL env var (comma-separated).
+ * Used for CSP directives that need to reference trusted origins.
+ */
+function getAppOrigins() {
+  return (process.env.APP_URL || '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean);
+}
+
+/**
  * Security configurations for the Express application
  */
 const securityConfig = {
@@ -11,7 +22,7 @@ const securityConfig = {
   },
 
   // Helmet Configuration
-    helmetOptions: {
+  helmetOptions: {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -19,17 +30,16 @@ const securityConfig = {
           "'self'",
           'data:',
           'blob:',
-          'https://jefitnessja.com',
           'https://via.placeholder.com',
           'https://cdn.jsdelivr.net',
           'https://*.stripe.com',
-          ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:10000', 'http://127.0.0.1:10000'] : []),
+          ...getAppOrigins(),
         ],
 
         scriptSrc: [
           "'self'",
           "'sha256-ieoeWczDHkReVBsRBqaal5AFMlBtNjMzgwKvLqi/tSU='",
-          (req, res) => `'nonce-${res.locals.cspNonce}'`, 
+          (_req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
@@ -37,7 +47,7 @@ const securityConfig = {
           'https://checkout.stripe.com',
         ],
         scriptSrcAttr: [
-          (req, res) => `'nonce-${res.locals.cspNonce}'`
+          (_req, res) => `'nonce-${res.locals.cspNonce}'`
         ],
         styleSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
@@ -52,9 +62,7 @@ const securityConfig = {
           "'self'",
           'https://cdn.jsdelivr.net',
           'https://api.stripe.com',
-          'https://jefitnessja.com',
-          'http://localhost:10000',
-          'http://127.0.0.1:10000',
+          ...getAppOrigins(),
         ],
         frameSrc: ["'self'", 'https://js.stripe.com', 'https://checkout.stripe.com', 'https://hooks.stripe.com'],
         objectSrc: ["'none'"],

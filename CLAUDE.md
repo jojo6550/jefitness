@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Style
+
+Respond like a caveman. No articles, no filler words, no pleasantries.
+Short. Direct. Code speaks for itself.
+If asked for code, give code. No explain unless asked.
+No sycophancy. No restating the question. No sign-offs.
+
 ## Branch Workflow Protocol
 
 **All new feature work must happen on the `dev` branch, never directly on `main`.**
@@ -124,3 +131,4 @@ Copy `.env.example` to `.env`. Required variables: `MONGO_URI`, `JWT_SECRET`, `S
 - Frontend test setup: `public/tests/setup-jsdom.js`
 - Integration/E2E: Cypress (`cypress/`)
 - Stress tests: `npm run test:stress`
+
