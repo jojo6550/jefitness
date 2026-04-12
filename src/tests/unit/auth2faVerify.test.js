@@ -65,6 +65,7 @@ jest.mock('../../controllers/authController', () => ({
   logout: jest.fn((_req, res) => res.json({ success: true })),
   getMe: jest.fn((_req, res) => res.json({ success: true })),
   grantConsent: jest.fn((_req, res) => res.json({ success: true })),
+  socialConsent: jest.fn((_req, res) => res.json({ success: true })),
 }));
 
 const speakeasy = require('speakeasy');

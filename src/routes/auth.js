@@ -341,10 +341,84 @@ router.post(
 );
 
 // ============================
-// Google OAuth Routes (disabled)
+// Social Login Routes (Passport.js redirect flow)
 // ============================
-router.get('/google', (_req, res) => res.status(503).json({ msg: 'Google login is currently disabled' }));
-router.get('/google/callback', (_req, res) => res.redirect('/login?error=google_auth_disabled'));
+const passport = require('passport');
+
+/**
+ * Shared callback handler — runs after any social provider authenticates.
+ * req.user is set by Passport to { user, isNew } from verifyOrLinkSocialUser.
+ */
+async function handleSocialCallback(req, res) {
+  try {
+    const { user, isNew } = req.user;
+
+    if (isNew) {
+      // New user must accept consent before getting a full session
+      const consentToken = jwt.sign(
+        { userId: user._id, consentPending: true },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+      return res.redirect(`/consent?token=${encodeURIComponent(consentToken)}`);
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    setAuthCookie(res, token);
+    await User.findByIdAndUpdate(user._id, { lastLoggedIn: new Date() });
+
+    // Role-based redirect mirrors the existing login redirect logic
+    const redirectMap = { admin: '/admin', trainer: '/trainer-dashboard' };
+    res.redirect(redirectMap[user.role] || '/dashboard');
+  } catch (err) {
+    logger.error('Social callback error', { error: err.message });
+    res.redirect('/login?error=social_auth_failed');
+  }
+}
+
+// Google
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+router.get('/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+  handleSocialCallback
+);
+
+// Facebook
+router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
+router.get('/facebook/callback',
+  passport.authenticate('facebook', { session: false, failureRedirect: '/login?error=facebook_auth_failed' }),
+  handleSocialCallback
+);
+
+// Twitter/X (OAuth 1.0a)
+router.get('/twitter', passport.authenticate('twitter', { session: false }));
+router.get('/twitter/callback',
+  passport.authenticate('twitter', { session: false, failureRedirect: '/login?error=twitter_auth_failed' }),
+  handleSocialCallback
+);
+
+// Apple (POST callback — Apple uses response_mode: form_post)
+router.get('/apple', passport.authenticate('apple', { session: false }));
+router.post('/apple/callback',
+  passport.authenticate('apple', { session: false, failureRedirect: '/login?error=apple_auth_failed' }),
+  handleSocialCallback
+);
+
+// Social consent — new social users accept terms before receiving full JWT
+router.post(
+  '/social-consent',
+  requireDbConnection,
+  authLimiter,
+  [
+    body('consentToken').notEmpty().withMessage('Consent token is required'),
+    handleValidationErrors,
+  ],
+  authController.socialConsent
+);
 
 // ============================
 // 2FA Routes

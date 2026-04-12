@@ -324,6 +324,65 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
     }
     res.json({ success: true, data: user });
   }),
+
+  /**
+   * POST /api/v1/auth/social-consent
+   * Accept data consent for new social-login users, then issue a full session JWT.
+   */
+  socialConsent: async (req, res, next) => {
+    try {
+    const { consentToken } = req.body;
+
+    let decoded;
+    try {
+      decoded = jwt.verify(consentToken, process.env.JWT_SECRET);
+    } catch {
+      throw new AuthenticationError('Invalid or expired consent token');
+    }
+
+    if (!decoded.consentPending) {
+      throw new AuthenticationError('Invalid consent token');
+    }
+
+    const user = await User.findById(decoded.userId).select('+tokenVersion');
+    if (!user) throw new NotFoundError('User not found');
+
+    const now = new Date();
+    user.dataProcessingConsent = {
+      given: true,
+      givenAt: now,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      version: '1.0',
+    };
+    user.healthDataConsent = {
+      given: true,
+      givenAt: now,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+      version: '1.0',
+      purpose: 'fitness_tracking',
+    };
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
 };
 
 module.exports = authController;
