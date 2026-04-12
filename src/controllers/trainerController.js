@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 const { asyncHandler, NotFoundError, AuthorizationError } = require('../middleware/errorHandler');
 const { logUserAction } = require('../services/logger');
 
@@ -368,18 +369,19 @@ const trainerController = {
     const hasRelationship = await Appointment.exists({ trainerId, clientId });
     if (!hasRelationship) throw new AuthorizationError();
 
-    const [client, appointments] = await Promise.all([
+    const [client, appointments, subscription] = await Promise.all([
       User.findById(clientId).select(
         'firstName lastName email phone dob gender activityStatus hasMedical medicalConditions medicalDocuments ' +
         'workoutLogs mealLogs workoutGoals measurements assignedPrograms purchasedPrograms ' +
         'startWeight currentWeight height goals createdAt lastLoggedIn isEmailVerified'
       ),
       Appointment.find({ trainerId, clientId }).sort({ date: -1 }),
+      Subscription.findOne({ userId: clientId, status: { $in: ['active', 'trialing'] } }).lean(),
     ]);
     if (!client) throw new NotFoundError('Client');
 
     res.json({
-      client,
+      client: { ...client.toObject(), subscription: subscription || null },
       appointmentHistory: appointments,
       appointmentCount: appointments.length,
       completedCount: appointments.filter(apt => apt.status === 'completed').length,
