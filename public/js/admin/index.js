@@ -40,6 +40,7 @@ const VIEWS = {
   overview: { title: 'Overview', render: () => window.AdminOverview.render() },
   clients:  { title: 'Clients',  render: () => window.AdminClients.render() },
   logs:     { title: 'Logs',     render: () => window.AdminLogs.render() },
+  tickets:  { title: 'Support Tickets', render: () => window.AdminTickets.render() },
 };
 
 let currentView = null;

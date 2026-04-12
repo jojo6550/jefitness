@@ -123,6 +123,7 @@ app.use(cacheControl);
 // -----------------------------
 app.use('/admin', require('./routes/admin'));
 app.use('/api/v1/admin', require('./routes/admin-api'));
+app.use('/api/v1/tickets', require('./routes/tickets'));
 
 // Favicon route (fixes 404)
 app.get('/favicon.ico', (req, res) => {
