@@ -3,8 +3,6 @@ const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = 'test-secret-32-chars-minimum-len!';
 process.env.NODE_ENV = 'test';
 
-jest.mock('../../models/User');
-
 describe('authController.socialConsent', () => {
   let socialConsent;
   let User;

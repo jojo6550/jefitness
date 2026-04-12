@@ -353,6 +353,10 @@ async function handleSocialCallback(req, res) {
   try {
     const { user, isNew } = req.user;
 
+    if (user.dataDeletedAt) {
+      return res.redirect('/login?error=account_not_found');
+    }
+
     if (isNew) {
       // New user must accept consent before getting a full session
       const consentToken = jwt.sign(
@@ -369,7 +373,10 @@ async function handleSocialCallback(req, res) {
       { expiresIn: '24h' }
     );
     setAuthCookie(res, token);
-    await User.findByIdAndUpdate(user._id, { lastLoggedIn: new Date() });
+    User.findByIdAndUpdate(user._id, { lastLoggedIn: new Date() }).catch(err =>
+      logger.warn('Failed to update lastLoggedIn for social user', { userId: user._id, error: err.message })
+    );
+    logger.info('✅ SOCIAL LOGIN SUCCESS', { userId: user._id, role: user.role });
 
     // Role-based redirect mirrors the existing login redirect logic
     const redirectMap = { admin: '/admin', trainer: '/trainer-dashboard' };
@@ -381,28 +388,28 @@ async function handleSocialCallback(req, res) {
 }
 
 // Google
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+router.get('/google', authLimiter, passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 router.get('/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
   handleSocialCallback
 );
 
 // Facebook
-router.get('/facebook', passport.authenticate('facebook', { scope: ['email'], session: false }));
+router.get('/facebook', authLimiter, passport.authenticate('facebook', { scope: ['email'], session: false }));
 router.get('/facebook/callback',
   passport.authenticate('facebook', { session: false, failureRedirect: '/login?error=facebook_auth_failed' }),
   handleSocialCallback
 );
 
 // Twitter/X (OAuth 1.0a)
-router.get('/twitter', passport.authenticate('twitter', { session: false }));
+router.get('/twitter', authLimiter, passport.authenticate('twitter', { session: false }));
 router.get('/twitter/callback',
   passport.authenticate('twitter', { session: false, failureRedirect: '/login?error=twitter_auth_failed' }),
   handleSocialCallback
 );
 
 // Apple (POST callback — Apple uses response_mode: form_post)
-router.get('/apple', passport.authenticate('apple', { session: false }));
+router.get('/apple', authLimiter, passport.authenticate('apple', { session: false }));
 router.post('/apple/callback',
   passport.authenticate('apple', { session: false, failureRedirect: '/login?error=apple_auth_failed' }),
   handleSocialCallback

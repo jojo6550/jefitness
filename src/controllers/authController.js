@@ -329,8 +329,7 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
    * POST /api/v1/auth/social-consent
    * Accept data consent for new social-login users, then issue a full session JWT.
    */
-  socialConsent: async (req, res, next) => {
-    try {
+  socialConsent: asyncHandler(async (req, res) => {
     const { consentToken } = req.body;
 
     let decoded;
@@ -379,10 +378,7 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
     });
 
     res.json({ success: true });
-    } catch (err) {
-      next(err);
-    }
-  },
+  }),
 };
 
 module.exports = authController;
