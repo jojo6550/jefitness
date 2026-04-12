@@ -125,16 +125,16 @@ function renderTickets(tickets) {
   list.innerHTML = tickets.map(t => {
     const isDraft = t.status === 'draft';
     const actions = isDraft ? `
-      <button class="btn-ticket-edit" data-id="${t._id}" onclick="editDraft('${t._id}')">
+      <button class="btn-ticket-edit" data-id="${t._id}" data-action="edit">
         <i class="bi bi-pencil me-1"></i>Edit
       </button>
-      <button class="btn-ticket-delete" data-id="${t._id}" onclick="confirmDelete('${t._id}')">
+      <button class="btn-ticket-delete" data-id="${t._id}" data-action="delete">
         <i class="bi bi-trash3 me-1"></i>Delete
       </button>` : '';
 
     return `
       <div class="ticket-item" id="ticket-${t._id}">
-        <div class="ticket-item-header" onclick="toggleTicket('${t._id}')">
+        <div class="ticket-item-header" data-action="toggle" data-id="${t._id}">
           <div class="ticket-item-meta">
             <div class="ticket-item-subject">${escapeHtml(t.subject)}</div>
             <div class="ticket-item-info">
@@ -159,13 +159,13 @@ function renderPagination() {
   if (totalPages <= 1) { wrap.classList.add('d-none'); return; }
 
   wrap.classList.remove('d-none');
-  let html = `<button class="support-page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+  let html = `<button class="support-page-btn" data-action="page" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
     <i class="bi bi-chevron-left"></i>
   </button>`;
   for (let i = 1; i <= totalPages; i++) {
-    html += `<button class="support-page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    html += `<button class="support-page-btn ${i === currentPage ? 'active' : ''}" data-action="page" data-page="${i}">${i}</button>`;
   }
-  html += `<button class="support-page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+  html += `<button class="support-page-btn" data-action="page" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
     <i class="bi bi-chevron-right"></i>
   </button>`;
   wrap.innerHTML = html;
@@ -400,14 +400,25 @@ async function init() {
     });
   }
 
+  // Event delegation for dynamically rendered ticket list and pagination
+  document.addEventListener('click', (e) => {
+    // Ticket list actions (toggle, edit, delete)
+    const actionEl = e.target.closest('[data-action]');
+    if (actionEl) {
+      const action = actionEl.dataset.action;
+      const id = actionEl.dataset.id;
+      if (action === 'toggle' && id) { toggleTicket(id); return; }
+      if (action === 'edit' && id) { editDraft(id); return; }
+      if (action === 'delete' && id) { confirmDelete(id); return; }
+      if (action === 'page') {
+        const page = parseInt(actionEl.dataset.page, 10);
+        if (!isNaN(page)) { goToPage(page); return; }
+      }
+    }
+  });
+
   // Load existing tickets
   await loadTickets(1);
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-// Expose to inline onclick handlers
-window.toggleTicket = toggleTicket;
-window.editDraft = editDraft;
-window.confirmDelete = confirmDelete;
-window.goToPage = goToPage;
