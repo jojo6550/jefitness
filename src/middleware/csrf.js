@@ -121,6 +121,11 @@ class CSRFProtection {
         '/reset-password',
         '/resend-verification',
         '/check-verification',
+        '/google/callback',
+        '/facebook/callback',
+        '/twitter/callback',
+        '/apple/callback',
+        '/social-consent',
       ];
         const isPublicAuthRoute = publicAuthRoutes.some(
           route => req.path.endsWith(route) || req.path.includes(route)
