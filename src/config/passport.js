@@ -87,8 +87,9 @@ passport.use(
       // Support multiline key stored with \n in env
       privateKeyString: process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     },
-    async (_accessToken, _refreshToken, _idToken, profile, done) => {
+    async (_req, _accessToken, _refreshToken, _idToken, profile, done) => {
       try {
+        if (!profile?.id) return done(new Error('Apple profile missing id/sub'));
         const email = profile.email || null;
         const firstName = profile.name?.firstName || 'User';
         const lastName = profile.name?.lastName || '';
