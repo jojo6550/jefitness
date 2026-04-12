@@ -91,6 +91,7 @@ if (process.env.APPLE_CLIENT_ID) {
         teamID: process.env.APPLE_TEAM_ID,
         callbackURL: process.env.APPLE_CALLBACK_URL,
         keyID: process.env.APPLE_KEY_ID,
+        passReqToCallback: true,
         // Support multiline key stored with \n in env
         privateKeyString: process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       },

@@ -29,6 +29,10 @@
 
       if (res.success) {
         window.location.href = '/dashboard';
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Accept & Continue';
+        errEl.textContent = 'Something went wrong. Please try again.';
       }
     } catch (err) {
       btn.disabled = false;
