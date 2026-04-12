@@ -279,12 +279,16 @@
       docsEl.innerHTML = empty('📄', 'No medical documents uploaded');
     } else {
       docsEl.innerHTML = `<div class="table-scroll"><table class="data-table">
-        <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th>Uploaded</th></tr></thead>
+        <thead><tr><th>Filename</th><th>Type</th><th>Size</th><th>Uploaded</th><th>Actions</th></tr></thead>
         <tbody>${docs.map(d => `<tr>
           <td style="font-weight:600;color:var(--text-hi)">${esc(d.originalName || d.filename)}</td>
           <td><span class="exercise-tag">${esc(d.mimeType || '—')}</span></td>
           <td style="font-family:var(--mono);font-size:11px;color:var(--text-mid)">${d.size ? Math.round(d.size / 1024) + ' KB' : '—'}</td>
           <td><span class="log-date">${fmtDate(d.uploadedAt)}</span></td>
+          <td style="white-space:nowrap">
+            <a href="${window.ApiConfig.getAPI_BASE()}/api/v1/medical-documents/view/${encodeURIComponent(d.filename)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;margin-right:12px;font-size:12px">View</a>
+            <a href="${window.ApiConfig.getAPI_BASE()}/api/v1/medical-documents/download/${encodeURIComponent(d.filename)}" download="${esc(d.originalName || d.filename)}" style="color:var(--text-mid);text-decoration:none;font-size:12px">Download</a>
+          </td>
         </tr>`).join('')}</tbody>
       </table></div>`;
     }

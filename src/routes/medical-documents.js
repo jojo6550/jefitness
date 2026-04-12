@@ -387,7 +387,7 @@ router.post('/save-info', async (req, res) => {
 router.get('/view/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    let token = req.headers.authorization?.replace('Bearer ', '') || req.query.token;
+    let token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '') || req.query.token;
     if (!token) return res.status(401).json({ msg: 'No token provided' });
 
     let decoded;
