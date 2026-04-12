@@ -85,7 +85,9 @@ describe('verifyOrLinkSocialUser', () => {
 
   it('returns existing user found by provider ID', async () => {
     const mockUser = { _id: 'uid1', googleId: 'gid1', role: 'user', tokenVersion: 0 };
-    User.findOne = jest.fn().mockResolvedValueOnce(mockUser);
+    User.findOne = jest.fn().mockReturnValueOnce({
+      select: jest.fn().mockResolvedValue(mockUser),
+    });
 
     const result = await verifyOrLinkSocialUser({
       provider: 'google', providerId: 'gid1',
@@ -103,8 +105,8 @@ describe('verifyOrLinkSocialUser', () => {
       save: jest.fn().mockResolvedValue(true),
     };
     User.findOne = jest.fn()
-      .mockResolvedValueOnce(null)       // not found by googleId
-      .mockResolvedValueOnce(mockUser);  // found by email
+      .mockReturnValueOnce({ select: jest.fn().mockResolvedValue(null) })      // not found by googleId
+      .mockReturnValueOnce({ select: jest.fn().mockResolvedValue(mockUser) }); // found by email
 
     const result = await verifyOrLinkSocialUser({
       provider: 'google', providerId: 'gid1',
@@ -118,7 +120,7 @@ describe('verifyOrLinkSocialUser', () => {
 
   it('creates new user when no match found', async () => {
     const newUser = { _id: 'uid2', email: 'new@test.com', googleId: 'gid2', role: 'user', tokenVersion: 0 };
-    User.findOne = jest.fn().mockResolvedValue(null);
+    User.findOne = jest.fn().mockReturnValue({ select: jest.fn().mockResolvedValue(null) });
     User.create = jest.fn().mockResolvedValueOnce(newUser);
     User.findById = jest.fn().mockReturnValue({
       select: jest.fn().mockResolvedValue(newUser),
@@ -139,7 +141,7 @@ describe('verifyOrLinkSocialUser', () => {
 
   it('skips email lookup when email is null', async () => {
     const newUser = { _id: 'uid3', twitterId: 'tid1', role: 'user', tokenVersion: 0 };
-    User.findOne = jest.fn().mockResolvedValueOnce(null); // only searched by twitterId
+    User.findOne = jest.fn().mockReturnValueOnce({ select: jest.fn().mockResolvedValue(null) }); // only searched by twitterId
     User.create = jest.fn().mockResolvedValueOnce(newUser);
     User.findById = jest.fn().mockReturnValue({
       select: jest.fn().mockResolvedValue(newUser),

@@ -15,12 +15,12 @@ async function verifyOrLinkSocialUser({ provider, providerId, email, firstName, 
   const providerIdField = `${provider}Id`;
 
   // 1. Returning social user — look up by provider ID
-  let user = await User.findOne({ [providerIdField]: providerId });
+  let user = await User.findOne({ [providerIdField]: providerId }).select('+tokenVersion');
   if (user) return { user, isNew: false };
 
   // 2. Existing account with matching email — link provider ID
   if (email) {
-    user = await User.findOne({ email: email.toLowerCase() });
+    user = await User.findOne({ email: email.toLowerCase() }).select('+tokenVersion');
     if (user) {
       user[providerIdField] = providerId;
       await user.save();
