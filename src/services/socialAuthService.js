@@ -10,6 +10,11 @@
  * @returns {Promise<{ user: import('../models/User'), isNew: boolean }>}
  */
 async function verifyOrLinkSocialUser({ provider, providerId, email, firstName, lastName }) {
+  const ALLOWED_PROVIDERS = new Set(['google', 'facebook', 'twitter', 'apple']);
+  if (!ALLOWED_PROVIDERS.has(provider)) {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
+
   // Require inside function so jest.resetModules() in tests can swap the mock
   const User = require('../models/User');
   const providerIdField = `${provider}Id`;

@@ -155,4 +155,10 @@ describe('verifyOrLinkSocialUser', () => {
     // findOne called exactly once (by twitterId), NOT a second time by email
     expect(User.findOne).toHaveBeenCalledTimes(1);
   });
+
+  it('throws for unsupported provider', async () => {
+    await expect(
+      verifyOrLinkSocialUser({ provider: 'evil', providerId: 'x', email: null, firstName: 'X', lastName: '' })
+    ).rejects.toThrow('Unsupported provider: evil');
+  });
 });
