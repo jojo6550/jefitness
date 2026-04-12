@@ -1,5 +1,9 @@
 require('dotenv').config();
 
+// Initialize Passport strategies (no sessions — JWT-only)
+require('./config/passport');
+const passport = require('passport');
+
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
@@ -103,6 +107,8 @@ app.use(csrfProtection.middleware());
 // User cache — initialize per-request cache for user lookups
 const userCacheMiddleware = require('./middleware/userCacheMiddleware');
 app.use(userCacheMiddleware);
+
+app.use(passport.initialize());
 
 // Disable caching in development
 if (process.env.NODE_ENV !== 'production') {
