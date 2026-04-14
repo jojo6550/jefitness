@@ -40,6 +40,26 @@ const startSubscriptionCleanupJob = () => {
       const stripe = stripeService.getStripe();
 
       for (const sub of expiredSubscriptions) {
+        // PLATFORM POLICY: Auto-cancel past_due regardless of periodEnd or Stripe
+        if (sub.status === 'past_due') {
+          await Subscription.findByIdAndUpdate(
+            sub._id,
+            {
+              $set: { status: 'canceled' },
+              $push: {
+                statusHistory: {
+                  status: 'canceled',
+                  changedAt: now,
+                  reason: 'Platform policy: past_due auto-canceled',
+                },
+              },
+            },
+            { runValidators: false }
+          );
+          logger.info('Past due subscription auto-canceled (platform policy)', { subscriptionId: sub._id, userId: sub.userId });
+          continue;
+        }
+
         // Always verify with Stripe before canceling — period dates in the DB can
         // be stale (e.g. Stripe test mode compresses billing cycles).
         if (stripe && sub.stripeSubscriptionId) {
@@ -48,7 +68,7 @@ const startSubscriptionCleanupJob = () => {
               sub.stripeSubscriptionId
             );
 
-            if (STRIPE_ACTIVE_STATUSES.includes(stripeSub.status)) {
+            if (STRIPE_ACTIVE_STATUSES.includes(stripeSub.status) && stripeSub.status !== 'past_due') {
               // Stripe says still active — sync dates and skip cancellation.
               await Subscription.findByIdAndUpdate(
                 sub._id,

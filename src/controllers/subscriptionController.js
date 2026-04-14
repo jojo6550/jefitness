@@ -127,10 +127,10 @@ const subscriptionController = {
    * Get the current user's most recent subscription
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    // Prefer the most recent active subscription; fall back to most recently created.
+    // PLATFORM POLICY: Only active/trialing (past_due auto-canceled)
     let subscription = await Subscription.findOne({
       userId: req.user.id,
-      status: { $in: ['active', 'trialing', 'past_due', 'paused', 'incomplete'] },
+      status: { $in: ['active', 'trialing'] },
     }).sort({ utcCreatedAt: -1 });
 
     if (!subscription) {
@@ -142,7 +142,7 @@ const subscriptionController = {
     if (!subscription) return res.json({ success: true, data: null });
 
     // Auto-heal: if active but currentPeriodEnd is missing or in the past, re-sync from Stripe
-    const activeStatuses = ['active', 'trialing', 'past_due'];
+    const activeStatuses = ['active', 'trialing'];
     const periodEndInvalid =
       !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date();
 
@@ -468,10 +468,7 @@ const subscriptionController = {
     const stripe = stripeService.getStripe();
     const ACTIVE_STRIPE_STATUSES = [
       'active',
-      'trialing',
-      'past_due',
-      'paused',
-      'incomplete',
+      'trialing'
     ];
     let stripeSub = null;
 

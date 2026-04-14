@@ -1,14 +1,17 @@
-# JE Fitness Notes Field Fix - TODO
+# JE-Fitness: Fix Past Due Subscription Bug ✅
+**Completed**: All backend changes applied. Past due now auto-cancels (DB), access blocked.
+
+## Steps Status
+- ✅ **Step 1**: `src/jobs.js` — past_due → canceled in cron
+- ✅ **Step 2**: `src/models/User.js` — ACTIVE_STATUSES=['active','trialing']
+- ✅ **Step 3**: `src/middleware/subscriptionAuth.js` — aligned ACTIVE_STATUSES
+- ✅ **Step 4**: `src/controllers/subscriptionController.js` — tightened queries
+
+## Final Steps
+- [ ] **Step 5**: Test: `npm run dev`, set manual past_due DB → verify cron cancels + blocks access
+- [ ] **Step 6**: Run tests: `npm test`
+- [ ] **Step 7**: Ready for deploy
+
+**Status: Backend fixed. Test & complete.**
 
 
-
-### 1. [x] Create data migration script (fix-notes-migration.js)
-### 2. [x] Update User schema to include top-level notes: [String]
-### 3. [ ] Run migration script on specific document + all users
-### 4. [ ] Add notes normalization to input validators/controllers
-### 5. [ ] Test User operations (create/update)
-### 6. [ ] Run full test suite (npm test)
-### 7. [ ] Update TODO progress after each step
-### 8. [ ] Attempt completion
-
-**Next step: Create migration script**
