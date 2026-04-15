@@ -32,20 +32,16 @@ async function loadNavbarSubscriptionStatus() {
             let statusText = 'Free';
             let statusClass = 'bg-secondary';
 
-            // API returns raw DB doc — use status directly (no hasSubscription/isActive flags)
             const { status, plan, cancelAtPeriodEnd } = subscription;
-            if (status === 'active' || status === 'trialing') {
+            if (['active', 'trialing'].includes(status)) {
                 statusText = cancelAtPeriodEnd ? `${plan} (Canceling)` : `${plan} Plan`;
                 statusClass = cancelAtPeriodEnd ? 'bg-warning text-dark' : 'bg-success';
-            } else if (status === 'canceled') {
-                statusText = `${plan} (Canceled)`;
-                statusClass = 'bg-warning text-dark';
-            } else if (status === 'past_due') {
-                statusText = `${plan} (Past Due)`;
-                statusClass = 'bg-danger';
-            } else if (status) {
+            } else if (status === 'cancelled') {
+                statusText = `${plan} (Cancelled)`;
+                statusClass = 'bg-secondary';
+            } else {
                 statusText = `${plan} (${status})`;
-                statusClass = 'bg-info';
+                statusClass = 'bg-warning text-dark';
             }
 
             statusElement.textContent = statusText;
@@ -66,3 +62,4 @@ document.addEventListener('DOMContentLoaded', function() {
     loadNavbarSubscriptionStatus();
     attachLogoutListener();
 });
+

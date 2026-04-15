@@ -14,7 +14,7 @@ async function requireSubscription() {
             credentials: 'include',
         });
         const data = await res.json();
-        const activeStatuses = ['active', 'trialing', 'past_due'];
+        const activeStatuses = ['active', 'trialing'];
         if (!data.data || !activeStatuses.includes(data.data.status)) {
             window.location.href = '/subscriptions';
             return false;
@@ -194,7 +194,7 @@ async function searchFood(query, foodId) {
             <div class="food-result-item" data-idx="${i}">
                 <div class="food-result-name">${escapeHtml(f.name)}</div>
                 <div class="food-result-macros">
-                    <span class="food-result-macro-pill pill-kcal">&#128293; ${f.kcalPer100g} kcal</span>
+                    <span class="food-result-macro-pill pill-kcal">🔥 ${f.kcalPer100g} kcal</span>
                     <span class="food-result-macro-pill pill-protein">P ${f.proteinPer100g}g</span>
                     <span class="food-result-macro-pill pill-carbs">C ${f.carbsPer100g}g</span>
                     <span class="food-result-macro-pill pill-fat">F ${f.fatPer100g}g</span>
