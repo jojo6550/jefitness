@@ -1,17 +1,7 @@
-# JE-Fitness: Fix Past Due Subscription Bug ✅
-**Completed**: All backend changes applied. Past due now auto-cancels (DB), access blocked.
+refactor subscriptions: one subscription document per user. should have 3 states, active, cancelled, trialing (no subscription)
 
-## Steps Status
-- ✅ **Step 1**: `src/jobs.js` — past_due → canceled in cron
-- ✅ **Step 2**: `src/models/User.js` — ACTIVE_STATUSES=['active','trialing']
-- ✅ **Step 3**: `src/middleware/subscriptionAuth.js` — aligned ACTIVE_STATUSES
-- ✅ **Step 4**: `src/controllers/subscriptionController.js` — tightened queries
+subscription flow: user goes to subscription page and purchases subscription via stripe. upon payment, a subscription db doc is created to store their infromation. user is now in active state. a user can cancel the subscription and the account is now set to cancelled. upon expiration of a subscription, user's account is sent back to trialing (no subscription) rinse and repeat.
 
-## Final Steps
-- [ ] **Step 5**: Test: `npm run dev`, set manual past_due DB → verify cron cancels + blocks access
-- [ ] **Step 6**: Run tests: `npm test`
-- [ ] **Step 7**: Ready for deploy
+constraints: admin should still be able to add and remove subscriptions and override the days as seen in admin functions.
 
-**Status: Backend fixed. Test & complete.**
-
-
+days left function is bugged. i used admin add subscription override to add 81 days to an account. the account details read as that they are due to pay today
