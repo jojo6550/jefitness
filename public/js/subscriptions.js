@@ -1,5 +1,6 @@
 /**
- * subscriptions.js - Updated for 1:1 subscription model with active/cancelled/trialing states
+ * subscriptions.js
+ * Handles subscription plans, Stripe payments, and user subscriptions
  */
 
 /* --------------------------------------------------
@@ -10,10 +11,11 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
 
 const STRIPE_PUBLIC_KEY = 'pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252MbWbTj9xGMhhlHKpGXQXPmUex2WOVb2kuiVzsqSKAQp36q00qAufxywd';
 
+
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-/** Updated for new model: active/trialing grant access */
-const ACTIVE_STATUSES = ['active', 'trialing'];
+/** Statuses treated as "active" — DB status is the source of truth */
+const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
 
 let selectedPlanId = null;
 let currentSubscriptionId = null;
@@ -33,7 +35,7 @@ const activeSubscriptionSection = getElement('activeSubscriptionSection');
 const activeSubscriptionSummary = getElement('activeSubscriptionSummary');
 
 /* --------------------------------------------------
-   DOM Utilities - UNCHANGED
+   DOM Utilities
 -------------------------------------------------- */
 
 function getElement(id, fallback = null) {
@@ -55,7 +57,7 @@ function safeHide(el) {
 }
 
 /* --------------------------------------------------
-   Utilities - UNCHANGED except status logic
+   Utilities
 -------------------------------------------------- */
 
 async function handleApiResponse(response) {
@@ -116,6 +118,11 @@ function log(...args) {
   if (DEBUG) console.log(...args);
 }
 
+/**
+ * Format a number as USD currency string.
+ * @param {number} amount - Amount in dollars
+ * @returns {string} e.g. "$29.99"
+ */
 function formatCurrency(amount, currency = 'JMD') {
   if (typeof amount !== 'number' || isNaN(amount)) return 'J$0.00';
   return new Intl.NumberFormat('en-JM', { 
@@ -124,8 +131,13 @@ function formatCurrency(amount, currency = 'JMD') {
   }).format(amount);
 }
 
+/**
+ * Parse a date value into a Date object, returning `fallback` on failure.
+ * Handles ISO strings, Unix timestamps (seconds or ms), and Date instances.
+ */
 function parseDate(value, fallback) {
   if (!value) return fallback;
+  // Always parse as UTC to match backend storage
   if (typeof value === 'string') {
     const hasTimezone = /[Zz]$|[+-]\d{2}:?\d{2}$/.test(value);
     const d = new Date(hasTimezone ? value : value + 'Z');
@@ -139,20 +151,27 @@ function parseDate(value, fallback) {
   return fallback;
 }
 
+/**
+ * Safely format timestamp/Date/string to YYYY-MM-DD for display.
+ * Returns '—' when value is missing or unparseable, so the UI never shows
+ * a misleading "today" date for subscriptions with no period data.
+ */
 function safeFormatDate(value) {
   if (!value || value === 0) return '—';
   const parsed = parseDate(value, null);
   return parsed && !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : '—';
 }
 
+
 /* --------------------------------------------------
-   Plans - UNCHANGED logic
+   Plans
 -------------------------------------------------- */
 
 async function loadPlans() {
   try {
     const data = await SubscriptionService.getPlans();
     const plansObj = data?.data?.plans || {};
+    // API returns a keyed object; convert to array with id field for rendering
     availablePlans = Object.entries(plansObj).map(([id, plan]) => ({ id, ...plan }));
     renderPlans();
   } catch (err) {
@@ -166,8 +185,9 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  // Hide plans if active sub (new logic)
-  if (userSubscriptions.some(sub => ACTIVE_STATUSES.includes(sub.status))) {
+  // Only hide plans for truly active/trialing subs — past_due/paused users should still see plans
+  const blockingStatuses = ['active', 'trialing'];
+  if (userSubscriptions.some(sub => blockingStatuses.includes(sub.status))) {
     safeHide(getElement('plansSection'));
     return;
   }
@@ -186,6 +206,7 @@ function renderPlans() {
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
     const durationInfo = planDurations[planId] || { months: 1, displayName: '1 Month' };
 
+    // plan.amount is total amount in cents for the entire subscription period
     const totalDollars = (plan.amount || 0) / 100;
     const monthlyDollars = totalDollars / durationInfo.months;
 
@@ -222,7 +243,7 @@ function renderPlans() {
 }
 
 /* --------------------------------------------------
-   Subscriptions - Updated status logic
+   Subscriptions
 -------------------------------------------------- */
 
 function hasActiveSubscription(planId = null) {
@@ -234,7 +255,7 @@ function hasActiveSubscription(planId = null) {
 
 async function refreshSubscription() {
   try {
-    log('Refreshing subscription...');
+    log('Refreshing subscription from Stripe...');
     const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/refresh`, {
       credentials: 'include'
     });
@@ -244,11 +265,11 @@ async function refreshSubscription() {
 
     if (data.success && data.data) {
       userSubscriptions = [data.data];
-      showAlert(data.message || 'Subscription refreshed!', 'success');
+      showAlert(data.message || 'Subscription refreshed successfully!', 'success');
       renderActiveSubscriptionSummary();
       return true;
     } else {
-      showAlert(data.message || 'No active subscription', 'info');
+      showAlert(data.message || 'No subscription found in Stripe', 'info');
       userSubscriptions = [];
       safeShow(getElement('plansSection'));
       safeHide(activeSubscriptionSection);
@@ -262,7 +283,11 @@ async function refreshSubscription() {
 }
 
 async function loadUserSubscriptions() {
-  if (isLoadingSubscriptions) return;
+  if (isLoadingSubscriptions) {
+    log('loadUserSubscriptions - already loading, skipping');
+    return;
+  }
+
   isLoadingSubscriptions = true;
 
   try {
@@ -270,7 +295,10 @@ async function loadUserSubscriptions() {
     const data = await SubscriptionService.getCurrentSubscription();
     log('Subscription data:', data);
 
-    userSubscriptions = data?.data ? [data.data] : [];
+    userSubscriptions = data?.data?._id ? [data.data] : [];
+
+    log('userSubscriptions after load:', userSubscriptions);
+    log('hasActiveSubscription:', hasActiveSubscription());
 
     if (hasActiveSubscription()) {
       safeHide(getElement('plansSection'));
@@ -296,13 +324,18 @@ function renderActiveSubscriptionSummary() {
   if (!sub) return;
 
   const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
-  const periodEnd = parseDate(sub.currentPeriodEnd, new Date());
+
+  const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
+  const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
   const daysLeft = sub.daysLeft ?? 0;
 
-  const isCancelled = sub.status === 'cancelled';
+  const isCanceled = sub.status === 'canceled';
   const isActiveStatus = ACTIVE_STATUSES.includes(sub.status);
-  const statusClass = isCancelled ? 'expired' : (isActiveStatus ? 'active' : 'warning');
-  const statusText = sub.status.toUpperCase();
+  const isExpired = !isActiveStatus && !isCanceled;
+  const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
+
+  const statusClass = isCanceled || isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active');
+  const statusText  = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
 
   activeSubscriptionSummary.innerHTML = `
     <div class="row g-4 align-items-center">
@@ -318,12 +351,12 @@ function renderActiveSubscriptionSummary() {
               <span class="detail-value">${formatCurrency((sub.amount || 0) / 100, sub.currency || 'JMD')}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Expires</span>
-              <span class="detail-value">${safeFormatDate(periodEnd)}</span>
+              <span class="detail-label">Next Billing Date</span>
+            <span class="detail-value">${safeFormatDate(periodEnd)}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Days Left</span>
-              <span class="detail-value">${daysLeft > 0 ? `${daysLeft} days` : (daysLeft === 0 ? 'Today' : 'Expired')}</span>
+              <span class="detail-label">Days Remaining</span>
+<span class="detail-value">${daysLeft > 0 ? `${daysLeft} days` : (daysLeft === 0 ? 'Renews Today' : 'Expired')}</span>
             </div>
           </div>
         </div>
@@ -331,15 +364,22 @@ function renderActiveSubscriptionSummary() {
 
       <div class="col-lg-4">
         <div class="actions-card">
-          <h5 class="mb-3 fw-bold">Manage Plan</h5>
-          ${sub.stripeSubscriptionId ? `<button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
+          <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
+          <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
-          </button>` : ''}
-          ${isActiveStatus ? `<button data-action="cancel-plan" class="btn btn-outline-danger w-100 btn-sm">
-            <i class="bi bi-trash me-2"></i>Cancel Plan
-          </button>` : `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
-            <i class="bi bi-x-circle me-2"></i>${statusText}
-          </button>`}
+          </button>
+          ${!isCanceled && sub.stripeSubscriptionId
+            ? `<button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
+                <i class="bi bi-trash me-2"></i>Cancel Plan
+               </button>`
+            : (!isCanceled
+                ? `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
+                   </button>`
+                : `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+                    <i class="bi bi-x-circle me-2"></i>Plan Canceled
+                   </button>`)
+          }
         </div>
       </div>
     </div>
@@ -347,11 +387,12 @@ function renderActiveSubscriptionSummary() {
 }
 
 /* --------------------------------------------------
-   Plan Selection & Payment - UNCHANGED
+   Plan Selection & Payment
 -------------------------------------------------- */
 
 async function selectPlan(planId) {
   selectedPlanId = planId;
+
   await loadUserSubscriptions();
 
   if (hasActiveSubscription(planId)) {
@@ -359,7 +400,7 @@ async function selectPlan(planId) {
     return;
   }
 
-  showAlert('Redirecting to checkout...', 'info');
+  showAlert('Redirecting to secure checkout...', 'info');
   try {
     const data = await SubscriptionService.createCheckout(planId);
     if (data?.data?.url) {
@@ -368,61 +409,49 @@ async function selectPlan(planId) {
       throw new Error('Invalid checkout response');
     }
   } catch (err) {
-    console.error('Checkout failed:', err);
-    showAlert(err.message || 'Checkout failed', 'error');
+    console.error('Direct checkout failed:', err);
+    showAlert(err.message || 'Checkout failed. Please try again.', 'error');
   }
 }
 
 /* --------------------------------------------------
-   Manage - Updated for new model (no _id needed for cancel)
+   Manage Subscription (Cancel, Renew, Invoices)
 -------------------------------------------------- */
 
-function openCancelModal() {
+function openCancelModal(subscriptionId) {
+  currentSubscriptionId = subscriptionId;
+
+  if (!currentSubscriptionId) {
+    showAlert('Subscription not found', 'error');
+    return;
+  }
+
   const modal = new bootstrap.Modal(document.getElementById('cancelConfirmModal'));
   modal.show();
 }
 
-async function handleConfirmCancel() {
-  const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
+function renewSubscription() {
+  showAlert('Redirecting you to select a new plan...', 'info');
+  userSubscriptions = [];
+  renderPlans();
 
-  try {
-    await SubscriptionService.cancelSubscription(atPeriodEnd); // No ID needed (1:1)
-
-    showAlert(atPeriodEnd ? 'Will end at period end' : 'Subscription cancelled', 'success');
-
-    bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
-    document.getElementById('atPeriodEndCheck').checked = false;
-    setTimeout(loadUserSubscriptions, 1000);
-  } catch (err) {
-    console.error('Cancel failed:', err);
-    showAlert(err.message, 'error');
-  }
+  const plansSection = document.querySelector('.plans-container-wrapper');
+  if (plansSection) plansSection.scrollIntoView({ behavior: 'smooth' });
 }
 
-async function downloadInvoices(subId) {
-  try {
-    const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/${subId}/invoices`, { credentials: 'include' });
-    const data = await handleApiResponse(response);
-    if (!data.data?.length) {
-      showAlert('No invoices found', 'info');
-      return;
-    }
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-info alert-dismissible fade show';
-    alertDiv.appendChild(renderInvoiceList(data.data));
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'btn-close';
-    closeBtn.setAttribute('data-bs-dismiss', 'alert');
-    alertDiv.appendChild(closeBtn);
-    alertContainer.innerHTML = '';
-    alertContainer.appendChild(alertDiv);
-  } catch (err) {
-    console.error('Invoices failed:', err);
-    showAlert('Failed to load invoices', 'error');
-  }
+/** Fetch invoices for a subscription from the API */
+async function fetchInvoices(subscriptionId) {
+  const apiBase = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
+  const res = await fetch(
+    `${apiBase}/api/v1/subscriptions/${subscriptionId}/invoices`,
+    { credentials: 'include' }
+  );
+  const data = await handleApiResponse(res);
+  return data.data || [];
 }
 
+/** Build the invoice list DOM node from an array of invoice objects.
+ *  Uses textContent for all dynamic data to prevent XSS. */
 function renderInvoiceList(invoices) {
   const container = document.createElement('div');
   container.className = 'invoices-scroll-container';
@@ -472,8 +501,58 @@ function renderInvoiceList(invoices) {
   return container;
 }
 
+/** Fetch and display invoices for a subscription */
+async function downloadInvoices(subscriptionId) {
+  try {
+    const invoices = await fetchInvoices(subscriptionId);
+    if (!invoices.length) {
+      showAlert('No invoices found for this subscription', 'info');
+      return;
+    }
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-info alert-dismissible fade show';
+    alertDiv.appendChild(renderInvoiceList(invoices));
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close';
+    closeBtn.setAttribute('data-bs-dismiss', 'alert');
+    closeBtn.setAttribute('aria-label', 'Close');
+    alertDiv.appendChild(closeBtn);
+    alertContainer.innerHTML = '';
+    alertContainer.appendChild(alertDiv);
+  } catch (err) {
+    console.error('Download invoices failed:', err);
+    showAlert('Failed to load invoices: ' + err.message, 'error');
+  }
+}
+
+async function handleConfirmCancel() {
+  if (!currentSubscriptionId) {
+    showAlert('Subscription not found', 'error');
+    return;
+  }
+
+  const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
+
+  try {
+    await SubscriptionService.cancelSubscription(currentSubscriptionId, atPeriodEnd);
+
+    showAlert(
+      atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled',
+      'success'
+    );
+
+    bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
+    document.getElementById('atPeriodEndCheck').checked = false;
+    setTimeout(loadUserSubscriptions, 1000);
+  } catch (err) {
+    console.error('Cancel failed:', err);
+    showAlert(err.message, 'error');
+  }
+}
+
 /* --------------------------------------------------
-   Init - Updated event handlers
+   Init
 -------------------------------------------------- */
 
 async function handleSuccessRedirect() {
@@ -483,30 +562,30 @@ async function handleSuccessRedirect() {
   const canceled = params.get('canceled');
 
   if (canceled === 'true') {
-    showAlert('Purchase cancelled.', 'warning');
+    showAlert('Subscription purchase canceled.', 'warning');
     return;
   }
 
   if (success === 'true' && sessionId) {
     try {
-      log('Verifying session:', sessionId);
-      showAlert('Verifying purchase...', 'info');
+      log('Verifying checkout session:', sessionId);
+      showAlert('Verifying subscription purchase...', 'info');
       const data = await SubscriptionService.verifySession(sessionId);
 
       if (data.success && data.data) {
-        showAlert(`Activated: ${data.data.plan.replace('-', ' ')} plan!`, 'success');
+        showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
         userSubscriptions = [data.data];
         safeHide(getElement('plansSection'));
         safeShow(activeSubscriptionSection);
         renderActiveSubscriptionSummary();
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        showAlert('Purchase complete, refreshing...', 'info');
+        showAlert('Purchase completed but subscription not yet active. Refreshing status...', 'info');
         await loadUserSubscriptions();
       }
     } catch (err) {
-      log('Verification failed:', err);
-      showAlert('Verification failed, refreshing...', 'warning');
+      log('Session verification failed:', err);
+      showAlert('Verification failed. Status will refresh automatically.', 'warning');
       await loadUserSubscriptions();
     }
   }
@@ -515,12 +594,16 @@ async function handleSuccessRedirect() {
 document.addEventListener('DOMContentLoaded', async () => {
   log('Subscriptions page loaded');
 
-  document.getElementById('confirmCancelBtn')?.addEventListener('click', handleConfirmCancel);
+  document.getElementById('confirmCancelBtn')
+    ?.addEventListener('click', handleConfirmCancel);
 
-  document.getElementById('cancelConfirmModal')?.addEventListener('hide.bs.modal', () => {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-  });
+  // Move focus out of the modal before Bootstrap applies aria-hidden (accessibility)
+  document.getElementById('cancelConfirmModal')
+    ?.addEventListener('hide.bs.modal', () => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    });
 
+  // Global event delegation for dynamically rendered subscription buttons
   document.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -531,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (action === 'download-invoices') {
       await downloadInvoices(subId);
     } else if (action === 'cancel-plan') {
-      openCancelModal();
+      openCancelModal(subId);
     }
   });
 
@@ -539,4 +622,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   await handleSuccessRedirect();
   await loadUserSubscriptions();
 });
-

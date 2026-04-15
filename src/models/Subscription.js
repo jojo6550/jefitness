@@ -1,9 +1,8 @@
 const mongoose = require('mongoose');
 
 /**
- * ONE subscription document PER USER
- * States: active, cancelled, trialing (no subscription)
- * Stripe-backed for paid plans; admin override via overrideEndDate
+ * Stripe-backed subscription ONLY
+ * Free tier does NOT exist here
  */
 const SubscriptionSchema = new mongoose.Schema(
   {
@@ -11,7 +10,6 @@ const SubscriptionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true, // ENFORCED: Exactly one per user
       index: true,
     },
 
@@ -23,7 +21,8 @@ const SubscriptionSchema = new mongoose.Schema(
 
     stripeSubscriptionId: {
       type: String,
-      sparse: true, // Optional if admin-created
+      required: true,
+      unique: true,
       index: true,
     },
 
@@ -35,7 +34,7 @@ const SubscriptionSchema = new mongoose.Schema(
 
     stripePriceId: {
       type: String,
-      sparse: true,
+      required: true,
     },
 
     currentPeriodStart: {
@@ -49,14 +48,19 @@ const SubscriptionSchema = new mongoose.Schema(
       index: true,
     },
 
-    overrideEndDate: {
-      type: Date,
-      default: null, // Admin override: supersedes currentPeriodEnd for expiration checks
-    },
-
     status: {
       type: String,
-      enum: ['active', 'cancelled', 'trialing'],
+      // All possible Stripe subscription statuses
+      enum: [
+        'active',
+        'trialing',
+        'incomplete',
+        'incomplete_expired',
+        'past_due',
+        'canceled',
+        'unpaid',
+        'paused',
+      ],
       required: true,
       index: true,
     },
@@ -116,8 +120,8 @@ const SubscriptionSchema = new mongoose.Schema(
   }
 );
 
-// Fast lookup by user + status
-SubscriptionSchema.index({ userId: 1, status: 1 });
+// 🔎 Fast active lookup
+SubscriptionSchema.index({ userId: 1, status: 1, currentPeriodEnd: -1 });
 
 // Track status changes
 SubscriptionSchema.pre('save', function (next) {
@@ -132,4 +136,3 @@ SubscriptionSchema.pre('save', function (next) {
 });
 
 module.exports = mongoose.model('Subscription', SubscriptionSchema);
-

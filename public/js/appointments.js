@@ -32,6 +32,7 @@ async function authFetch(url, options = {}) {
 
     if (res.status === 403) {
         const body = await res.json().catch(() => ({}));
+        // GDPR: Do NOT silently auto-grant consent
         if (body.code === 'CONSENT_REQUIRED') {
             throw new Error('Data processing consent is required. Please update your privacy settings.');
         }
@@ -49,7 +50,7 @@ async function authFetch(url, options = {}) {
     return res.json();
 }
 
-// ====== Updated Subscription Check for new states ======
+// ====== Subscription Check ======
 async function checkSubscriptionStatus() {
     try {
         const data = await authFetch(`${window.API_BASE}/api/v1/subscriptions/current`);
@@ -60,11 +61,11 @@ async function checkSubscriptionStatus() {
             return false;
         }
 
-        const isActiveStatus = ['active', 'trialing'].includes(sub.status);
-        const effectiveEnd = sub.overrideEndDate || sub.currentPeriodEnd;
-        const isPeriodValid = !effectiveEnd || new Date(effectiveEnd) > new Date();
+        const validStatuses = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+        const isActive = validStatuses.includes(sub.status);
+        const isPeriodValid = !sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > new Date();
 
-        userSubscriptionStatus = isActiveStatus && isPeriodValid;
+        userSubscriptionStatus = isActive && isPeriodValid;
         return userSubscriptionStatus;
     } catch (err) {
         console.error('Error checking subscription:', err);
@@ -90,7 +91,7 @@ async function loadAppointments() {
     }
 }
 
-// ====== Display Appointments - UNCHANGED ======
+// ====== Display Appointments ======
 function displayAppointments(appointments) {
     const tbody = document.getElementById('appointmentsTableBody');
     if (!tbody) return;
@@ -186,7 +187,7 @@ function showError(message) {
         </tr>`;
 }
 
-// ====== View Appointment - UNCHANGED ======
+// ====== View Appointment ======
 async function viewAppointment(id) {
     try {
         currentViewAppointmentId = id;
@@ -217,7 +218,7 @@ async function viewAppointment(id) {
     }
 }
 
-// ====== Load Trainers - UNCHANGED ======
+// ====== Load Trainers ======
 async function loadTrainersInto(selectElement, selectedId = '') {
     if (!selectElement) return;
     try {
@@ -239,7 +240,7 @@ async function loadTrainersInto(selectElement, selectedId = '') {
     }
 }
 
-// ====== Load Time Slots - UNCHANGED ======
+// ====== Load Time Slots from Trainer Availability ======
 async function loadTrainerSlots(trainerId, dateStr, selectEl) {
     if (!selectEl) return;
     if (!trainerId || !dateStr) {
@@ -276,10 +277,11 @@ async function loadTrainerSlots(trainerId, dateStr, selectEl) {
     }
 }
 
-// ====== Edit Appointment - UNCHANGED ======
+// ====== Edit Appointment ======
 const editModalEl = document.getElementById('editAppointmentModal');
 const editModal = new bootstrap.Modal(editModalEl || document.createElement('div'));
 
+// Prevent aria-hidden focus issues
 if (editModalEl) {
     editModalEl.addEventListener('hidden.bs.modal', () => {
         document.activeElement?.blur();
@@ -309,7 +311,7 @@ async function editAppointment(id) {
     }
 }
 
-// ====== Save Edited - UNCHANGED ======
+// ====== Save Edited Appointment ======
 document.getElementById('editAppointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
     if (!currentEditAppointmentId) return;
@@ -336,7 +338,7 @@ document.getElementById('editAppointmentForm')?.addEventListener('submit', async
     }
 });
 
-// ====== Delete - UNCHANGED ======
+// ====== Delete Appointment ======
 async function deleteAppointment(id) {
     showConfirm('Are you sure you want to delete this appointment?', async () => {
         try {
@@ -350,12 +352,12 @@ async function deleteAppointment(id) {
     });
 }
 
-// ====== Create - UNCHANGED subscription check ======
+// ====== Create Appointment ======
 document.getElementById('appointmentForm')?.addEventListener('submit', async e => {
     e.preventDefault();
 
     if (!userSubscriptionStatus) {
-        window.Toast?.warning?.('Active subscription required to book appointments.') || alert('Subscription required');
+        window.Toast?.warning?.('You need an active subscription to book appointments.') || alert('Subscription required');
         return;
     }
 
@@ -387,13 +389,16 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
                 window.Toast?.success?.('Appointment booked successfully!') || alert('Appointment booked successfully!');
             } catch (innerErr) {
                 console.error('Error creating appointment:', innerErr);
+                // Extract error message from API response if available
                 let errorMsg = innerErr.message || 'Failed to create appointment.';
                 if (errorMsg.startsWith('HTTP 400 - ')) {
                     try {
                         const jsonStr = errorMsg.replace('HTTP 400 - ', '');
                         const parsed = JSON.parse(jsonStr);
                         errorMsg = parsed.msg || parsed.error || errorMsg;
-                    } catch (e) {}
+                    } catch (e) {
+                        // Keep original error message if JSON parse fails
+                    }
                 }
                 window.Toast?.error?.(errorMsg) || alert(errorMsg);
             }
@@ -403,7 +408,7 @@ document.getElementById('appointmentForm')?.addEventListener('submit', async e =
     }
 });
 
-// ====== Confirmation Modal - UNCHANGED ======
+// ====== Confirmation Modal Utility ======
 function showConfirm(message, callback) {
     const confirmModalEl = document.getElementById('confirmModal');
     if (!confirmModalEl) {
@@ -433,7 +438,7 @@ function showConfirm(message, callback) {
     modal.show();
 }
 
-// ====== Initialization - UNCHANGED ======
+// ====== Initialization ======
 document.addEventListener('DOMContentLoaded', async () => {
     const hasSubscription = await checkSubscriptionStatus();
 
@@ -497,4 +502,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentViewAppointmentId) editAppointment(currentViewAppointmentId);
     });
 });
-

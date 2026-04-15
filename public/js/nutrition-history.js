@@ -8,7 +8,7 @@ async function requireSubscription() {
             credentials: 'include',
         });
         const data = await res.json();
-        const activeStatuses = ['active', 'trialing'];
+        const activeStatuses = ['active', 'trialing', 'past_due'];
         if (!data.data || !activeStatuses.includes(data.data.status)) {
             window.location.href = '/subscriptions';
             return false;
@@ -293,4 +293,3 @@ function showSuccess(msg) {
 function showError(msg) {
     window.Toast.error(msg || 'An error occurred.');
 }
-

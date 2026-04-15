@@ -1,17 +1,24 @@
 /**
  * Middleware to enforce active subscription requirements
- * Single sub doc per user with states: active, cancelled, trialing
+ * Protects routes that require a valid, active subscription
+ * Stripe is the source of truth — status is verified from the Subscription collection (DB mirror of Stripe)
  */
 
 const Subscription = require('../models/Subscription');
 const { logger } = require('../services/logger');
 
 /**
- * requireActiveSubscription - DB-only check for 1:1 model
- * Active if: status !== 'cancelled' && effectiveEnd >= now
+ * Middleware: requireActiveSubscription
+ * Checks if the authenticated user has an active, non-expired subscription record in MongoDB.
+ * MongoDB is kept in sync with Stripe via webhooks, so this is a fast, DB-only check.
+ *
+ * @param {Object} req - Express request object (must have req.user set by auth middleware)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
  */
 async function requireActiveSubscription(req, res, next) {
   try {
+    // Ensure user is authenticated (must be called after auth middleware)
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -22,72 +29,82 @@ async function requireActiveSubscription(req, res, next) {
       });
     }
 
-    const subscription = await Subscription.findOne({ userId: req.user.id });
+    // PLATFORM POLICY: Align with User.model — only active/trialing (past_due canceled by cron)
+    const ACTIVE_STATUSES = ['active', 'trialing'];
+    const subscription = await Subscription.findOne({
+      userId: req.user.id,
+      status: { $in: ACTIVE_STATUSES },
+      $or: [{ currentPeriodEnd: null }, { currentPeriodEnd: { $gte: new Date() } }],
+    }).sort({ currentPeriodEnd: -1 });
 
     if (!subscription) {
-      return res.status(403).json({
-        success: false,
-        error: {
-          code: 'SUBSCRIPTION_REQUIRED',
-          message: 'Active subscription required.',
-          details: { currentStatus: 'none' },
-          action: { type: 'PURCHASE_SUBSCRIPTION', url: '/subscriptions' },
-        },
+      // Try to find any subscription to provide better error context
+      const anySubscription = await Subscription.findOne({ userId: req.user.id }).sort({
+        createdAt: -1,
       });
-    }
 
-    const effectiveEnd = subscription.overrideEndDate || subscription.currentPeriodEnd;
-    const isActive = subscription.status !== 'cancelled' && effectiveEnd >= new Date();
-
-    if (!isActive) {
       return res.status(403).json({
         success: false,
         error: {
           code: 'SUBSCRIPTION_REQUIRED',
-          message: 'Active subscription required.',
+          message: 'You need an active subscription to access this feature.',
           details: {
-            currentStatus: subscription.status,
-            isExpired: effectiveEnd < new Date(),
-            expiryDate: effectiveEnd,
+            currentStatus: anySubscription ? anySubscription.status : 'none',
+            hasExpired: anySubscription
+              ? new Date() > new Date(anySubscription.currentPeriodEnd)
+              : false,
+            expiryDate: anySubscription ? anySubscription.currentPeriodEnd : null,
           },
-          action: { type: 'PURCHASE_SUBSCRIPTION', url: '/subscriptions' },
+          action: {
+            type: 'PURCHASE_SUBSCRIPTION',
+            url: '/subscriptions',
+          },
         },
       });
     }
 
+    // Attach subscription to request for downstream use
     req.subscription = subscription;
     next();
   } catch (error) {
-    logger.error('Error in requireActiveSubscription:', { error: error.message });
+    logger.error('Error in requireActiveSubscription middleware', { error: error.message });
     return res.status(500).json({
       success: false,
       error: {
         code: 'SERVER_ERROR',
-        message: 'Subscription verification failed',
+        message: 'Failed to verify subscription status',
       },
     });
   }
 }
 
 /**
- * optionalSubscriptionCheck - non-blocking
+ * Middleware: optionalSubscriptionCheck
+ * Attaches subscription info to req without blocking access.
+ * Useful for routes that adapt behaviour based on subscription but don't require it.
  */
 async function optionalSubscriptionCheck(req, res, next) {
   try {
     if (req.user && req.user.id) {
-      const subscription = await Subscription.findOne({ userId: req.user.id });
-      req.subscriptionInfo = subscription && subscription.status !== 'cancelled' 
+      const subscription = await Subscription.findOne({
+        userId: req.user.id,
+        status: 'active',
+        currentPeriodEnd: { $gte: new Date() },
+      }).sort({ currentPeriodEnd: -1 });
+
+      req.subscriptionInfo = subscription
         ? {
             hasSubscription: true,
             plan: subscription.plan,
-            expiresAt: subscription.overrideEndDate || subscription.currentPeriodEnd,
+            expiresAt: subscription.currentPeriodEnd,
             status: subscription.status,
           }
         : { hasSubscription: false, plan: null, expiresAt: null };
     }
     next();
   } catch (error) {
-    logger.error('Error in optionalSubscriptionCheck:', { error: error.message });
+    logger.error('Error in optionalSubscriptionCheck middleware', { error: error.message });
+    // Don't block the request on non-critical errors
     next();
   }
 }
@@ -96,4 +113,3 @@ module.exports = {
   requireActiveSubscription,
   optionalSubscriptionCheck,
 };
-
