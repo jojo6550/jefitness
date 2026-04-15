@@ -1,17 +1,14 @@
 /**
- * State-driven subscription middleware - REFACTORED
- * Uses subscriptionService for deterministic checks
- * Auto-handles expiration on every request
+ * Middleware to enforce active subscription requirements
+ * Single sub doc per user with states: active, cancelled, trialing
  */
 
-const subscriptionService = require('../services/subscriptionService');
+const Subscription = require('../models/Subscription');
 const { logger } = require('../services/logger');
 
 /**
- * requireActiveSubscription - Centralized access control
- * 1. getOrCreateSubscription()
- * 2. checkAndHandleExpiration()
- * 3. hasActiveAccess() → 403 if false
+ * requireActiveSubscription - DB-only check for 1:1 model
+ * Active if: status !== 'cancelled' && effectiveEnd >= now
  */
 async function requireActiveSubscription(req, res, next) {
   try {
@@ -25,21 +22,35 @@ async function requireActiveSubscription(req, res, next) {
       });
     }
 
-    const subscription = await subscriptionService.getOrCreateSubscription(req.user.id);
-    await subscriptionService.checkAndHandleExpiration(subscription);
+    const subscription = await Subscription.findOne({ userId: req.user.id });
 
-    if (!subscriptionService.hasActiveAccess(subscription)) {
+    if (!subscription) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'SUBSCRIPTION_REQUIRED',
+          message: 'Active subscription required.',
+          details: { currentStatus: 'none' },
+          action: { type: 'PURCHASE_SUBSCRIPTION', url: '/subscriptions' },
+        },
+      });
+    }
+
+    const effectiveEnd = subscription.overrideEndDate || subscription.currentPeriodEnd;
+    const isActive = subscription.status !== 'cancelled' && effectiveEnd >= new Date();
+
+    if (!isActive) {
       return res.status(403).json({
         success: false,
         error: {
           code: 'SUBSCRIPTION_REQUIRED',
           message: 'Active subscription required.',
           details: {
-            state: subscription.state,
-            currentPeriodEnd: subscription.currentPeriodEnd,
-            now: new Date().toISOString(),
+            currentStatus: subscription.status,
+            isExpired: effectiveEnd < new Date(),
+            expiryDate: effectiveEnd,
           },
-          action: { type: 'PURCHASE_SUBSCRIPTION', url: '/pages/subscriptions.html' },
+          action: { type: 'PURCHASE_SUBSCRIPTION', url: '/subscriptions' },
         },
       });
     }
@@ -59,25 +70,20 @@ async function requireActiveSubscription(req, res, next) {
 }
 
 /**
- * optionalSubscriptionCheck - Non-blocking info only
+ * optionalSubscriptionCheck - non-blocking
  */
 async function optionalSubscriptionCheck(req, res, next) {
   try {
     if (req.user && req.user.id) {
-      const subscription = await subscriptionService.getOrCreateSubscription(req.user.id);
-      await subscriptionService.checkAndHandleExpiration(subscription);
-      
-      req.subscriptionInfo = subscriptionService.hasActiveAccess(subscription)
+      const subscription = await Subscription.findOne({ userId: req.user.id });
+      req.subscriptionInfo = subscription && subscription.status !== 'cancelled' 
         ? {
             hasSubscription: true,
-            state: subscription.state,
-            expiresAt: subscription.currentPeriodEnd,
+            plan: subscription.plan,
+            expiresAt: subscription.overrideEndDate || subscription.currentPeriodEnd,
+            status: subscription.status,
           }
-        : { 
-            hasSubscription: false, 
-            state: subscription.state,
-            expiresAt: subscription.currentPeriodEnd 
-          };
+        : { hasSubscription: false, plan: null, expiresAt: null };
     }
     next();
   } catch (error) {

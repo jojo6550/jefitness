@@ -230,6 +230,13 @@ const UserSchema = new mongoose.Schema(
       userAgent: { type: String },
     },
     stripeCustomerId: { type: String, unique: true, sparse: true },
+    billingEnvironment: { type: String, enum: ['test', 'production'], default: 'test' },
+    stripeCheckoutSessionId: { type: String },
+    subscriptionStatus: {
+      type: String,
+      enum: ['active', 'cancelled', 'trialing'],
+      default: 'trialing',
+    },
     auditLog: [
       {
         action: { type: String, required: true },
@@ -346,41 +353,46 @@ UserSchema.index({ 'workoutLogs.exercises.exerciseName': 1 }, { sparse: true });
 UserSchema.index({ 'mealLogs.date': -1 }, { sparse: true });
 
 // --------------------
-// Subscription Methods - Use subscriptionService.js
+// Subscription Methods (Lazy Loading) - Updated for 1:1 model
 // --------------------
-const subscriptionService = require('../services/subscriptionService');
-
 UserSchema.methods.getSubscription = async function () {
-  return subscriptionService.getOrCreateSubscription(this._id);
+  const Subscription = require('./Subscription');
+  if (!this._id) return null;
+  return await Subscription.findOne({ userId: this._id });
+};
+
+UserSchema.methods.getActiveSubscription = async function () {
+  const sub = await this.getSubscription();
+  if (!sub || sub.status === 'cancelled') return null;
+  // active or trialing are considered \"active\" for access
+  return sub;
 };
 
 UserSchema.methods.hasActiveSubscription = async function () {
   const sub = await this.getSubscription();
-  await subscriptionService.checkAndHandleExpiration(sub);
-  return subscriptionService.hasActiveAccess(sub);
+  return sub && sub.status !== 'cancelled';
 };
 
 UserSchema.methods.getSubscriptionInfo = async function () {
   const sub = await this.getSubscription();
-  await subscriptionService.checkAndHandleExpiration(sub);
-  
-  if (!subscriptionService.hasActiveAccess(sub)) {
+  if (!sub || sub.status === 'cancelled') {
     return {
       hasSubscription: false,
-      state: sub.state,
-      expiresAt: sub.currentPeriodEnd,
+      status: 'cancelled',
+      plan: null,
+      expiresAt: null,
       message: 'No active subscription',
     };
   }
-  
+  const effectiveEnd = sub.overrideEndDate || sub.currentPeriodEnd;
   return {
     hasSubscription: true,
-    state: sub.state,
-    expiresAt: sub.currentPeriodEnd,
-    displayText: `${sub.state.toUpperCase()} until ${sub.currentPeriodEnd.toLocaleDateString()}`,
+    status: sub.status,
+    plan: sub.plan,
+    expiresAt: effectiveEnd,
+    displayText: `${sub.status.toUpperCase()} Plan: ${sub.plan}`,
   };
 };
-
 
 module.exports = mongoose.model('User', UserSchema);
 
