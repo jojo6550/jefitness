@@ -26,7 +26,8 @@
     "sync:plans": "node scripts/cli-commands.js sync",
     "list:plans": "node scripts/cli-commands.js list",
     "webhook:plans": "node scripts/add-webhook-support.js",
-    "test:stress": "node src/tests/stress/stress-test.js"
+    "test:stress": "node src/tests/stress/stress-test.js",
+    "migrate:schema": "node src/scripts/migrateUserSchema.js"
   },
   "repository": {
     "type": "git",

@@ -38,6 +38,13 @@ const subscriptionSchema = new mongoose.Schema(
       type: String,
       enum: ['test', 'production'],
     },
+    statusHistory: [
+      {
+        status: String,
+        changedAt: Date,
+        reason: String,
+      },
+    ],
   },
   { timestamps: { currentTime: () => new Date() } }
 );

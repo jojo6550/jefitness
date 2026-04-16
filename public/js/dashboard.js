@@ -65,7 +65,7 @@ async function loadSubscriptionStatus() {
                 const planDisplay = subscription.plan.replace('-', ' ').toUpperCase();
                 statusText = `Active Plan: ${planDisplay}`;
                 statusClass = 'text-success';
-            } else if (subscription.status === 'canceled' || subscription.status === 'cancel_pending') {
+            } else if (subscription && (subscription.status === 'cancelled' || subscription.status === 'cancel_pending')) {
                 statusText = `Canceled: ${subscription.plan}`;
                 statusClass = 'text-warning';
             } else {

@@ -276,7 +276,7 @@ async function createSubscription(req, res) {
     if (existingSub && existingSub.stripeSubscriptionId) {
       try {
         await getStripeClient().subscriptions.cancel(existingSub.stripeSubscriptionId);
-        existingSub.status = 'canceled';
+        existingSub.status = 'cancelled';
         existingSub.canceledAt = new Date();
         await existingSub.save();
       } catch (cancelErr) {
@@ -301,8 +301,10 @@ async function createSubscription(req, res) {
     const periodEnd = new Date(stripeSub.trial_end * 1000);
 
     // Upsert Subscription document
+    // Status: 'active' if overrideDays (immediate access), else 'trialing'
+    const subStatus = overrideDays !== undefined ? 'active' : 'trialing';
     await Subscription.findOneAndUpdate(
-      { stripeSubscriptionId: stripeSub.id },
+      { userId: user._id },
       {
         $set: {
           userId: user._id,
@@ -312,7 +314,7 @@ async function createSubscription(req, res) {
           stripePriceId: plan.stripePriceId,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
-          status: 'trialing',
+          status: subStatus,
           amount: plan.unitAmount,
           currency: plan.currency || 'jmd',
           billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')
@@ -321,7 +323,7 @@ async function createSubscription(req, res) {
         },
         $push: {
           statusHistory: {
-            status: 'trialing',
+            status: subStatus,
             changedAt: new Date(),
             reason: 'Admin created',
           },
@@ -347,7 +349,7 @@ async function createSubscription(req, res) {
       msg: 'Subscription created successfully',
       subscription: {
         plan: planKey,
-        status: 'trialing',
+        status: subStatus,
         currentPeriodEnd: periodEnd,
         daysLeft: daysLeftUntil(periodEnd),
         stripeSubscriptionId: stripeSub.id,

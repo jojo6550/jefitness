@@ -76,6 +76,7 @@ async function auth(req, res, next) {
     req.user = decoded;
     // Normalize user ID for consistency across routes
     req.user.id = userId;
+    req.user._id = userId; // alias so code using req.user._id works (JWT payload uses 'id', not '_id')
     req.user.role = user.role; // SECURITY: Always use fresh role from DB
     // Attach full user doc so downstream middleware (consent, role checks) can
     // read from it without issuing additional DB queries

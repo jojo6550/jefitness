@@ -36,7 +36,8 @@
       "Bash(node --check src/controllers/subscriptionController.js)",
       "Bash(node --check src/routes/subscriptions.js)",
       "Bash(find:*)",
-      "Bash(curl -s http://localhost:10000/api/health)"
+      "Bash(curl -s http://localhost:10000/api/health)",
+      "Bash(node:*)"
     ]
   },
   "enabledPlugins": {
