@@ -34,7 +34,7 @@ router.get('/plans', subscriptionController.getPlans);
 router.post(
   '/checkout',
   auth,
-  [body('planId').trim().notEmpty().withMessage('Plan ID is required')],
+  [body('plan').trim().notEmpty().withMessage('Plan is required')],
   handleValidationErrors,
   subscriptionController.createCheckout
 );
