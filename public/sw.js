@@ -6,7 +6,7 @@
 let bypassCacheEnabled = false;
 
 // Cache versioning
-const CACHE_VERSION = '5a9c8d7';
+const CACHE_VERSION = 'dea7aab';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
@@ -26,7 +26,6 @@ const STATIC_ASSETS = [
   '/js/toast.js', '/js/validators.js',
   '/pages/login.html', '/pages/signup.html',
   '/pages/trainer-dashboard.html',
-  '/pages/admin-dashboard.html',
   '/pages/dashboard.html',
   '/pages/profile.html'
 ];
