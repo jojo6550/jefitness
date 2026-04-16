@@ -75,7 +75,7 @@ async function bulkDeleteClients(req, res) {
     logger.logAdminAction('bulk_delete_clients', adminId, {
       deletedCount: safeIds.length,
       userIds: safeIds,
-    });
+    }, req);
 
     res.json({
       msg: `Deleted ${safeIds.length} client(s)`,
@@ -168,7 +168,7 @@ async function createSubscription(req, res) {
           overrideDays: days,
           subscriptionId: existingSub._id.toString(),
           newPeriodEnd: newPeriodEnd.toISOString(),
-        });
+        }, req);
 
         return res.json({
           msg: 'Subscription extended successfully',
@@ -343,7 +343,7 @@ async function createSubscription(req, res) {
       overrideDays: overrideDays !== undefined ? parseInt(overrideDays, 10) : null,
       stripeSubscriptionId: stripeSub.id,
       periodEnd: periodEnd.toISOString(),
-    });
+    }, req);
 
     res.json({
       msg: 'Subscription created successfully',
@@ -438,7 +438,7 @@ async function extendSubscription(req, res, next) {
       daysToAdd,
       newPeriodEnd: newPeriodEnd.toISOString(),
       plan: subscription.plan,
-    });
+    }, req);
 
     res.json({
       message: `Extended by ${daysToAdd} days`,

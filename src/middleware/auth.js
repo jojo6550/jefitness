@@ -179,8 +179,8 @@ async function requireTrainer(req, res, next) {
  */
 async function isWebhookEventProcessed(eventId) {
   try {
-    const existingEvent = await WebhookEvent.findOne({ eventId });
-    return !!existingEvent;
+    const exists = await WebhookEvent.exists({ eventId });
+    return !!exists;
   } catch (err) {
     // If database is down, log error and fall back to safe behavior
     // (reject the event to prevent potential duplicate processing)
@@ -199,15 +199,19 @@ async function isWebhookEventProcessed(eventId) {
  */
 async function markWebhookEventProcessed(eventId, eventType = 'unknown') {
   try {
-    const webhookEvent = new WebhookEvent({
-      eventId,
-      eventType,
-      processedAt: new Date(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-    });
-
-    // Use ensureProcessed to handle race conditions safely
-    await webhookEvent.ensureProcessed();
+    // $setOnInsert is a no-op if doc already exists — atomic, race-condition safe
+    await WebhookEvent.findOneAndUpdate(
+      { eventId },
+      {
+        $setOnInsert: {
+          eventId,
+          eventType,
+          processedAt: new Date(),
+          // expiresAt defaults to 24h from now via schema default
+        },
+      },
+      { upsert: true }
+    );
     logger.info('Webhook event marked as processed', { eventId });
   } catch (err) {
     // Log error but don't throw - webhook processing should continue

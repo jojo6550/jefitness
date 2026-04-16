@@ -268,7 +268,7 @@ router.get('/', requireAdmin, async (req, res) => {
     logAdminAction('view_all_appointments', req.user.id, {
       query: req.query,
       resultCount: appointments.length,
-    });
+    }, req);
 
     res.json({
       appointments,
@@ -769,7 +769,7 @@ router.put(
           trainerName: logTrainerName,
           trainerEmail: logTrainerEmail,
           updates: req.body,
-        });
+        }, req);
       }
 
       // Send email notifications
@@ -909,7 +909,7 @@ router.delete('/:id', async (req, res) => {
         clientEmail,
         trainerName,
         trainerEmail,
-      });
+      }, req);
     } else if (
       appointment.trainerId?._id?.toString() === req.user.id ||
       appointment.trainerId?.toString() === req.user.id
@@ -920,7 +920,7 @@ router.delete('/:id', async (req, res) => {
         clientEmail,
         trainerName,
         trainerEmail,
-      });
+      }, req);
     } else {
       logUserAction('delete_appointment', req.user.id, {
         appointmentId: req.params.id,

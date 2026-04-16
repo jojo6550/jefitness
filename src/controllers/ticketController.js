@@ -252,7 +252,7 @@ const adminGetTickets = asyncHandler(async (req, res) => {
   // Unread count (submitted but not yet seen)
   const unreadCount = await SupportTicket.countDocuments({ status: 'submitted' });
 
-  logAdminAction('view_support_tickets', req.user.id, { filter, page });
+  logAdminAction('view_support_tickets', req.user.id, { filter, page }, req);
 
   res.json({
     success: true,
@@ -281,7 +281,7 @@ const adminGetTicket = asyncHandler(async (req, res) => {
     ticket.seenAt = new Date();
   }
 
-  logAdminAction('view_support_ticket', req.user.id, { ticketId: req.params.id });
+  logAdminAction('view_support_ticket', req.user.id, { ticketId: req.params.id }, req);
 
   res.json({ success: true, data: { ticket } });
 });
@@ -317,7 +317,7 @@ const adminUpdateTicketStatus = asyncHandler(async (req, res) => {
     ]);
   }
 
-  logAdminAction('resolve_support_ticket', req.user.id, { ticketId: ticket._id });
+  logAdminAction('resolve_support_ticket', req.user.id, { ticketId: ticket._id }, req);
 
   res.json({ success: true, data: { ticket } });
 });

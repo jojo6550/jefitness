@@ -629,7 +629,6 @@ function showError(message) {
 
 // Edit client (placeholder)
 function editClient(clientId) {
-    console.log('Edit client:', clientId);
     // TODO: Implement edit functionality
 }
 
@@ -908,7 +907,6 @@ async function viewAppointment(appointmentId) {
 
 // Edit appointment
 function editAppointment(appointmentId) {
-    console.log('Edit appointment:', appointmentId);
     // TODO: Implement edit functionality
 }
 
@@ -1166,8 +1164,6 @@ function showOrdersError(message) {
 
 // View order details
 async function viewOrder(orderId) {
-    // For now, just log the order ID. You can implement a modal to show order details
-    console.log('View order:', orderId);
     // TODO: Implement order details modal
 }
 

@@ -94,16 +94,14 @@ class Logger {
 
   debug(msg, meta = {}) {
     const fullMeta = { level: 'debug', ...meta };
-    const readableMsg = this._formatMessage(msg, fullMeta);
     this.logger.debug(msg, fullMeta);
-    this._asyncLogToDB('debug', readableMsg, fullMeta);
+    // debug never writes to DB — high frequency, low value
   }
 
   http(msg, meta = {}) {
     const fullMeta = { level: 'http', ...meta };
-    const readableMsg = this._formatMessage(msg, fullMeta);
     this.logger.http(msg, fullMeta);
-    this._asyncLogToDB('http', readableMsg, fullMeta);
+    // http never writes to DB — fires on every request
   }
 
   // Convenience methods
@@ -120,13 +118,14 @@ class Logger {
     this._asyncLogToDB('info', message, meta);
   }
 
-  logAdminAction(action, adminId, details = {}) {
+  logAdminAction(action, adminId, details = {}, req = null) {
     const message = this._buildHumanMessage(action, details);
     const meta = {
       category: 'admin',
       userId: adminId,
       action,
       details,
+      ...(req ? this._reqContext(req) : {}),
     };
     this.logger.info(message, meta);
     this._asyncLogToDB('info', message, meta);
