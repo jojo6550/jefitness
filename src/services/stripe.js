@@ -98,11 +98,8 @@ async function getPlanPricing() {
 
     const pricing = {};
     for (const planRecord of plans) {
-      // Generate plan key: lookupKey > nickname > intervalCount-interval
-      const planKey =
-        planRecord.lookupKey ||
-        planRecord.nickname ||
-        `${planRecord.intervalCount}-${planRecord.interval}`;
+      // Use canonical plan name as key so it matches the controller allowlist
+      const planKey = derivePlanName(planRecord);
 
       const amount = planRecord.unitAmount;
       const displayPrice = new Intl.NumberFormat('en-US', {

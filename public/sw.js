@@ -22,7 +22,7 @@ const STATIC_ASSETS = [
   '/favicons/apple-touch-icon.png', '/favicons/favicon-16x16.png',
   '/favicons/favicon-32x32.png', '/favicons/favicon.ico', '/favicons/site.webmanifest',
   '/js/api.config.js', '/js/app.js', '/js/auth.js',
-  '/js/cache-version.js', '/js/cookie-consent.js',
+  '/js/cookie-consent.js',
   '/js/toast.js', '/js/validators.js',
   '/pages/login.html', '/pages/signup.html',
   '/pages/trainer-dashboard.html',

@@ -25,7 +25,7 @@ createCheckout: async (planId, queueAfterCurrent = false) => {
         'Content-Type': 'application/json'
       },
       credentials: 'include',
-      body: JSON.stringify({ planId, queueAfterCurrent })
+      body: JSON.stringify({ plan: planId, queued: queueAfterCurrent })
     });
     return handleApiResponse(res);
   },
