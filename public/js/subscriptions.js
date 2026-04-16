@@ -14,8 +14,10 @@ const STRIPE_PUBLIC_KEY = 'pk_live_51TD7A8DX2QubxH7TjPNbtQXIlI7mGKrDEwBrrov252Mb
 
 const DEBUG = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-/** Statuses treated as "active" — DB status is the source of truth */
-const ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
+/** 3-state subscription model: active, trialing, cancelled */
+const isActive = (status) => status === 'active';
+const isCancelled = (status) => status === 'cancelled';
+const isTrialing = (status) => status === 'trialing';
 
 let selectedPlanId = null;
 let currentSubscriptionId = null;
@@ -186,8 +188,7 @@ function renderPlans() {
   if (!plansContainer) return;
 
   // Check for truly active/trialing subs (not queued plans)
-  const blockingStatuses = ['active', 'trialing'];
-  const activeSub = userSubscriptions.find(sub => blockingStatuses.includes(sub.status) && !sub.isQueuedPlan);
+  const activeSub = userSubscriptions.find(sub => (isActive(sub.status) || isTrialing(sub.status)) && !sub.isQueuedPlan);
 
   // If active sub has a queued plan, hide plans section entirely (user already committed to next plan)
   if (activeSub?.queuedPlan) {
@@ -269,7 +270,7 @@ function renderPlans() {
 
 function hasActiveSubscription(planId = null) {
   return userSubscriptions.some(sub =>
-    ACTIVE_STATUSES.includes(sub.status) &&
+    (isActive(sub.status) || isTrialing(sub.status)) &&
     (!planId || sub.plan === planId)
   );
 }
@@ -351,13 +352,25 @@ function renderActiveSubscriptionSummary() {
   const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
   const daysLeft = sub.daysLeft ?? 0;
 
-  const isCanceled = sub.status === 'canceled';
-  const isActiveStatus = ACTIVE_STATUSES.includes(sub.status);
-  const isExpired = !isActiveStatus && !isCanceled;
-  const isPastDueOrPaused = sub.status === 'past_due' || sub.status === 'paused';
+  const subStatus = sub.status;
+  const isSubActive = isActive(subStatus);
+  const isSubCancelled = isCancelled(subStatus);
+  const isSubTrialing = isTrialing(subStatus);
 
-  const statusClass = isCanceled || isExpired ? 'expired' : (isPastDueOrPaused ? 'warning' : 'active');
-  const statusText  = isCanceled ? 'CANCELED' : (isExpired ? 'EXPIRED' : (isPastDueOrPaused ? sub.status.toUpperCase() : 'ACTIVE'));
+  let statusClass, statusText;
+  if (isSubActive) {
+    statusClass = 'active';
+    statusText = 'ACTIVE';
+  } else if (isSubTrialing) {
+    statusClass = 'warning';
+    statusText = 'TRIALING';
+  } else if (isSubCancelled) {
+    statusClass = 'expired';
+    statusText = 'CANCELLED';
+  } else {
+    statusClass = 'expired';
+    statusText = 'UNKNOWN';
+  }
 
   activeSubscriptionSummary.innerHTML = `
     <div class="row g-4 align-items-center">
@@ -390,16 +403,16 @@ function renderActiveSubscriptionSummary() {
           <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
             <i class="bi bi-download me-2"></i>Download Invoices
           </button>
-          ${!isCanceled && sub.stripeSubscriptionId
+          ${!isSubCancelled && sub.stripeSubscriptionId
             ? `<button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
                 <i class="bi bi-trash me-2"></i>Cancel Plan
                </button>`
-            : (!isCanceled
-                ? `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
-                    <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
+            : (isSubCancelled
+                ? `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+                    <i class="bi bi-x-circle me-2"></i>Plan Cancelled
                    </button>`
-                : `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
-                    <i class="bi bi-x-circle me-2"></i>Plan Canceled
+                : `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
                    </button>`)
           }
           ${sub.queuedPlan
