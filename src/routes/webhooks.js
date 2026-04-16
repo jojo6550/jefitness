@@ -261,7 +261,10 @@ async function handleSubscriptionUpsert(subscription) {
     { currentPeriodEnd: 1 }
   );
   if (existingForUpsert?.currentPeriodEnd) {
-    if (!payload.currentPeriodEnd || existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd) {
+    if (
+      !payload.currentPeriodEnd ||
+      existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd
+    ) {
       payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
     }
   }

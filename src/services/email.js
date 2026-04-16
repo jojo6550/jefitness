@@ -4,8 +4,9 @@
  * If the key is not set, emails are logged and skipped gracefully.
  */
 
-const { logger } = require('./logger');
 const { getPrimaryAppUrl } = require('../config/security');
+
+const { logger } = require('./logger');
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@jefitnessja.com';
 const FROM_NAME = process.env.FROM_NAME || 'JE Fitness';

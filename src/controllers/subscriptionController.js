@@ -89,7 +89,10 @@ const subscriptionController = {
    * Returns null if no active subscription.
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    logger.debug('getCurrentSubscription', { userId: req.user._id, type: typeof req.user._id });
+    logger.debug('getCurrentSubscription', {
+      userId: req.user._id,
+      type: typeof req.user._id,
+    });
 
     const subscription = await Subscription.findOne({
       userId: req.user._id,
@@ -100,7 +103,10 @@ const subscriptionController = {
       logger.debug('No subscription found', { userId: req.user._id });
       // Debug: check if subscription exists with this userId at all
       const anySubWithUser = await Subscription.findOne({ userId: req.user._id });
-      logger.debug('Any sub with this userId?', { found: !!anySubWithUser, status: anySubWithUser?.status });
+      logger.debug('Any sub with this userId?', {
+        found: !!anySubWithUser,
+        status: anySubWithUser?.status,
+      });
       return res.json({ success: true, data: null });
     }
 

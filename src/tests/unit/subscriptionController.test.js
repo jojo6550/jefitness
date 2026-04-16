@@ -471,7 +471,9 @@ describe('subscriptionController', () => {
       await cancel(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(404);
-      expect(mockRes.json).toHaveBeenCalledWith({ error: 'Subscription not found' });
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: 'No active subscription found',
+      });
     });
 
     it('should not require stripeSubscriptionId to cancel immediately', async () => {

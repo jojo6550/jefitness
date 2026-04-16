@@ -9,8 +9,6 @@
     "format": "prettier --write \"src/**/*.js\" \"scripts/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\" \"scripts/**/*.js\"",
     "dev": "nodemon",
-    "dev:frontend": "browser-sync start --server public --files '**/*.html' --port 5500",
-    "dev:full": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -22,13 +20,11 @@
     "start": "node src/server.js",
     "build:css": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --watch",
     "cache:bust": "node scripts/bust-cache.js",
-    "docs:jsdoc": "jsdoc -c jsdoc.json",
     "sync:plans": "node scripts/cli-commands.js sync",
     "list:plans": "node scripts/cli-commands.js list",
     "webhook:plans": "node scripts/add-webhook-support.js",
-    "test:stress": "node src/tests/stress/stress-test.js",
-    "migrate:schema": "node src/scripts/migrateUserSchema.js"
-  },
+    "test:stress": "node src/tests/stress/stress-test.js"
+    },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jojo6550/jojo6550.github.io.git"

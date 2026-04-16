@@ -1,7 +1,7 @@
 const StripePlan = require('../models/StripePlan');
+const { getPrimaryAppUrl } = require('../config/security');
 
 const { logger } = require('./logger');
-const { getPrimaryAppUrl } = require('../config/security');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
