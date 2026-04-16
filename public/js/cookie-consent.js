@@ -49,8 +49,9 @@ class CookieConsentManager {
         this.userToken = null; // cookie is automatic, no need to pass it around
         this.isLoggedIn = false;
         try {
-            await window.AuthCache.getMe();
-            this.isLoggedIn = true;
+            const api = window.ApiConfig?.getAPI_BASE() || '';
+            const res = await fetch(`${api}/api/v1/auth/me`, { credentials: 'include' });
+            if (res.ok) this.isLoggedIn = true;
         } catch {}
     }
 

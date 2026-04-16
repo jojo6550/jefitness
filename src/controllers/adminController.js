@@ -121,7 +121,7 @@ async function createSubscription(req, res) {
     if (!user) return res.status(404).json({ msg: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ msg: 'Cannot add subscription to admin account' });
 
-    // Admin day override: DB-only, no Stripe changes
+    // Admin day override: DB-only extend if active sub exists, else fall through to Stripe creation
     if (overrideDays !== undefined) {
       const days = parseInt(overrideDays, 10);
       const now = new Date();
@@ -129,8 +129,8 @@ async function createSubscription(req, res) {
 
       const existingSub = await user.getActiveSubscription();
       if (!existingSub) {
-        return res.status(400).json({ msg: 'User has no active subscription to extend. Create a subscription first.' });
-      }
+        // No active sub — fall through to Stripe creation path below
+      } else {
 
       const updatedSub = await Subscription.findByIdAndUpdate(
         existingSub._id,
@@ -159,7 +159,8 @@ async function createSubscription(req, res) {
           stripeSubscriptionId: existingSub.stripeSubscriptionId,
         },
       });
-    }
+      } // end else (existing sub extend)
+    } // end if (overrideDays !== undefined) — no existing sub falls through
 
     // Find StripePlan by interval matching plan
     const intervalMap = {

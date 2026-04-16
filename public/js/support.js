@@ -329,7 +329,9 @@ async function saveOrSubmit(submitStatus) {
 async function init() {
   // Auth guard — role-guard.js handles redirect, but we also wait for user
   try {
-    await window.AuthCache.getMe();
+    const api = window.ApiConfig?.getAPI_BASE() || '';
+    const res = await fetch(`${api}/api/v1/auth/me`, { credentials: 'include' });
+    if (!res.ok) throw new Error('Auth failed');
   } catch {
     window.location.href = '/login';
     return;

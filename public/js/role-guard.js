@@ -23,8 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const isProtected = protectedPages.includes(pathSegment);
 
   if (isProtected) {
-    window.AuthCache.getMe().catch(() => {
-      window.location.href = '/login';
-    });
+    const api = window.ApiConfig?.getAPI_BASE() || '';
+    fetch(`${api}/api/v1/auth/me`, { credentials: 'include' })
+      .catch(() => {
+        window.location.href = '/login';
+      });
   }
 });

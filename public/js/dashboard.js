@@ -3,7 +3,9 @@ window.API_BASE = window.ApiConfig.getAPI_BASE();
 
 window.initDashboard = async () => {
     try {
-      const user = await window.AuthCache.getMe().catch(() => null);
+      const user = await fetch(`${window.API_BASE}/api/v1/auth/me`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
 
       if (!user) {
         console.warn('User data fetch failed');
