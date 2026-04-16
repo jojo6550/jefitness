@@ -187,14 +187,11 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  // Check for truly active/trialing subs (not queued plans)
-  const activeSub = userSubscriptions.find(sub => (isActive(sub.status) || isTrialing(sub.status)) && !sub.isQueuedPlan);
+  // Check for active/trialing subs (allow queueing even with existing queuedPlan)
+  const activeSub = userSubscriptions.find(sub => isActive(sub.status) || isTrialing(sub.status));
 
-  // If active sub has a queued plan, hide plans section entirely (user already committed to next plan)
-  if (activeSub?.queuedPlan) {
-    safeHide(getElement('plansSection'));
-    return;
-  }
+    // Always show plans if activeSub exists (allow replacing queued plan)
+    // Removed: Hide if queuedPlan exists
 
   // If no active sub, show normal subscribe view
   const isQueueMode = !!activeSub;
@@ -222,7 +219,7 @@ function renderPlans() {
     if (isCurrent) {
       buttonLabel = 'Current Plan';
     } else if (isQueueMode) {
-      buttonLabel = `Queue for ${queueStartDate}`;
+      buttonLabel = `Queue after ${queueStartDate}`;
     } else {
       buttonLabel = 'Subscribe Now';
     }
