@@ -255,17 +255,15 @@ async function handleSubscriptionUpsert(subscription) {
 
   const payload = await buildSubscriptionPayload(subscription);
 
-  // Guard: don't let webhook move currentPeriodEnd backward (protects admin extensions)
+  // Guard: don't let webhook overwrite currentPeriodEnd with null or move it backward
   const existingForUpsert = await Subscription.findOne(
     { stripeSubscriptionId: subscription.id },
     { currentPeriodEnd: 1 }
   );
-  if (
-    existingForUpsert?.currentPeriodEnd &&
-    payload.currentPeriodEnd &&
-    existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd
-  ) {
-    payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
+  if (existingForUpsert?.currentPeriodEnd) {
+    if (!payload.currentPeriodEnd || existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd) {
+      payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
+    }
   }
 
   // Check if this subscription was previously marked as a queued plan
