@@ -175,7 +175,26 @@ const subscriptionController = {
    * Cancel the user's queued (trialing, isQueuedPlan) subscription.
    * Kept for backward compatibility with existing routes.
    */
+  cancelQueuedPlan: asyncHandler(async (req, res) => {
+    const queuedSub = await Subscription.findOne({
+      userId: req.user._id,
+      status: 'trialing',
+      isQueuedPlan: true
+    });
 
+    if (!queuedSub) {
+      return res.status(404).json({ error: 'No queued subscription found' });
+    }
+
+    // Delete queued subscription record (no Stripe cancel needed for trial/queued)
+    await queuedSub.deleteOne();
+    logger.info(`[SUBSCRIPTIONS] Queued subscription deleted for user ${req.user._id}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Queued subscription cancelled successfully' 
+    });
+  }),
 
   /**
    * Cancel a subscription by its DB ID.
@@ -307,3 +326,5 @@ module.exports.createCheckout = subscriptionController.createCheckout;
 module.exports.verifyCheckoutSession = subscriptionController.verifyCheckoutSession;
 module.exports.cancel = subscriptionController.cancel;
 module.exports.refresh = subscriptionController.refresh;
+module.exports.cancelQueuedPlan = subscriptionController.cancelQueuedPlan;
+
