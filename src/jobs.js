@@ -12,128 +12,45 @@ const STRIPE_ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'inc
 
 /**
  * Daily cleanup for expired subscriptions.
- * Runs every day at midnight. Verifies with Stripe before marking a
- * subscription as canceled — Stripe is the authoritative source of truth.
+ * Runs every day at midnight. DB-only: activates queued plans or cancels expired subs.
+ * No Stripe verification.
  */
-const startSubscriptionCleanupJob = () => {
-  cron.schedule('0 0 * * *', async () => {
-    logger.info('Running daily subscription cleanup job');
+const cleanupExpiredSubscriptions = async () => {
+  try {
+    const now = new Date();
 
-    try {
-      const now = new Date();
+    // Find all active subscriptions past their period end
+    const expiredSubs = await Subscription.find({
+      status: 'active',
+      currentPeriodEnd: { $lt: now },
+    });
 
-      const expiredSubscriptions = await Subscription.find({
-        status: { $in: ['active', 'past_due', 'trialing', 'paused'] },
-        $or: [
-          { currentPeriodEnd: { $lt: now } },
-          { currentPeriodEnd: null },
-        ],
-      });
-
-      if (!expiredSubscriptions.length) {
-        logger.info('No expired subscriptions found today');
-        return;
+    for (const sub of expiredSubs) {
+      if (sub.queuedPlan) {
+        // Activate queued plan
+        sub.plan = sub.queuedPlan.plan;
+        sub.stripeSubscriptionId = sub.queuedPlan.stripeSubscriptionId;
+        sub.stripePriceId = sub.queuedPlan.stripePriceId;
+        sub.currentPeriodStart = sub.currentPeriodEnd;
+        sub.currentPeriodEnd = sub.queuedPlan.currentPeriodEnd;
+        sub.queuedPlan = null;
+        await sub.save();
+        logger.info('Activated queued plan for subscription', { subscriptionId: sub._id, userId: sub.userId });
+      } else {
+        // Cancel subscription
+        sub.status = 'canceled';
+        sub.canceledAt = now;
+        await sub.save();
+        logger.info('Cancelled expired subscription', { subscriptionId: sub._id, userId: sub.userId });
       }
-
-      logger.info('Found potentially expired subscriptions to verify', { count: expiredSubscriptions.length });
-
-      const stripe = stripeService.getStripe();
-
-      for (const sub of expiredSubscriptions) {
-        // PLATFORM POLICY: Auto-cancel past_due regardless of periodEnd or Stripe
-        if (sub.status === 'past_due') {
-          await Subscription.findByIdAndUpdate(
-            sub._id,
-            {
-              $set: { status: 'canceled' },
-              $push: {
-                statusHistory: {
-                  status: 'canceled',
-                  changedAt: now,
-                  reason: 'Platform policy: past_due auto-canceled',
-                },
-              },
-            },
-            { runValidators: false }
-          );
-          logger.info('Past due subscription auto-canceled (platform policy)', { subscriptionId: sub._id, userId: sub.userId });
-          continue;
-        }
-
-        // Always verify with Stripe before canceling — period dates in the DB can
-        // be stale (e.g. Stripe test mode compresses billing cycles).
-        if (stripe && sub.stripeSubscriptionId) {
-          try {
-            const stripeSub = await stripe.subscriptions.retrieve(
-              sub.stripeSubscriptionId
-            );
-
-            if (STRIPE_ACTIVE_STATUSES.includes(stripeSub.status) && stripeSub.status !== 'past_due') {
-              // Stripe says still active — sync dates and skip cancellation.
-              await Subscription.findByIdAndUpdate(
-                sub._id,
-                {
-                  $set: {
-                    status: stripeSub.status,
-                    currentPeriodStart: stripeSub.current_period_start
-                      ? new Date(stripeSub.current_period_start * 1000)
-                      : sub.currentPeriodStart,
-                    currentPeriodEnd: stripeSub.current_period_end
-                      ? new Date(stripeSub.current_period_end * 1000)
-                      : sub.currentPeriodEnd,
-                    lastWebhookEventAt: new Date(),
-                  },
-                },
-                { runValidators: false }
-              );
-              logger.info('Subscription still active in Stripe, period dates synced', { subscriptionId: sub._id, stripeStatus: stripeSub.status });
-              continue;
-            }
-
-            // Stripe confirms inactive — safe to mark canceled.
-            logger.info('Stripe confirms subscription inactive, marking canceled', { subscriptionId: sub._id, stripeStatus: stripeSub.status });
-          } catch (stripeErr) {
-            // Cannot reach Stripe — skip rather than incorrectly canceling.
-            logger.warn('Could not verify subscription with Stripe, skipping', { subscriptionId: sub._id, error: stripeErr.message });
-            continue;
-          }
-        }
-
-        // No stripeSubscriptionId and no currentPeriodEnd means we cannot
-        // verify the subscription state — skip rather than incorrectly canceling.
-        if (!sub.stripeSubscriptionId && !sub.currentPeriodEnd) {
-          logger.warn('Skipping subscription with no Stripe ID and no period end', { subscriptionId: sub._id });
-          continue;
-        }
-
-        // No Stripe ID, or Stripe confirmed inactive — mark canceled in DB.
-        // Use findByIdAndUpdate (bypasses pre-save hook) + explicit $push to avoid
-        // duplicate statusHistory entries (the pre-save hook also pushes on status change).
-        await Subscription.findByIdAndUpdate(
-          sub._id,
-          {
-            $set: { status: 'canceled' },
-            $push: {
-              statusHistory: {
-                status: 'canceled',
-                changedAt: now,
-                reason: `Automatically canceled after Stripe verification (period end: ${sub.currentPeriodEnd})`,
-              },
-            },
-          },
-          { runValidators: false }
-        );
-        logger.info('Subscription marked as canceled', { subscriptionId: sub._id, userId: sub.userId });
-      }
-    } catch (error) {
-      logger.error('Error in subscription cleanup job', { error: error.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
-        jobName: 'subscriptionCleanup',
-        error: error.message,
-      });
     }
-  });
+  } catch (error) {
+    logger.error('cleanupExpiredSubscriptions error', { error: error.message });
+  }
+};
 
+const startSubscriptionCleanupJob = () => {
+  cron.schedule('0 0 * * *', cleanupExpiredSubscriptions);
   logger.info('Subscription cleanup cron job scheduled', { schedule: '0 0 * * *' });
 };
 
@@ -326,4 +243,4 @@ const startTenMinuteReminderJob = () => {
   logger.info('10-min expiry reminder cron job scheduled (*/1 * * * *)');
 };
 
-module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob };
+module.exports = { cleanupExpiredSubscriptions, startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob };
