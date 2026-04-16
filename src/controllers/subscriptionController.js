@@ -1,6 +1,7 @@
 const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
+const { getPrimaryAppUrl } = require('../config/security');
 const {
   asyncHandler,
   ValidationError,
@@ -58,15 +59,19 @@ const subscriptionController = {
       status: { $in: ['active', 'trialing'] },
     });
 
-// Handle queued subscription upgrade (starts after current ends)
+    // Handle queued subscription upgrade (starts after current ends)
     if (queued) {
       if (!currentSub) {
         return res.status(400).json({ 
           error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
         });
       }
+      // Compute queued params
+      const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
+      const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
       // Create queued checkout session
-      const session = await stripeService.createQueuedCheckoutSession(customer.id, plan);
+      const session = await stripeService.createQueuedCheckoutSession(customer.id, plan, trialEndTimestamp, successUrl, cancelUrl);
       res.json({ sessionId: session.id, url: session.url });
       return;
     }
