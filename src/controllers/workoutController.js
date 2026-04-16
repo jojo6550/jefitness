@@ -58,7 +58,9 @@ const workoutController = {
         : undefined,
     };
 
-    const user = await User.findById(userId).select('workoutLogs firstName lastName email');
+    const user = await User.findById(userId).select(
+      'workoutLogs firstName lastName email'
+    );
     if (!user) {
       throw new NotFoundError('User');
     }
@@ -147,7 +149,9 @@ const workoutController = {
       throw new ValidationError('Invalid workout ID');
     }
 
-    const user = await User.findById(userId).select('workoutLogs firstName lastName email');
+    const user = await User.findById(userId).select(
+      'workoutLogs firstName lastName email'
+    );
     if (!user) {
       throw new NotFoundError('User');
     }

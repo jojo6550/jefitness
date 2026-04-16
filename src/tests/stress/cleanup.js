@@ -10,6 +10,7 @@
 
 require('dotenv').config();
 const mongoose = require('mongoose');
+
 const connectDB = require('../../../config/db');
 
 // Path to your User model (works from src/tests/stress/)
@@ -25,13 +26,12 @@ async function cleanup() {
 
     // Delete every stress-test account
     const result = await User.deleteMany({
-      email: { $regex: /@mailtest\.jefitnessja\.com$/i }
+      email: { $regex: /@mailtest\.jefitnessja\.com$/i },
     });
 
     console.log(`\n🎉 Cleanup complete!`);
     console.log(`   Deleted ${result.deletedCount} stress-test accounts`);
     console.log(`   (all emails ending with @mailtest.jefitnessja.com)\n`);
-
   } catch (err) {
     console.error('❌ Cleanup failed:', err.message);
     if (err.message.includes('ECONNREFUSED')) {

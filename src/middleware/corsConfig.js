@@ -4,6 +4,7 @@
  */
 
 const cors = require('cors');
+
 const { logger } = require('../services/logger');
 
 /**
@@ -13,15 +14,11 @@ const { logger } = require('../services/logger');
 function getAllowedOrigins() {
   const fromEnv = (process.env.APP_URL || '')
     .split(',')
-    .map((u) => u.trim())
+    .map(u => u.trim())
     .filter(Boolean);
 
   // Deduplicate and always include localhost variants
-  const base = new Set([
-    'http://localhost:10000',
-    'http://127.0.0.1:10000',
-    ...fromEnv,
-  ]);
+  const base = new Set(['http://localhost:10000', 'http://127.0.0.1:10000', ...fromEnv]);
 
   return [...base];
 }

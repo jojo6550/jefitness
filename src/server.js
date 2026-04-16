@@ -2,14 +2,14 @@ require('dotenv').config();
 
 // Initialize Passport strategies (no sessions — JWT-only)
 require('./config/passport');
-const passport = require('passport');
 
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
-const compression = require('compression');
 
+const passport = require('passport');
+const compression = require('compression');
 const cron = require('node-cron');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -24,7 +24,12 @@ const connectDB = require('../config/db');
 const swaggerSpec = require('./docs/swagger');
 
 // Utilities, DB, and jobs
-const { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob } = require('./jobs');
+const {
+  startSubscriptionCleanupJob,
+  startRenewalReminderJob,
+  startTrainerDailyEmailJob,
+  startTenMinuteReminderJob,
+} = require('./jobs');
 const { logger } = require('./services/logger');
 
 // Middleware
@@ -44,7 +49,6 @@ const { auth } = require('./middleware/auth');
 const versioning = require('./middleware/versioning');
 const { nonceMiddleware, helmetOptions } = require('./config/security');
 const { getDbStatus, isDbConnected } = require('./middleware/dbConnection');
-
 
 // Routers
 const webhookRouter = require('./routes/webhooks');
@@ -91,13 +95,11 @@ app.use(cors(corsOptions));
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 
-
 // Logging, sanitization, security, and CSRF
 app.use(requestLogger);
 app.use(sanitizeInput);
 app.use(preventNoSQLInjection); // Apply globally for defense-in-depth
 app.use(csrfProtection.middleware());
-
 
 app.use(passport.initialize());
 
@@ -211,7 +213,9 @@ app.get('/api/v1/csrf-token', (req, res) => {
 
 app.get('/api/v1/nutrition/food-search', (req, res) => {
   const https = require('https');
-  const query = String(req.query.q || '').trim().slice(0, 100);
+  const query = String(req.query.q || '')
+    .trim()
+    .slice(0, 100);
   if (!query) return res.status(400).json({ error: 'Missing query' });
 
   const apiKey = process.env.USDA_API_KEY || 'DEMO_KEY';
@@ -224,43 +228,49 @@ app.get('/api/v1/nutrition/food-search', (req, res) => {
   const options = {
     hostname: 'api.nal.usda.gov',
     path: `/fdc/v1/foods/search?${params}`,
-    headers: { 'Accept': 'application/json' },
+    headers: { Accept: 'application/json' },
   };
 
-  https.get(options, (upstream) => {
-    let body = '';
-    upstream.on('data', chunk => { body += chunk; });
-    upstream.on('end', () => {
-      if (upstream.statusCode !== 200) {
-        logger.warn(`USDA food search returned ${upstream.statusCode}`);
-        return res.status(502).json({ error: 'Food search unavailable' });
-      }
-      try {
-        const data = JSON.parse(body);
-        // Normalise to { foods: [{ name, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g }] }
-        const N = (nutrients, ...ids) => {
-          for (const id of ids) {
-            const n = nutrients.find(n => n.nutrientId === id);
-            if (n?.value != null) return Math.round(n.value * 10) / 10;
-          }
-          return 0;
-        };
-        const foods = (data.foods || []).map(f => ({
-          name: f.description,
-          kcalPer100g:    N(f.foodNutrients, 2048, 2047, 1008),
-          proteinPer100g: N(f.foodNutrients, 1003),
-          carbsPer100g:   N(f.foodNutrients, 1005),
-          fatPer100g:     N(f.foodNutrients, 1004),
-        })).filter(f => f.kcalPer100g > 0);
-        res.json({ foods });
-      } catch {
-        res.status(502).json({ error: 'Invalid response from food API' });
-      }
+  https
+    .get(options, upstream => {
+      let body = '';
+      upstream.on('data', chunk => {
+        body += chunk;
+      });
+      upstream.on('end', () => {
+        if (upstream.statusCode !== 200) {
+          logger.warn(`USDA food search returned ${upstream.statusCode}`);
+          return res.status(502).json({ error: 'Food search unavailable' });
+        }
+        try {
+          const data = JSON.parse(body);
+          // Normalise to { foods: [{ name, kcalPer100g, proteinPer100g, carbsPer100g, fatPer100g }] }
+          const N = (nutrients, ...ids) => {
+            for (const id of ids) {
+              const n = nutrients.find(n => n.nutrientId === id);
+              if (n?.value != null) return Math.round(n.value * 10) / 10;
+            }
+            return 0;
+          };
+          const foods = (data.foods || [])
+            .map(f => ({
+              name: f.description,
+              kcalPer100g: N(f.foodNutrients, 2048, 2047, 1008),
+              proteinPer100g: N(f.foodNutrients, 1003),
+              carbsPer100g: N(f.foodNutrients, 1005),
+              fatPer100g: N(f.foodNutrients, 1004),
+            }))
+            .filter(f => f.kcalPer100g > 0);
+          res.json({ foods });
+        } catch {
+          res.status(502).json({ error: 'Invalid response from food API' });
+        }
+      });
+    })
+    .on('error', err => {
+      logger.warn(`Food search proxy error: ${err.message}`);
+      res.status(502).json({ error: 'Food search unavailable' });
     });
-  }).on('error', (err) => {
-    logger.warn(`Food search proxy error: ${err.message}`);
-    res.status(502).json({ error: 'Food search unavailable' });
-  });
 });
 
 // -----------------------------
@@ -365,7 +375,9 @@ async function startServer() {
 
     mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
     mongoose.connection.on('reconnected', () => logger.info('MongoDB reconnected'));
-    mongoose.connection.on('error', err => logger.error('MongoDB connection error', { error: err.message }));
+    mongoose.connection.on('error', err =>
+      logger.error('MongoDB connection error', { error: err.message })
+    );
 
     startSubscriptionCleanupJob();
     startRenewalReminderJob();
@@ -378,26 +390,32 @@ async function startServer() {
       await syncStripeToDB({ skipConnect: true });
       logger.info('STARTUP: Stripe plan sync complete');
     } catch (syncErr) {
-      logger.warn('STARTUP: Stripe plan sync failed (non-fatal)', { error: syncErr.message });
+      logger.warn('STARTUP: Stripe plan sync failed (non-fatal)', {
+        error: syncErr.message,
+      });
     }
 
     // Keep-alive pings for production (prevents sleep on free hosts like Render)
     if (process.env.NODE_ENV === 'production') {
       const pingUrl = `http://localhost:${PORT}/api/health`;
-      setInterval(async () => {
-        try {
-          await fetch(pingUrl);
-          // Also ping MongoDB to prevent connection from going cold
-          await mongoose.connection.db.command({ ping: 1 });
-          logger.info('Self-ping sent');
-        } catch (err) {
-          // Silent fail - do not log errors
-        }
-      }, 10 * 60 * 1000);  // Every 10 minutes
+      setInterval(
+        async () => {
+          try {
+            await fetch(pingUrl);
+            // Also ping MongoDB to prevent connection from going cold
+            await mongoose.connection.db.command({ ping: 1 });
+            logger.info('Self-ping sent');
+          } catch (err) {
+            // Silent fail - do not log errors
+          }
+        },
+        10 * 60 * 1000
+      ); // Every 10 minutes
     }
 
-    const server = app.listen(PORT, () => logger.info(`Server running on port ${PORT}`, { port: PORT }));
-
+    const server = app.listen(PORT, () =>
+      logger.info(`Server running on port ${PORT}`, { port: PORT })
+    );
 
     const gracefulShutdown = async signal => {
       logger.info('Shutting down gracefully', { signal });
@@ -423,7 +441,7 @@ async function startServer() {
     };
 
     // Unhandled exception handlers
-    process.on('uncaughtException', (err) => {
+    process.on('uncaughtException', err => {
       logger.error('Uncaught Exception', { error: err.message, stack: err.stack });
       process.exit(1);
     });

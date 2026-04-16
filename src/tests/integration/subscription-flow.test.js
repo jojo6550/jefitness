@@ -82,9 +82,7 @@ describe('Subscription Flow (Integration)', () => {
         const res = await client.get('/subscriptions/plans');
         expect([200, 400]).toContain(res.status);
         if (res.status === 200) {
-          expect(Array.isArray(res.body.data) || Array.isArray(res.body)).toBe(
-            true
-          );
+          expect(Array.isArray(res.body.data) || Array.isArray(res.body)).toBe(true);
         }
       })
     );
@@ -101,12 +99,7 @@ describe('Subscription Flow (Integration)', () => {
           const sub = currentRes.body.data;
           expect(['active', 'trialing', 'canceled']).toContain(sub.status);
           if (sub.plan) {
-            expect([
-              '1-month',
-              '3-month',
-              '6-month',
-              '12-month',
-            ]).toContain(sub.plan);
+            expect(['1-month', '3-month', '6-month', '12-month']).toContain(sub.plan);
           }
         }
       })
@@ -264,12 +257,10 @@ describe('Subscription Flow (Integration)', () => {
         const plans = Array.isArray(res.body) ? res.body : res.body.data;
         const validPlans = ['1-month', '3-month', '6-month', '12-month'];
 
-        plans.forEach((plan) => {
+        plans.forEach(plan => {
           if (plan.stripePriceId) {
             // If plan has stripe data, verify it's a valid plan
-            const planName = Object.values(plan).find((v) =>
-              validPlans.includes(v)
-            );
+            const planName = Object.values(plan).find(v => validPlans.includes(v));
             expect(planName || plan.name).toBeDefined();
           }
         });

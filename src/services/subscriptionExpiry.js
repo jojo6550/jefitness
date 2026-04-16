@@ -119,7 +119,11 @@ async function runSubscriptionMaintenance() {
     const pastDueCount = await checkPastDueSubscriptions();
 
     const totalUpdated = expiredCount + pastDueCount;
-    logger.info('Subscription maintenance completed', { expiredCount, pastDueCount, totalUpdated });
+    logger.info('Subscription maintenance completed', {
+      expiredCount,
+      pastDueCount,
+      totalUpdated,
+    });
 
     return { expiredCount, pastDueCount, totalUpdated };
   } catch (error) {

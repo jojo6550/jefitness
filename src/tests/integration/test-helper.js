@@ -27,7 +27,9 @@ class TestClient {
 
   async request(method, path, body = null, customHeaders = {}) {
     return new Promise((resolve, reject) => {
-      const fullPath = path.startsWith('http') ? path : `${this.baseUrl}${this.apiPath}${path}`;
+      const fullPath = path.startsWith('http')
+        ? path
+        : `${this.baseUrl}${this.apiPath}${path}`;
       const url = new URL(fullPath);
 
       const headers = {
@@ -56,7 +58,7 @@ class TestClient {
 
       const client = url.protocol === 'https:' ? https : http;
 
-      const req = client.request(url, options, (res) => {
+      const req = client.request(url, options, res => {
         let data = '';
 
         res.on('data', chunk => {
@@ -103,13 +105,15 @@ class TestClient {
   _parseCookies(setCookieHeader) {
     if (!setCookieHeader) return {};
     const cookies = {};
-    (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]).forEach(cookie => {
-      const [nameValue] = cookie.split(';');
-      const [name, value] = nameValue.split('=');
-      if (name && value) {
-        cookies[name.trim()] = value.trim();
+    (Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]).forEach(
+      cookie => {
+        const [nameValue] = cookie.split(';');
+        const [name, value] = nameValue.split('=');
+        if (name && value) {
+          cookies[name.trim()] = value.trim();
+        }
       }
-    });
+    );
     return cookies;
   }
 

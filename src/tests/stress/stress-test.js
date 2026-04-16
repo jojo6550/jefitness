@@ -28,7 +28,7 @@ const { URL } = require('url');
 
 const BASE_URL = 'http://localhost:10000';
 const CONCURRENCY = parseInt('30', 10);
-const THINK_TIME = parseInt( '200', 10);
+const THINK_TIME = parseInt('200', 10);
 const VERBOSE = '1';
 
 const BYPASS_MODE = 'true';
@@ -36,7 +36,9 @@ const BYPASS_MODE = 'true';
 if (BYPASS_MODE) {
   console.log('\n🚀 STRESS BYPASS MODE ENABLED - Email verification auto-bypassed\n');
 } else {
-  console.log('\nℹ️  Normal mode - Email verification required (expect login failures)\n');
+  console.log(
+    '\nℹ️  Normal mode - Email verification required (expect login failures)\n'
+  );
 }
 
 // Use a real-looking domain so express-validator's isEmail() accepts it.
@@ -148,20 +150,34 @@ function request(method, path, { body, token, cookie } = {}) {
 
     const start = Date.now();
 
-    const req = transport.request(options, (res) => {
+    const req = transport.request(options, res => {
       let raw = '';
-      res.on('data', (c) => (raw += c));
+      res.on('data', c => (raw += c));
       res.on('end', () => {
         const latency = Date.now() - start;
         let parsed;
-        try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = raw;
+        }
         const setCookie = res.headers['set-cookie'];
-        resolve({ status: res.statusCode, body: parsed, headers: res.headers, setCookie, latency, raw });
+        resolve({
+          status: res.statusCode,
+          body: parsed,
+          headers: res.headers,
+          setCookie,
+          latency,
+          raw,
+        });
       });
     });
 
     req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error(`Timeout: ${method} ${path}`)); });
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error(`Timeout: ${method} ${path}`));
+    });
 
     if (payload) req.write(payload);
     req.end();
@@ -183,7 +199,7 @@ async function req(method, path, opts, context) {
   }
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ─── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -197,10 +213,14 @@ async function signup(idx) {
   const password = `StressPass${idx}Abc!`;
   const label = `new_user_${idx}`;
 
-
-  const r = await req('POST', '/api/v1/auth/signup', {
-    body: { firstName: 'Stress', lastName: `User${idx}`, email, password },
-  }, { user: label, step: 'signup' });
+  const r = await req(
+    'POST',
+    '/api/v1/auth/signup',
+    {
+      body: { firstName: 'Stress', lastName: `User${idx}`, email, password },
+    },
+    { user: label, step: 'signup' }
+  );
 
   if (!r) return null;
 
@@ -208,50 +228,68 @@ async function signup(idx) {
     // 🚀 STRESS BYPASS: Auto-verify before login
     if (BYPASS_MODE) {
       // Fetch CSRF token first
-      const csrfR = await req('GET', '/api/v1/csrf-token', {}, { user: label, step: 'get_csrf' });
+      const csrfR = await req(
+        'GET',
+        '/api/v1/csrf-token',
+        {},
+        { user: label, step: 'get_csrf' }
+      );
       const csrfToken = csrfR?.body?.token || csrfR?.body?.csrfToken;
-      
+
       if (!csrfToken || csrfR.status !== 200) {
         if (VERBOSE) console.log(`    [${label}/csrf] FAIL ${csrfR?.status || 'ERR'}`);
         return null;
       }
-      
-      const bypassR = await req('POST', '/api/v1/auth/stress-bypass-verify', {
-        body: { email, _csrf: csrfToken },
-      }, { user: label, step: 'bypass_verify' });
-      
+
+      const bypassR = await req(
+        'POST',
+        '/api/v1/auth/stress-bypass-verify',
+        {
+          body: { email, _csrf: csrfToken },
+        },
+        { user: label, step: 'bypass_verify' }
+      );
+
       if (VERBOSE) {
         console.log(`    [${label}] BYPASS ${bypassR ? bypassR.status : 'ERR'}`);
       }
-      
+
       await sleep(100); // Brief pause after bypass
     }
-    
+
     return { email, password };
   }
 
   // Surface the reason so we can fix it
-  console.error(`  [SIGNUP FAIL] user_${idx} → HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}`);
+  console.error(
+    `  [SIGNUP FAIL] user_${idx} → HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}`
+  );
   return null;
-
 }
 
 /**
  * Login. Returns { token, cookie, userId } on success, null otherwise.
  */
 async function login(email, password, label) {
-  const r = await req('POST', '/api/v1/auth/login', {
-    body: { email, password },
-  }, { user: label, step: 'login' });
+  const r = await req(
+    'POST',
+    '/api/v1/auth/login',
+    {
+      body: { email, password },
+    },
+    { user: label, step: 'login' }
+  );
 
   if (!r) return null;
 
   if (r.status !== 200) {
-    console.error(`  [LOGIN FAIL] ${label} → HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}`);
+    console.error(
+      `  [LOGIN FAIL] ${label} → HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 300)}`
+    );
     return null;
   }
 
-  const cookieHeader = (r.setCookie || []).map((c) => c.split(';')[0]).join('; ');
+  const cookieHeader = (r.setCookie || []).map(c => c.split(';')[0]).join('; ');
   const token = r.body?.token || null;
   const userId = r.body?.user?.id || r.body?.user?._id || null;
 
@@ -260,15 +298,21 @@ async function login(email, password, label) {
 
 /** Grant data-processing + health-data consent for a new account. */
 async function grantConsents(token, cookie, label) {
-  await req('POST', '/api/v1/auth/consent', {
-    token, cookie,
-    body: {
-      dataProcessingConsent: true,
-      healthDataConsent: true,
-      consentVersion: '1.1',
-      healthConsentPurpose: 'fitness_tracking',
+  await req(
+    'POST',
+    '/api/v1/auth/consent',
+    {
+      token,
+      cookie,
+      body: {
+        dataProcessingConsent: true,
+        healthDataConsent: true,
+        consentVersion: '1.1',
+        healthConsentPurpose: 'fitness_tracking',
+      },
     },
-  }, { user: label, step: 'consent' });
+    { user: label, step: 'consent' }
+  );
 }
 
 // ─── Permission probe helper ───────────────────────────────────────────────────
@@ -278,7 +322,12 @@ async function grantConsents(token, cookie, label) {
  * Flags it if the server responds 200 (permission bypass).
  */
 async function permProbe(token, cookie, label, path, expectedForbidden) {
-  const r = await req('GET', path, { token, cookie }, { user: label, step: `perm:${path}` });
+  const r = await req(
+    'GET',
+    path,
+    { token, cookie },
+    { user: label, step: `perm:${path}` }
+  );
   if (!r) return;
   if (r.status === 200 && expectedForbidden) {
     const msg = `[PERM FAIL] ${label} got 200 on ${path} — should be 401/403`;
@@ -308,107 +357,193 @@ async function regularUserScenario(idx) {
   await sleep(THINK_TIME);
 
   // 4. Own profile
-  await req('GET', '/api/v1/users/me', { token, cookie }, { user: label, step: 'get_profile' });
+  await req(
+    'GET',
+    '/api/v1/users/me',
+    { token, cookie },
+    { user: label, step: 'get_profile' }
+  );
   await sleep(THINK_TIME);
 
   // 5. Update profile
-  await req('PUT', '/api/v1/users/me', {
-    token, cookie,
-    body: { currentWeight: 70 + idx, height: 170 + (idx % 15) },
-  }, { user: label, step: 'update_profile' });
+  await req(
+    'PUT',
+    '/api/v1/users/me',
+    {
+      token,
+      cookie,
+      body: { currentWeight: 70 + idx, height: 170 + (idx % 15) },
+    },
+    { user: label, step: 'update_profile' }
+  );
   await sleep(THINK_TIME);
 
   // 6. Log measurement
-  await req('POST', '/api/v1/users/me/measurements', {
-    token, cookie,
-    body: { weight: 70 + idx, waist: 80, notes: 'stress test' },
-  }, { user: label, step: 'log_measurement' });
+  await req(
+    'POST',
+    '/api/v1/users/me/measurements',
+    {
+      token,
+      cookie,
+      body: { weight: 70 + idx, waist: 80, notes: 'stress test' },
+    },
+    { user: label, step: 'log_measurement' }
+  );
   await sleep(THINK_TIME);
 
   // 7. Get measurements
-  await req('GET', '/api/v1/users/me/measurements', { token, cookie }, { user: label, step: 'get_measurements' });
+  await req(
+    'GET',
+    '/api/v1/users/me/measurements',
+    { token, cookie },
+    { user: label, step: 'get_measurements' }
+  );
   await sleep(THINK_TIME);
 
   // 8. Log workout
   let workoutId = null;
   {
-    const r = await req('POST', '/api/v1/workouts/log', {
-      token, cookie,
-      body: {
-        workoutName: `Stress Workout ${idx}`,
-        exercises: [
-          {
-            exerciseName: 'Bench Press',
-            sets: [
-              { setNumber: 1, reps: 10, weight: 60, rpe: 7, completed: true },
-              { setNumber: 2, reps: 10, weight: 60, rpe: 7, completed: true },
-            ],
-          },
-          {
-            exerciseName: 'Squat',
-            sets: [{ setNumber: 1, reps: 8, weight: 80, rpe: 8, completed: true }],
-          },
-        ],
-        duration: 45,
-        notes: 'stress test',
+    const r = await req(
+      'POST',
+      '/api/v1/workouts/log',
+      {
+        token,
+        cookie,
+        body: {
+          workoutName: `Stress Workout ${idx}`,
+          exercises: [
+            {
+              exerciseName: 'Bench Press',
+              sets: [
+                { setNumber: 1, reps: 10, weight: 60, rpe: 7, completed: true },
+                { setNumber: 2, reps: 10, weight: 60, rpe: 7, completed: true },
+              ],
+            },
+            {
+              exerciseName: 'Squat',
+              sets: [{ setNumber: 1, reps: 8, weight: 80, rpe: 8, completed: true }],
+            },
+          ],
+          duration: 45,
+          notes: 'stress test',
+        },
       },
-    }, { user: label, step: 'log_workout' });
+      { user: label, step: 'log_workout' }
+    );
     workoutId = r?.body?._id || r?.body?.data?._id || null;
     await sleep(THINK_TIME);
   }
 
   // 9. Get workouts
-  await req('GET', '/api/v1/workouts', { token, cookie }, { user: label, step: 'get_workouts' });
+  await req(
+    'GET',
+    '/api/v1/workouts',
+    { token, cookie },
+    { user: label, step: 'get_workouts' }
+  );
   await sleep(THINK_TIME);
 
   // 10. Workout stats
-  await req('GET', '/api/v1/workouts/stats/summary', { token, cookie }, { user: label, step: 'workout_stats' });
+  await req(
+    'GET',
+    '/api/v1/workouts/stats/summary',
+    { token, cookie },
+    { user: label, step: 'workout_stats' }
+  );
   await sleep(THINK_TIME);
 
   // 11. Log meal
   let mealId = null;
   {
-    const r = await req('POST', '/api/v1/nutrition/log', {
-      token, cookie,
-      body: {
-        mealType: ['breakfast', 'lunch', 'dinner', 'snack'][idx % 4],
-        foods: [
-          { foodName: 'Chicken Breast', calories: 165, protein: 31, carbs: 0,  fat: 3.6, quantity: 150, unit: 'g' },
-          { foodName: 'Brown Rice',     calories: 216, protein: 4.5, carbs: 45, fat: 1.8, quantity: 200, unit: 'g' },
-        ],
-        notes: 'stress test meal',
+    const r = await req(
+      'POST',
+      '/api/v1/nutrition/log',
+      {
+        token,
+        cookie,
+        body: {
+          mealType: ['breakfast', 'lunch', 'dinner', 'snack'][idx % 4],
+          foods: [
+            {
+              foodName: 'Chicken Breast',
+              calories: 165,
+              protein: 31,
+              carbs: 0,
+              fat: 3.6,
+              quantity: 150,
+              unit: 'g',
+            },
+            {
+              foodName: 'Brown Rice',
+              calories: 216,
+              protein: 4.5,
+              carbs: 45,
+              fat: 1.8,
+              quantity: 200,
+              unit: 'g',
+            },
+          ],
+          notes: 'stress test meal',
+        },
       },
-    }, { user: label, step: 'log_meal' });
+      { user: label, step: 'log_meal' }
+    );
     mealId = r?.body?._id || r?.body?.data?._id || null;
     await sleep(THINK_TIME);
   }
 
   // 12. Get nutrition list
-  await req('GET', '/api/v1/nutrition', { token, cookie }, { user: label, step: 'get_nutrition' });
+  await req(
+    'GET',
+    '/api/v1/nutrition',
+    { token, cookie },
+    { user: label, step: 'get_nutrition' }
+  );
   await sleep(THINK_TIME);
 
   // 13. Nutrition stats
-  await req('GET', '/api/v1/nutrition/stats/summary', { token, cookie }, { user: label, step: 'nutrition_stats' });
+  await req(
+    'GET',
+    '/api/v1/nutrition/stats/summary',
+    { token, cookie },
+    { user: label, step: 'nutrition_stats' }
+  );
   await sleep(THINK_TIME);
 
   // 14. Daily macros
-  await req('GET', '/api/v1/nutrition/daily', { token, cookie }, { user: label, step: 'daily_macros' });
+  await req(
+    'GET',
+    '/api/v1/nutrition/daily',
+    { token, cookie },
+    { user: label, step: 'daily_macros' }
+  );
   await sleep(THINK_TIME);
 
   // 15. Create workout goal
   let goalId = null;
   {
     const future = new Date(Date.now() + 30 * 86400000).toISOString();
-    const r = await req('POST', '/api/v1/workouts/goals', {
-      token, cookie,
-      body: { exercise: 'Deadlift', targetWeight: 100 + idx, targetDate: future },
-    }, { user: label, step: 'create_goal' });
+    const r = await req(
+      'POST',
+      '/api/v1/workouts/goals',
+      {
+        token,
+        cookie,
+        body: { exercise: 'Deadlift', targetWeight: 100 + idx, targetDate: future },
+      },
+      { user: label, step: 'create_goal' }
+    );
     goalId = r?.body?._id || r?.body?.data?._id || null;
     await sleep(THINK_TIME);
   }
 
   // 16. Get workout goals
-  await req('GET', '/api/v1/workouts/goals', { token, cookie }, { user: label, step: 'get_goals' });
+  await req(
+    'GET',
+    '/api/v1/workouts/goals',
+    { token, cookie },
+    { user: label, step: 'get_goals' }
+  );
   await sleep(THINK_TIME);
 
   // 17. Subscription plans (public)
@@ -416,7 +551,12 @@ async function regularUserScenario(idx) {
   await sleep(THINK_TIME);
 
   // 18. Current subscription
-  await req('GET', '/api/v1/subscriptions/current', { token, cookie }, { user: label, step: 'get_subscription' });
+  await req(
+    'GET',
+    '/api/v1/subscriptions/current',
+    { token, cookie },
+    { user: label, step: 'get_subscription' }
+  );
   await sleep(THINK_TIME);
 
   // 19. Programs (public)
@@ -431,18 +571,33 @@ async function regularUserScenario(idx) {
 
   // 22. Delete workout (cleanup)
   if (workoutId) {
-    await req('DELETE', `/api/v1/workouts/${workoutId}`, { token, cookie }, { user: label, step: 'delete_workout' });
+    await req(
+      'DELETE',
+      `/api/v1/workouts/${workoutId}`,
+      { token, cookie },
+      { user: label, step: 'delete_workout' }
+    );
     await sleep(THINK_TIME);
   }
 
   // 23. Delete goal (cleanup)
   if (goalId) {
-    await req('DELETE', `/api/v1/workouts/goals/${goalId}`, { token, cookie }, { user: label, step: 'delete_goal' });
+    await req(
+      'DELETE',
+      `/api/v1/workouts/goals/${goalId}`,
+      { token, cookie },
+      { user: label, step: 'delete_goal' }
+    );
     await sleep(THINK_TIME);
   }
 
   // 24. Delete own account (cleanup — keeps DB tidy on prod)
-  await req('DELETE', '/api/v1/users/me', { token, cookie }, { user: label, step: 'delete_account' });
+  await req(
+    'DELETE',
+    '/api/v1/users/me',
+    { token, cookie },
+    { user: label, step: 'delete_account' }
+  );
 
   console.log(`  [${label}] done`);
 }
@@ -455,22 +610,52 @@ async function trainerScenario(creds, idx) {
   const { token, cookie } = session;
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/users/me', { token, cookie }, { user: label, step: 'get_profile' });
+  await req(
+    'GET',
+    '/api/v1/users/me',
+    { token, cookie },
+    { user: label, step: 'get_profile' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/trainer/me', { token, cookie }, { user: label, step: 'trainer_me' });
+  await req(
+    'GET',
+    '/api/v1/trainer/me',
+    { token, cookie },
+    { user: label, step: 'trainer_me' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/trainer/dashboard', { token, cookie }, { user: label, step: 'trainer_dashboard' });
+  await req(
+    'GET',
+    '/api/v1/trainer/dashboard',
+    { token, cookie },
+    { user: label, step: 'trainer_dashboard' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/trainer/clients', { token, cookie }, { user: label, step: 'trainer_clients' });
+  await req(
+    'GET',
+    '/api/v1/trainer/clients',
+    { token, cookie },
+    { user: label, step: 'trainer_clients' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/trainer/appointments', { token, cookie }, { user: label, step: 'trainer_appointments' });
+  await req(
+    'GET',
+    '/api/v1/trainer/appointments',
+    { token, cookie },
+    { user: label, step: 'trainer_appointments' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/users/trainers', { token, cookie }, { user: label, step: 'list_trainers' });
+  await req(
+    'GET',
+    '/api/v1/users/trainers',
+    { token, cookie },
+    { user: label, step: 'list_trainers' }
+  );
   await sleep(THINK_TIME);
 
   await req('GET', '/api/v1/programs', {}, { user: label, step: 'get_programs' });
@@ -496,29 +681,64 @@ async function adminScenario(creds, idx) {
   const { token, cookie } = session;
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/users/me', { token, cookie }, { user: label, step: 'get_profile' });
+  await req(
+    'GET',
+    '/api/v1/users/me',
+    { token, cookie },
+    { user: label, step: 'get_profile' }
+  );
   await sleep(THINK_TIME);
 
   // Admin-only routes
-  await req('GET', '/api/v1/clients?page=1&limit=20', { token, cookie }, { user: label, step: 'list_clients' });
+  await req(
+    'GET',
+    '/api/v1/clients?page=1&limit=20',
+    { token, cookie },
+    { user: label, step: 'list_clients' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/clients/statistics', { token, cookie }, { user: label, step: 'client_stats' });
+  await req(
+    'GET',
+    '/api/v1/clients/statistics',
+    { token, cookie },
+    { user: label, step: 'client_stats' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/clients?search=test&page=1&limit=10', { token, cookie }, { user: label, step: 'search_clients' });
+  await req(
+    'GET',
+    '/api/v1/clients?search=test&page=1&limit=10',
+    { token, cookie },
+    { user: label, step: 'search_clients' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/clients?sort=createdAt&order=desc', { token, cookie }, { user: label, step: 'filter_clients' });
+  await req(
+    'GET',
+    '/api/v1/clients?sort=createdAt&order=desc',
+    { token, cookie },
+    { user: label, step: 'filter_clients' }
+  );
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/users/trainers', { token, cookie }, { user: label, step: 'list_trainers' });
+  await req(
+    'GET',
+    '/api/v1/users/trainers',
+    { token, cookie },
+    { user: label, step: 'list_trainers' }
+  );
   await sleep(THINK_TIME);
 
   await req('GET', '/api/v1/programs', {}, { user: label, step: 'get_programs' });
   await sleep(THINK_TIME);
 
-  await req('GET', '/api/v1/subscriptions/current', { token, cookie }, { user: label, step: 'get_subscription' });
+  await req(
+    'GET',
+    '/api/v1/subscriptions/current',
+    { token, cookie },
+    { user: label, step: 'get_subscription' }
+  );
   await sleep(THINK_TIME);
 
   await req('GET', '/api/health', {}, { user: label, step: 'health_check' });
@@ -526,9 +746,16 @@ async function adminScenario(creds, idx) {
 
   // Admin should not reach trainer-specific route unless also a trainer
   {
-    const r = await req('GET', '/api/v1/trainer/dashboard', { token, cookie }, { user: label, step: 'perm:trainer_dashboard' });
+    const r = await req(
+      'GET',
+      '/api/v1/trainer/dashboard',
+      { token, cookie },
+      { user: label, step: 'perm:trainer_dashboard' }
+    );
     if (r?.status === 200) {
-      console.log(`  [${label}] trainer/dashboard returned 200 (admin also has trainer role)`);
+      console.log(
+        `  [${label}] trainer/dashboard returned 200 (admin also has trainer role)`
+      );
     }
   }
 
@@ -540,7 +767,7 @@ async function adminScenario(creds, idx) {
 function printReport() {
   const duration = (metrics.endTime - metrics.startTime) / 1000;
   const lats = [...metrics.latencies].sort((a, b) => a - b);
-  const p = (frac) => lats[Math.floor(lats.length * frac)] ?? 0;
+  const p = frac => lats[Math.floor(lats.length * frac)] ?? 0;
   const avg = lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : 0;
   const rps = (metrics.requests / duration).toFixed(2);
 
@@ -551,35 +778,45 @@ function printReport() {
   console.log('         JE FITNESS STRESS TEST REPORT');
   console.log(line);
   console.log(`  Target:         ${BASE_URL}`);
-  console.log(`  Virtual users:  ${CONCURRENCY}  (${REGULAR_USER_COUNT} users / ${TRAINER_CREDS.length} trainers / ${ADMIN_CREDS.length} admins)`);
+  console.log(
+    `  Virtual users:  ${CONCURRENCY}  (${REGULAR_USER_COUNT} users / ${TRAINER_CREDS.length} trainers / ${ADMIN_CREDS.length} admins)`
+  );
   console.log(`  Duration:       ${duration.toFixed(1)}s`);
   console.log(`  Total requests: ${metrics.requests}`);
   console.log(`  Throughput:     ${rps} req/s`);
   console.log(dash);
   console.log('  Outcomes:');
-  console.log(`    2xx success:    ${metrics.successes}  (${pct(metrics.successes, metrics.requests)}%)`);
-  console.log(`    Failures total: ${metrics.failures}  (${pct(metrics.failures, metrics.requests)}%)`);
+  console.log(
+    `    2xx success:    ${metrics.successes}  (${pct(metrics.successes, metrics.requests)}%)`
+  );
+  console.log(
+    `    Failures total: ${metrics.failures}  (${pct(metrics.failures, metrics.requests)}%)`
+  );
   console.log(`      401/403:      ${metrics.permissionDenied}`);
   console.log(`      429 rate lim: ${metrics.rateLimited}`);
   console.log(`      5xx errors:   ${metrics.serverErrors}`);
   console.log(`      Network err:  ${metrics.networkErrors}`);
-  console.log(`      Other (4xx):  ${metrics.failures - metrics.permissionDenied - metrics.rateLimited - metrics.serverErrors - metrics.networkErrors}`);
+  console.log(
+    `      Other (4xx):  ${metrics.failures - metrics.permissionDenied - metrics.rateLimited - metrics.serverErrors - metrics.networkErrors}`
+  );
   console.log(dash);
   console.log('  Latency (ms):');
-  console.log(`    avg  ${avg}   p50  ${p(0.5)}   p90  ${p(0.9)}   p99  ${p(0.99)}   max  ${lats[lats.length - 1] ?? 0}`);
+  console.log(
+    `    avg  ${avg}   p50  ${p(0.5)}   p90  ${p(0.9)}   p99  ${p(0.99)}   max  ${lats[lats.length - 1] ?? 0}`
+  );
   console.log(dash);
 
   if (metrics.errors.length) {
     console.log('  Non-2xx details (first 30):');
-    metrics.errors.slice(0, 30).forEach((e) =>
-      console.log(`    HTTP ${e.status}  ${e.user}/${e.step}`)
-    );
+    metrics.errors
+      .slice(0, 30)
+      .forEach(e => console.log(`    HTTP ${e.status}  ${e.user}/${e.step}`));
   }
 
   if (metrics.permFailures.length) {
     console.log(dash);
-    console.log('  PERMISSION FAILURES (routes that should be blocked but weren\'t):');
-    metrics.permFailures.forEach((m) => console.log(`    ${m}`));
+    console.log("  PERMISSION FAILURES (routes that should be blocked but weren't):");
+    metrics.permFailures.forEach(m => console.log(`    ${m}`));
   } else {
     console.log('\n  [✓] All role-permission probes passed.');
   }
@@ -589,10 +826,14 @@ function printReport() {
     console.log('\n  [FAIL] No requests completed — check connectivity and credentials.');
     process.exitCode = 1;
   } else if (errorRate > 0.1) {
-    console.log(`\n  [FAIL] Error rate ${(errorRate * 100).toFixed(1)}% exceeds 10% threshold.`);
+    console.log(
+      `\n  [FAIL] Error rate ${(errorRate * 100).toFixed(1)}% exceeds 10% threshold.`
+    );
     process.exitCode = 1;
   } else {
-    console.log(`\n  [PASS] Error rate ${(errorRate * 100).toFixed(1)}% — within acceptable threshold.`);
+    console.log(
+      `\n  [PASS] Error rate ${(errorRate * 100).toFixed(1)}% — within acceptable threshold.`
+    );
   }
 
   console.log(`${line}\n`);
@@ -607,7 +848,9 @@ function pct(n, total) {
 async function main() {
   console.log(`\nJE Fitness Stress Test — ${CONCURRENCY} virtual users`);
   console.log(`Target:     ${BASE_URL}`);
-  console.log(`Think time: ${THINK_TIME}ms   Verbose: ${VERBOSE ? 'ON' : 'OFF (set STRESS_VERBOSE=1 to enable)'}`);
+  console.log(
+    `Think time: ${THINK_TIME}ms   Verbose: ${VERBOSE ? 'ON' : 'OFF (set STRESS_VERBOSE=1 to enable)'}`
+  );
   console.log(`\nStarting all virtual users simultaneously...\n`);
 
   metrics.startTime = Date.now();
@@ -623,4 +866,7 @@ async function main() {
   printReport();
 }
 
-main().catch((err) => { console.error('Fatal:', err); process.exit(1); });
+main().catch(err => {
+  console.error('Fatal:', err);
+  process.exit(1);
+});

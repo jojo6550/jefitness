@@ -29,7 +29,10 @@ async function sendEmail({ to, subject, html, text, attachments }) {
   const client = getResendClient();
 
   if (!client) {
-    logger.warn('Email service not configured (RESEND_API_KEY missing). Email skipped.', { to, subject });
+    logger.warn('Email service not configured (RESEND_API_KEY missing). Email skipped.', {
+      to,
+      subject,
+    });
     return;
   }
 
@@ -69,7 +72,17 @@ async function sendEmail({ to, subject, html, text, attachments }) {
  * @param {number} opts.sequence   - 0 for new, 1+ for updates/cancels
  * @returns {string} iCalendar content
  */
-function buildIcs({ uid, summary, description, date, time, durationMinutes = 60, organizer, method = 'REQUEST', sequence = 0 }) {
+function buildIcs({
+  uid,
+  summary,
+  description,
+  date,
+  time,
+  durationMinutes = 60,
+  organizer,
+  method = 'REQUEST',
+  sequence = 0,
+}) {
   // Parse date + time into UTC components
   const [year, month, day] = date.split('T')[0].split('-').map(Number);
   const [hour, minute] = time.split(':').map(Number);
@@ -103,7 +116,12 @@ function buildIcs({ uid, summary, description, date, time, durationMinutes = 60,
   ].join('');
 
   // Escape special chars for iCal text fields
-  const esc = s => (s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  const esc = s =>
+    (s || '')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -228,9 +246,10 @@ async function sendPasswordReset(to, toName, resetToken) {
  * Send a subscription renewal reminder email.
  */
 async function sendSubscriptionReminder(to, toName, planName, daysLeft, renewalDate) {
-  const timeLabel = typeof daysLeft === 'string'
-    ? daysLeft
-    : `${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+  const timeLabel =
+    typeof daysLeft === 'string'
+      ? daysLeft
+      : `${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
   const isImminent = typeof daysLeft === 'string';
   const verb = isImminent ? 'expires' : 'renews';
   return sendEmail({
@@ -308,7 +327,10 @@ async function sendEmailVerification(to, toName, verificationToken) {
  */
 async function sendTrainerDailySchedule(to, trainerName, dateStr, appointments) {
   const rows = appointments
-    .map(a => `<tr><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.time}</td><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.clientName}</td></tr>`)
+    .map(
+      a =>
+        `<tr><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.time}</td><td style="padding:8px 12px;border-bottom:1px solid #dee2e6">${a.clientName}</td></tr>`
+    )
     .join('');
 
   const textLines = appointments.map(a => `  ${a.time}  —  ${a.clientName}`).join('\n');
@@ -355,7 +377,15 @@ async function sendTrainerDailySchedule(to, trainerName, dateStr, appointments) 
  * @param {string} appointmentId - MongoDB appointment _id
  * @param {string} date - ISO date string
  */
-async function sendAppointmentConfirmationClient(to, clientName, trainerName, dateStr, time, appointmentId, date) {
+async function sendAppointmentConfirmationClient(
+  to,
+  clientName,
+  trainerName,
+  dateStr,
+  time,
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -364,7 +394,16 @@ async function sendAppointmentConfirmationClient(to, clientName, trainerName, da
   const summary = `Fitness Session with ${trainerName}`;
   const description = `Appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
   const gcalUrl = buildGcalUrl({ summary, description, date, time });
-  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 0 });
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary,
+    description,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'REQUEST',
+    sequence: 0,
+  });
 
   return sendEmail({
     to,
@@ -418,7 +457,15 @@ async function sendAppointmentConfirmationClient(to, clientName, trainerName, da
  * @param {string} dateStr - Human-readable date (e.g. "Friday, April 4, 2026")
  * @param {string} time - Appointment time string (e.g. "09:00")
  */
-async function sendNewAppointmentNotification(to, trainerName, clientName, dateStr, time, appointmentId, date) {
+async function sendNewAppointmentNotification(
+  to,
+  trainerName,
+  clientName,
+  dateStr,
+  time,
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -427,7 +474,16 @@ async function sendNewAppointmentNotification(to, trainerName, clientName, dateS
   const summary = `Fitness Session with ${clientName}`;
   const description = `Appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
   const gcalUrl = buildGcalUrl({ summary, description, date, time });
-  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 0 });
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary,
+    description,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'REQUEST',
+    sequence: 0,
+  });
 
   return sendEmail({
     to,
@@ -482,7 +538,16 @@ async function sendNewAppointmentNotification(to, trainerName, clientName, dateS
  * @param {string} time - Appointment time string (e.g. "09:00")
  * @param {string} reason - 'cancelled' | 'deleted'
  */
-async function sendAppointmentCancelledTrainer(to, trainerName, clientName, dateStr, time, reason = 'cancelled', appointmentId, date) {
+async function sendAppointmentCancelledTrainer(
+  to,
+  trainerName,
+  clientName,
+  dateStr,
+  time,
+  reason = 'cancelled',
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -494,7 +559,11 @@ async function sendAppointmentCancelledTrainer(to, trainerName, clientName, date
     uid: appointmentId,
     summary: `Fitness Session with ${clientName}`,
     description: `Appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`,
-    date, time, organizer: FROM_NAME, method: 'CANCEL', sequence: 1,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'CANCEL',
+    sequence: 1,
   });
 
   return sendEmail({
@@ -549,7 +618,16 @@ async function sendAppointmentCancelledTrainer(to, trainerName, clientName, date
  * @param {string} time - Appointment time string (e.g. "09:00")
  * @param {string} reason - 'cancelled' | 'deleted'
  */
-async function sendAppointmentCancelledClient(to, clientName, trainerName, dateStr, time, reason = 'cancelled', appointmentId, date) {
+async function sendAppointmentCancelledClient(
+  to,
+  clientName,
+  trainerName,
+  dateStr,
+  time,
+  reason = 'cancelled',
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -561,7 +639,11 @@ async function sendAppointmentCancelledClient(to, clientName, trainerName, dateS
     uid: appointmentId,
     summary: `Fitness Session with ${trainerName}`,
     description: `Appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`,
-    date, time, organizer: FROM_NAME, method: 'CANCEL', sequence: 1,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'CANCEL',
+    sequence: 1,
   });
 
   return sendEmail({
@@ -617,7 +699,15 @@ async function sendAppointmentCancelledClient(to, clientName, trainerName, dateS
  * @param {string} dateStr - Human-readable date (new)
  * @param {string} time - Appointment time string (new, e.g. "09:00")
  */
-async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateStr, time, appointmentId, date) {
+async function sendAppointmentUpdatedTrainer(
+  to,
+  trainerName,
+  clientName,
+  dateStr,
+  time,
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -626,7 +716,16 @@ async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateSt
   const summary = `Fitness Session with ${clientName}`;
   const description = `Updated appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
   const gcalUrl = buildGcalUrl({ summary, description, date, time });
-  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 1 });
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary,
+    description,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'REQUEST',
+    sequence: 1,
+  });
 
   return sendEmail({
     to,
@@ -680,7 +779,15 @@ async function sendAppointmentUpdatedTrainer(to, trainerName, clientName, dateSt
  * @param {string} dateStr - Human-readable date (new)
  * @param {string} time - Appointment time string (new, e.g. "09:00")
  */
-async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr, time, appointmentId, date) {
+async function sendAppointmentUpdatedClient(
+  to,
+  clientName,
+  trainerName,
+  dateStr,
+  time,
+  appointmentId,
+  date
+) {
   const [h, m] = time.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
@@ -689,7 +796,16 @@ async function sendAppointmentUpdatedClient(to, clientName, trainerName, dateStr
   const summary = `Fitness Session with ${trainerName}`;
   const description = `Updated appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
   const gcalUrl = buildGcalUrl({ summary, description, date, time });
-  const ics = buildIcs({ uid: appointmentId, summary, description, date, time, organizer: FROM_NAME, method: 'REQUEST', sequence: 1 });
+  const ics = buildIcs({
+    uid: appointmentId,
+    summary,
+    description,
+    date,
+    time,
+    organizer: FROM_NAME,
+    method: 'REQUEST',
+    sequence: 1,
+  });
 
   return sendEmail({
     to,
@@ -757,7 +873,11 @@ async function sendNewTicketAdmin(admins, ticket, user) {
   const categoryLabel = categoryLabels[ticket.category] || ticket.category;
   const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'A user';
   const submittedAt = new Date(ticket.createdAt || Date.now()).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
   const text = [
@@ -809,7 +929,12 @@ async function sendNewTicketAdmin(admins, ticket, user) {
 
   await Promise.allSettled(
     admins.map(admin =>
-      sendEmail({ to: admin.email, subject: `New Support Ticket: ${ticket.subject}`, html, text })
+      sendEmail({
+        to: admin.email,
+        subject: `New Support Ticket: ${ticket.subject}`,
+        html,
+        text,
+      })
     )
   );
 }
@@ -879,9 +1004,7 @@ async function sendTicketReceived(to, userName, ticket) {
  * @param {object} ticket - SupportTicket document
  */
 async function sendTicketFulfilled(to, userName, ticket) {
-  const adminNoteSection = ticket.adminNote
-    ? `\n\nAdmin Note:\n${ticket.adminNote}`
-    : '';
+  const adminNoteSection = ticket.adminNote ? `\n\nAdmin Note:\n${ticket.adminNote}` : '';
 
   const adminNoteHtml = ticket.adminNote
     ? `<h3 style="color:#495057;margin:20px 0 8px">Admin Note</h3>

@@ -112,7 +112,10 @@ async function incrementUserTokenVersion(userId) {
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
-    logger.info('Security event: token_version_incremented', { userId, newVersion: user.tokenVersion });
+    logger.info('Security event: token_version_incremented', {
+      userId,
+      newVersion: user.tokenVersion,
+    });
   } catch (err) {
     logger.error('Failed to increment token version', { userId, error: err.message });
   }
@@ -155,7 +158,10 @@ async function requireAdmin(req, res, next) {
 async function requireTrainer(req, res, next) {
   // auth middleware already fetched a fresh role from DB and set req.user.role
   if (req.user?.role !== 'trainer') {
-    logger.warn('Security event: trainer_access_denied', { userId: req.user?.id, role: req.user?.role });
+    logger.warn('Security event: trainer_access_denied', {
+      userId: req.user?.id,
+      role: req.user?.role,
+    });
     return res.status(403).json({
       success: false,
       error: 'Access denied. Trainer privileges required.',
@@ -204,7 +210,10 @@ async function markWebhookEventProcessed(eventId, eventType = 'unknown') {
     logger.info('Webhook event marked as processed', { eventId });
   } catch (err) {
     // Log error but don't throw - webhook processing should continue
-    logger.error('Failed to mark webhook event as processed', { eventId, error: err.message });
+    logger.error('Failed to mark webhook event as processed', {
+      eventId,
+      error: err.message,
+    });
   }
 }
 

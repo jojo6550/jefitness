@@ -15,7 +15,10 @@ const versioning = (req, res, next) => {
   );
   const clientVersion = headerKey ? req.headers[headerKey] : null;
   if (clientVersion && clientVersion !== 'v1') {
-    logger.warn('Client using unsupported API version', { clientVersion, serverVersion: 'v1' });
+    logger.warn('Client using unsupported API version', {
+      clientVersion,
+      serverVersion: 'v1',
+    });
   }
 
   next();

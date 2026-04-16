@@ -9,7 +9,13 @@
  * @param {{ provider: string, providerId: string, email: string|null, firstName: string, lastName: string }}
  * @returns {Promise<{ user: import('../models/User'), isNew: boolean }>}
  */
-async function verifyOrLinkSocialUser({ provider, providerId, email, firstName, lastName }) {
+async function verifyOrLinkSocialUser({
+  provider,
+  providerId,
+  email,
+  firstName,
+  lastName,
+}) {
   const ALLOWED_PROVIDERS = new Set(['google', 'facebook', 'twitter', 'apple']);
   if (!ALLOWED_PROVIDERS.has(provider)) {
     throw new Error(`Unsupported provider: ${provider}`);
@@ -20,7 +26,9 @@ async function verifyOrLinkSocialUser({ provider, providerId, email, firstName, 
   const providerIdField = `${provider}Id`;
 
   // 1. Returning social user — look up by provider ID
-  let user = await User.findOne({ [providerIdField]: providerId }).select('+tokenVersion');
+  let user = await User.findOne({ [providerIdField]: providerId }).select(
+    '+tokenVersion'
+  );
   if (user) return { user, isNew: false };
 
   // 2. Existing account with matching email — link provider ID

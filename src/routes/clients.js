@@ -115,7 +115,7 @@ router.get('/', async (req, res) => {
       .lean();
 
     // Join active/trialing subscription for each client
-    const userIds = users.map((u) => u._id);
+    const userIds = users.map(u => u._id);
     const subs = await Subscription.find({
       userId: { $in: userIds },
       status: { $in: ['active', 'trialing'] },
@@ -124,7 +124,7 @@ router.get('/', async (req, res) => {
     const subByUser = {};
     for (const sub of subs) subByUser[sub.userId.toString()] = sub;
 
-    const clients = users.map((u) => ({
+    const clients = users.map(u => ({
       ...u,
       subscription: subByUser[u._id.toString()] || null,
     }));

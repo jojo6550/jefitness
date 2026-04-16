@@ -5,6 +5,7 @@
 
 const { validationResult } = require('express-validator');
 const { ipKeyGenerator } = require('express-rate-limit');
+
 const { logger } = require('../services/logger');
 
 /**
@@ -42,7 +43,11 @@ const stripDangerousFields = (req, res, next) => {
   if (req.body && typeof req.body === 'object') {
     dangerousFields.forEach(field => {
       if (req.body.hasOwnProperty(field)) {
-        logger.warn('Security event: dangerous_field_stripped', { field, userId: req.user?.id || 'anonymous', path: req.path });
+        logger.warn('Security event: dangerous_field_stripped', {
+          field,
+          userId: req.user?.id || 'anonymous',
+          path: req.path,
+        });
         delete req.body[field];
       }
     });
@@ -75,21 +80,31 @@ const allowOnlyFields = (allowedFields = [], strict = false) => {
 
       if (disallowedFields.length > 0) {
         if (strict) {
-          logger.warn('Security event: disallowed_fields_rejected', { fields: disallowedFields, userId: req.user?.id || 'anonymous', path: req.path });
+          logger.warn('Security event: disallowed_fields_rejected', {
+            fields: disallowedFields,
+            userId: req.user?.id || 'anonymous',
+            path: req.path,
+          });
           return res.status(400).json({
             success: false,
             error: 'Request contains disallowed fields',
             disallowedFields,
           });
         } else {
-          logger.warn('Security event: disallowed_fields_stripped', { fields: disallowedFields, userId: req.user?.id || 'anonymous', path: req.path });
+          logger.warn('Security event: disallowed_fields_stripped', {
+            fields: disallowedFields,
+            userId: req.user?.id || 'anonymous',
+            path: req.path,
+          });
           disallowedFields.forEach(field => delete req.body[field]);
         }
       }
 
       next();
     } catch (err) {
-      logger.error('Security middleware error in allowOnlyFields', { error: err.message });
+      logger.error('Security middleware error in allowOnlyFields', {
+        error: err.message,
+      });
       return res.status(500).json({
         success: false,
         error: 'Internal server error during field validation',
@@ -163,7 +178,11 @@ const preventNoSQLInjection = (req, res, next) => {
 
     // SECURITY: Defensive check before iteration
     if (!obj || typeof obj !== 'object') {
-      logger.warn('Security: Invalid object in checkForInjection', { path, typeofObj: typeof obj, path: req?.path });
+      logger.warn('Security: Invalid object in checkForInjection', {
+        path,
+        typeofObj: typeof obj,
+        path: req?.path,
+      });
       return null;
     }
 
@@ -201,7 +220,11 @@ const preventNoSQLInjection = (req, res, next) => {
   if (req.body) {
     const bodyCheck = checkForInjection(req.body, 'body');
     if (bodyCheck) {
-      logger.warn('Security event: nosql_injection_attempt', { detail: bodyCheck, userId: req.user?.id || 'anonymous', path: req.path });
+      logger.warn('Security event: nosql_injection_attempt', {
+        detail: bodyCheck,
+        userId: req.user?.id || 'anonymous',
+        path: req.path,
+      });
       return res.status(400).json({
         success: false,
         error: 'Invalid request format',
@@ -213,7 +236,11 @@ const preventNoSQLInjection = (req, res, next) => {
   if (req.query) {
     const queryCheck = checkForInjection(req.query, 'query');
     if (queryCheck) {
-      logger.warn('Security event: nosql_injection_attempt', { detail: queryCheck, userId: req.user?.id || 'anonymous', path: req.path });
+      logger.warn('Security event: nosql_injection_attempt', {
+        detail: queryCheck,
+        userId: req.user?.id || 'anonymous',
+        path: req.path,
+      });
       return res.status(400).json({
         success: false,
         error: 'Invalid query format',
@@ -278,7 +305,11 @@ const validateSortParam = (allowedFields = []) => {
 
       // SECURITY: Check for MongoDB operators
       if (fieldName.includes('$')) {
-        logger.warn('Security event: invalid_sort_field', { field: fieldName, userId: req.user?.id || 'anonymous', path: req.path });
+        logger.warn('Security event: invalid_sort_field', {
+          field: fieldName,
+          userId: req.user?.id || 'anonymous',
+          path: req.path,
+        });
         return res.status(400).json({
           success: false,
           error: 'Invalid sort field',

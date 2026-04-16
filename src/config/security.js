@@ -7,7 +7,7 @@ const crypto = require('crypto');
 function getAppOrigins() {
   return (process.env.APP_URL || '')
     .split(',')
-    .map((u) => u.trim())
+    .map(u => u.trim())
     .filter(Boolean);
 }
 
@@ -46,9 +46,7 @@ const securityConfig = {
           'https://js.stripe.com',
           'https://checkout.stripe.com',
         ],
-        scriptSrcAttr: [
-          (_req, res) => `'nonce-${res.locals.cspNonce}'`
-        ],
+        scriptSrcAttr: [(_req, res) => `'nonce-${res.locals.cspNonce}'`],
         styleSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
           "'self'",
@@ -64,7 +62,12 @@ const securityConfig = {
           'https://api.stripe.com',
           ...getAppOrigins(),
         ],
-        frameSrc: ["'self'", 'https://js.stripe.com', 'https://checkout.stripe.com', 'https://hooks.stripe.com'],
+        frameSrc: [
+          "'self'",
+          'https://js.stripe.com',
+          'https://checkout.stripe.com',
+          'https://hooks.stripe.com',
+        ],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'"],

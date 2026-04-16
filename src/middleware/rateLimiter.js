@@ -1,5 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
+
 const { logger } = require('../services/logger');
 
 /**
@@ -40,7 +41,11 @@ const authLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: auth_rate_limit_exceeded', { identifier, ip: clientIP, path: req.path });
+    logger.warn('Security: auth_rate_limit_exceeded', {
+      identifier,
+      ip: clientIP,
+      path: req.path,
+    });
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -62,7 +67,11 @@ const signupLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: signup_rate_limit_exceeded', { identifier, ip: clientIP, path: req.path });
+    logger.warn('Security: signup_rate_limit_exceeded', {
+      identifier,
+      ip: clientIP,
+      path: req.path,
+    });
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -84,7 +93,10 @@ const passwordResetLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: password_reset_rate_limit_exceeded', { identifier, ip: clientIP });
+    logger.warn('Security: password_reset_rate_limit_exceeded', {
+      identifier,
+      ip: clientIP,
+    });
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -107,7 +119,11 @@ const checkoutLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: checkout_rate_limit_exceeded', { identifier, ip: clientIP, path: req.path });
+    logger.warn('Security: checkout_rate_limit_exceeded', {
+      identifier,
+      ip: clientIP,
+      path: req.path,
+    });
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -145,7 +161,11 @@ const adminLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: admin_rate_limit_exceeded', { identifier, ip: clientIP, path: req.path });
+    logger.warn('Security: admin_rate_limit_exceeded', {
+      identifier,
+      ip: clientIP,
+      path: req.path,
+    });
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const Subscription = require('../../models/Subscription');
 
 describe('Subscription Schema', () => {

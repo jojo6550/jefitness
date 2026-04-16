@@ -387,7 +387,10 @@ router.post('/save-info', async (req, res) => {
 router.get('/view/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    let token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '') || req.query.token;
+    let token =
+      req.cookies?.token ||
+      req.headers.authorization?.replace('Bearer ', '') ||
+      req.query.token;
     if (!token) return res.status(401).json({ msg: 'No token provided' });
 
     let decoded;
@@ -417,9 +420,14 @@ router.get('/view/:filename', async (req, res) => {
     if (!isOwner && currentUser.role !== 'admin') {
       if (currentUser.role === 'trainer') {
         // Trainers may view documents belonging to their clients
-        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename }).select('_id').lean();
+        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename })
+          .select('_id')
+          .lean();
         if (!fileOwner) return res.status(404).json({ msg: 'File not found' });
-        const hasRelationship = await Appointment.exists({ trainerId: currentUser._id, clientId: fileOwner._id });
+        const hasRelationship = await Appointment.exists({
+          trainerId: currentUser._id,
+          clientId: fileOwner._id,
+        });
         if (!hasRelationship) return res.status(403).json({ msg: 'Access denied' });
       } else {
         return res.status(403).json({ msg: 'Access denied' });
@@ -499,9 +507,14 @@ router.get('/download/:filename', async (req, res) => {
     const isOwner = currentUser.medicalDocuments.some(doc => doc.filename === filename);
     if (!isOwner && currentUser.role !== 'admin') {
       if (currentUser.role === 'trainer') {
-        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename }).select('_id').lean();
+        const fileOwner = await User.findOne({ 'medicalDocuments.filename': filename })
+          .select('_id')
+          .lean();
         if (!fileOwner) return res.status(404).json({ msg: 'File not found' });
-        const hasRelationship = await Appointment.exists({ trainerId: currentUser._id, clientId: fileOwner._id });
+        const hasRelationship = await Appointment.exists({
+          trainerId: currentUser._id,
+          clientId: fileOwner._id,
+        });
         if (!hasRelationship) return res.status(403).json({ msg: 'Access denied' });
       } else {
         return res.status(403).json({ msg: 'Access denied' });

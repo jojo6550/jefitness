@@ -78,12 +78,20 @@ router.post('/goals', async (req, res) => {
   try {
     const { exercise, targetWeight, targetDate } = req.body;
     if (!exercise || targetWeight === undefined) {
-      return res.status(400).json({ success: false, error: 'exercise and targetWeight are required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'exercise and targetWeight are required' });
     }
     if (typeof targetWeight !== 'number' || targetWeight < 0) {
-      return res.status(400).json({ success: false, error: 'targetWeight must be a non-negative number' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'targetWeight must be a non-negative number' });
     }
-    const goal = { exercise: String(exercise).trim(), targetWeight, createdAt: new Date() };
+    const goal = {
+      exercise: String(exercise).trim(),
+      targetWeight,
+      createdAt: new Date(),
+    };
     if (targetDate) goal.targetDate = new Date(targetDate);
 
     const user = await User.findByIdAndUpdate(
@@ -94,7 +102,10 @@ router.post('/goals', async (req, res) => {
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
     res.status(201).json({ success: true, goals: user.workoutGoals });
   } catch (err) {
-    logger.error('Create workout goal error', { userId: req.user.id, error: err.message });
+    logger.error('Create workout goal error', {
+      userId: req.user.id,
+      error: err.message,
+    });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -115,7 +126,10 @@ router.put('/goals/:goalId/achieve', async (req, res) => {
     if (!user) return res.status(404).json({ success: false, error: 'Goal not found' });
     res.json({ success: true, goals: user.workoutGoals });
   } catch (err) {
-    logger.error('Achieve workout goal error', { userId: req.user.id, error: err.message });
+    logger.error('Achieve workout goal error', {
+      userId: req.user.id,
+      error: err.message,
+    });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -131,7 +145,10 @@ router.delete('/goals/:goalId', async (req, res) => {
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
     res.json({ success: true, message: 'Goal deleted', goals: user.workoutGoals });
   } catch (err) {
-    logger.error('Delete workout goal error', { userId: req.user.id, error: err.message });
+    logger.error('Delete workout goal error', {
+      userId: req.user.id,
+      error: err.message,
+    });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });

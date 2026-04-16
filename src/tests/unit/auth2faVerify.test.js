@@ -80,8 +80,10 @@ jest.mock('qrcode', () => ({
 
 // --- Import after all mocks are declared ---
 const express = require('express');
+
 const request = require('supertest');
 const jwt = require('jsonwebtoken');
+
 const User = require('../../models/User');
 const authRouter = require('../../routes/auth');
 
@@ -155,7 +157,9 @@ describe('POST /2fa/verify — tokenVersion security check', () => {
       .send({ setupToken, code: '123456' });
 
     // The tokenVersion check must have passed — the specific "no longer valid" error must not appear
-    expect(res.body.error).not.toBe('Setup token is no longer valid. Please restart 2FA setup.');
+    expect(res.body.error).not.toBe(
+      'Setup token is no longer valid. Please restart 2FA setup.'
+    );
 
     // Handler should succeed with 2FA enabled response
     expect(res.statusCode).toBe(200);

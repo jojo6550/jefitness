@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+
 const router = express.Router();
 const { auth, requireAdmin } = require('../middleware/auth');
 const adminController = require('../controllers/adminController');
@@ -16,6 +17,11 @@ router.get('/dashboard', auth, requireAdmin, (req, res) => {
 
 // API routes
 router.post('/subscriptions', auth, requireAdmin, adminController.createSubscription);
-router.post('/subscriptions/:id/extend', auth, requireAdmin, adminController.extendSubscription);
+router.post(
+  '/subscriptions/:id/extend',
+  auth,
+  requireAdmin,
+  adminController.extendSubscription
+);
 
 module.exports = router;

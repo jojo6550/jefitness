@@ -3,7 +3,11 @@ const mongoose = require('mongoose');
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const Subscription = require('../models/Subscription');
-const { asyncHandler, NotFoundError, AuthorizationError } = require('../middleware/errorHandler');
+const {
+  asyncHandler,
+  NotFoundError,
+  AuthorizationError,
+} = require('../middleware/errorHandler');
 const { logUserAction } = require('../services/logger');
 
 const trainerController = {
@@ -12,7 +16,9 @@ const trainerController = {
    */
   getMe: asyncHandler(async (req, res) => {
     const trainerId = req.user.id;
-    const trainer = await User.findById(trainerId).select('_id firstName lastName email trainerEmailPreference').lean();
+    const trainer = await User.findById(trainerId)
+      .select('_id firstName lastName email trainerEmailPreference')
+      .lean();
     if (!trainer) throw new NotFoundError('Trainer');
     res.json({ trainerId: trainer._id, ...trainer });
   }),
@@ -27,13 +33,27 @@ const trainerController = {
     if (!mongoose.Types.ObjectId.isValid(trainerId)) {
       logger.error('Invalid trainerId in dashboard', { trainerId });
       return res.status(400).json({
-        overview: { totalAppointments: 0, uniqueClients: 0, upcomingAppointments: [], completionRate: 0 },
+        overview: {
+          totalAppointments: 0,
+          uniqueClients: 0,
+          upcomingAppointments: [],
+          completionRate: 0,
+        },
         clients: [],
-        trainerEmailPreference: 'daily_digest'
+        trainerEmailPreference: 'daily_digest',
       });
     }
 
-    let stats = { totalAppointments: 0, completedAppointments: 0, scheduledAppointments: 0, cancelledAppointments: 0, noShowAppointments: 0, lateAppointments: 0, uniqueClients: 0, upcomingAppointments: [] };
+    let stats = {
+      totalAppointments: 0,
+      completedAppointments: 0,
+      scheduledAppointments: 0,
+      cancelledAppointments: 0,
+      noShowAppointments: 0,
+      lateAppointments: 0,
+      uniqueClients: 0,
+      upcomingAppointments: [],
+    };
     let statsResult;
     try {
       const trainerObjectId = new mongoose.Types.ObjectId(trainerId);
@@ -115,7 +135,10 @@ const trainerController = {
         .sort({ date: 1, time: 1 })
         .lean();
     } catch (populateErr) {
-      logger.error('Dashboard populate upcoming failed', { trainerId, error: populateErr.message });
+      logger.error('Dashboard populate upcoming failed', {
+        trainerId,
+        error: populateErr.message,
+      });
     }
 
     let clients = [];
@@ -124,7 +147,10 @@ const trainerController = {
         .select('firstName lastName email activityStatus')
         .lean();
     } catch (clientErr) {
-      logger.error('Dashboard clients query failed', { trainerId, error: clientErr.message });
+      logger.error('Dashboard clients query failed', {
+        trainerId,
+        error: clientErr.message,
+      });
     }
 
     const completionRate =
@@ -133,17 +159,28 @@ const trainerController = {
         : 0;
 
     // Fetch trainer info for logging
-    const trainer = await User.findById(trainerId).select('firstName lastName email').lean().catch(() => ({}));
+    const trainer = await User.findById(trainerId)
+      .select('firstName lastName email')
+      .lean()
+      .catch(() => ({}));
     logUserAction('view_trainer_dashboard', trainerId, {
-      trainerName: trainer?.firstName && trainer?.lastName ? `${trainer.firstName} ${trainer.lastName}` : 'Unknown',
+      trainerName:
+        trainer?.firstName && trainer?.lastName
+          ? `${trainer.firstName} ${trainer.lastName}`
+          : 'Unknown',
       trainerEmail: trainer?.email || 'Unknown',
     });
 
     let trainerUser = { trainerEmailPreference: 'daily_digest' };
     try {
-      trainerUser = await User.findById(trainerId).select('trainerEmailPreference').lean();
+      trainerUser = await User.findById(trainerId)
+        .select('trainerEmailPreference')
+        .lean();
     } catch (prefErr) {
-      logger.error('Dashboard trainer pref query failed', { trainerId, error: prefErr.message });
+      logger.error('Dashboard trainer pref query failed', {
+        trainerId,
+        error: prefErr.message,
+      });
     }
 
     res.json({
@@ -318,7 +355,7 @@ const trainerController = {
         trainerId: req.user.id,
         appointmentId: req.params.id,
         attemptedStatus: req.body.status,
-        endpoint: '/api/v1/trainer/appointments/:id'
+        endpoint: '/api/v1/trainer/appointments/:id',
       });
       throw new NotFoundError('Appointment');
     }
@@ -331,9 +368,7 @@ const trainerController = {
     }
     // Append log note so history accumulates rather than getting overwritten
     if (notes !== undefined) {
-      appointment.notes = appointment.notes
-        ? `${appointment.notes}\n${notes}`
-        : notes;
+      appointment.notes = appointment.notes ? `${appointment.notes}\n${notes}` : notes;
     }
 
     await appointment.save();
@@ -342,8 +377,8 @@ const trainerController = {
 
     const actionNames = {
       completed: 'appointment_marked_on_time',
-      late:      'appointment_marked_late',
-      no_show:   'appointment_marked_no_show',
+      late: 'appointment_marked_late',
+      no_show: 'appointment_marked_no_show',
     };
     logUserAction(actionNames[status] || 'appointment_notes_updated', req.user.id, {
       appointmentId: req.params.id,
@@ -372,11 +407,14 @@ const trainerController = {
     const [client, appointments, subscription] = await Promise.all([
       User.findById(clientId).select(
         'firstName lastName email phone dob gender activityStatus hasMedical medicalConditions medicalDocuments ' +
-        'workoutLogs mealLogs workoutGoals measurements assignedPrograms purchasedPrograms ' +
-        'startWeight currentWeight height goals createdAt lastLoggedIn isEmailVerified'
+          'workoutLogs mealLogs workoutGoals measurements assignedPrograms purchasedPrograms ' +
+          'startWeight currentWeight height goals createdAt lastLoggedIn isEmailVerified'
       ),
       Appointment.find({ trainerId, clientId }).sort({ date: -1 }),
-      Subscription.findOne({ userId: clientId, status: { $in: ['active', 'trialing'] } }).lean(),
+      Subscription.findOne({
+        userId: clientId,
+        status: { $in: ['active', 'trialing'] },
+      }).lean(),
     ]);
     if (!client) throw new NotFoundError('Client');
 
@@ -396,7 +434,9 @@ const trainerController = {
     const { appointmentIds, status } = req.body;
 
     if (!Array.isArray(appointmentIds) || appointmentIds.length === 0) {
-      return res.status(400).json({ success: false, error: 'appointmentIds array is required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'appointmentIds array is required' });
     }
 
     if (!['completed', 'no_show', 'late', 'cancelled'].includes(status)) {
@@ -414,7 +454,13 @@ const trainerController = {
     }
 
     const now = new Date();
-    const ts = now.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const ts = now.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
     const logNote = `[${ts}] Bulk marked as ${status.replace('_', ' ')}.`;
 
     // Update all appointments
@@ -422,14 +468,20 @@ const trainerController = {
       { _id: { $in: appointmentIds }, trainerId },
       {
         $set: { status, statusUpdatedAt: now },
-        $push: { notes: logNote }
+        $push: { notes: logNote },
       }
     );
 
     // Fetch trainer info for logging
-    const trainer = await User.findById(trainerId).select('firstName lastName email').lean().catch(() => ({}));
+    const trainer = await User.findById(trainerId)
+      .select('firstName lastName email')
+      .lean()
+      .catch(() => ({}));
     logUserAction('appointment_bulk_status_updated', trainerId, {
-      trainerName: trainer?.firstName && trainer?.lastName ? `${trainer.firstName} ${trainer.lastName}` : 'Unknown',
+      trainerName:
+        trainer?.firstName && trainer?.lastName
+          ? `${trainer.firstName} ${trainer.lastName}`
+          : 'Unknown',
       trainerEmail: trainer?.email || 'Unknown',
       count: appointmentIds.length,
       status,

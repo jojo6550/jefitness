@@ -3,6 +3,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const TwitterStrategy = require('passport-twitter').Strategy;
 const AppleStrategy = require('passport-apple');
+
 const { verifyOrLinkSocialUser } = require('../services/socialAuthService');
 
 // ── Google ──────────────────────────────────────────────────────────────────
@@ -17,9 +18,19 @@ if (process.env.GOOGLE_CLIENT_ID) {
       async (_accessToken, _refreshToken, profile, done) => {
         try {
           const email = profile.emails?.[0]?.value || null;
-          const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
-          const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
-          const result = await verifyOrLinkSocialUser({ provider: 'google', providerId: profile.id, email, firstName, lastName });
+          const firstName =
+            profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
+          const lastName =
+            profile.name?.familyName ||
+            profile.displayName?.split(' ').slice(1).join(' ') ||
+            '';
+          const result = await verifyOrLinkSocialUser({
+            provider: 'google',
+            providerId: profile.id,
+            email,
+            firstName,
+            lastName,
+          });
           done(null, result);
         } catch (err) {
           done(err);
@@ -42,9 +53,19 @@ if (process.env.FACEBOOK_APP_ID) {
       async (_accessToken, _refreshToken, profile, done) => {
         try {
           const email = profile.emails?.[0]?.value || null;
-          const firstName = profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
-          const lastName = profile.name?.familyName || profile.displayName?.split(' ').slice(1).join(' ') || '';
-          const result = await verifyOrLinkSocialUser({ provider: 'facebook', providerId: profile.id, email, firstName, lastName });
+          const firstName =
+            profile.name?.givenName || profile.displayName?.split(' ')[0] || 'User';
+          const lastName =
+            profile.name?.familyName ||
+            profile.displayName?.split(' ').slice(1).join(' ') ||
+            '';
+          const result = await verifyOrLinkSocialUser({
+            provider: 'facebook',
+            providerId: profile.id,
+            email,
+            firstName,
+            lastName,
+          });
           done(null, result);
         } catch (err) {
           done(err);
@@ -68,9 +89,16 @@ if (process.env.TWITTER_CONSUMER_KEY) {
       async (_token, _tokenSecret, profile, done) => {
         try {
           const email = profile.emails?.[0]?.value || null;
-          const firstName = profile.displayName?.split(' ')[0] || profile.username || 'User';
+          const firstName =
+            profile.displayName?.split(' ')[0] || profile.username || 'User';
           const lastName = profile.displayName?.split(' ').slice(1).join(' ') || '';
-          const result = await verifyOrLinkSocialUser({ provider: 'twitter', providerId: profile.id, email, firstName, lastName });
+          const result = await verifyOrLinkSocialUser({
+            provider: 'twitter',
+            providerId: profile.id,
+            email,
+            firstName,
+            lastName,
+          });
           done(null, result);
         } catch (err) {
           done(err);
@@ -101,7 +129,13 @@ if (process.env.APPLE_CLIENT_ID) {
           const email = profile.email || null;
           const firstName = profile.name?.firstName || 'User';
           const lastName = profile.name?.lastName || '';
-          const result = await verifyOrLinkSocialUser({ provider: 'apple', providerId: profile.id, email, firstName, lastName });
+          const result = await verifyOrLinkSocialUser({
+            provider: 'apple',
+            providerId: profile.id,
+            email,
+            firstName,
+            lastName,
+          });
           done(null, result);
         } catch (err) {
           done(err);

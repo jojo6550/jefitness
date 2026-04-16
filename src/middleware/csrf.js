@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+
 const { logger } = require('../services/logger');
 
 /**
@@ -114,19 +115,19 @@ class CSRFProtection {
       // Skip CSRF for public auth routes (signup, login, forgot-password, reset-password)
       // These endpoints need to be accessible without prior authentication
       if (req.path.startsWith('/api/v1/auth/')) {
-      const publicAuthRoutes = [
-        '/signup',
-        '/login',
-        '/forgot-password',
-        '/reset-password',
-        '/resend-verification',
-        '/check-verification',
-        '/google/callback',
-        '/facebook/callback',
-        '/twitter/callback',
-        '/apple/callback',
-        '/social-consent',
-      ];
+        const publicAuthRoutes = [
+          '/signup',
+          '/login',
+          '/forgot-password',
+          '/reset-password',
+          '/resend-verification',
+          '/check-verification',
+          '/google/callback',
+          '/facebook/callback',
+          '/twitter/callback',
+          '/apple/callback',
+          '/social-consent',
+        ];
         const isPublicAuthRoute = publicAuthRoutes.some(
           route => req.path.endsWith(route) || req.path.includes(route)
         );
@@ -150,7 +151,11 @@ class CSRFProtection {
       const verification = this.verifyToken(req);
 
       if (!verification.valid) {
-        logger.warn('CSRF verification failed', { error: verification.error, ip: req.ip, path: req.path });
+        logger.warn('CSRF verification failed', {
+          error: verification.error,
+          ip: req.ip,
+          path: req.path,
+        });
         return res.status(403).json({
           success: false,
           error: 'CSRF validation failed',

@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const Log = require('../models/Log');
 const { requireAdmin } = require('../middleware/auth');
@@ -46,14 +47,20 @@ router.get('/', async (req, res) => {
 
     // Level filter (comma-separated)
     if (level) {
-      const levels = level.split(',').map((l) => l.trim()).filter(Boolean);
+      const levels = level
+        .split(',')
+        .map(l => l.trim())
+        .filter(Boolean);
       if (levels.length === 1) query.level = levels[0];
       else if (levels.length > 1) query.level = { $in: levels };
     }
 
     // Category filter (comma-separated)
     if (category) {
-      const cats = category.split(',').map((c) => c.trim()).filter(Boolean);
+      const cats = category
+        .split(',')
+        .map(c => c.trim())
+        .filter(Boolean);
       if (cats.length === 1) query.category = cats[0];
       else if (cats.length > 1) query.category = { $in: cats };
     }
@@ -67,12 +74,14 @@ router.get('/', async (req, res) => {
     // Time range
     if (live === 'true' && after) {
       const afterDate = parseDate(after);
-      if (after && !afterDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+      if (after && !afterDate)
+        return res.status(400).json({ msg: 'Invalid date parameter' });
       if (afterDate) query.timestamp = { $gt: afterDate };
     } else if (live !== 'true') {
       const fromDate = parseDate(from);
       const toDate = parseDate(to);
-      if (from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+      if (from && !fromDate)
+        return res.status(400).json({ msg: 'Invalid date parameter' });
       if (to && !toDate) return res.status(400).json({ msg: 'Invalid date parameter' });
       const timeFilter = {};
       if (fromDate) timeFilter.$gte = fromDate;
@@ -86,10 +95,7 @@ router.get('/', async (req, res) => {
 
     if (live === 'true') {
       // Live mode: just return newest entries, no pagination
-      const logs = await Log.find(query)
-        .sort({ timestamp: -1 })
-        .limit(limitNum)
-        .lean();
+      const logs = await Log.find(query).sort({ timestamp: -1 }).limit(limitNum).lean();
       return res.json({ logs: logs.reverse(), live: true });
     }
 
@@ -122,8 +128,10 @@ router.get('/stats', async (req, res) => {
   try {
     const toDate = parseDate(req.query.to);
     const fromDate = parseDate(req.query.from);
-    if (req.query.to && !toDate) return res.status(400).json({ msg: 'Invalid date parameter' });
-    if (req.query.from && !fromDate) return res.status(400).json({ msg: 'Invalid date parameter' });
+    if (req.query.to && !toDate)
+      return res.status(400).json({ msg: 'Invalid date parameter' });
+    if (req.query.from && !fromDate)
+      return res.status(400).json({ msg: 'Invalid date parameter' });
     const to = toDate || new Date();
     const from = fromDate || new Date(to.getTime() - 24 * 60 * 60 * 1000);
 
@@ -134,18 +142,22 @@ router.get('/stats', async (req, res) => {
     const byCategory = {};
     let total = 0;
 
-    stats.forEach((entry) => {
+    stats.forEach(entry => {
       if (entry._id && entry._id.level) {
         byLevel[entry._id.level] = (byLevel[entry._id.level] || 0) + entry.count;
       }
       if (entry._id && entry._id.category) {
-        byCategory[entry._id.category] = (byCategory[entry._id.category] || 0) + entry.count;
+        byCategory[entry._id.category] =
+          (byCategory[entry._id.category] || 0) + entry.count;
       }
       total += entry.count || 0;
     });
 
     // Recent errors (last 10)
-    const recentErrors = await Log.find({ level: 'error', timestamp: { $gte: from, $lte: to } })
+    const recentErrors = await Log.find({
+      level: 'error',
+      timestamp: { $gte: from, $lte: to },
+    })
       .sort({ timestamp: -1 })
       .limit(10)
       .lean();
@@ -167,11 +179,17 @@ router.get('/export', async (req, res) => {
 
     const query = {};
     if (level) {
-      const levels = level.split(',').map((l) => l.trim()).filter(Boolean);
+      const levels = level
+        .split(',')
+        .map(l => l.trim())
+        .filter(Boolean);
       query.level = levels.length === 1 ? levels[0] : { $in: levels };
     }
     if (category) {
-      const cats = category.split(',').map((c) => c.trim()).filter(Boolean);
+      const cats = category
+        .split(',')
+        .map(c => c.trim())
+        .filter(Boolean);
       query.category = cats.length === 1 ? cats[0] : { $in: cats };
     }
     if (search && search.trim()) {
@@ -191,9 +209,9 @@ router.get('/export', async (req, res) => {
 
     const csvHeader = 'Timestamp,Level,Category,Message,UserId,IP,Action\n';
     const csvRows = logs
-      .map((log) => {
+      .map(log => {
         const ts = new Date(log.timestamp).toISOString();
-        const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+        const escape = v => `"${String(v || '').replace(/"/g, '""')}"`;
         return [
           escape(ts),
           escape(log.level),

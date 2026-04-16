@@ -4,6 +4,7 @@
  */
 
 const sanitizeHtml = require('sanitize-html');
+
 const { logger } = require('../services/logger');
 
 /**

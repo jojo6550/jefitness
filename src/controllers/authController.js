@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -25,15 +26,24 @@ const authController = {
     const clientRequestId = req.get('X-Request-ID') || req.ip;
 
     // Extract and validate required fields from req.body (post-validation)
-    const { firstName, lastName, email, password, dataProcessingConsent, healthDataConsent } = req.body;
-    
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      dataProcessingConsent,
+      healthDataConsent,
+    } = req.body;
+
     if (!email || !firstName || !lastName || !password) {
-      throw new ValidationError('Missing required signup fields: firstName, lastName, email, or password');
+      throw new ValidationError(
+        'Missing required signup fields: firstName, lastName, email, or password'
+      );
     }
-    
+
     // Normalize email (defense-in-depth)
     const normalizedEmail = email.trim().toLowerCase();
-    
+
     // Privacy-safe email hash
     const emailHash = crypto
       .createHash('sha256')
@@ -56,7 +66,11 @@ const authController = {
     dbTime = performance.now() - dbStart;
     if (existingUser) {
       const totalTime = performance.now() - startTime;
-      logger.warn('❌ SIGNUP FAILED: User exists', { emailHash, clientRequestId, timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) } });
+      logger.warn('❌ SIGNUP FAILED: User exists', {
+        emailHash,
+        clientRequestId,
+        timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) },
+      });
       throw new ValidationError('User already exists');
     }
 
@@ -83,7 +97,10 @@ const authController = {
     });
     // Generate email verification token
     const rawVerifyToken = crypto.randomBytes(32).toString('hex');
-    user.emailVerificationToken = crypto.createHash('sha256').update(rawVerifyToken).digest('hex');
+    user.emailVerificationToken = crypto
+      .createHash('sha256')
+      .update(rawVerifyToken)
+      .digest('hex');
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const saveStart = performance.now();
@@ -91,16 +108,23 @@ const authController = {
     const saveTime = performance.now() - saveStart;
 
     const totalTime = performance.now() - startTime;
-    logger.info('✅ SIGNUP SUCCESS', { 
-      emailHash, 
-      userId: user._id, 
-      clientRequestId, 
-      timings: { dbTime: dbTime.toFixed(2), saveTime: saveTime.toFixed(2), total: totalTime.toFixed(2) } 
+    logger.info('✅ SIGNUP SUCCESS', {
+      emailHash,
+      userId: user._id,
+      clientRequestId,
+      timings: {
+        dbTime: dbTime.toFixed(2),
+        saveTime: saveTime.toFixed(2),
+        total: totalTime.toFixed(2),
+      },
     });
 
     // Send verification email (non-blocking — failure doesn't abort signup)
     sendEmailVerification(user.email, user.firstName, rawVerifyToken).catch(err => {
-      logger.error('Failed to send verification email', { userId: user._id, error: err.message });
+      logger.error('Failed to send verification email', {
+        userId: user._id,
+        error: err.message,
+      });
     });
 
     res.status(201).json({
@@ -110,14 +134,12 @@ const authController = {
     });
   }),
 
-
-
   /**
    * Log in user - Now checks email verification
    */
   login: asyncHandler(async (req, res) => {
     const startTime = performance.now();
-const clientRequestId = req.get('X-Request-ID') || req.ip;
+    const clientRequestId = req.get('X-Request-ID') || req.ip;
     const { email, password } = req.body;
 
     // Privacy-safe email hash (SHA256 first 16 chars)
@@ -172,7 +194,11 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
 
       // Block unverified accounts
       if (!user.isEmailVerified) {
-        logger.warn('❌ LOGIN BLOCKED: email not verified', { emailHash, clientRequestId, ip: req.ip });
+        logger.warn('❌ LOGIN BLOCKED: email not verified', {
+          emailHash,
+          clientRequestId,
+          ip: req.ip,
+        });
         return res.status(403).json({
           success: false,
           requiresEmailVerification: true,
@@ -200,7 +226,12 @@ const clientRequestId = req.get('X-Request-ID') || req.ip;
         );
         jwtTime = performance.now() - jwtStart;
         const totalTime = performance.now() - startTime;
-        logger.info('✅ LOGIN: 2FA REQUIRED', { emailHash, userId: user._id, clientRequestId, timings: { total: totalTime.toFixed(2) } });
+        logger.info('✅ LOGIN: 2FA REQUIRED', {
+          emailHash,
+          userId: user._id,
+          clientRequestId,
+          timings: { total: totalTime.toFixed(2) },
+        });
         return res.json({ success: true, requiresTwoFactor: true, tempToken });
       }
 

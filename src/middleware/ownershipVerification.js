@@ -5,6 +5,7 @@
  */
 
 const mongoose = require('mongoose');
+
 const { logger } = require('../services/logger');
 
 /**
@@ -95,7 +96,12 @@ function verifyOwnership(options) {
       const userIdStr = req.user.id.toString();
 
       if (ownerIdStr !== userIdStr) {
-        logger.warn('Security event: idor_attempt_blocked', { userId: userIdStr, ownerId: ownerIdStr, resource: resourceName, resourceId });
+        logger.warn('Security event: idor_attempt_blocked', {
+          userId: userIdStr,
+          ownerId: ownerIdStr,
+          resource: resourceName,
+          resourceId,
+        });
         return res.status(403).json({
           success: false,
           error: `Access denied. You can only access your own ${resourceName}.`,
@@ -105,7 +111,10 @@ function verifyOwnership(options) {
       // Ownership verified, proceed
       next();
     } catch (err) {
-      logger.error('Ownership verification error', { resource: resourceName, error: err.message });
+      logger.error('Ownership verification error', {
+        resource: resourceName,
+        error: err.message,
+      });
       return res.status(500).json({
         success: false,
         error: 'Failed to verify resource ownership',
@@ -162,7 +171,10 @@ function verifyQueryOwnership(userIdField = 'userId') {
 
       // SECURITY: Prevent users from querying other users' data
       if (req.query[userIdField] && req.query[userIdField] !== req.user.id.toString()) {
-        logger.warn('Security event: idor_query_attempt', { userId: req.user.id, requestedUserId: req.query[userIdField] });
+        logger.warn('Security event: idor_query_attempt', {
+          userId: req.user.id,
+          requestedUserId: req.query[userIdField],
+        });
         return res.status(403).json({
           success: false,
           error: 'Access denied. You can only access your own data.',

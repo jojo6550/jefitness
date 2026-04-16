@@ -52,7 +52,9 @@ class ComplianceService {
         'dataProcessingConsent.userAgent': userAgent,
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -69,7 +71,10 @@ class ComplianceService {
         }
       );
       logUserAction('data_processing_consent_granted', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         consentType: 'data_processing',
         ipAddress,
@@ -122,7 +127,10 @@ class ComplianceService {
         }
       );
       logUserAction('health_data_consent_granted', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         consentType: 'health_data',
         purpose,
@@ -175,7 +183,10 @@ class ComplianceService {
         }
       );
       logUserAction('marketing_consent_granted', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         consentType: 'marketing',
         ipAddress,
@@ -224,7 +235,10 @@ class ComplianceService {
         }
       );
       logUserAction('marketing_consent_withdrawn', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         consentType: 'marketing',
         ipAddress,
@@ -267,7 +281,9 @@ class ComplianceService {
           throw new Error('Invalid consent type');
       }
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -278,7 +294,10 @@ class ComplianceService {
         consentType,
       });
       logUserAction('consent_withdrawn', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         consentType,
         ipAddress,
@@ -310,7 +329,9 @@ class ComplianceService {
         'dataSubjectRights.accessRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -327,7 +348,10 @@ class ComplianceService {
         }
       );
       logUserAction('data_access_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'access',
         ipAddress,
@@ -366,7 +390,9 @@ class ComplianceService {
         'dataSubjectRights.rectificationRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -384,7 +410,10 @@ class ComplianceService {
         }
       );
       logUserAction('data_rectification_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'rectification',
         ipAddress,
@@ -422,7 +451,9 @@ class ComplianceService {
         'dataSubjectRights.erasureRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -440,7 +471,10 @@ class ComplianceService {
         }
       );
       logUserAction('data_erasure_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'erasure',
         reason,
@@ -484,7 +518,9 @@ class ComplianceService {
         'dataSubjectRights.portabilityRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -501,7 +537,10 @@ class ComplianceService {
         }
       );
       logUserAction('data_portability_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'portability',
         ipAddress,
@@ -540,7 +579,9 @@ class ComplianceService {
         'dataSubjectRights.objectionRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -558,7 +599,10 @@ class ComplianceService {
         }
       );
       logUserAction('processing_objection_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'objection',
         reason,
@@ -592,7 +636,9 @@ class ComplianceService {
         'dataSubjectRights.restrictionRequestedAt': new Date(),
       };
 
-      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select('firstName lastName email');
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true }).select(
+        'firstName lastName email'
+      );
 
       if (!user) {
         throw new Error('User not found');
@@ -610,7 +656,10 @@ class ComplianceService {
         }
       );
       logUserAction('processing_restriction_requested', userId, {
-        userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+        userName:
+          user?.firstName && user?.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : 'Unknown',
         userEmail: user?.email || 'Unknown',
         right: 'restriction',
         reason,
@@ -727,7 +776,9 @@ class ComplianceService {
         );
 
         // Fetch user details for logging
-        const users = await User.find({ _id: { $in: details.affectedUserIds } }).select('firstName lastName email').lean();
+        const users = await User.find({ _id: { $in: details.affectedUserIds } })
+          .select('firstName lastName email')
+          .lean();
         const userMap = {};
         users.forEach(user => {
           userMap[user._id] = user;
@@ -736,7 +787,10 @@ class ComplianceService {
         const appLogPromises = details.affectedUserIds.map(userId => {
           const user = userMap[userId];
           return logUserAction('data_breach_affected', userId, {
-            userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown',
+            userName:
+              user?.firstName && user?.lastName
+                ? `${user.firstName} ${user.lastName}`
+                : 'Unknown',
             userEmail: user?.email || 'Unknown',
             breachId,
             event,

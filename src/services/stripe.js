@@ -1,4 +1,5 @@
 const StripePlan = require('../models/StripePlan');
+
 const { logger } = require('./logger');
 
 // Lazy initialization of Stripe to avoid issues in test environment
@@ -10,7 +11,6 @@ const getStripe = () => {
   }
   return stripeInstance;
 };
-
 
 // Price caching for getPlanPricing() - 5min TTL in-memory
 let priceCache = {};
@@ -125,7 +125,11 @@ async function getPlanPricing() {
         intervalCount: planRecord.intervalCount,
       };
 
-      logger.debug('Dynamic plan loaded', { planKey, displayPrice, priceIdSuffix: planRecord.stripePriceId.slice(-8) });
+      logger.debug('Dynamic plan loaded', {
+        planKey,
+        displayPrice,
+        priceIdSuffix: planRecord.stripePriceId.slice(-8),
+      });
     }
 
     // Cache
@@ -248,9 +252,7 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
 async function createSubscription(customerId, plan) {
   // This function is deprecated — all subscriptions go through createCheckoutSession.
   // PRODUCT_IDS was removed; calling this will throw to surface the miscall clearly.
-  throw new Error(
-    'createSubscription is deprecated. Use createCheckoutSession instead.'
-  );
+  throw new Error('createSubscription is deprecated. Use createCheckoutSession instead.');
   /* eslint-disable no-unreachable */
   try {
     logger.info('createSubscription called', { customerId, plan });
@@ -295,7 +297,10 @@ async function createSubscription(customerId, plan) {
 
     logger.debug('Creating subscription', { customerId, plan, priceId });
     const subscription = await getStripe().subscriptions.create(subscriptionData);
-    logger.info('Subscription created', { subscriptionId: subscription.id, status: subscription.status });
+    logger.info('Subscription created', {
+      subscriptionId: subscription.id,
+      status: subscription.status,
+    });
 
     return subscription;
   } catch (error) {
@@ -448,7 +453,10 @@ async function cancelSubscription(subscriptionId, atPeriodEnd = false) {
       msg.includes('already been canceled') ||
       msg.includes('Cannot cancel')
     ) {
-      logger.info('Stripe subscription already canceled or not found, treating as success', { subscriptionId });
+      logger.info(
+        'Stripe subscription already canceled or not found, treating as success',
+        { subscriptionId }
+      );
       return null;
     }
     throw new Error(`Failed to cancel subscription: ${error.message}`);
@@ -507,7 +515,12 @@ async function getSubscriptionInvoices(subscriptionId) {
  * @param {object} metadata - Additional metadata to attach to the session (optional)
  * @returns {Promise<Object>} Checkout session object
  */
-async function createCheckoutSession(customerId, plan, trialEndTimestamp = null, metadata = {}) {
+async function createCheckoutSession(
+  customerId,
+  plan,
+  trialEndTimestamp = null,
+  metadata = {}
+) {
   try {
     const stripe = getStripe();
     if (!stripe) {
@@ -546,7 +559,11 @@ async function createCheckoutSession(customerId, plan, trialEndTimestamp = null,
       );
     }
     const priceId = planData.priceId;
-    logger.debug('Checkout price resolved', { plan, priceIdSuffix: priceId.slice(-8), currency: planData.currency });
+    logger.debug('Checkout price resolved', {
+      plan,
+      priceIdSuffix: priceId.slice(-8),
+      currency: planData.currency,
+    });
 
     const sessionParams = {
       customer: customerId,
@@ -583,10 +600,18 @@ async function createCheckoutSession(customerId, plan, trialEndTimestamp = null,
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    logger.info('Subscription checkout session created', { sessionId: session.id, customerId, trialEnd: trialEndTimestamp });
+    logger.info('Subscription checkout session created', {
+      sessionId: session.id,
+      customerId,
+      trialEnd: trialEndTimestamp,
+    });
     return session;
   } catch (error) {
-    logger.error('createCheckoutSession error', { plan, customerId, error: error.message });
+    logger.error('createCheckoutSession error', {
+      plan,
+      customerId,
+      error: error.message,
+    });
     throw new Error(`Failed to create checkout session: ${error.message}`);
   }
 }
@@ -600,14 +625,21 @@ async function createCheckoutSession(customerId, plan, trialEndTimestamp = null,
  * @param {string} successUrl - Redirect on success
  * @param {string} cancelUrl - Redirect on cancel
  */
-async function createQueuedCheckoutSession(customerId, plan, trialEndTimestamp, successUrl, cancelUrl) {
+async function createQueuedCheckoutSession(
+  customerId,
+  plan,
+  trialEndTimestamp,
+  successUrl,
+  cancelUrl
+) {
   try {
     const stripe = getStripe();
     if (!stripe) throw new Error('Stripe not initialized');
     if (!customerId) throw new Error('Missing customer ID');
 
     await stripe.customers.retrieve(customerId).catch(err => {
-      if (err.code === 'resource_missing') throw new Error(`Customer account invalid: ${customerId}`);
+      if (err.code === 'resource_missing')
+        throw new Error(`Customer account invalid: ${customerId}`);
       throw err;
     });
 
@@ -632,10 +664,19 @@ async function createQueuedCheckoutSession(customerId, plan, trialEndTimestamp, 
       billing_address_collection: 'required',
     });
 
-    logger.info('Queued subscription checkout session created', { sessionId: session.id, customerId, plan, trialEnd: trialEndTimestamp });
+    logger.info('Queued subscription checkout session created', {
+      sessionId: session.id,
+      customerId,
+      plan,
+      trialEnd: trialEndTimestamp,
+    });
     return session;
   } catch (error) {
-    logger.error('createQueuedCheckoutSession error', { plan, customerId, error: error.message });
+    logger.error('createQueuedCheckoutSession error', {
+      plan,
+      customerId,
+      error: error.message,
+    });
     throw new Error(`Failed to create queued checkout session: ${error.message}`);
   }
 }
@@ -805,7 +846,9 @@ async function getOrCreateProductCustomer(email, name = null) {
     const matchingCustomers = existingCustomers.data.filter(c => c.livemode === isLive);
 
     if (matchingCustomers.length > 0) {
-      logger.debug('Found existing Stripe customer', { customerId: matchingCustomers[0].id });
+      logger.debug('Found existing Stripe customer', {
+        customerId: matchingCustomers[0].id,
+      });
       return matchingCustomers[0];
     }
 

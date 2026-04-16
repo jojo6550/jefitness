@@ -4,4 +4,3 @@ subscription flow: user goes to subscription page and purchases subscription via
 
 constraints: admin should still be able to add and remove subscriptions and override the days as seen in admin functions.
 
-days left function is bugged. i used admin add subscription override to add 81 days to an account. the account details read as that they are due to pay today

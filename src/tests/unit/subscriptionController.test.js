@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const Subscription = require('../../models/Subscription');
 const User = require('../../models/User');
 const stripeService = require('../../services/stripe');
@@ -17,7 +18,7 @@ jest.mock('../../middleware/errorHandler', () => {
   const actual = jest.requireActual('../../middleware/errorHandler');
   return {
     ...actual,
-    asyncHandler: (fn) => fn, // Unwrap asyncHandler for testing
+    asyncHandler: fn => fn, // Unwrap asyncHandler for testing
   };
 });
 
@@ -78,7 +79,8 @@ describe('subscriptionController', () => {
         status: { $in: ['active', 'trialing'] },
       });
       expect(mockRes.json).toHaveBeenCalledWith({
-        subscription: expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
           status: 'active',
           daysLeft: expect.any(Number),
         }),
@@ -92,7 +94,7 @@ describe('subscriptionController', () => {
 
       await getCurrentSubscription(mockReq, mockRes, mockNext);
 
-      expect(mockRes.json).toHaveBeenCalledWith({ subscription: null });
+      expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: null });
     });
 
     it('should ignore cancelled subscription', async () => {
@@ -102,7 +104,7 @@ describe('subscriptionController', () => {
 
       await getCurrentSubscription(mockReq, mockRes, mockNext);
 
-      expect(mockRes.json).toHaveBeenCalledWith({ subscription: null });
+      expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: null });
     });
 
     it('should calculate daysLeft correctly for upcoming period end', async () => {
@@ -131,8 +133,8 @@ describe('subscriptionController', () => {
       await getCurrentSubscription(mockReq, mockRes, mockNext);
 
       const callArgs = mockRes.json.mock.calls[0][0];
-      expect(callArgs.subscription.daysLeft).toBeGreaterThan(0);
-      expect(callArgs.subscription.daysLeft).toBeLessThanOrEqual(5);
+      expect(callArgs.data.daysLeft).toBeGreaterThan(0);
+      expect(callArgs.data.daysLeft).toBeLessThanOrEqual(5);
     });
   });
 
@@ -149,7 +151,9 @@ describe('subscriptionController', () => {
 
       await createCheckout(mockReq, mockRes, mockNext);
 
-      expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(mockReq.user.email);
+      expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(
+        mockReq.user.email
+      );
       expect(stripeService.createCheckoutSession).toHaveBeenCalledWith(
         mockCustomer.id,
         '1-month',
@@ -262,7 +266,8 @@ describe('subscriptionController', () => {
 
       expect(stripeService.getCheckoutSession).toHaveBeenCalledWith('cs_123');
       expect(mockRes.json).toHaveBeenCalledWith({
-        subscription: expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
           status: 'active',
           plan: '1-month',
           daysLeft: expect.any(Number),
@@ -366,7 +371,8 @@ describe('subscriptionController', () => {
       expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(mockUser.email);
       expect(mockUser.save).toHaveBeenCalled();
       expect(mockRes.json).toHaveBeenCalledWith({
-        subscription: expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
           status: 'active',
         }),
       });
@@ -418,7 +424,10 @@ describe('subscriptionController', () => {
 
       await cancel(mockReq, mockRes, mockNext);
 
-      expect(stripeService.cancelSubscription).toHaveBeenCalledWith('stripe_sub_123', false);
+      expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
+        'stripe_sub_123',
+        false
+      );
       expect(mockSub.status).toBe('cancelled');
       expect(mockSub.canceledAt).toBeDefined();
       expect(mockSub.save).toHaveBeenCalled();
@@ -443,7 +452,10 @@ describe('subscriptionController', () => {
 
       await cancel(mockReq, mockRes, mockNext);
 
-      expect(stripeService.cancelSubscription).toHaveBeenCalledWith('stripe_sub_123', true);
+      expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
+        'stripe_sub_123',
+        true
+      );
       expect(mockRes.json).toHaveBeenCalledWith({
         message: 'Cancellation scheduled for period end',
       });

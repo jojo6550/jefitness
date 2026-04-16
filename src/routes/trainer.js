@@ -194,7 +194,11 @@ router.get('/client/:clientId', requireTrainer, trainerController.getClientInfo)
  *       403:
  *         description: Trainer access required or unauthorized
  */
-router.post('/appointments/bulk-update', requireTrainer, trainerController.bulkUpdateAppointments);
+router.post(
+  '/appointments/bulk-update',
+  requireTrainer,
+  trainerController.bulkUpdateAppointments
+);
 
 /**
  * @swagger
@@ -248,7 +252,10 @@ router.get('/:id/availability', async (req, res) => {
 
     res.json({ success: true, availability: slots });
   } catch (err) {
-    logger.error('Trainer availability fetch failed', { error: err.message, trainerId: req.params.id });
+    logger.error('Trainer availability fetch failed', {
+      error: err.message,
+      trainerId: req.params.id,
+    });
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
@@ -308,7 +315,9 @@ router.put('/availability', requireTrainer, async (req, res) => {
     const { availability } = req.body;
 
     if (!Array.isArray(availability) || availability.length === 0) {
-      return res.status(400).json({ success: false, error: 'availability array is required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'availability array is required' });
     }
 
     const trainerId = req.user.id;
@@ -318,11 +327,16 @@ router.put('/availability', requireTrainer, async (req, res) => {
       const { dayOfWeek, startHour, endHour, isActive = true, slotCapacity = 6 } = slot;
 
       if (dayOfWeek === undefined || startHour === undefined || endHour === undefined) {
-        return res.status(400).json({ success: false, error: 'Each slot requires dayOfWeek, startHour, endHour' });
+        return res.status(400).json({
+          success: false,
+          error: 'Each slot requires dayOfWeek, startHour, endHour',
+        });
       }
 
       if (endHour <= startHour) {
-        return res.status(400).json({ success: false, error: 'endHour must be greater than startHour' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'endHour must be greater than startHour' });
       }
 
       const capacity = Math.min(50, Math.max(1, parseInt(slotCapacity) || 6));
@@ -386,10 +400,16 @@ router.put('/notification-preference', requireTrainer, async (req, res) => {
   try {
     const { preference } = req.body;
     if (!['individual', 'daily_digest'].includes(preference)) {
-      return res.status(400).json({ success: false, error: 'preference must be "individual" or "daily_digest"' });
+      return res.status(400).json({
+        success: false,
+        error: 'preference must be "individual" or "daily_digest"',
+      });
     }
     await User.findByIdAndUpdate(req.user.id, { trainerEmailPreference: preference });
-    logger.info('Trainer notification preference updated', { trainerId: req.user.id, preference });
+    logger.info('Trainer notification preference updated', {
+      trainerId: req.user.id,
+      preference,
+    });
     res.json({ success: true, preference });
   } catch (err) {
     logger.error('Trainer notification preference update failed', { error: err.message });

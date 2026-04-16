@@ -21,7 +21,7 @@ const requireDataProcessingConsent = async (req, res, next) => {
     }
 
     // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || await User.findById(userId);
+    const user = req.userDoc || (await User.findById(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -89,7 +89,7 @@ const requireHealthDataConsent = async (req, res, next) => {
     }
 
     // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || await User.findById(userId);
+    const user = req.userDoc || (await User.findById(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -158,7 +158,7 @@ const requireMarketingConsent = async (req, res, next) => {
     }
 
     // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || await User.findById(userId);
+    const user = req.userDoc || (await User.findById(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -203,7 +203,7 @@ const checkDataRestriction = async (req, res, next) => {
     }
 
     // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || await User.findById(userId);
+    const user = req.userDoc || (await User.findById(userId));
     if (!user) {
       return next();
     }
@@ -265,7 +265,9 @@ const logAuditEvent = async (user, action, details) => {
  * Helper function to get client IP address
  */
 const getClientIP = req => {
-  return req.ip || req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'];
+  return (
+    req.ip || req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip']
+  );
 };
 
 module.exports = {

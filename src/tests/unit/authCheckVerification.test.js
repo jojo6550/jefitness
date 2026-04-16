@@ -76,7 +76,9 @@ jest.mock('qrcode', () => ({
 
 // --- Import after all mocks are declared ---
 const express = require('express');
+
 const request = require('supertest');
+
 const User = require('../../models/User');
 const authRouter = require('../../routes/auth');
 

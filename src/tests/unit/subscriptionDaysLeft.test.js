@@ -42,7 +42,7 @@ jest.mock('../../services/stripe', () => ({
 
 jest.mock('../../middleware/auth', () => ({
   auth: (req, res, next) => {
-    req.user = { id: 'user_test_id' };
+    req.user = { _id: 'user_test_id' };
     next();
   },
 }));
@@ -124,11 +124,11 @@ function makeSub(overrides = {}) {
 
 /**
  * Makes Subscription.findOne return the given document for all calls.
- * Both the "active-first" query and the fallback query are covered.
+ * Chains .select() which is called by the controller.
  */
 function mockFindOneReturning(sub) {
   Subscription.findOne.mockReturnValue({
-    sort: jest.fn().mockResolvedValue(sub),
+    select: jest.fn().mockResolvedValue(sub),
   });
 }
 
@@ -182,9 +182,9 @@ describe('GET /subscriptions/current — daysLeft', () => {
   });
 
   it('returns data: null when no subscription exists', async () => {
-    // Both the active-first query and the fallback query return null
+    // Subscription.findOne().select() returns null
     Subscription.findOne.mockReturnValue({
-      sort: jest.fn().mockResolvedValue(null),
+      select: jest.fn().mockResolvedValue(null),
     });
 
     const res = await request(app).get('/subscriptions/current');

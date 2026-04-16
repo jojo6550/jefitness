@@ -1,7 +1,17 @@
 const SupportTicket = require('../models/SupportTicket');
 const User = require('../models/User');
-const { asyncHandler, AppError, ValidationError, NotFoundError, AuthorizationError } = require('../middleware/errorHandler');
-const { sendNewTicketAdmin, sendTicketReceived, sendTicketFulfilled } = require('../services/email');
+const {
+  asyncHandler,
+  AppError,
+  ValidationError,
+  NotFoundError,
+  AuthorizationError,
+} = require('../middleware/errorHandler');
+const {
+  sendNewTicketAdmin,
+  sendTicketReceived,
+  sendTicketFulfilled,
+} = require('../services/email');
 const { logger, logUserAction, logAdminAction } = require('../services/logger');
 
 const CATEGORY_LABELS = {
@@ -35,9 +45,15 @@ async function checkRateLimit(userId) {
 async function getRateLimitResetDate(userId) {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const oldest = await SupportTicket.findOne(
-    { userId, status: { $in: ['submitted', 'seen', 'resolved'] }, createdAt: { $gte: sevenDaysAgo } },
+    {
+      userId,
+      status: { $in: ['submitted', 'seen', 'resolved'] },
+      createdAt: { $gte: sevenDaysAgo },
+    },
     'createdAt'
-  ).sort({ createdAt: 1 }).lean();
+  )
+    .sort({ createdAt: 1 })
+    .lean();
   if (!oldest) return null;
   return new Date(oldest.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
 }
@@ -49,10 +65,14 @@ const createTicket = asyncHandler(async (req, res) => {
   if (!subject || !description || !category) {
     throw new ValidationError('Subject, description, and category are required.');
   }
-  if (subject.length > 120) throw new ValidationError('Subject must be 120 characters or less.');
-  if (description.length > 2000) throw new ValidationError('Description must be 2000 characters or less.');
-  if (!VALID_CATEGORIES.includes(category)) throw new ValidationError('Invalid category.');
-  if (!['draft', 'submitted'].includes(status)) throw new ValidationError('Status must be draft or submitted.');
+  if (subject.length > 120)
+    throw new ValidationError('Subject must be 120 characters or less.');
+  if (description.length > 2000)
+    throw new ValidationError('Description must be 2000 characters or less.');
+  if (!VALID_CATEGORIES.includes(category))
+    throw new ValidationError('Invalid category.');
+  if (!['draft', 'submitted'].includes(status))
+    throw new ValidationError('Status must be draft or submitted.');
 
   if (status === 'submitted') {
     const count = await checkRateLimit(req.user.id);
@@ -82,7 +102,10 @@ const createTicket = asyncHandler(async (req, res) => {
       sendTicketReceived(user.email, user.firstName, ticket),
     ]);
 
-    logUserAction('submit_support_ticket', req.user.id, { ticketId: ticket._id, category });
+    logUserAction('submit_support_ticket', req.user.id, {
+      ticketId: ticket._id,
+      category,
+    });
   } else {
     logUserAction('save_ticket_draft', req.user.id, { ticketId: ticket._id });
   }
@@ -107,7 +130,8 @@ const getMyTickets = asyncHandler(async (req, res) => {
 
   // Include rate limit info
   const weeklyCount = await checkRateLimit(req.user.id);
-  const resetDate = weeklyCount >= WEEKLY_LIMIT ? await getRateLimitResetDate(req.user.id) : null;
+  const resetDate =
+    weeklyCount >= WEEKLY_LIMIT ? await getRateLimitResetDate(req.user.id) : null;
 
   res.json({
     success: true,
@@ -123,7 +147,8 @@ const getMyTickets = asyncHandler(async (req, res) => {
 const getMyTicket = asyncHandler(async (req, res) => {
   const ticket = await SupportTicket.findById(req.params.id).lean();
   if (!ticket) throw new NotFoundError('Ticket');
-  if (ticket.userId.toString() !== req.user.id) throw new AuthorizationError('Access denied.');
+  if (ticket.userId.toString() !== req.user.id)
+    throw new AuthorizationError('Access denied.');
   res.json({ success: true, data: { ticket } });
 });
 
@@ -131,7 +156,8 @@ const getMyTicket = asyncHandler(async (req, res) => {
 const updateMyTicket = asyncHandler(async (req, res) => {
   const ticket = await SupportTicket.findById(req.params.id);
   if (!ticket) throw new NotFoundError('Ticket');
-  if (ticket.userId.toString() !== req.user.id) throw new AuthorizationError('Access denied.');
+  if (ticket.userId.toString() !== req.user.id)
+    throw new AuthorizationError('Access denied.');
 
   const { subject, description, category, status } = req.body;
   const isTransitioningToSubmit = status === 'submitted' && ticket.status === 'draft';
@@ -145,15 +171,18 @@ const updateMyTicket = asyncHandler(async (req, res) => {
   }
 
   if (subject !== undefined) {
-    if (subject.length > 120) throw new ValidationError('Subject must be 120 characters or less.');
+    if (subject.length > 120)
+      throw new ValidationError('Subject must be 120 characters or less.');
     ticket.subject = subject;
   }
   if (description !== undefined) {
-    if (description.length > 2000) throw new ValidationError('Description must be 2000 characters or less.');
+    if (description.length > 2000)
+      throw new ValidationError('Description must be 2000 characters or less.');
     ticket.description = description;
   }
   if (category !== undefined) {
-    if (!VALID_CATEGORIES.includes(category)) throw new ValidationError('Invalid category.');
+    if (!VALID_CATEGORIES.includes(category))
+      throw new ValidationError('Invalid category.');
     ticket.category = category;
   }
 
@@ -190,8 +219,10 @@ const updateMyTicket = asyncHandler(async (req, res) => {
 const deleteMyTicket = asyncHandler(async (req, res) => {
   const ticket = await SupportTicket.findById(req.params.id);
   if (!ticket) throw new NotFoundError('Ticket');
-  if (ticket.userId.toString() !== req.user.id) throw new AuthorizationError('Access denied.');
-  if (ticket.status !== 'draft') throw new AppError('Only draft tickets can be deleted.', 400);
+  if (ticket.userId.toString() !== req.user.id)
+    throw new AuthorizationError('Access denied.');
+  if (ticket.status !== 'draft')
+    throw new AppError('Only draft tickets can be deleted.', 400);
 
   await ticket.deleteOne();
   logUserAction('delete_ticket_draft', req.user.id, { ticketId: req.params.id });
@@ -260,10 +291,15 @@ const adminUpdateTicketStatus = asyncHandler(async (req, res) => {
   const { status, adminNote } = req.body;
 
   if (!status) throw new ValidationError('Status is required.');
-  if (status !== 'resolved') throw new ValidationError('Admins can only set status to resolved.');
-  if (adminNote && adminNote.length > 1000) throw new ValidationError('Admin note must be 1000 characters or less.');
+  if (status !== 'resolved')
+    throw new ValidationError('Admins can only set status to resolved.');
+  if (adminNote && adminNote.length > 1000)
+    throw new ValidationError('Admin note must be 1000 characters or less.');
 
-  const ticket = await SupportTicket.findById(req.params.id).populate('userId', 'firstName lastName email');
+  const ticket = await SupportTicket.findById(req.params.id).populate(
+    'userId',
+    'firstName lastName email'
+  );
   if (!ticket) throw new NotFoundError('Ticket');
   if (!['submitted', 'seen'].includes(ticket.status)) {
     throw new AppError('Only submitted or seen tickets can be resolved.', 400);

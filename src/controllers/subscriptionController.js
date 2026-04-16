@@ -95,13 +95,14 @@ const subscriptionController = {
     }).select('-__v');
 
     if (!subscription) {
-      return res.json({ subscription: null });
+      return res.json({ success: true, data: null });
     }
 
     const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
 
     res.json({
-      subscription: {
+      success: true,
+      data: {
         ...subscription.toObject(),
         daysLeft,
       },
@@ -147,7 +148,8 @@ const subscriptionController = {
     const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
 
     res.json({
-      subscription: {
+      success: true,
+      data: {
         ...subscription.toObject(),
         daysLeft,
       },
@@ -159,7 +161,9 @@ const subscriptionController = {
    * Kept for backward compatibility with existing routes.
    */
   cancelQueuedPlan: asyncHandler(async (req, res) => {
-    return res.status(400).json({ error: 'Queued plans no longer supported in single-doc-per-user model' });
+    return res
+      .status(400)
+      .json({ error: 'Queued plans no longer supported in single-doc-per-user model' });
   }),
 
   /**
@@ -214,7 +218,9 @@ const subscriptionController = {
     }
 
     // Fetch latest from Stripe
-    const stripeSub = await stripeService.getSubscription(subscription.stripeSubscriptionId);
+    const stripeSub = await stripeService.getSubscription(
+      subscription.stripeSubscriptionId
+    );
 
     // Map Stripe status to 3 states
     const status = mapStripeStatusTo3States(stripeSub.status);

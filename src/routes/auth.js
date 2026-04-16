@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const express = require('express');
+
 const jwt = require('jsonwebtoken');
 
 const router = express.Router();
@@ -9,6 +10,8 @@ router.use(express.json({ limit: '10kb' }));
 router.use(express.urlencoded({ limit: '10kb', extended: false }));
 const { body } = require('express-validator');
 const bcrypt = require('bcryptjs');
+const passport = require('passport');
+const speakeasy = require('speakeasy');
 
 const authController = require('../controllers/authController');
 
@@ -24,7 +27,11 @@ function setAuthCookie(res, token) {
 }
 const { auth, incrementUserTokenVersion } = require('../middleware/auth');
 const { requireDbConnection } = require('../middleware/dbConnection');
-const { authLimiter, signupLimiter, verificationPollLimiter } = require('../middleware/rateLimiter');
+const {
+  authLimiter,
+  signupLimiter,
+  verificationPollLimiter,
+} = require('../middleware/rateLimiter');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 const User = require('../models/User');
 const { sendPasswordReset, sendEmailVerification } = require('../services/email');
@@ -44,7 +51,10 @@ router.post(
   [
     body('firstName').trim().notEmpty().withMessage('First name is required'),
     body('lastName').trim().notEmpty().withMessage('Last name is required'),
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    body('email')
+      .isEmail()
+      .withMessage('Enter a valid email')
+      .normalizeEmail({ gmail_remove_dots: false }),
     body('password')
       .isLength({ min: 8 })
       .withMessage('Password must be at least 8 chars'),
@@ -70,7 +80,10 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    body('email')
+      .isEmail()
+      .withMessage('Enter a valid email')
+      .normalizeEmail({ gmail_remove_dots: false }),
     body('password').notEmpty().withMessage('Password is required'),
     handleValidationErrors,
   ],
@@ -117,10 +130,15 @@ router.get('/verify-email', requireDbConnection, async (req, res) => {
   try {
     const verificationToken = req.query.token;
     if (!verificationToken) {
-    return res.status(400).json({ success: false, error: 'Verification token is required.' });
-  }
+      return res
+        .status(400)
+        .json({ success: false, error: 'Verification token is required.' });
+    }
 
-  const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(verificationToken)
+      .digest('hex');
 
     const user = await User.findOne({
       emailVerificationToken: hashedToken,
@@ -128,7 +146,9 @@ router.get('/verify-email', requireDbConnection, async (req, res) => {
     }).select('+emailVerificationToken +emailVerificationExpires');
 
     if (!user) {
-      return res.status(400).json({ success: false, error: 'Invalid or expired verification token.' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid or expired verification token.' });
     }
 
     user.isEmailVerified = true;
@@ -146,7 +166,13 @@ router.get('/verify-email', requireDbConnection, async (req, res) => {
     res.json({
       success: true,
       token,
-      user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (err) {
     logger.error('Email verification error', { error: err.message });
@@ -166,7 +192,10 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    body('email')
+      .isEmail()
+      .withMessage('Enter a valid email')
+      .normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
   async (req, res) => {
@@ -177,19 +206,31 @@ router.post(
 
       // Always return 200 to avoid email enumeration
       if (!user || user.isEmailVerified) {
-        return res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
+        return res.json({
+          success: true,
+          message: 'If that email exists and is unverified, a new link has been sent.',
+        });
       }
 
       const rawToken = crypto.randomBytes(32).toString('hex');
-      user.emailVerificationToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+      user.emailVerificationToken = crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex');
       user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await user.save({ validateBeforeSave: false });
 
       sendEmailVerification(user.email, user.firstName, rawToken).catch(err => {
-        logger.error('Failed to resend verification email', { userId: user._id, error: err.message });
+        logger.error('Failed to resend verification email', {
+          userId: user._id,
+          error: err.message,
+        });
       });
 
-      res.json({ success: true, message: 'If that email exists and is unverified, a new link has been sent.' });
+      res.json({
+        success: true,
+        message: 'If that email exists and is unverified, a new link has been sent.',
+      });
     } catch (err) {
       logger.error('Resend verification error', { error: err.message });
       res.status(500).json({ success: false, error: 'Server error' });
@@ -207,7 +248,10 @@ router.post(
   requireDbConnection,
   verificationPollLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    body('email')
+      .isEmail()
+      .withMessage('Enter a valid email')
+      .normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
   async (req, res) => {
@@ -235,7 +279,13 @@ router.post(
         success: true,
         verified: true,
         token,
-        user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+        },
       });
     } catch (err) {
       logger.error('Check verification error', { error: err.message });
@@ -256,7 +306,10 @@ router.post(
   requireDbConnection,
   authLimiter,
   [
-    body('email').isEmail().withMessage('Enter a valid email').normalizeEmail({ gmail_remove_dots: false }),
+    body('email')
+      .isEmail()
+      .withMessage('Enter a valid email')
+      .normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
   async (req, res) => {
@@ -264,7 +317,10 @@ router.post(
       const user = await User.findOne({ email: req.body.email });
       // Always return 200 to avoid email enumeration
       if (!user) {
-        return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+        return res.json({
+          success: true,
+          message: 'If that email exists, a reset link has been sent.',
+        });
       }
 
       // Generate a raw token; store its SHA-256 hash in the DB
@@ -278,14 +334,23 @@ router.post(
       try {
         await sendPasswordReset(user.email, user.firstName, rawToken);
       } catch (emailErr) {
-        logger.error('Failed to send password reset email', { userId: user._id, error: emailErr.message });
+        logger.error('Failed to send password reset email', {
+          userId: user._id,
+          error: emailErr.message,
+        });
         user.passwordResetToken = undefined;
         user.resetPasswordExpires = undefined;
         await user.save({ validateBeforeSave: false });
-        return res.status(500).json({ success: false, error: 'Could not send reset email. Please try again.' });
+        return res.status(500).json({
+          success: false,
+          error: 'Could not send reset email. Please try again.',
+        });
       }
 
-      res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+      res.json({
+        success: true,
+        message: 'If that email exists, a reset link has been sent.',
+      });
     } catch (err) {
       logger.error('Forgot password error', { error: err.message });
       res.status(500).json({ success: false, error: 'Server error' });
@@ -306,12 +371,17 @@ router.post(
   authLimiter,
   [
     body('token').notEmpty().withMessage('Reset token is required'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    body('password')
+      .isLength({ min: 8 })
+      .withMessage('Password must be at least 8 characters'),
     handleValidationErrors,
   ],
   async (req, res) => {
     try {
-      const hashedToken = crypto.createHash('sha256').update(req.body.token).digest('hex');
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(req.body.token)
+        .digest('hex');
 
       const user = await User.findOne({
         passwordResetToken: hashedToken,
@@ -319,7 +389,9 @@ router.post(
       });
 
       if (!user) {
-        return res.status(400).json({ success: false, error: 'Invalid or expired reset token.' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'Invalid or expired reset token.' });
       }
 
       // Bump tokenVersion inline so it is atomic with the password save.
@@ -343,7 +415,6 @@ router.post(
 // ============================
 // Social Login Routes (Passport.js redirect flow)
 // ============================
-const passport = require('passport');
 
 /**
  * Shared callback handler — runs after any social provider authenticates.
@@ -374,7 +445,10 @@ async function handleSocialCallback(req, res) {
     );
     setAuthCookie(res, token);
     User.findByIdAndUpdate(user._id, { lastLoggedIn: new Date() }).catch(err =>
-      logger.warn('Failed to update lastLoggedIn for social user', { userId: user._id, error: err.message })
+      logger.warn('Failed to update lastLoggedIn for social user', {
+        userId: user._id,
+        error: err.message,
+      })
     );
     logger.info('✅ SOCIAL LOGIN SUCCESS', { userId: user._id, role: user.role });
 
@@ -388,30 +462,54 @@ async function handleSocialCallback(req, res) {
 }
 
 // Google
-router.get('/google', authLimiter, passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
-router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+router.get(
+  '/google',
+  authLimiter,
+  passport.authenticate('google', { scope: ['profile', 'email'], session: false })
+);
+router.get(
+  '/google/callback',
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: '/login?error=google_auth_failed',
+  }),
   handleSocialCallback
 );
 
 // Facebook
-router.get('/facebook', authLimiter, passport.authenticate('facebook', { scope: ['email'], session: false }));
-router.get('/facebook/callback',
-  passport.authenticate('facebook', { session: false, failureRedirect: '/login?error=facebook_auth_failed' }),
+router.get(
+  '/facebook',
+  authLimiter,
+  passport.authenticate('facebook', { scope: ['email'], session: false })
+);
+router.get(
+  '/facebook/callback',
+  passport.authenticate('facebook', {
+    session: false,
+    failureRedirect: '/login?error=facebook_auth_failed',
+  }),
   handleSocialCallback
 );
 
 // Twitter/X (OAuth 1.0a)
 router.get('/twitter', authLimiter, passport.authenticate('twitter', { session: false }));
-router.get('/twitter/callback',
-  passport.authenticate('twitter', { session: false, failureRedirect: '/login?error=twitter_auth_failed' }),
+router.get(
+  '/twitter/callback',
+  passport.authenticate('twitter', {
+    session: false,
+    failureRedirect: '/login?error=twitter_auth_failed',
+  }),
   handleSocialCallback
 );
 
 // Apple (POST callback — Apple uses response_mode: form_post)
 router.get('/apple', authLimiter, passport.authenticate('apple', { session: false }));
-router.post('/apple/callback',
-  passport.authenticate('apple', { session: false, failureRedirect: '/login?error=apple_auth_failed' }),
+router.post(
+  '/apple/callback',
+  passport.authenticate('apple', {
+    session: false,
+    failureRedirect: '/login?error=apple_auth_failed',
+  }),
   handleSocialCallback
 );
 
@@ -430,7 +528,6 @@ router.post(
 // ============================
 // 2FA Routes
 // ============================
-const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
 // Per-tempToken brute-force protection: max 5 attempts per issued tempToken
@@ -438,10 +535,17 @@ const QRCode = require('qrcode');
 const _2faAttempts = new Map();
 function _check2faAttempt(userId, iat) {
   const key = `${userId}:${iat}`;
-  const record = _2faAttempts.get(key) || { count: 0, expiresAt: Date.now() + 5 * 60 * 1000 };
+  const record = _2faAttempts.get(key) || {
+    count: 0,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  };
   if (Date.now() > record.expiresAt) {
     _2faAttempts.delete(key);
-    return { allowed: true, key, record: { count: 0, expiresAt: Date.now() + 5 * 60 * 1000 } };
+    return {
+      allowed: true,
+      key,
+      record: { count: 0, expiresAt: Date.now() + 5 * 60 * 1000 },
+    };
   }
   return { allowed: record.count < 5, key, record };
 }
@@ -473,7 +577,12 @@ router.post('/2fa/setup', auth, async (req, res) => {
     // SECURITY: Embed tokenVersion from the fresh DB doc so this setupToken is invalidated
     // if the user logs out (which bumps tokenVersion) before completing 2FA setup
     const setupToken = jwt.sign(
-      { id: req.user.id, twoFactorSecret: secret.base32, setupPending: true, tokenVersion: req.userDoc.tokenVersion || 0 },
+      {
+        id: req.user.id,
+        twoFactorSecret: secret.base32,
+        setupPending: true,
+        tokenVersion: req.userDoc.tokenVersion || 0,
+      },
       process.env.JWT_SECRET,
       { expiresIn: '10m' }
     );
@@ -496,14 +605,18 @@ router.post('/2fa/verify', auth, async (req, res) => {
   try {
     const { setupToken, code } = req.body;
     if (!setupToken || !code) {
-      return res.status(400).json({ success: false, error: 'setupToken and code are required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'setupToken and code are required' });
     }
 
     let payload;
     try {
       payload = jwt.verify(setupToken, process.env.JWT_SECRET);
     } catch {
-      return res.status(400).json({ success: false, error: 'Invalid or expired setup token' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid or expired setup token' });
     }
 
     if (!payload.setupPending || payload.id !== req.user.id) {
@@ -513,7 +626,10 @@ router.post('/2fa/verify', auth, async (req, res) => {
     // SECURITY: Verify the setupToken was issued in the current session (not a stale pre-logout token)
     const currentUser = await User.findById(req.user.id).select('+tokenVersion');
     if (!currentUser || (payload.tokenVersion ?? 0) !== (currentUser.tokenVersion || 0)) {
-      return res.status(400).json({ success: false, error: 'Setup token is no longer valid. Please restart 2FA setup.' });
+      return res.status(400).json({
+        success: false,
+        error: 'Setup token is no longer valid. Please restart 2FA setup.',
+      });
     }
 
     const valid = speakeasy.totp.verify({
@@ -528,8 +644,12 @@ router.post('/2fa/verify', auth, async (req, res) => {
     }
 
     // Generate backup codes
-    const backupCodes = Array.from({ length: 8 }, () => crypto.randomBytes(4).toString('hex'));
-    const hashedBackups = backupCodes.map(c => crypto.createHash('sha256').update(c).digest('hex'));
+    const backupCodes = Array.from({ length: 8 }, () =>
+      crypto.randomBytes(4).toString('hex')
+    );
+    const hashedBackups = backupCodes.map(c =>
+      crypto.createHash('sha256').update(c).digest('hex')
+    );
 
     await User.findByIdAndUpdate(req.user.id, {
       twoFactorSecret: payload.twoFactorSecret,
@@ -555,7 +675,9 @@ router.post('/2fa/disable', auth, async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ success: false, error: 'code is required' });
 
-    const user = await User.findById(req.user.id).select('+twoFactorSecret +twoFactorEnabled');
+    const user = await User.findById(req.user.id).select(
+      '+twoFactorSecret +twoFactorEnabled'
+    );
     if (!user || !user.twoFactorEnabled) {
       return res.status(400).json({ success: false, error: '2FA is not enabled' });
     }
@@ -595,14 +717,18 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
   try {
     const { tempToken, code } = req.body;
     if (!tempToken || !code) {
-      return res.status(400).json({ success: false, error: 'tempToken and code are required' });
+      return res
+        .status(400)
+        .json({ success: false, error: 'tempToken and code are required' });
     }
 
     let payload;
     try {
       payload = jwt.verify(tempToken, process.env.JWT_SECRET);
     } catch {
-      return res.status(401).json({ success: false, error: 'Invalid or expired session' });
+      return res
+        .status(401)
+        .json({ success: false, error: 'Invalid or expired session' });
     }
 
     if (!payload.twoFactorPending) {
@@ -610,13 +736,22 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
     }
 
     // Brute-force guard: max 5 failed attempts per tempToken
-    const { allowed, key: attemptKey, record: attemptRecord } = _check2faAttempt(payload.id, payload.iat);
+    const {
+      allowed,
+      key: attemptKey,
+      record: attemptRecord,
+    } = _check2faAttempt(payload.id, payload.iat);
     if (!allowed) {
       logger.warn('2FA brute-force limit reached', { userId: payload.id });
-      return res.status(429).json({ success: false, error: 'Too many failed attempts. Please log in again.' });
+      return res.status(429).json({
+        success: false,
+        error: 'Too many failed attempts. Please log in again.',
+      });
     }
 
-    const user = await User.findById(payload.id).select('+twoFactorSecret +twoFactorBackupCodes +tokenVersion');
+    const user = await User.findById(payload.id).select(
+      '+twoFactorSecret +twoFactorBackupCodes +tokenVersion'
+    );
     if (!user) return res.status(401).json({ success: false, error: 'User not found' });
 
     // Guard: reject deleted accounts — they must not be able to complete login
@@ -647,7 +782,9 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
     if (!valid) {
       _record2faAttempt(attemptKey, attemptRecord);
       logger.warn('2FA authentication failed', { userId: user._id });
-      return res.status(401).json({ success: false, error: 'Invalid authentication code' });
+      return res
+        .status(401)
+        .json({ success: false, error: 'Invalid authentication code' });
     }
 
     _clear2faAttempt(attemptKey);
@@ -667,7 +804,13 @@ router.post('/2fa/authenticate', authLimiter, async (req, res) => {
       success: true,
       data: {
         token,
-        user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role },
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+        },
       },
     });
   } catch (err) {

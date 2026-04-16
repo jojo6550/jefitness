@@ -21,7 +21,7 @@ describe('authController.socialConsent', () => {
       body: {},
       ip: '127.0.0.1',
       headers: { 'user-agent': 'jest-test' },
-      get: (h) => req.headers[h.toLowerCase()],
+      get: h => req.headers[h.toLowerCase()],
     };
     res = { cookie: jest.fn(), json: jest.fn() };
     next = jest.fn();
@@ -76,7 +76,9 @@ describe('authController.socialConsent', () => {
   });
 
   it('calls next with AuthenticationError when consentPending flag is missing', async () => {
-    const badToken = jwt.sign({ userId: 'uid' }, process.env.JWT_SECRET, { expiresIn: '10m' });
+    const badToken = jwt.sign({ userId: 'uid' }, process.env.JWT_SECRET, {
+      expiresIn: '10m',
+    });
     req.body.consentToken = badToken;
 
     await socialConsent(req, res, next);

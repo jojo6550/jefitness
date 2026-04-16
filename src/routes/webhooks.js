@@ -64,13 +64,18 @@ async function handleStripeWebhook(req, res) {
     // req.body is a raw Buffer here because this route is registered before express.json().
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    logger.error('Security event: webhook_signature_verification_failed', { error: err.message, ip: req.ip });
+    logger.error('Security event: webhook_signature_verification_failed', {
+      error: err.message,
+      ip: req.ip,
+    });
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // SECURITY: Validate event structure
   if (!event || !event.id || !event.type || !event.data || !event.data.object) {
-    logger.error('Security event: invalid_webhook_event_structure', { eventId: event?.id || 'unknown' });
+    logger.error('Security event: invalid_webhook_event_structure', {
+      eventId: event?.id || 'unknown',
+    });
     return res.status(400).send('Invalid event structure');
   }
 
@@ -78,7 +83,10 @@ async function handleStripeWebhook(req, res) {
 
   // SECURITY: Check if event is in whitelist
   if (!ALLOWED_WEBHOOK_EVENTS.has(event.type)) {
-    logger.warn('Unhandled webhook event type', { eventType: event.type, eventId: event.id });
+    logger.warn('Unhandled webhook event type', {
+      eventType: event.type,
+      eventId: event.id,
+    });
     return res
       .status(200)
       .json({ received: true, processed: false, reason: 'Event type not handled' });
@@ -87,7 +95,10 @@ async function handleStripeWebhook(req, res) {
   // SECURITY: Replay protection — check if event was already processed
   const alreadyProcessed = await isWebhookEventProcessed(event.id);
   if (alreadyProcessed) {
-    logger.warn('Security event: webhook_replay_attempt', { eventId: event.id, eventType: event.type });
+    logger.warn('Security event: webhook_replay_attempt', {
+      eventId: event.id,
+      eventType: event.type,
+    });
     return res
       .status(200)
       .json({ received: true, processed: false, reason: 'Event already processed' });
@@ -141,7 +152,11 @@ async function handleStripeWebhook(req, res) {
 
     res.status(200).json({ received: true, processed: true });
   } catch (error) {
-    logger.error('Error processing webhook event', { eventType: event.type, eventId: event.id, error: error.message });
+    logger.error('Error processing webhook event', {
+      eventType: event.type,
+      eventId: event.id,
+      error: error.message,
+    });
     // Always return 200 so Stripe does not keep retrying a bad event.
     // The error is logged for investigation.
     res.status(200).json({ received: true, processed: false, error: error.message });
@@ -231,24 +246,40 @@ async function handleSubscriptionUpsert(subscription) {
   const user = await User.findOne({ stripeCustomerId: subscription.customer });
 
   if (!user) {
-    logger.warn('No user found for Stripe customer', { customerId: subscription.customer, subscriptionId: subscription.id });
+    logger.warn('No user found for Stripe customer', {
+      customerId: subscription.customer,
+      subscriptionId: subscription.id,
+    });
     return;
   }
 
   const payload = await buildSubscriptionPayload(subscription);
 
   // Guard: don't let webhook move currentPeriodEnd backward (protects admin extensions)
-  const existingForUpsert = await Subscription.findOne({ stripeSubscriptionId: subscription.id }, { currentPeriodEnd: 1 });
-  if (existingForUpsert?.currentPeriodEnd && payload.currentPeriodEnd && existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd) {
+  const existingForUpsert = await Subscription.findOne(
+    { stripeSubscriptionId: subscription.id },
+    { currentPeriodEnd: 1 }
+  );
+  if (
+    existingForUpsert?.currentPeriodEnd &&
+    payload.currentPeriodEnd &&
+    existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd
+  ) {
     payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
   }
 
   // Check if this subscription was previously marked as a queued plan
-  const existing = await Subscription.findOne({ stripeSubscriptionId: subscription.id }, { isQueuedPlan: 1 }).lean();
+  const existing = await Subscription.findOne(
+    { stripeSubscriptionId: subscription.id },
+    { isQueuedPlan: 1 }
+  ).lean();
   const wasQueued = existing?.isQueuedPlan === true;
 
   // If it was queued and is now active (trial ended, Stripe charged), clear the queued flag
-  const clearQueuedFlag = wasQueued && mapStripeStatusTo3States(subscription.status) === 'active' ? { isQueuedPlan: false } : {};
+  const clearQueuedFlag =
+    wasQueued && mapStripeStatusTo3States(subscription.status) === 'active'
+      ? { isQueuedPlan: false }
+      : {};
 
   // Build queued plan object if marked queued
   const isQueued = subscription.metadata?.is_queued === 'true';
@@ -269,7 +300,13 @@ async function handleSubscriptionUpsert(subscription) {
     { upsert: true, new: true }
   );
 
-  logger.info('Subscription upserted', { docId: doc._id, status: doc.status, plan: doc.plan, wasQueued, activated: wasQueued && !doc.isQueuedPlan });
+  logger.info('Subscription upserted', {
+    docId: doc._id,
+    status: doc.status,
+    plan: doc.plan,
+    wasQueued,
+    activated: wasQueued && !doc.isQueuedPlan,
+  });
 
   // Sync subscription ID to user account data.
   // For queued plans that haven't activated yet, do NOT overwrite the active sub reference.
@@ -283,7 +320,10 @@ async function handleSubscriptionUpsert(subscription) {
         },
       }
     );
-    logger.info('User account synced', { userId: user._id, subscriptionId: subscription.id });
+    logger.info('User account synced', {
+      userId: user._id,
+      subscriptionId: subscription.id,
+    });
   }
 }
 
@@ -311,9 +351,14 @@ async function handleSubscriptionDeleted(subscription) {
   );
 
   if (!sub) {
-    logger.warn('Subscription not found in DB on deletion event', { stripeSubscriptionId: subscription.id });
+    logger.warn('Subscription not found in DB on deletion event', {
+      stripeSubscriptionId: subscription.id,
+    });
   } else {
-    logger.info('Subscription cancelled in DB', { stripeSubscriptionId: subscription.id, status: 'cancelled' });
+    logger.info('Subscription cancelled in DB', {
+      stripeSubscriptionId: subscription.id,
+      status: 'cancelled',
+    });
   }
 }
 
@@ -345,7 +390,10 @@ async function handleInvoicePaid(invoice) {
         : null;
     }
   } catch (err) {
-    logger.warn('Could not fetch subscription from Stripe', { stripeSubscriptionId: invoice.subscription, error: err.message });
+    logger.warn('Could not fetch subscription from Stripe', {
+      stripeSubscriptionId: invoice.subscription,
+      error: err.message,
+    });
   }
 
   const updatePayload = {
@@ -355,8 +403,14 @@ async function handleInvoicePaid(invoice) {
   if (currentPeriodStart) updatePayload.currentPeriodStart = currentPeriodStart;
   if (currentPeriodEnd) {
     // Guard: don't let invoice.paid move currentPeriodEnd backward (protects admin extensions)
-    const existingForInvoice = await Subscription.findOne({ stripeSubscriptionId: invoice.subscription }, { currentPeriodEnd: 1 });
-    if (!existingForInvoice?.currentPeriodEnd || currentPeriodEnd > existingForInvoice.currentPeriodEnd) {
+    const existingForInvoice = await Subscription.findOne(
+      { stripeSubscriptionId: invoice.subscription },
+      { currentPeriodEnd: 1 }
+    );
+    if (
+      !existingForInvoice?.currentPeriodEnd ||
+      currentPeriodEnd > existingForInvoice.currentPeriodEnd
+    ) {
       updatePayload.currentPeriodEnd = currentPeriodEnd;
     }
   }
@@ -368,9 +422,14 @@ async function handleInvoicePaid(invoice) {
   );
 
   if (sub) {
-    logger.info('Subscription activated/renewed in DB', { docId: sub._id, status: 'active' });
+    logger.info('Subscription activated/renewed in DB', {
+      docId: sub._id,
+      status: 'active',
+    });
   } else {
-    logger.warn('Subscription not found in DB on invoice.paid', { stripeSubscriptionId: invoice.subscription });
+    logger.warn('Subscription not found in DB on invoice.paid', {
+      stripeSubscriptionId: invoice.subscription,
+    });
   }
 }
 
@@ -399,7 +458,9 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     const purchase = await Purchase.findOne({ stripePaymentIntentId: paymentIntent.id });
 
     if (!purchase) {
-      logger.warn('No purchase found for payment intent', { paymentIntentId: paymentIntent.id });
+      logger.warn('No purchase found for payment intent', {
+        paymentIntentId: paymentIntent.id,
+      });
       return;
     }
 
@@ -407,11 +468,14 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     purchase.status = 'completed';
     await purchase.save();
 
-    logger.info('Purchase marked as completed', { purchaseId: purchase._id, paymentIntentId: paymentIntent.id });
+    logger.info('Purchase marked as completed', {
+      purchaseId: purchase._id,
+      paymentIntentId: paymentIntent.id,
+    });
   } catch (err) {
     logger.error('Error handling payment intent succeeded', {
       paymentIntentId: paymentIntent.id,
-      error: err.message
+      error: err.message,
     });
   }
 }
@@ -425,7 +489,9 @@ async function handlePaymentIntentFailed(paymentIntent) {
     const purchase = await Purchase.findOne({ stripePaymentIntentId: paymentIntent.id });
 
     if (!purchase) {
-      logger.warn('No purchase found for payment intent', { paymentIntentId: paymentIntent.id });
+      logger.warn('No purchase found for payment intent', {
+        paymentIntentId: paymentIntent.id,
+      });
       return;
     }
 
@@ -433,11 +499,14 @@ async function handlePaymentIntentFailed(paymentIntent) {
     purchase.status = 'failed';
     await purchase.save();
 
-    logger.info('Purchase marked as failed', { purchaseId: purchase._id, paymentIntentId: paymentIntent.id });
+    logger.info('Purchase marked as failed', {
+      purchaseId: purchase._id,
+      paymentIntentId: paymentIntent.id,
+    });
   } catch (err) {
     logger.error('Error handling payment intent failed', {
       paymentIntentId: paymentIntent.id,
-      error: err.message
+      error: err.message,
     });
   }
 }
@@ -471,7 +540,9 @@ async function handleCheckoutSessionCompleted(session) {
         stripeSub = await stripe.subscriptions.retrieve(session.subscription);
       }
     } catch (err) {
-      logger.warn('Could not fetch subscription from Stripe on checkout', { error: err.message });
+      logger.warn('Could not fetch subscription from Stripe on checkout', {
+        error: err.message,
+      });
     }
 
     if (stripeSub) {
@@ -496,7 +567,12 @@ async function handleCheckoutSessionCompleted(session) {
         { $set: updatePayload },
         { upsert: true, new: true }
       );
-      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan, status: doc.status, isQueuedPlan: isQueued });
+      logger.info('Subscription upserted via checkout', {
+        docId: doc._id,
+        plan: doc.plan,
+        status: doc.status,
+        isQueuedPlan: isQueued,
+      });
 
       // For queued subs, do NOT overwrite user.stripeSubscriptionId — the active sub still owns that reference
       if (!isQueued) {
@@ -509,7 +585,10 @@ async function handleCheckoutSessionCompleted(session) {
             },
           }
         );
-        logger.info('User account synced via checkout', { userId: user._id, subscriptionId: session.subscription });
+        logger.info('User account synced via checkout', {
+          userId: user._id,
+          subscriptionId: session.subscription,
+        });
       }
     }
     return;
@@ -566,9 +645,14 @@ async function handleCheckoutSessionCompleted(session) {
         purchase.stripePaymentIntentId = session.payment_intent;
         purchase.status = 'completed';
         await purchase.save();
-        logger.info('Product purchase completed', { purchaseId: purchase._id, userId: user._id });
+        logger.info('Product purchase completed', {
+          purchaseId: purchase._id,
+          userId: user._id,
+        });
       } else {
-        logger.warn('Purchase record not found or already processed', { sessionId: session.id });
+        logger.warn('Purchase record not found or already processed', {
+          sessionId: session.id,
+        });
       }
     }
   }

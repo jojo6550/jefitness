@@ -63,8 +63,11 @@ async function bulkDeleteClients(req, res) {
     }
 
     // Only delete non-admin users
-    const users = await User.find({ _id: { $in: userIds }, role: { $ne: 'admin' } }).lean();
-    const safeIds = users.map((u) => u._id.toString());
+    const users = await User.find({
+      _id: { $in: userIds },
+      role: { $ne: 'admin' },
+    }).lean();
+    const safeIds = users.map(u => u._id.toString());
 
     await Subscription.deleteMany({ userId: { $in: safeIds } });
     await User.deleteMany({ _id: { $in: safeIds } });
@@ -74,7 +77,10 @@ async function bulkDeleteClients(req, res) {
       userIds: safeIds,
     });
 
-    res.json({ msg: `Deleted ${safeIds.length} client(s)`, deletedCount: safeIds.length });
+    res.json({
+      msg: `Deleted ${safeIds.length} client(s)`,
+      deletedCount: safeIds.length,
+    });
   } catch (err) {
     logger.error('Bulk delete failed', { error: err.message });
     res.status(500).json({ msg: 'Bulk delete failed' });
@@ -97,11 +103,18 @@ async function createSubscription(req, res) {
     // Validate planKey
     const validPlans = ['1-month', '3-month', '6-month', '12-month'];
     if (!planKey || !validPlans.includes(planKey)) {
-      return res.status(400).json({ msg: 'Invalid planKey. Must be one of: ' + validPlans.join(', ') });
+      return res
+        .status(400)
+        .json({ msg: 'Invalid planKey. Must be one of: ' + validPlans.join(', ') });
     }
 
     // Validate overrideDays
-    const planDurations = { '1-month': 30, '3-month': 90, '6-month': 180, '12-month': 365 };
+    const planDurations = {
+      '1-month': 30,
+      '3-month': 90,
+      '6-month': 180,
+      '12-month': 365,
+    };
     const maxDays = planDurations[planKey] * 2;
     if (overrideDays !== undefined) {
       const days = parseInt(overrideDays, 10);
@@ -109,7 +122,9 @@ async function createSubscription(req, res) {
         return res.status(400).json({ msg: 'overrideDays must be a positive integer' });
       }
       if (days > maxDays) {
-        return res.status(400).json({ msg: `overrideDays cannot exceed ${maxDays} for the ${planKey} plan` });
+        return res
+          .status(400)
+          .json({ msg: `overrideDays cannot exceed ${maxDays} for the ${planKey} plan` });
       }
     }
 
@@ -119,7 +134,8 @@ async function createSubscription(req, res) {
     // Find user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: 'User not found' });
-    if (user.role === 'admin') return res.status(400).json({ msg: 'Cannot add subscription to admin account' });
+    if (user.role === 'admin')
+      return res.status(400).json({ msg: 'Cannot add subscription to admin account' });
 
     // Admin day override: DB-only extend if active sub exists, else fall through to Stripe creation
     if (overrideDays !== undefined) {
@@ -131,34 +147,39 @@ async function createSubscription(req, res) {
       if (!existingSub) {
         // No active sub — fall through to Stripe creation path below
       } else {
+        const updatedSub = await Subscription.findByIdAndUpdate(
+          existingSub._id,
+          {
+            $set: { currentPeriodEnd: newPeriodEnd, status: 'active' },
+            $push: {
+              statusHistory: {
+                status: 'active',
+                changedAt: now,
+                reason: `Admin extended by ${days} days`,
+              },
+            },
+          },
+          { new: true }
+        );
 
-      const updatedSub = await Subscription.findByIdAndUpdate(
-        existingSub._id,
-        {
-          $set: { currentPeriodEnd: newPeriodEnd, status: 'active' },
-          $push: { statusHistory: { status: 'active', changedAt: now, reason: `Admin extended by ${days} days` } },
-        },
-        { new: true }
-      );
+        logger.logAdminAction('subscription_extended', adminId, {
+          userId,
+          plan: existingSub.plan,
+          overrideDays: days,
+          subscriptionId: existingSub._id.toString(),
+          newPeriodEnd: newPeriodEnd.toISOString(),
+        });
 
-      logger.logAdminAction('subscription_extended', adminId, {
-        userId,
-        plan: existingSub.plan,
-        overrideDays: days,
-        subscriptionId: existingSub._id.toString(),
-        newPeriodEnd: newPeriodEnd.toISOString(),
-      });
-
-      return res.json({
-        msg: 'Subscription extended successfully',
-        subscription: {
-          plan: updatedSub.plan,
-          status: 'active',
-          currentPeriodEnd: newPeriodEnd,
-          daysLeft: daysLeftUntil(newPeriodEnd),
-          stripeSubscriptionId: existingSub.stripeSubscriptionId,
-        },
-      });
+        return res.json({
+          msg: 'Subscription extended successfully',
+          subscription: {
+            plan: updatedSub.plan,
+            status: 'active',
+            currentPeriodEnd: newPeriodEnd,
+            daysLeft: daysLeftUntil(newPeriodEnd),
+            stripeSubscriptionId: existingSub.stripeSubscriptionId,
+          },
+        });
       } // end else (existing sub extend)
     } // end if (overrideDays !== undefined) — no existing sub falls through
 
@@ -181,7 +202,7 @@ async function createSubscription(req, res) {
       return res.status(400).json({ msg: `No active Stripe plan found for ${planKey}` });
     }
 
-// Ensure Stripe customer exists (DEFENSIVE: verify even if DB has ID)
+    // Ensure Stripe customer exists (DEFENSIVE: verify even if DB has ID)
     let stripeCustomerId = user.stripeCustomerId;
     if (!stripeCustomerId) {
       // Create fresh customer
@@ -191,22 +212,27 @@ async function createSubscription(req, res) {
         metadata: { userId: user._id.toString() },
       });
       stripeCustomerId = customer.id;
-      logger.info('Admin: created new Stripe customer', { customerId: stripeCustomerId, userId: user._id.toString() });
+      logger.info('Admin: created new Stripe customer', {
+        customerId: stripeCustomerId,
+        userId: user._id.toString(),
+      });
     } else {
       // Verify existing customer ID is valid
       try {
         await getStripeClient().customers.retrieve(stripeCustomerId);
-        logger.debug('Admin: verified existing Stripe customer', { customerId: stripeCustomerId });
+        logger.debug('Admin: verified existing Stripe customer', {
+          customerId: stripeCustomerId,
+        });
       } catch (custErr) {
         if (custErr.code === 'resource_missing') {
-          logger.warn('Admin: stale customer ID found, creating fresh customer', { 
-            oldCustomerId: stripeCustomerId, 
-            userId: user._id.toString() 
+          logger.warn('Admin: stale customer ID found, creating fresh customer', {
+            oldCustomerId: stripeCustomerId,
+            userId: user._id.toString(),
           });
           // Clear stale DB record and create new
           user.stripeCustomerId = null;
           await user.save();
-          
+
           const customer = await getStripeClient().customers.create({
             email: user.email,
             name: `${user.firstName} ${user.lastName}`,
@@ -230,7 +256,9 @@ async function createSubscription(req, res) {
     if (overrideDays !== undefined) {
       // overrideDays is an admin override — use exact day count via addMonths approximation isn't needed;
       // for arbitrary day counts we add days at the millisecond level which is fine (admin-only path).
-      trialEndDate = new Date(now.getTime() + parseInt(overrideDays, 10) * 24 * 60 * 60 * 1000);
+      trialEndDate = new Date(
+        now.getTime() + parseInt(overrideDays, 10) * 24 * 60 * 60 * 1000
+      );
     } else {
       // Standard plan: use calendar-safe arithmetic from dateUtils
       const planIntervalMap = {
@@ -252,7 +280,9 @@ async function createSubscription(req, res) {
         existingSub.canceledAt = new Date();
         await existingSub.save();
       } catch (cancelErr) {
-        logger.error('Failed to cancel existing subscription before admin create', { error: cancelErr.message });
+        logger.error('Failed to cancel existing subscription before admin create', {
+          error: cancelErr.message,
+        });
       }
     }
 
@@ -261,7 +291,11 @@ async function createSubscription(req, res) {
       customer: stripeCustomerId,
       items: [{ price: plan.stripePriceId }],
       trial_end: trialEnd,
-      metadata: { adminCreated: 'true', adminId: adminId.toString(), userId: userId.toString() },
+      metadata: {
+        adminCreated: 'true',
+        adminId: adminId.toString(),
+        userId: userId.toString(),
+      },
     });
 
     const periodEnd = new Date(stripeSub.trial_end * 1000);
@@ -281,10 +315,16 @@ async function createSubscription(req, res) {
           status: 'trialing',
           amount: plan.unitAmount,
           currency: plan.currency || 'jmd',
-          billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'production' : 'test',
+          billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')
+            ? 'production'
+            : 'test',
         },
         $push: {
-          statusHistory: { status: 'trialing', changedAt: new Date(), reason: 'Admin created' },
+          statusHistory: {
+            status: 'trialing',
+            changedAt: new Date(),
+            reason: 'Admin created',
+          },
         },
       },
       { upsert: true, new: true }
@@ -332,12 +372,20 @@ async function getClientProfile(req, res) {
     const { id } = req.params;
 
     const [user, subscription] = await Promise.all([
-      User.findById(id).select('-password -tokenVersion -emailVerificationToken -emailVerificationExpires -passwordResetToken -resetPasswordExpires -twoFactorSecret -twoFactorBackupCodes').lean(),
-      Subscription.findOne({ userId: id, status: { $in: ['active', 'trialing'] } }).lean(),
+      User.findById(id)
+        .select(
+          '-password -tokenVersion -emailVerificationToken -emailVerificationExpires -passwordResetToken -resetPasswordExpires -twoFactorSecret -twoFactorBackupCodes'
+        )
+        .lean(),
+      Subscription.findOne({
+        userId: id,
+        status: { $in: ['active', 'trialing'] },
+      }).lean(),
     ]);
 
     if (!user) return res.status(404).json({ msg: 'Client not found' });
-    if (user.role === 'admin') return res.status(403).json({ msg: 'Cannot view admin accounts' });
+    if (user.role === 'admin')
+      return res.status(403).json({ msg: 'Cannot view admin accounts' });
 
     res.json({ client: { ...user, subscription: subscription || null } });
   } catch (err) {
@@ -371,7 +419,9 @@ async function extendSubscription(req, res, next) {
     }
 
     if (subscription.status !== 'active' && subscription.status !== 'trialing') {
-      return res.status(400).json({ error: 'Can only extend active or trialing subscriptions' });
+      return res
+        .status(400)
+        .json({ error: 'Can only extend active or trialing subscriptions' });
     }
 
     const newPeriodEnd = new Date(
@@ -398,4 +448,10 @@ async function extendSubscription(req, res, next) {
   }
 }
 
-module.exports = { getMonthlyRevenue, bulkDeleteClients, createSubscription, getClientProfile, extendSubscription };
+module.exports = {
+  getMonthlyRevenue,
+  bulkDeleteClients,
+  createSubscription,
+  getClientProfile,
+  extendSubscription,
+};

@@ -52,11 +52,18 @@ describe('sendEmail', () => {
     beforeEach(() => setResendKey(undefined));
 
     it('returns without throwing', async () => {
-      await expect(sendEmail({ to: 'user@test.com', subject: 'Hi', html: '<p>Hi</p>', text: 'Hi' })).resolves.toBeUndefined();
+      await expect(
+        sendEmail({ to: 'user@test.com', subject: 'Hi', html: '<p>Hi</p>', text: 'Hi' })
+      ).resolves.toBeUndefined();
     });
 
     it('logs a warning', async () => {
-      await sendEmail({ to: 'user@test.com', subject: 'Hi', html: '<p>Hi</p>', text: 'Hi' });
+      await sendEmail({
+        to: 'user@test.com',
+        subject: 'Hi',
+        html: '<p>Hi</p>',
+        text: 'Hi',
+      });
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('RESEND_API_KEY missing'),
         expect.objectContaining({ to: 'user@test.com', subject: 'Hi' })
@@ -64,7 +71,12 @@ describe('sendEmail', () => {
     });
 
     it('does not call Resend SDK', async () => {
-      await sendEmail({ to: 'user@test.com', subject: 'Hi', html: '<p>Hi</p>', text: 'Hi' });
+      await sendEmail({
+        to: 'user@test.com',
+        subject: 'Hi',
+        html: '<p>Hi</p>',
+        text: 'Hi',
+      });
       expect(mockSend).not.toHaveBeenCalled();
     });
   });
@@ -100,11 +112,17 @@ describe('sendEmail', () => {
     it('logs success after sending', async () => {
       mockSend.mockResolvedValueOnce({ data: { id: 'msg_xyz' }, error: null });
       await sendEmail({ to: 'a@b.com', subject: 'S', html: '<p/>', text: '' });
-      expect(logger.info).toHaveBeenCalledWith('Email sent via Resend', expect.any(Object));
+      expect(logger.info).toHaveBeenCalledWith(
+        'Email sent via Resend',
+        expect.any(Object)
+      );
     });
 
     it('throws and logs error when Resend returns an error object', async () => {
-      mockSend.mockResolvedValueOnce({ data: null, error: { message: 'Invalid API key' } });
+      mockSend.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Invalid API key' },
+      });
       await expect(
         sendEmail({ to: 'a@b.com', subject: 'S', html: '<p/>', text: '' })
       ).rejects.toThrow('Invalid API key');

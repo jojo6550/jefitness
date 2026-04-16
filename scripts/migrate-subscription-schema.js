@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const User = require('../src/models/User');
 
 async function migrate() {

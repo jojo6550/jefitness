@@ -106,7 +106,11 @@ router.get('/trainers', async (req, res) => {
       .limit(limit)
       .sort({ firstName: 1, lastName: 1 });
 
-    logger.info('Trainers fetched', { count: trainers.length, page, totalPages: Math.ceil(totalCount / limit) });
+    logger.info('Trainers fetched', {
+      count: trainers.length,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
+    });
     res.json({
       success: true,
       trainers,
@@ -610,11 +614,16 @@ router.get('/data-export', async (req, res) => {
     };
 
     // Log the data export request for compliance
-    logger.logUserAction('gdpr_data_export', req.user.id, {
-      userName: `${user.firstName} ${user.lastName}`,
-      userEmail: user.email,
-      requestedAt: new Date().toISOString(),
-    }, req);
+    logger.logUserAction(
+      'gdpr_data_export',
+      req.user.id,
+      {
+        userName: `${user.firstName} ${user.lastName}`,
+        userEmail: user.email,
+        requestedAt: new Date().toISOString(),
+      },
+      req
+    );
 
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
@@ -687,11 +696,16 @@ router.delete(
       }
 
       // Log the deletion request for compliance and legal purposes
-      logger.logUserAction('gdpr_data_deletion', req.user.id, {
-        userName: `${user.firstName} ${user.lastName}`,
-        userEmail: user.email,
-        reason: req.body.reason,
-      }, req);
+      logger.logUserAction(
+        'gdpr_data_deletion',
+        req.user.id,
+        {
+          userName: `${user.firstName} ${user.lastName}`,
+          userEmail: user.email,
+          reason: req.body.reason,
+        },
+        req
+      );
 
       // Instead of hard deleting, we anonymize the data to maintain referential integrity
       // This is a common GDPR compliance approach
@@ -721,7 +735,10 @@ router.delete(
         note: 'Your account has been anonymized while maintaining necessary records for legal compliance',
       });
     } catch (err) {
-      logger.error('GDPR data deletion error', { userId: req.user.id, error: err.message });
+      logger.error('GDPR data deletion error', {
+        userId: req.user.id,
+        error: err.message,
+      });
       res.status(500).json({ msg: 'Server error during data deletion' });
     }
   }
@@ -840,7 +857,9 @@ router.post(
   '/change-password',
   [
     body('currentPassword').notEmpty().withMessage('Current password is required'),
-    body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters'),
+    body('newPassword')
+      .isLength({ min: 8 })
+      .withMessage('New password must be at least 8 characters'),
   ],
   async (req, res) => {
     try {
@@ -858,11 +877,16 @@ router.post(
 
       const isMatch = await user.comparePassword(currentPassword);
       if (!isMatch) {
-        return res.status(400).json({ success: false, error: 'Current password is incorrect' });
+        return res
+          .status(400)
+          .json({ success: false, error: 'Current password is incorrect' });
       }
 
       if (currentPassword === newPassword) {
-        return res.status(400).json({ success: false, error: 'New password must differ from current password' });
+        return res.status(400).json({
+          success: false,
+          error: 'New password must differ from current password',
+        });
       }
 
       user.password = newPassword; // pre-save hook hashes it
@@ -871,7 +895,10 @@ router.post(
       // Invalidate all other sessions
       await incrementUserTokenVersion(req.user.id);
 
-      res.json({ success: true, message: 'Password changed successfully. Please log in again.' });
+      res.json({
+        success: true,
+        message: 'Password changed successfully. Please log in again.',
+      });
     } catch (err) {
       logger.error('Change password error', { userId: req.user.id, error: err.message });
       res.status(500).json({ success: false, error: 'Server error' });
@@ -931,7 +958,9 @@ router.get('/measurements', async (req, res) => {
     const user = await User.findById(req.user.id).select('measurements');
     if (!user) return res.status(404).json({ success: false, error: 'User not found' });
 
-    const sorted = (user.measurements || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted = (user.measurements || [])
+      .slice()
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
     res.json({ success: true, measurements: sorted });
   } catch (err) {
     logger.error('Get measurements error', { userId: req.user.id, error: err.message });
@@ -944,7 +973,10 @@ router.post(
   '/measurements',
   allowOnlyFields(['date', 'weight', 'neck', 'waist', 'hips', 'chest', 'notes'], true),
   [
-    body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
+    body('weight')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Weight must be a positive number'),
     body('neck').optional().isFloat({ min: 0 }),
     body('waist').optional().isFloat({ min: 0 }),
     body('hips').optional().isFloat({ min: 0 }),

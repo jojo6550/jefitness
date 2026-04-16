@@ -162,7 +162,8 @@ class Logger {
       .filter(([k]) => !['level', 'category'].includes(k))
       .slice(0, 3) // Limit to 3 key-value pairs for readability
       .map(([k, v]) => {
-        const valStr = typeof v === 'object' ? JSON.stringify(v) : String(v).substring(0, 50);
+        const valStr =
+          typeof v === 'object' ? JSON.stringify(v) : String(v).substring(0, 50);
         return `${k}: ${valStr}`;
       });
     return contextPairs.length > 0 ? `${msg} (${contextPairs.join(', ')})` : msg;
@@ -185,29 +186,45 @@ class Logger {
       book_appointment: () => {
         const dateStr = details.date
           ? new Date(details.date).toLocaleDateString('en-US', {
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              timeZone: 'UTC',
             })
           : 'unknown date';
         return `User booked appointment${details.appointmentId ? ` #${details.appointmentId}` : ''} on ${dateStr} at ${details.time || 'unknown time'}`;
       },
-      cancel_appointment: () => `User cancelled appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
-      delete_appointment: () => `User deleted appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
-      view_all_appointments: () => `Admin viewed all appointments${details.resultCount != null ? ` (${details.resultCount} results)` : ''}`,
-      update_appointment: () => `Admin updated appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
+      cancel_appointment: () =>
+        `User cancelled appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
+      delete_appointment: () =>
+        `User deleted appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
+      view_all_appointments: () =>
+        `Admin viewed all appointments${details.resultCount != null ? ` (${details.resultCount} results)` : ''}`,
+      update_appointment: () =>
+        `Admin updated appointment${details.appointmentId ? ` #${details.appointmentId}` : ''}`,
       data_processing_consent_granted: () => 'User granted data processing consent',
-      health_data_consent_granted: () => `User granted health data consent${details.purpose ? ` for: ${details.purpose}` : ''}`,
+      health_data_consent_granted: () =>
+        `User granted health data consent${details.purpose ? ` for: ${details.purpose}` : ''}`,
       marketing_consent_granted: () => 'User granted marketing consent',
       marketing_consent_withdrawn: () => 'User withdrew marketing consent',
-      consent_withdrawn: () => `User withdrew ${details.consentType || 'unknown'} consent`,
+      consent_withdrawn: () =>
+        `User withdrew ${details.consentType || 'unknown'} consent`,
       data_access_requested: () => 'User requested GDPR data access (Article 15)',
-      data_rectification_requested: () => 'User requested data rectification (Article 16)',
-      data_erasure_requested: () => `User requested data erasure (Article 17)${details.reason ? ` — reason: ${details.reason}` : ''}`,
+      data_rectification_requested: () =>
+        'User requested data rectification (Article 16)',
+      data_erasure_requested: () =>
+        `User requested data erasure (Article 17)${details.reason ? ` — reason: ${details.reason}` : ''}`,
       data_portability_requested: () => 'User requested data portability (Article 20)',
-      processing_objection_requested: () => 'User objected to data processing (Article 21)',
-      processing_restriction_requested: () => 'User requested processing restriction (Article 18)',
-      data_breach_affected: () => `User notified as affected by data breach${details.breachId ? ` #${details.breachId}` : ''}`,
+      processing_objection_requested: () =>
+        'User objected to data processing (Article 21)',
+      processing_restriction_requested: () =>
+        'User requested processing restriction (Article 18)',
+      data_breach_affected: () =>
+        `User notified as affected by data breach${details.breachId ? ` #${details.breachId}` : ''}`,
       gdpr_data_export: () => 'User requested GDPR data export',
-      gdpr_data_deletion: () => `User requested account deletion${details.reason ? ` (reason: ${details.reason})` : ''}`,
+      gdpr_data_deletion: () =>
+        `User requested account deletion${details.reason ? ` (reason: ${details.reason})` : ''}`,
     };
     const builder = messages[action];
     return builder ? builder() : action.replace(/_/g, ' ');
@@ -268,8 +285,6 @@ class Logger {
       console.error('DB log insert failed:', dbErr.message);
     }
   }
-
-
 }
 
 // Singleton export

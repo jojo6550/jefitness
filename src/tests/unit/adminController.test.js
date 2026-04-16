@@ -1,7 +1,12 @@
-const { createSubscription, bulkDeleteClients, getMonthlyRevenue } = require('../../controllers/adminController');
+const stripe = require('stripe');
+
+const {
+  createSubscription,
+  bulkDeleteClients,
+  getMonthlyRevenue,
+} = require('../../controllers/adminController');
 const User = require('../../models/User');
 const Subscription = require('../../models/Subscription');
-const stripe = require('stripe');
 
 jest.mock('../../models/User');
 jest.mock('../../models/Subscription');
@@ -19,7 +24,11 @@ describe('adminController.getMonthlyRevenue', () => {
     const req = {};
     const res = { json: jest.fn() };
     await getMonthlyRevenue(req, res);
-    expect(res.json).toHaveBeenCalledWith({ revenue: 0, currency: 'jmd', month: expect.any(String) });
+    expect(res.json).toHaveBeenCalledWith({
+      revenue: 0,
+      currency: 'jmd',
+      month: expect.any(String),
+    });
   });
 });
 

@@ -4,7 +4,10 @@ const Subscription = require('./models/Subscription');
 const User = require('./models/User');
 const { logSecurityEvent, logger } = require('./services/logger');
 const stripeService = require('./services/stripe');
-const { sendSubscriptionReminder, sendTrainerDailySchedule } = require('./services/email');
+const {
+  sendSubscriptionReminder,
+  sendTrainerDailySchedule,
+} = require('./services/email');
 const Appointment = require('./models/Appointment');
 
 /** Subscription statuses considered still active in Stripe */
@@ -35,13 +38,19 @@ const cleanupExpiredSubscriptions = async () => {
         sub.currentPeriodEnd = sub.queuedPlan.currentPeriodEnd;
         sub.queuedPlan = null;
         await sub.save();
-        logger.info('Activated queued plan for subscription', { subscriptionId: sub._id, userId: sub.userId });
+        logger.info('Activated queued plan for subscription', {
+          subscriptionId: sub._id,
+          userId: sub.userId,
+        });
       } else {
         // Cancel subscription
         sub.status = 'canceled';
         sub.canceledAt = now;
         await sub.save();
-        logger.info('Cancelled expired subscription', { subscriptionId: sub._id, userId: sub.userId });
+        logger.info('Cancelled expired subscription', {
+          subscriptionId: sub._id,
+          userId: sub.userId,
+        });
       }
     }
   } catch (error) {
@@ -97,23 +106,42 @@ const startRenewalReminderJob = () => {
             // Suppress all reminders if user already has a queued next plan
             if (await userHasQueuedPlan(sub.userId)) continue;
 
-            const user = await User.findById(sub.userId).select('firstName email privacySettings');
+            const user = await User.findById(sub.userId).select(
+              'firstName email privacySettings'
+            );
             if (!user || !user.email) continue;
             if (user.privacySettings?.marketingEmails === false) continue;
 
             const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
-              year: 'numeric', month: 'long', day: 'numeric',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
             });
-            await sendSubscriptionReminder(user.email, user.firstName, sub.plan, days, renewalDate);
-            logger.info(`Renewal reminder sent (${days}d)`, { userId: user._id, subId: sub._id });
+            await sendSubscriptionReminder(
+              user.email,
+              user.firstName,
+              sub.plan,
+              days,
+              renewalDate
+            );
+            logger.info(`Renewal reminder sent (${days}d)`, {
+              userId: user._id,
+              subId: sub._id,
+            });
           } catch (userErr) {
-            logger.error('Failed to send renewal reminder', { subId: sub._id, error: userErr.message });
+            logger.error('Failed to send renewal reminder', {
+              subId: sub._id,
+              error: userErr.message,
+            });
           }
         }
       }
     } catch (err) {
       logger.error('Renewal reminder job error', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', { jobName: 'renewalReminder', error: err.message });
+      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+        jobName: 'renewalReminder',
+        error: err.message,
+      });
     }
   });
 
@@ -174,15 +202,29 @@ const startTrainerDailyEmailJob = () => {
       for (const { trainer, appointments: trainerApts } of Object.values(byTrainer)) {
         trainerApts.sort((a, b) => a.time.localeCompare(b.time));
         try {
-          await sendTrainerDailySchedule(trainer.email, trainer.firstName, dateStr, trainerApts);
-          logger.info('Trainer daily schedule email sent', { trainerId: trainer._id, count: trainerApts.length });
+          await sendTrainerDailySchedule(
+            trainer.email,
+            trainer.firstName,
+            dateStr,
+            trainerApts
+          );
+          logger.info('Trainer daily schedule email sent', {
+            trainerId: trainer._id,
+            count: trainerApts.length,
+          });
         } catch (emailErr) {
-          logger.error('Failed to send trainer daily schedule email', { trainerId: trainer._id, error: emailErr.message });
+          logger.error('Failed to send trainer daily schedule email', {
+            trainerId: trainer._id,
+            error: emailErr.message,
+          });
         }
       }
     } catch (err) {
       logger.error('Error in trainer daily email job', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', { jobName: 'trainerDailyEmail', error: err.message });
+      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+        jobName: 'trainerDailyEmail',
+        error: err.message,
+      });
     }
   });
 
@@ -214,15 +256,25 @@ const startTenMinuteReminderJob = () => {
         try {
           if (await userHasQueuedPlan(sub.userId)) continue;
 
-          const user = await User.findById(sub.userId).select('firstName email privacySettings');
+          const user = await User.findById(sub.userId).select(
+            'firstName email privacySettings'
+          );
           if (!user?.email) continue;
           if (user.privacySettings?.marketingEmails === false) continue;
 
           const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
           });
 
-          await sendSubscriptionReminder(user.email, user.firstName, sub.plan, '10 minutes', renewalDate);
+          await sendSubscriptionReminder(
+            user.email,
+            user.firstName,
+            sub.plan,
+            '10 minutes',
+            renewalDate
+          );
 
           await Subscription.findByIdAndUpdate(
             sub._id,
@@ -230,9 +282,15 @@ const startTenMinuteReminderJob = () => {
             { runValidators: false }
           );
 
-          logger.info('10-min expiry reminder sent', { subId: sub._id, userId: user._id });
+          logger.info('10-min expiry reminder sent', {
+            subId: sub._id,
+            userId: user._id,
+          });
         } catch (subErr) {
-          logger.error('10-min reminder failed for sub', { subId: sub._id, error: subErr.message });
+          logger.error('10-min reminder failed for sub', {
+            subId: sub._id,
+            error: subErr.message,
+          });
         }
       }
     } catch (err) {
@@ -243,4 +301,10 @@ const startTenMinuteReminderJob = () => {
   logger.info('10-min expiry reminder cron job scheduled (*/1 * * * *)');
 };
 
-module.exports = { cleanupExpiredSubscriptions, startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob };
+module.exports = {
+  cleanupExpiredSubscriptions,
+  startSubscriptionCleanupJob,
+  startRenewalReminderJob,
+  startTrainerDailyEmailJob,
+  startTenMinuteReminderJob,
+};

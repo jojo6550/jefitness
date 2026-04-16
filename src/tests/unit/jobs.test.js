@@ -11,6 +11,7 @@ jest.mock('../../services/logger', () => ({
 jest.mock('../../models/Subscription');
 
 const mongoose = require('mongoose');
+
 const { cleanupExpiredSubscriptions } = require('../../jobs');
 
 describe('Cleanup Jobs', () => {

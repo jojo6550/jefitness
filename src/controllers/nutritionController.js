@@ -35,13 +35,16 @@ const nutritionController = {
         throw new ValidationError(`Food item ${i + 1} requires calories`);
       }
       return {
-        foodName: sanitizeHtml(String(f.foodName), { allowedTags: [], allowedAttributes: {} }).substring(0, 200),
+        foodName: sanitizeHtml(String(f.foodName), {
+          allowedTags: [],
+          allowedAttributes: {},
+        }).substring(0, 200),
         calories: Math.max(0, Number(f.calories) || 0),
-        protein:  Math.max(0, Number(f.protein)  || 0),
-        carbs:    Math.max(0, Number(f.carbs)    || 0),
-        fat:      Math.max(0, Number(f.fat)      || 0),
+        protein: Math.max(0, Number(f.protein) || 0),
+        carbs: Math.max(0, Number(f.carbs) || 0),
+        fat: Math.max(0, Number(f.fat) || 0),
         quantity: Math.max(0.01, Number(f.quantity) || 1),
-        unit:     ['g', 'ml', 'oz', 'serving'].includes(f.unit) ? f.unit : 'g',
+        unit: ['g', 'ml', 'oz', 'serving'].includes(f.unit) ? f.unit : 'g',
       };
     });
 
@@ -53,7 +56,10 @@ const nutritionController = {
       foods: sanitizedFoods,
       totalCalories,
       notes: notes
-        ? sanitizeHtml(String(notes), { allowedTags: [], allowedAttributes: {} }).substring(0, 500)
+        ? sanitizeHtml(String(notes), {
+            allowedTags: [],
+            allowedAttributes: {},
+          }).substring(0, 500)
         : undefined,
     };
 
@@ -79,8 +85,8 @@ const nutritionController = {
    */
   getMeals: asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const page      = parseInt(req.query.page)  || 1;
-    const limit     = Math.min(parseInt(req.query.limit) || 20, 100);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
     const { startDate, endDate, mealType } = req.query;
 
@@ -104,9 +110,9 @@ const nutritionController = {
 
     meals.sort((a, b) => sortOrder * (new Date(b.date) - new Date(a.date)));
 
-    const total      = meals.length;
+    const total = meals.length;
     const startIndex = (page - 1) * limit;
-    const paginated  = meals.slice(startIndex, startIndex + limit);
+    const paginated = meals.slice(startIndex, startIndex + limit);
 
     res.json({
       success: true,
@@ -150,7 +156,9 @@ const nutritionController = {
       throw new ValidationError('Invalid meal ID');
     }
 
-    const user = await User.findById(req.user.id).select('mealLogs firstName lastName email');
+    const user = await User.findById(req.user.id).select(
+      'mealLogs firstName lastName email'
+    );
     if (!user) throw new NotFoundError('User');
 
     const meal = user.mealLogs.id(id);
@@ -197,7 +205,7 @@ const nutritionController = {
       dayMap[day] = (dayMap[day] || 0) + m.totalCalories;
     });
     const uniqueDays = Object.keys(dayMap).length;
-    const totalCals  = Object.values(dayMap).reduce((s, c) => s + c, 0);
+    const totalCals = Object.values(dayMap).reduce((s, c) => s + c, 0);
     const dailyAverageCalories = uniqueDays > 0 ? Math.round(totalCals / uniqueDays) : 0;
 
     // Last 7 days calories
@@ -209,9 +217,11 @@ const nutritionController = {
 
     // Top 5 foods by frequency
     const foodCount = {};
-    active.forEach(m => m.foods.forEach(f => {
-      foodCount[f.foodName] = (foodCount[f.foodName] || 0) + 1;
-    }));
+    active.forEach(m =>
+      m.foods.forEach(f => {
+        foodCount[f.foodName] = (foodCount[f.foodName] || 0) + 1;
+      })
+    );
     const topFoods = Object.entries(foodCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
@@ -219,9 +229,11 @@ const nutritionController = {
 
     // Meal type breakdown
     const mealTypeBreakdown = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
-    active.forEach(m => { mealTypeBreakdown[m.mealType]++; });
+    active.forEach(m => {
+      mealTypeBreakdown[m.mealType]++;
+    });
 
-    const sorted   = [...active].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sorted = [...active].sort((a, b) => new Date(b.date) - new Date(a.date));
     const lastMeal = sorted[0];
 
     res.json({
@@ -259,14 +271,21 @@ const nutritionController = {
     active.forEach(m => {
       const day = new Date(m.date).toISOString().slice(0, 10);
       if (!dayMap[day]) {
-        dayMap[day] = { date: day, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0, mealCount: 0 };
+        dayMap[day] = {
+          date: day,
+          totalCalories: 0,
+          totalProtein: 0,
+          totalCarbs: 0,
+          totalFat: 0,
+          mealCount: 0,
+        };
       }
       dayMap[day].totalCalories += m.totalCalories;
       dayMap[day].mealCount++;
       m.foods.forEach(f => {
         dayMap[day].totalProtein += f.protein || 0;
-        dayMap[day].totalCarbs   += f.carbs   || 0;
-        dayMap[day].totalFat     += f.fat     || 0;
+        dayMap[day].totalCarbs += f.carbs || 0;
+        dayMap[day].totalFat += f.fat || 0;
       });
     });
 
@@ -275,9 +294,9 @@ const nutritionController = {
       .map(d => ({
         ...d,
         totalCalories: Math.round(d.totalCalories),
-        totalProtein:  Math.round(d.totalProtein),
-        totalCarbs:    Math.round(d.totalCarbs),
-        totalFat:      Math.round(d.totalFat),
+        totalProtein: Math.round(d.totalProtein),
+        totalCarbs: Math.round(d.totalCarbs),
+        totalFat: Math.round(d.totalFat),
       }));
 
     res.json({ success: true, dailyTotals });

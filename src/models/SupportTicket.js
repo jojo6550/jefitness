@@ -22,7 +22,13 @@ const SupportTicketSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['bug-report', 'feature-request', 'billing-issue', 'account-issue', 'general-inquiry'],
+      enum: [
+        'bug-report',
+        'feature-request',
+        'billing-issue',
+        'account-issue',
+        'general-inquiry',
+      ],
     },
     status: {
       type: String,
