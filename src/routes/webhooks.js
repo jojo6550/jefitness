@@ -155,6 +155,39 @@ router.post('/', webhookMiddleware, handleStripeWebhook);
 // ===== HELPERS =====
 
 /**
+ * Map Stripe status to 3-state model: 'active', 'cancelled', 'trialing'
+ */
+function mapStripeStatusTo3States(stripeStatus) {
+  if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
+  if (stripeStatus === 'canceled') return 'cancelled';
+  return 'trialing';
+}
+
+/**
+ * Extract queued plan data from Stripe subscription object
+ */
+async function queuedPlanFromStripe(stripeSub) {
+  const priceId = stripeSub.items?.data[0]?.price?.id;
+  const plan = stripeSub.items?.data[0]?.price?.id
+    ? await getPlanNameFromPriceId(priceId)
+    : 'unknown-plan';
+
+  return {
+    plan,
+    stripeSubscriptionId: stripeSub.id,
+    stripePriceId: priceId,
+    currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+  };
+}
+
+/**
+ * Detect environment from Stripe secret key
+ */
+function getEnv() {
+  return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
+}
+
+/**
  * Build the Subscription upsert payload from a Stripe subscription object.
  */
 async function buildSubscriptionPayload(subscription) {
@@ -173,16 +206,14 @@ async function buildSubscriptionPayload(subscription) {
     currentPeriodEnd: subscription.current_period_end
       ? new Date(subscription.current_period_end * 1000)
       : null,
-    status: subscription.status,
+    status: mapStripeStatusTo3States(subscription.status),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
     canceledAt: subscription.canceled_at
       ? new Date(subscription.canceled_at * 1000)
       : null,
     amount: priceItem?.price?.unit_amount || 0,
     currency: priceItem?.price?.currency || 'jmd',
-    billingEnvironment: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')
-      ? 'test'
-      : 'production',
+    billingEnvironment: getEnv(),
     lastWebhookEventAt: new Date(),
   };
 }
@@ -217,11 +248,24 @@ async function handleSubscriptionUpsert(subscription) {
   const wasQueued = existing?.isQueuedPlan === true;
 
   // If it was queued and is now active (trial ended, Stripe charged), clear the queued flag
-  const clearQueuedFlag = wasQueued && subscription.status === 'active' ? { isQueuedPlan: false } : {};
+  const clearQueuedFlag = wasQueued && mapStripeStatusTo3States(subscription.status) === 'active' ? { isQueuedPlan: false } : {};
+
+  // Build queued plan object if marked queued
+  const isQueued = subscription.metadata?.is_queued === 'true';
+  const queuedPlanData = isQueued ? await queuedPlanFromStripe(subscription) : {};
+
+  const updatePayload = {
+    userId: user._id,
+    ...payload,
+    ...clearQueuedFlag,
+  };
+  if (isQueued) {
+    updatePayload.queuedPlan = queuedPlanData;
+  }
 
   const doc = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
-    { $set: { userId: user._id, ...payload, ...clearQueuedFlag } },
+    { $set: updatePayload },
     { upsert: true, new: true }
   );
 
@@ -245,14 +289,14 @@ async function handleSubscriptionUpsert(subscription) {
 
 /**
  * Handles customer.subscription.deleted.
- * Marks the subscription as canceled in MongoDB.
+ * Marks the subscription as cancelled (3-state model) in MongoDB.
  */
 async function handleSubscriptionDeleted(subscription) {
   const sub = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
     {
       $set: {
-        status: 'canceled',
+        status: 'cancelled',
         canceledAt: subscription.canceled_at
           ? new Date(subscription.canceled_at * 1000)
           : new Date(),
@@ -269,7 +313,7 @@ async function handleSubscriptionDeleted(subscription) {
   if (!sub) {
     logger.warn('Subscription not found in DB on deletion event', { stripeSubscriptionId: subscription.id });
   } else {
-    logger.info('Subscription canceled in DB', { stripeSubscriptionId: subscription.id });
+    logger.info('Subscription cancelled in DB', { stripeSubscriptionId: subscription.id, status: 'cancelled' });
   }
 }
 
@@ -279,7 +323,7 @@ async function handleInvoiceCreated(invoice) {
 
 /**
  * Handles invoice.paid and invoice.payment_succeeded.
- * Ensures subscription status is 'active' and period dates are current.
+ * Ensures subscription status is 'active' (3-state model) and period dates are current.
  */
 async function handleInvoicePaid(invoice) {
   logger.info('Invoice paid', { invoiceId: invoice.id });
@@ -324,7 +368,7 @@ async function handleInvoicePaid(invoice) {
   );
 
   if (sub) {
-    logger.info('Subscription activated/renewed in DB', { docId: sub._id });
+    logger.info('Subscription activated/renewed in DB', { docId: sub._id, status: 'active' });
   } else {
     logger.warn('Subscription not found in DB on invoice.paid', { stripeSubscriptionId: invoice.subscription });
   }
@@ -332,23 +376,18 @@ async function handleInvoicePaid(invoice) {
 
 /**
  * Handles invoice.payment_failed.
- * Marks the subscription as past_due in MongoDB.
+ * Logs warning but keeps status unchanged. In 3-state model, failed payments
+ * don't auto-downgrade status—let user retry or Stripe handle cancellation.
  */
 async function handleInvoicePaymentFailed(invoice) {
   logger.warn('Invoice payment failed', { invoiceId: invoice.id });
   if (!invoice.subscription) return;
 
-  const sub = await Subscription.findOneAndUpdate(
-    { stripeSubscriptionId: invoice.subscription },
-    { $set: { status: 'past_due', lastWebhookEventAt: new Date() } },
-    { new: true }
-  );
-
-  if (sub) {
-    logger.warn('Subscription marked past_due in DB', { docId: sub._id });
-  } else {
-    logger.warn('Subscription not found in DB on payment_failed', { stripeSubscriptionId: invoice.subscription });
-  }
+  // Log but do not auto-change status. User can retry, or Stripe will eventually cancel.
+  logger.warn('Payment failed on subscription', {
+    stripeSubscriptionId: invoice.subscription,
+    invoiceId: invoice.id,
+  });
 }
 
 async function handlePaymentIntentSucceeded(paymentIntent) {
@@ -439,12 +478,25 @@ async function handleCheckoutSessionCompleted(session) {
       const payload = await buildSubscriptionPayload(stripeSub);
       const isQueued = session.metadata?.is_queued === 'true';
 
+      // Build queued plan object if marked queued
+      const queuedPlanData = isQueued ? await queuedPlanFromStripe(stripeSub) : {};
+
+      const updatePayload = {
+        userId: user._id,
+        ...payload,
+        checkoutSessionId: session.id,
+        isQueuedPlan: isQueued,
+      };
+      if (isQueued) {
+        updatePayload.queuedPlan = queuedPlanData;
+      }
+
       const doc = await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: session.subscription },
-        { $set: { userId: user._id, ...payload, checkoutSessionId: session.id, isQueuedPlan: isQueued } },
+        { $set: updatePayload },
         { upsert: true, new: true }
       );
-      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan, isQueuedPlan: isQueued });
+      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan, status: doc.status, isQueuedPlan: isQueued });
 
       // For queued subs, do NOT overwrite user.stripeSubscriptionId — the active sub still owns that reference
       if (!isQueued) {

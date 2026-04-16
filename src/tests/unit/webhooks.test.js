@@ -16,6 +16,9 @@ const mockStripeInstance = {
   webhooks: {
     constructEvent: jest.fn(),
   },
+  subscriptions: {
+    retrieve: jest.fn(),
+  },
 };
 
 jest.mock('stripe', () => {
@@ -47,9 +50,13 @@ jest.mock('../../middleware/inputValidator', () => ({
 // --------------------
 // 🧪 MOCK MODELS
 // --------------------
+const mockSubscriptionFindOne = jest.fn().mockReturnValue({
+  lean: jest.fn().mockResolvedValue(null),
+});
+
 jest.mock('../../models/Subscription', () => ({
   findOneAndUpdate: jest.fn(),
-  findOne: jest.fn(),
+  findOne: mockSubscriptionFindOne,
 }));
 
 jest.mock('../../models/User', () => ({
@@ -66,6 +73,13 @@ jest.mock('../../models/WebhookEvent', () => ({
 }));
 
 // --------------------
+// 🧪 MOCK STRIPE SERVICE
+// --------------------
+jest.mock('../../services/stripe', () => ({
+  getPlanNameFromPriceId: jest.fn().mockResolvedValue('1-month'),
+}));
+
+// --------------------
 // 📦 IMPORT AFTER MOCKS
 // --------------------
 const webhookRoute = require('../../routes/webhooks');
@@ -73,6 +87,11 @@ const {
   isWebhookEventProcessed,
   markWebhookEventProcessed,
 } = require('../../middleware/auth');
+const User = require('../../models/User');
+const { getPlanNameFromPriceId } = require('../../services/stripe');
+
+// Get Subscription with the lean() mock attached
+const SubscriptionModule = require('../../models/Subscription');
 
 // --------------------
 // 🚀 TEST APP (ISOLATED)
@@ -87,6 +106,8 @@ app.use('/webhooks', express.raw({ type: 'application/json' }), webhookRoute);
 // --------------------
 describe('Stripe Webhook Tests', () => {
   const mockEventId = 'evt_test_123';
+  const now = Math.floor(Date.now() / 1000);
+  const futureDate = new Date(now * 1000 + 30 * 24 * 60 * 60 * 1000);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,12 +120,45 @@ describe('Stripe Webhook Tests', () => {
           id: 'sub_test',
           customer: 'cus_test',
           status: 'active',
+          current_period_start: now,
+          current_period_end: now + 30 * 86400,
+          items: {
+            data: [{ price: { id: 'price_1month', unit_amount: 5000, currency: 'jmd' } }],
+          },
+          metadata: {},
         },
       },
     });
 
     isWebhookEventProcessed.mockResolvedValue(false);
     markWebhookEventProcessed.mockResolvedValue();
+    User.findOne.mockResolvedValue({ _id: 'user_123', email: 'test@example.com' });
+
+    // Mock Subscription.findOne with lean() support
+    mockSubscriptionFindOne.mockReturnValue({
+      lean: jest.fn().mockResolvedValue(null),
+    });
+
+    SubscriptionModule.findOneAndUpdate.mockResolvedValue({
+      _id: 'sub_mongo_123',
+      stripeSubscriptionId: 'sub_test',
+      status: 'active',
+      plan: '1-month',
+      isQueuedPlan: false,
+    });
+    User.findOneAndUpdate.mockResolvedValue(null);
+    mockStripeInstance.subscriptions.retrieve.mockResolvedValue({
+      id: 'sub_test',
+      customer: 'cus_test',
+      status: 'active',
+      current_period_start: now,
+      current_period_end: now + 30 * 86400,
+      items: {
+        data: [{ price: { id: 'price_1month', unit_amount: 5000, currency: 'jmd' } }],
+      },
+    });
+
+    getPlanNameFromPriceId.mockResolvedValue('1-month');
   });
 
   // --------------------
@@ -194,6 +248,146 @@ describe('Stripe Webhook Tests', () => {
         .send(Buffer.from('{}'));
 
       expect(res.statusCode).toBe(200);
+    });
+  });
+
+  // --------------------
+  // 🎯 3-STATE MODEL MAPPING
+  // --------------------
+  describe('3-State Status Mapping', () => {
+    it('processes subscription.created with active status', async () => {
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_active',
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active',
+            customer: 'cus_test',
+            status: 'active',
+            current_period_start: now,
+            current_period_end: now + 30 * 86400,
+            items: {
+              data: [{ price: { id: 'price_1month' } }],
+            },
+            metadata: {},
+          },
+        },
+      });
+
+      const res = await request(app)
+        .post('/webhooks/stripe')
+        .set('stripe-signature', 'good_sig')
+        .send(Buffer.from('{}'));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.received).toBe(true);
+      expect(res.body.processed).toBe(true);
+    });
+
+    it('processes subscription.deleted event', async () => {
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_cancel',
+        type: 'customer.subscription.deleted',
+        data: {
+          object: {
+            id: 'sub_cancel',
+            customer: 'cus_test',
+            status: 'canceled',
+            canceled_at: now,
+          },
+        },
+      });
+
+      const res = await request(app)
+        .post('/webhooks/stripe')
+        .set('stripe-signature', 'good_sig')
+        .send(Buffer.from('{}'));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.received).toBe(true);
+      expect(res.body.processed).toBe(true);
+    });
+
+    it('processes invoice.paid event', async () => {
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_paid',
+        type: 'invoice.paid',
+        data: {
+          object: {
+            id: 'inv_123',
+            subscription: 'sub_test',
+            period_start: now,
+            period_end: now + 30 * 86400,
+          },
+        },
+      });
+
+      const res = await request(app)
+        .post('/webhooks/stripe')
+        .set('stripe-signature', 'good_sig')
+        .send(Buffer.from('{}'));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.received).toBe(true);
+      expect(res.body.processed).toBe(true);
+    });
+
+    it('processes invoice.payment_failed event', async () => {
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_failed',
+        type: 'invoice.payment_failed',
+        data: {
+          object: {
+            id: 'inv_456',
+            subscription: 'sub_test',
+          },
+        },
+      });
+
+      const res = await request(app)
+        .post('/webhooks/stripe')
+        .set('stripe-signature', 'good_sig')
+        .send(Buffer.from('{}'));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.received).toBe(true);
+      expect(res.body.processed).toBe(true);
+    });
+  });
+
+  // --------------------
+  // 🎟️ QUEUED PLANS
+  // --------------------
+  describe('Queued Plans', () => {
+    it('processes subscription with queued metadata', async () => {
+      mockStripeInstance.webhooks.constructEvent.mockReturnValue({
+        id: 'evt_queued',
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_queued',
+            customer: 'cus_test',
+            status: 'trialing',
+            current_period_start: now,
+            current_period_end: now + 14 * 86400,
+            items: {
+              data: [{ price: { id: 'price_3month' } }],
+            },
+            metadata: { is_queued: 'true' },
+          },
+        },
+      });
+
+      getPlanNameFromPriceId.mockResolvedValue('3-month');
+
+      const res = await request(app)
+        .post('/webhooks/stripe')
+        .set('stripe-signature', 'good_sig')
+        .send(Buffer.from('{}'));
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.received).toBe(true);
+      expect(res.body.processed).toBe(true);
     });
   });
 });
