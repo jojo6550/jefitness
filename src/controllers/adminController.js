@@ -346,4 +346,56 @@ async function getClientProfile(req, res) {
   }
 }
 
-module.exports = { getMonthlyRevenue, bulkDeleteClients, createSubscription, getClientProfile };
+/**
+ * POST /api/v1/admin/subscriptions/:id/extend
+ * Extends an active subscription by adding days to currentPeriodEnd.
+ * Body: { daysToAdd }
+ */
+async function extendSubscription(req, res, next) {
+  try {
+    const { id: subscriptionId } = req.params;
+    const { daysToAdd } = req.body;
+    const adminId = req.user.id;
+
+    if (!daysToAdd) {
+      return res.status(400).json({ error: 'daysToAdd required' });
+    }
+
+    if (!Number.isInteger(daysToAdd) || daysToAdd <= 0) {
+      return res.status(400).json({ error: 'daysToAdd must be positive integer' });
+    }
+
+    const subscription = await Subscription.findById(subscriptionId);
+    if (!subscription) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+      return res.status(400).json({ error: 'Can only extend active or trialing subscriptions' });
+    }
+
+    const newPeriodEnd = new Date(
+      subscription.currentPeriodEnd.getTime() + daysToAdd * 86400000
+    );
+
+    subscription.currentPeriodEnd = newPeriodEnd;
+    await subscription.save();
+
+    logger.logAdminAction('subscription_extended', adminId, {
+      subscriptionId: subscriptionId.toString(),
+      daysToAdd,
+      newPeriodEnd: newPeriodEnd.toISOString(),
+      plan: subscription.plan,
+    });
+
+    res.json({
+      message: `Extended by ${daysToAdd} days`,
+      subscription: subscription.toObject(),
+    });
+  } catch (error) {
+    logger.error('Failed to extend subscription', { error: error.message });
+    next(error);
+  }
+}
+
+module.exports = { getMonthlyRevenue, bulkDeleteClients, createSubscription, getClientProfile, extendSubscription };
