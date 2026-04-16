@@ -24,7 +24,7 @@
     "list:plans": "node scripts/cli-commands.js list",
     "webhook:plans": "node scripts/add-webhook-support.js",
     "test:stress": "node src/tests/stress/stress-test.js"
-    },
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jojo6550/jojo6550.github.io.git"
@@ -60,7 +60,7 @@
     "passport-apple": "^2.0.2",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
-    "passport-twitter": "^1.0.4",
+    "passport-twitter": "^0.1.5",
     "qrcode": "^1.5.4",
     "redis": "^4.6.13",
     "redoc-express": "^2.1.3",

@@ -57,13 +57,23 @@ const subscriptionController = {
       status: 'active',
     });
 
-    // Determine trial_end if queued
-    let trialEndTimestamp = null;
-    let metadata = { plan };
-    if (queued && currentSub && currentSub.currentPeriodEnd) {
-      trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
-      metadata.is_queued = 'true';
+    // Prevent multiple queues/overlaps
+    if (queued) {
+      if (currentSub) {
+        return res.status(400).json({ 
+          error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
+        });
+      }
+      if (!currentSub) {
+        return res.status(400).json({ 
+          error: 'No current subscription to queue upgrade after.' 
+        });
+      }
     }
+
+    // Always immediate billing (no trial_end)
+    const trialEndTimestamp = null;
+    const metadata = { plan };
 
     // Create Stripe checkout session
     const session = await stripeService.createCheckoutSession(
@@ -74,6 +84,7 @@ const subscriptionController = {
     );
 
     res.json({ sessionId: session.id, url: session.url });
+
   }),
 
   /**

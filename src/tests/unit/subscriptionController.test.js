@@ -176,29 +176,34 @@ describe('subscriptionController', () => {
       expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid plan' });
     });
 
-    it('should set trial_end if queued and current subscription exists', async () => {
-      const now = new Date();
-      const periodEnd = new Date(now.getTime() + 10 * 86400000);
-
+    it('should reject queued upgrade with existing active subscription', async () => {
       mockReq.body = { plan: '3-month', queued: true };
 
-      const mockCustomer = { id: 'cus_123' };
-      const mockCurrentSub = {
-        status: 'active',
-        currentPeriodEnd: periodEnd,
-      };
-      const mockSession = { id: 'cs_456', url: 'https://checkout.stripe.com' };
-
-      stripeService.createOrRetrieveCustomer.mockResolvedValue(mockCustomer);
+      const mockCurrentSub = { status: 'active' };
       Subscription.findOne.mockResolvedValue(mockCurrentSub);
-      stripeService.createCheckoutSession.mockResolvedValue(mockSession);
 
       await createCheckout(mockReq, mockRes, mockNext);
 
-      const callArgs = stripeService.createCheckoutSession.mock.calls[0];
-      expect(callArgs[2]).toEqual(Math.floor(periodEnd.getTime() / 1000)); // trialEndTimestamp
-      expect(callArgs[3]).toEqual({ plan: '3-month', is_queued: 'true' }); // metadata
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({ 
+        error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
+      });
+      expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
+
+    it('should reject queued with no current subscription', async () => {
+      mockReq.body = { plan: '3-month', queued: true };
+      Subscription.findOne.mockResolvedValue(null);
+
+      await createCheckout(mockReq, mockRes, mockNext);
+
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({ 
+        error: 'No current subscription to queue upgrade after.' 
+      });
+      expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+    });
+
 
     it('should handle all valid plans', async () => {
       const plans = ['1-month', '3-month', '6-month', '12-month'];

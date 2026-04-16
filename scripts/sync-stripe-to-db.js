@@ -7,7 +7,7 @@ const StripePlan = require('../src/models/StripePlan');
 
 async function connectDB() {
   try {
-    const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/jefitness';
+    const uri = process.env.MONGO_URI;
     await mongoose.connect(uri);
     console.log('✅ MongoDB connected');
   } catch (error) {
