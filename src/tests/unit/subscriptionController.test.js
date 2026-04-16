@@ -176,17 +176,26 @@ describe('subscriptionController', () => {
       expect(mockRes.json).toHaveBeenCalledWith({ error: 'Invalid plan' });
     });
 
-    it('should reject queued upgrade with existing active subscription', async () => {
+    it('should create queued checkout session for upgrade with existing active subscription', async () => {
       mockReq.body = { plan: '3-month', queued: true };
 
       const mockCurrentSub = { status: 'active' };
+      const mockCustomer = { id: 'cus_123' };
+      const mockSession = { id: 'cs_queued_123', url: 'https://checkout.stripe.com/queued' };
+
+      stripeService.createOrRetrieveCustomer.mockResolvedValue(mockCustomer);
       Subscription.findOne.mockResolvedValue(mockCurrentSub);
+      stripeService.createQueuedCheckoutSession.mockResolvedValue(mockSession);
 
       await createCheckout(mockReq, mockRes, mockNext);
 
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({ 
-        error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
+      expect(stripeService.createQueuedCheckoutSession).toHaveBeenCalledWith(
+        mockCustomer.id,
+        '3-month'
+      );
+      expect(mockRes.json).toHaveBeenCalledWith({
+        sessionId: 'cs_queued_123',
+        url: 'https://checkout.stripe.com/queued'
       });
       expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
@@ -199,7 +208,7 @@ describe('subscriptionController', () => {
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({ 
-        error: 'No current subscription to queue upgrade after.' 
+        error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
       });
       expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });

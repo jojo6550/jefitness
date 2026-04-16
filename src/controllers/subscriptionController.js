@@ -38,8 +38,9 @@ const subscriptionController = {
   }),
 
   /**
-   * Create Stripe Checkout session for plan upgrade/purchase.
-   * Optionally queues plan to start after current subscription ends.
+ * Create Stripe Checkout session for subscription.
+   * If queued=true and active sub exists: queues upgrade after current ends.
+   * Else: immediate subscription (rejects if active).
    */
   createCheckout: asyncHandler(async (req, res) => {
     const { plan, queued } = req.body;
@@ -54,21 +55,27 @@ const subscriptionController = {
     // Get current subscription if exists
     const currentSub = await Subscription.findOne({
       userId: req.user._id,
-      status: 'active',
+      status: { $in: ['active', 'trialing'] },
     });
 
-    // Prevent multiple queues/overlaps
+// Handle queued subscription upgrade (starts after current ends)
     if (queued) {
-      if (currentSub) {
-        return res.status(400).json({ 
-          error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
-        });
-      }
       if (!currentSub) {
         return res.status(400).json({ 
-          error: 'No current subscription to queue upgrade after.' 
+          error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
         });
       }
+      // Create queued checkout session
+      const session = await stripeService.createQueuedCheckoutSession(customer.id, plan);
+      res.json({ sessionId: session.id, url: session.url });
+      return;
+    }
+
+    // Normal immediate subscription - reject if active exists
+    if (currentSub) {
+      return res.status(400).json({ 
+        error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
+      });
     }
 
     // Always immediate billing (no trial_end)
@@ -168,11 +175,7 @@ const subscriptionController = {
    * Cancel the user's queued (trialing, isQueuedPlan) subscription.
    * Kept for backward compatibility with existing routes.
    */
-  cancelQueuedPlan: asyncHandler(async (req, res) => {
-    return res
-      .status(400)
-      .json({ error: 'Queued plans no longer supported in single-doc-per-user model' });
-  }),
+
 
   /**
    * Cancel a subscription by its DB ID.
