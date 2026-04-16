@@ -458,8 +458,8 @@ async function selectPlan(planId, queueAfterCurrent = false) {
   );
   try {
     const data = await SubscriptionService.createCheckout(planId, queueAfterCurrent);
-    if (data?.data?.url) {
-      setTimeout(() => { window.location.href = data.data.url; }, 800);
+    if (data?.url) {
+      setTimeout(() => { window.location.href = data.url; }, 800);
     } else {
       throw new Error('Invalid checkout response');
     }

@@ -5,10 +5,11 @@
  */
 
 const { logger } = require('./logger');
+const { getPrimaryAppUrl } = require('../config/security');
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@jefitnessja.com';
 const FROM_NAME = process.env.FROM_NAME || 'JE Fitness';
-const APP_URL = process.env.APP_URL || 'https://jefitnessja.com';
+const APP_URL = getPrimaryAppUrl();
 
 function getResendClient() {
   if (!process.env.RESEND_API_KEY) return null;

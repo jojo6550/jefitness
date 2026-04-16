@@ -12,6 +12,18 @@ function getAppOrigins() {
 }
 
 /**
+ * Get the primary public URL for use in links (emails, Stripe redirects).
+ * Prefers first https non-localhost entry; falls back to production domain.
+ */
+function getPrimaryAppUrl() {
+  const origins = getAppOrigins();
+  return (
+    origins.find(u => u.startsWith('https://') && !u.includes('localhost')) ||
+    'https://jefitnessja.com'
+  );
+}
+
+/**
  * Security configurations for the Express application
  */
 const securityConfig = {
@@ -87,4 +99,4 @@ const securityConfig = {
   },
 };
 
-module.exports = securityConfig;
+module.exports = { ...securityConfig, getAppOrigins, getPrimaryAppUrl };

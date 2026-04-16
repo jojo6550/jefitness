@@ -1,6 +1,7 @@
 const StripePlan = require('../models/StripePlan');
 
 const { logger } = require('./logger');
+const { getPrimaryAppUrl } = require('../config/security');
 
 // Lazy initialization of Stripe to avoid issues in test environment
 let stripeInstance = null;
@@ -572,8 +573,8 @@ async function createCheckoutSession(
           quantity: 1,
         },
       ],
-      success_url: `${process.env.APP_URL || 'http://localhost:3000'}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/subscriptions?cancelled=true`,
+      success_url: `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getPrimaryAppUrl()}/subscriptions?cancelled=true`,
       metadata: {
         plan: plan,
         priceId: priceId.slice(-8),
