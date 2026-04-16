@@ -95,7 +95,7 @@ const subscriptionController = {
       return res.json({ success: true, data: null });
     }
 
-    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
+    const daysLeft = computeDaysLeft(subscription);
 
     res.json({
       success: true,
@@ -142,7 +142,7 @@ const subscriptionController = {
       return res.status(400).json({ error: 'Subscription not found' });
     }
 
-    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
+    const daysLeft = computeDaysLeft(subscription);
 
     res.json({
       success: true,
@@ -228,7 +228,7 @@ const subscriptionController = {
     subscription.currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
     await subscription.save();
 
-    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
+    const daysLeft = computeDaysLeft(subscription);
 
     res.json({
       subscription: {
