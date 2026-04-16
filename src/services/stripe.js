@@ -503,11 +503,11 @@ async function getSubscriptionInvoices(subscriptionId) {
  * Create a checkout session for subscription
  * @param {string} customerId - Stripe customer ID
  * @param {string} plan - Subscription plan
- * @param {string} successUrl - URL to redirect on successful payment
- * @param {string} cancelUrl - URL to redirect if payment is canceled
+ * @param {number} trialEndTimestamp - Unix seconds; when trial ends and billing starts (optional, null for immediate billing)
+ * @param {object} metadata - Additional metadata to attach to the session (optional)
  * @returns {Promise<Object>} Checkout session object
  */
-async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
+async function createCheckoutSession(customerId, plan, trialEndTimestamp = null, metadata = {}) {
   try {
     const stripe = getStripe();
     if (!stripe) {
@@ -548,7 +548,7 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
     const priceId = planData.priceId;
     logger.debug('Checkout price resolved', { plan, priceIdSuffix: priceId.slice(-8), currency: planData.currency });
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -558,19 +558,32 @@ async function createCheckoutSession(customerId, plan, successUrl, cancelUrl) {
           quantity: 1,
         },
       ],
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/subscriptions?canceled=true`,
       metadata: {
         plan: plan,
         priceId: priceId.slice(-8),
         source: 'subscription_checkout',
+        ...metadata,
       },
       // Allow customer to update payment method
       billing_address_collection: 'required',
       // Removed: subscription_data.proration_behavior - invalid for new sessions without billing_cycle_anchor
-    });
+    };
 
-    logger.info('Subscription checkout session created', { sessionId: session.id, customerId });
+    // If trial_end provided, set it on subscription_data
+    if (trialEndTimestamp) {
+      sessionParams.subscription_data = {
+        trial_end: trialEndTimestamp,
+        metadata: {
+          ...metadata,
+        },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+
+    logger.info('Subscription checkout session created', { sessionId: session.id, customerId, trialEnd: trialEndTimestamp });
     return session;
   } catch (error) {
     logger.error('createCheckoutSession error', { plan, customerId, error: error.message });
