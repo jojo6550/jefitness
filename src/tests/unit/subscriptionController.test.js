@@ -12,6 +12,7 @@ jest.mock('../../services/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 jest.mock('../../middleware/errorHandler', () => {

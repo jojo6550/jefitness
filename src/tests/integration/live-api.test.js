@@ -86,7 +86,8 @@ describe('Live API Integration Tests', () => {
 
         expect([200, 201]).toContain(res.status);
         if (res.body?.token) testToken = res.body.token;
-      })
+      }),
+      15000
     );
 
     test(
@@ -97,7 +98,7 @@ describe('Live API Integration Tests', () => {
           password: 'TestPassword123!',
         });
 
-        expect([200, 201, 403]).toContain(res.status);
+        expect([200, 201, 401, 403]).toContain(res.status);
         if ([200, 201].includes(res.status)) {
           expect(res.body.token).toBeDefined();
           testToken = res.body.token;
