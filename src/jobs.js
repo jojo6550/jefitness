@@ -106,11 +106,8 @@ const startRenewalReminderJob = () => {
             // Suppress all reminders if user already has a queued next plan
             if (await userHasQueuedPlan(sub.userId)) continue;
 
-            const user = await User.findById(sub.userId).select(
-              'firstName email privacySettings'
-            );
+            const user = await User.findById(sub.userId).select('firstName email');
             if (!user || !user.email) continue;
-            if (user.privacySettings?.marketingEmails === false) continue;
 
             const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
               year: 'numeric',

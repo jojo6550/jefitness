@@ -66,7 +66,7 @@ class CookieConsentManager {
         };
 
         // Check if consent needs update (version mismatch)
-        const currentVersion = '1.1'; // Update this when consent text changes
+        const currentVersion = '1.2'; // Update this when consent text changes
         consent.needsUpdate = consent.version !== currentVersion;
 
         return consent;
@@ -140,7 +140,7 @@ class CookieConsentManager {
         localStorage.setItem('marketing-consent', consents.marketing.toString());
         localStorage.setItem('health-data-consent', consents.healthData.toString());
         localStorage.setItem('consent-timestamp', new Date().toISOString());
-        localStorage.setItem('consent-version', '1.1');
+        localStorage.setItem('consent-version', '1.2');
 
         // If user is logged in, sync with backend
         if (this.isLoggedIn) {
@@ -154,44 +154,43 @@ class CookieConsentManager {
     }
 
     async syncWithBackend(consents) {
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-
+        const headers = { 'Content-Type': 'application/json' };
         const promises = [];
 
-        // Grant data processing consent if checked
+        // Data processing consent
         if (consents.dataProcessing) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/data-processing`, {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include'
-                })
-            );
+            promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/data-processing`, {
+                method: 'POST', headers, credentials: 'include'
+            }));
+        } else {
+            promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/data_processing`, {
+                method: 'DELETE', headers, credentials: 'include'
+            }));
         }
 
-        // Grant marketing consent if checked
+        // Marketing consent
         if (consents.marketing) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/marketing`, {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include'
-                })
-            );
+            promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/marketing`, {
+                method: 'POST', headers, credentials: 'include'
+            }));
+        } else {
+            promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/marketing`, {
+                method: 'DELETE', headers, credentials: 'include'
+            }));
         }
 
-        // Grant health data consent if checked and user is logged in
-        if (consents.healthData && this.isLoggedIn) {
-            promises.push(
-                fetch(`${this.apiBase}/api/v1/gdpr/consent/health-data`, {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include',
+        // Health data consent (only for logged-in users)
+        if (this.isLoggedIn) {
+            if (consents.healthData) {
+                promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/health-data`, {
+                    method: 'POST', headers, credentials: 'include',
                     body: JSON.stringify({ purpose: 'fitness_tracking' })
-                })
-            );
+                }));
+            } else {
+                promises.push(fetch(`${this.apiBase}/api/v1/gdpr/consent/health_data`, {
+                    method: 'DELETE', headers, credentials: 'include'
+                }));
+            }
         }
 
         await Promise.all(promises);
