@@ -206,6 +206,12 @@ async function handleSubscriptionUpsert(subscription) {
 
   const payload = await buildSubscriptionPayload(subscription);
 
+  // Guard: don't let webhook move currentPeriodEnd backward (protects admin extensions)
+  const existingForUpsert = await Subscription.findOne({ stripeSubscriptionId: subscription.id }, { currentPeriodEnd: 1 });
+  if (existingForUpsert?.currentPeriodEnd && payload.currentPeriodEnd && existingForUpsert.currentPeriodEnd > payload.currentPeriodEnd) {
+    payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
+  }
+
   const doc = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
     { $set: { userId: user._id, ...payload } },
@@ -293,7 +299,13 @@ async function handleInvoicePaid(invoice) {
     lastWebhookEventAt: new Date(),
   };
   if (currentPeriodStart) updatePayload.currentPeriodStart = currentPeriodStart;
-  if (currentPeriodEnd) updatePayload.currentPeriodEnd = currentPeriodEnd;
+  if (currentPeriodEnd) {
+    // Guard: don't let invoice.paid move currentPeriodEnd backward (protects admin extensions)
+    const existingForInvoice = await Subscription.findOne({ stripeSubscriptionId: invoice.subscription }, { currentPeriodEnd: 1 });
+    if (!existingForInvoice?.currentPeriodEnd || currentPeriodEnd > existingForInvoice.currentPeriodEnd) {
+      updatePayload.currentPeriodEnd = currentPeriodEnd;
+    }
+  }
 
   const sub = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: invoice.subscription },

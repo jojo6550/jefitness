@@ -121,6 +121,46 @@ async function createSubscription(req, res) {
     if (!user) return res.status(404).json({ msg: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ msg: 'Cannot add subscription to admin account' });
 
+    // Admin day override: DB-only, no Stripe changes
+    if (overrideDays !== undefined) {
+      const days = parseInt(overrideDays, 10);
+      const now = new Date();
+      const newPeriodEnd = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+      const existingSub = await user.getActiveSubscription();
+      if (!existingSub) {
+        return res.status(400).json({ msg: 'User has no active subscription to extend. Create a subscription first.' });
+      }
+
+      const updatedSub = await Subscription.findByIdAndUpdate(
+        existingSub._id,
+        {
+          $set: { currentPeriodEnd: newPeriodEnd, status: 'active' },
+          $push: { statusHistory: { status: 'active', changedAt: now, reason: `Admin extended by ${days} days` } },
+        },
+        { new: true }
+      );
+
+      logger.logAdminAction('subscription_extended', adminId, {
+        userId,
+        plan: existingSub.plan,
+        overrideDays: days,
+        subscriptionId: existingSub._id.toString(),
+        newPeriodEnd: newPeriodEnd.toISOString(),
+      });
+
+      return res.json({
+        msg: 'Subscription extended successfully',
+        subscription: {
+          plan: updatedSub.plan,
+          status: 'active',
+          currentPeriodEnd: newPeriodEnd,
+          daysLeft: daysLeftUntil(newPeriodEnd),
+          stripeSubscriptionId: existingSub.stripeSubscriptionId,
+        },
+      });
+    }
+
     // Find StripePlan by interval matching plan
     const intervalMap = {
       '1-month': { interval: 'month', intervalCount: 1 },
