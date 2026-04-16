@@ -286,17 +286,23 @@ async function createSubscription(req, res) {
       }
     }
 
-    // Create Stripe subscription with trial_end to set custom period
-    stripeSub = await getStripeClient().subscriptions.create({
-      customer: stripeCustomerId,
-      items: [{ price: plan.stripePriceId }],
-      trial_end: trialEnd,
-      metadata: {
-        adminCreated: 'true',
-        adminId: adminId.toString(),
-        userId: userId.toString(),
+    // Create Stripe subscription with trial_end to set custom period.
+    // Idempotency key scoped to userId+planKey per 5-minute window — prevents
+    // duplicate Stripe subscriptions on double-submit or network retry.
+    const stripeIdempotencyKey = `admin-sub-${userId}-${planKey}-${Math.floor(Date.now() / 300_000)}`;
+    stripeSub = await getStripeClient().subscriptions.create(
+      {
+        customer: stripeCustomerId,
+        items: [{ price: plan.stripePriceId }],
+        trial_end: trialEnd,
+        metadata: {
+          adminCreated: 'true',
+          adminId: adminId.toString(),
+          userId: userId.toString(),
+        },
       },
-    });
+      { idempotencyKey: stripeIdempotencyKey }
+    );
 
     const periodEnd = new Date(stripeSub.trial_end * 1000);
 

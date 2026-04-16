@@ -42,13 +42,28 @@ async function verifyOrLinkSocialUser({
   }
 
   // 3. New user — create and fetch with tokenVersion for JWT signing
-  const created = await User.create({
-    email: email ? email.toLowerCase() : undefined,
-    firstName: firstName || 'User',
-    lastName: lastName || '',
-    [providerIdField]: providerId,
-    isEmailVerified: true,
-  });
+  let created;
+  try {
+    created = await User.create({
+      email: email ? email.toLowerCase() : undefined,
+      firstName: firstName || 'User',
+      lastName: lastName || '',
+      [providerIdField]: providerId,
+      isEmailVerified: true,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      // Race condition: another concurrent OAuth callback created the user first.
+      // Re-run the lookup chain to return the existing user.
+      const existing =
+        (await User.findOne({ [providerIdField]: providerId }).select('+tokenVersion')) ||
+        (email
+          ? await User.findOne({ email: email.toLowerCase() }).select('+tokenVersion')
+          : null);
+      if (existing) return { user: existing, isNew: false };
+    }
+    throw err;
+  }
 
   const newUser = await User.findById(created._id).select('+tokenVersion');
   return { user: newUser, isNew: true };

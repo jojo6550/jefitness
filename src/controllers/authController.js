@@ -104,7 +104,12 @@ const authController = {
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     const saveStart = performance.now();
-    await user.save();
+    try {
+      await user.save();
+    } catch (err) {
+      if (err.code === 11000) throw new ValidationError('User already exists');
+      throw err;
+    }
     const saveTime = performance.now() - saveStart;
 
     const totalTime = performance.now() - startTime;
