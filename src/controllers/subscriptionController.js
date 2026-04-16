@@ -75,8 +75,8 @@ const subscriptionController = {
         const minTrialEnd = nowTimestamp + 172800; // 2 days in seconds
         const daysLeft = daysLeftUntil(currentSub.currentPeriodEnd);
         if (trialEndTimestamp < minTrialEnd) {
-          return res.status(400).json({ 
-            error: `Cannot queue upgrade: only ${daysLeft} days left. Need 2+ days. Subscribe directly or wait.` 
+          return res.status(400).json({
+            error: `You need to queue upgrades 2+ days before expiry. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.`
           });
         }
         

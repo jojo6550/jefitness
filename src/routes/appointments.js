@@ -709,12 +709,8 @@ router.put(
         return res.status(404).json({ msg: 'Appointment not found' });
       }
 
-      // Allow update if user is admin, or the trainer or the client who owns the appointment
-      if (
-        req.user.role !== 'admin' &&
-        appointment.trainerId?.toString() !== req.user.id &&
-        appointment.clientId?.toString() !== req.user.id
-      ) {
+      // Allow update if user is admin only. Trainers use /api/v1/trainer/appointments/:id instead.
+      if (req.user.role !== 'admin') {
         return res.status(403).json({ msg: 'Access denied' });
       }
 

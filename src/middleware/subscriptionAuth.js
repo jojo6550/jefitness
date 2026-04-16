@@ -19,7 +19,7 @@ const requireActiveSubscription = async (req, res, next) => {
   try {
     const subscription = await Subscription.findOne({
       userId: req.user._id,
-      status: 'active',
+      status: { $in: ['active', 'trialing'] },
     });
 
     if (!subscription) {

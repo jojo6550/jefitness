@@ -143,7 +143,8 @@ const trainerController = {
 
     let clients = [];
     try {
-      clients = await User.find({ _id: { $in: [] } })
+      const clientIds = stats.uniqueClients || [];
+      clients = await User.find({ _id: { $in: clientIds } })
         .select('firstName lastName email activityStatus')
         .lean();
     } catch (clientErr) {

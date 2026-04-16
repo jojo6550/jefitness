@@ -5,6 +5,7 @@ const AppointmentSchema = new mongoose.Schema(
     clientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
+      required: true,
     },
     trainerId: {
       type: mongoose.Schema.Types.ObjectId,

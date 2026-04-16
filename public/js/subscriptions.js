@@ -460,7 +460,7 @@ async function selectPlan(planId, queueAfterCurrent = false) {
     }
   } catch (err) {
     console.error('Direct checkout failed:', err);
-    showAlert(err.message || 'Checkout failed. Please try again.', 'error');
+    window.Toast.error(err.message || 'Checkout failed. Please try again.');
   }
 }
 

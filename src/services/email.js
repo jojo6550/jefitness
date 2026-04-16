@@ -19,6 +19,18 @@ function getResendClient() {
 }
 
 /**
+ * Convert 24-hour time format to 12-hour with AM/PM.
+ * @param {string} time - Time string (e.g. "09:00", "14:30")
+ * @returns {string} - Formatted time (e.g. "9:00 AM", "2:30 PM")
+ */
+function formatTime24to12(time) {
+  const [h, m] = time.split(':').map(Number);
+  const suffix = h < 12 ? 'AM' : 'PM';
+  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
+/**
  * Send a transactional email via Resend.
  * @param {object} opts
  * @param {string} opts.to - Recipient email
@@ -388,10 +400,7 @@ async function sendAppointmentConfirmationClient(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
 
   const summary = `Fitness Session with ${trainerName}`;
   const description = `Appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
@@ -468,10 +477,7 @@ async function sendNewAppointmentNotification(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
 
   const summary = `Fitness Session with ${clientName}`;
   const description = `Appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
@@ -550,10 +556,7 @@ async function sendAppointmentCancelledTrainer(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
   const verb = reason === 'deleted' ? 'removed' : 'cancelled';
   const Verb = reason === 'deleted' ? 'Removed' : 'Cancelled';
 
@@ -630,10 +633,7 @@ async function sendAppointmentCancelledClient(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
   const verb = reason === 'deleted' ? 'removed' : 'cancelled';
   const Verb = reason === 'deleted' ? 'Removed' : 'Cancelled';
 
@@ -710,10 +710,7 @@ async function sendAppointmentUpdatedTrainer(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
 
   const summary = `Fitness Session with ${clientName}`;
   const description = `Updated appointment with client ${clientName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
@@ -790,10 +787,7 @@ async function sendAppointmentUpdatedClient(
   appointmentId,
   date
 ) {
-  const [h, m] = time.split(':').map(Number);
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  const displayTime = `${displayHour}:${String(m).padStart(2, '0')} ${suffix}`;
+  const displayTime = formatTime24to12(time);
 
   const summary = `Fitness Session with ${trainerName}`;
   const description = `Updated appointment with trainer ${trainerName} at JE Fitness.\nDate: ${dateStr}\nTime: ${displayTime}`;
