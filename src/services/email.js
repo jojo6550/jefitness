@@ -228,14 +228,18 @@ async function sendPasswordReset(to, toName, resetToken) {
  * Send a subscription renewal reminder email.
  */
 async function sendSubscriptionReminder(to, toName, planName, daysLeft, renewalDate) {
-  const plural = daysLeft !== 1 ? 's' : '';
+  const timeLabel = typeof daysLeft === 'string'
+    ? daysLeft
+    : `${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+  const isImminent = typeof daysLeft === 'string';
+  const verb = isImminent ? 'expires' : 'renews';
   return sendEmail({
     to,
-    subject: `Your JE Fitness subscription renews in ${daysLeft} day${plural}`,
+    subject: `Your JE Fitness subscription ${verb} in ${timeLabel}`,
     text: [
       `Hello ${toName},`,
       '',
-      `Your ${planName} subscription renews in ${daysLeft} day${plural} on ${renewalDate}.`,
+      `Your ${planName} subscription ${verb} in ${timeLabel} on ${renewalDate}.`,
       '',
       `Manage your subscription: ${APP_URL}/subscriptions`,
       '',
@@ -243,9 +247,9 @@ async function sendSubscriptionReminder(to, toName, planName, daysLeft, renewalD
     ].join('\n'),
     html: `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-        <h2 style="color:#343a40">Subscription Renewal Reminder</h2>
+        <h2 style="color:#343a40">Subscription ${isImminent ? 'Expiry' : 'Renewal'} Reminder</h2>
         <p>Hello ${toName},</p>
-        <p>Your <strong>${planName}</strong> subscription renews in <strong>${daysLeft} day${plural}</strong> on <strong>${renewalDate}</strong>.</p>
+        <p>Your <strong>${planName}</strong> subscription ${verb} in <strong>${timeLabel}</strong> on <strong>${renewalDate}</strong>.</p>
         <p style="margin:24px 0">
           <a href="${APP_URL}/subscriptions"
              style="background:#0d6efd;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block">

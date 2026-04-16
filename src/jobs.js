@@ -138,15 +138,28 @@ const startSubscriptionCleanupJob = () => {
 };
 
 /**
+ * Returns true if the user has an upcoming queued plan (trialing, isQueuedPlan).
+ * Used to suppress expiry reminder emails when a seamless transition is already set up.
+ */
+async function userHasQueuedPlan(userId) {
+  const count = await Subscription.countDocuments({
+    userId,
+    isQueuedPlan: true,
+    status: 'trialing',
+  });
+  return count > 0;
+}
+
+/**
  * Daily reminder job — runs at 8 AM.
- * Sends renewal reminder emails for subscriptions expiring in 3 or 7 days.
+ * Sends renewal reminder emails for subscriptions expiring in 1, 3, or 7 days.
  */
 const startRenewalReminderJob = () => {
   cron.schedule('0 8 * * *', async () => {
     logger.info('🔔 Running subscription renewal reminder job...');
     try {
       const now = new Date();
-      const REMINDER_DAYS = [3, 7];
+      const REMINDER_DAYS = [1, 3, 7];
 
       for (const days of REMINDER_DAYS) {
         const windowStart = new Date(now);
@@ -164,6 +177,9 @@ const startRenewalReminderJob = () => {
 
         for (const sub of subs) {
           try {
+            // Suppress all reminders if user already has a queued next plan
+            if (await userHasQueuedPlan(sub.userId)) continue;
+
             const user = await User.findById(sub.userId).select('firstName email privacySettings');
             if (!user || !user.email) continue;
             if (user.privacySettings?.marketingEmails === false) continue;
@@ -256,4 +272,58 @@ const startTrainerDailyEmailJob = () => {
   logger.info('Trainer daily schedule email job scheduled (0 4 * * * — 4 AM daily)');
 };
 
-module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob };
+/**
+ * Minute-level job — runs every minute.
+ * Sends a "10 minutes until expiry" reminder for subscriptions about to expire.
+ * Uses remindersSent dedup field to ensure each subscription only gets one 10min reminder.
+ */
+const startTenMinuteReminderJob = () => {
+  cron.schedule('*/1 * * * *', async () => {
+    try {
+      const now = new Date();
+      const windowEnd = new Date(now.getTime() + 11 * 60 * 1000);
+
+      const subs = await Subscription.find({
+        status: { $in: ['active', 'trialing'] },
+        isQueuedPlan: { $ne: true },
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: { $gte: now, $lte: windowEnd },
+        remindersSent: { $ne: '10min' },
+      });
+
+      if (!subs.length) return;
+
+      for (const sub of subs) {
+        try {
+          if (await userHasQueuedPlan(sub.userId)) continue;
+
+          const user = await User.findById(sub.userId).select('firstName email privacySettings');
+          if (!user?.email) continue;
+          if (user.privacySettings?.marketingEmails === false) continue;
+
+          const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric',
+          });
+
+          await sendSubscriptionReminder(user.email, user.firstName, sub.plan, '10 minutes', renewalDate);
+
+          await Subscription.findByIdAndUpdate(
+            sub._id,
+            { $addToSet: { remindersSent: '10min' } },
+            { runValidators: false }
+          );
+
+          logger.info('10-min expiry reminder sent', { subId: sub._id, userId: user._id });
+        } catch (subErr) {
+          logger.error('10-min reminder failed for sub', { subId: sub._id, error: subErr.message });
+        }
+      }
+    } catch (err) {
+      logger.error('10-min reminder job error', { error: err.message });
+    }
+  });
+
+  logger.info('10-min expiry reminder cron job scheduled (*/1 * * * *)');
+};
+
+module.exports = { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob };

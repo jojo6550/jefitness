@@ -212,25 +212,35 @@ async function handleSubscriptionUpsert(subscription) {
     payload.currentPeriodEnd = existingForUpsert.currentPeriodEnd;
   }
 
+  // Check if this subscription was previously marked as a queued plan
+  const existing = await Subscription.findOne({ stripeSubscriptionId: subscription.id }, { isQueuedPlan: 1 }).lean();
+  const wasQueued = existing?.isQueuedPlan === true;
+
+  // If it was queued and is now active (trial ended, Stripe charged), clear the queued flag
+  const clearQueuedFlag = wasQueued && subscription.status === 'active' ? { isQueuedPlan: false } : {};
+
   const doc = await Subscription.findOneAndUpdate(
     { stripeSubscriptionId: subscription.id },
-    { $set: { userId: user._id, ...payload } },
+    { $set: { userId: user._id, ...payload, ...clearQueuedFlag } },
     { upsert: true, new: true }
   );
 
-  logger.info('Subscription upserted', { docId: doc._id, status: doc.status, plan: doc.plan });
+  logger.info('Subscription upserted', { docId: doc._id, status: doc.status, plan: doc.plan, wasQueued, activated: wasQueued && !doc.isQueuedPlan });
 
-  // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
-  await User.findOneAndUpdate(
-    { _id: user._id },
-    {
-      $set: {
-        stripeSubscriptionId: subscription.id,
-        billingEnvironment: payload.billingEnvironment,
-      },
-    }
-  );
-  logger.info('User account synced', { userId: user._id, subscriptionId: subscription.id });
+  // Sync subscription ID to user account data.
+  // For queued plans that haven't activated yet, do NOT overwrite the active sub reference.
+  if (!doc.isQueuedPlan) {
+    await User.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $set: {
+          stripeSubscriptionId: subscription.id,
+          billingEnvironment: payload.billingEnvironment,
+        },
+      }
+    );
+    logger.info('User account synced', { userId: user._id, subscriptionId: subscription.id });
+  }
 }
 
 /**
@@ -427,24 +437,28 @@ async function handleCheckoutSessionCompleted(session) {
 
     if (stripeSub) {
       const payload = await buildSubscriptionPayload(stripeSub);
+      const isQueued = session.metadata?.is_queued === 'true';
+
       const doc = await Subscription.findOneAndUpdate(
         { stripeSubscriptionId: session.subscription },
-        { $set: { userId: user._id, ...payload, checkoutSessionId: session.id } },
+        { $set: { userId: user._id, ...payload, checkoutSessionId: session.id, isQueuedPlan: isQueued } },
         { upsert: true, new: true }
       );
-      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan });
+      logger.info('Subscription upserted via checkout', { docId: doc._id, plan: doc.plan, isQueuedPlan: isQueued });
 
-      // Sync subscription ID to user account data (fixes bug where account not updated after successful transaction)
-      await User.findOneAndUpdate(
-        { _id: user._id },
-        {
-          $set: {
-            stripeSubscriptionId: session.subscription,
-            billingEnvironment: payload.billingEnvironment,
-          },
-        }
-      );
-      logger.info('User account synced via checkout', { userId: user._id, subscriptionId: session.subscription });
+      // For queued subs, do NOT overwrite user.stripeSubscriptionId — the active sub still owns that reference
+      if (!isQueued) {
+        await User.findOneAndUpdate(
+          { _id: user._id },
+          {
+            $set: {
+              stripeSubscriptionId: session.subscription,
+              billingEnvironment: payload.billingEnvironment,
+            },
+          }
+        );
+        logger.info('User account synced via checkout', { userId: user._id, subscriptionId: session.subscription });
+      }
     }
     return;
   }

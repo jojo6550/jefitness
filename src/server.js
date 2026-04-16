@@ -24,7 +24,7 @@ const connectDB = require('../config/db');
 const swaggerSpec = require('./docs/swagger');
 
 // Utilities, DB, and jobs
-const { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob } = require('./jobs');
+const { startSubscriptionCleanupJob, startRenewalReminderJob, startTrainerDailyEmailJob, startTenMinuteReminderJob } = require('./jobs');
 const { logger } = require('./services/logger');
 const {
   getFileHash,
@@ -373,6 +373,7 @@ async function startServer() {
     startSubscriptionCleanupJob();
     startRenewalReminderJob();
     startTrainerDailyEmailJob();
+    startTenMinuteReminderJob();
 
     // Sync Stripe plans to DB on every startup so StripePlan collection is always current.
     try {

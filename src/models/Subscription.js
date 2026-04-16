@@ -111,6 +111,16 @@ const SubscriptionSchema = new mongoose.Schema(
         reason: String,
       },
     ],
+
+    remindersSent: {
+      type: [String],
+      default: [],
+    },
+
+    isQueuedPlan: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: {

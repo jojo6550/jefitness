@@ -83,6 +83,15 @@ router.get('/refresh', auth, subscriptionController.refresh);
 
 /**
  * @swagger
+ * /api/v1/subscriptions/queued:
+ *   delete:
+ *     summary: Cancel the queued (upcoming) subscription
+ *     tags: [Subscriptions]
+ */
+router.delete('/queued', auth, subscriptionController.cancelQueuedPlan);
+
+/**
+ * @swagger
  * /api/v1/subscriptions/{subscriptionId}/invoices:
  *   get:
  *     summary: Get invoices for a subscription

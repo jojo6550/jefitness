@@ -18,14 +18,22 @@ getCurrentSubscription: async () => {
     return handleApiResponse(res);
   },
 
-createCheckout: async (planId) => {
+createCheckout: async (planId, queueAfterCurrent = false) => {
     const res = await fetch(`${API_BASE}/api/v1/subscriptions/checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       credentials: 'include',
-      body: JSON.stringify({ planId })
+      body: JSON.stringify({ planId, queueAfterCurrent })
+    });
+    return handleApiResponse(res);
+  },
+
+  cancelQueuedPlan: async () => {
+    const res = await fetch(`${API_BASE}/api/v1/subscriptions/queued`, {
+      method: 'DELETE',
+      credentials: 'include',
     });
     return handleApiResponse(res);
   },

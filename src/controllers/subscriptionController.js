@@ -30,10 +30,11 @@ const subscriptionController = {
   }),
 
   /**
-   * Create a Stripe Checkout session and return its URL
+   * Create a Stripe Checkout session and return its URL.
+   * If queueAfterCurrent is true, creates a queued checkout with trial_end = current sub's period end.
    */
   createCheckout: asyncHandler(async (req, res) => {
-    const { planId } = req.body;
+    const { planId, queueAfterCurrent } = req.body;
     logger.info(`[CHECKOUT] Request: userId=${req.user.id}, planId="${planId}"`);
 
     const user = await User.findById(req.user.id).select('+stripeCustomerId');
@@ -84,12 +85,33 @@ const subscriptionController = {
 
     let session;
     try {
-      session = await stripeService.createCheckoutSession(
-        stripeCustomerId,
-        planId,
-        successUrl,
-        cancelUrl
-      );
+      if (queueAfterCurrent) {
+        // Find the user's current active subscription to get the trial_end timestamp
+        const activeSub = await Subscription.findOne({
+          userId: req.user.id,
+          status: { $in: ['active', 'trialing'] },
+          isQueuedPlan: { $ne: true },
+        }).sort({ utcCreatedAt: -1 });
+
+        if (!activeSub) {
+          return res.status(400).json({ success: false, message: 'No active subscription to queue after' });
+        }
+
+        // Prevent double-queueing
+        const existingQueued = await Subscription.findOne({
+          userId: req.user.id,
+          isQueuedPlan: true,
+          status: 'trialing',
+        });
+        if (existingQueued) {
+          return res.status(400).json({ success: false, message: 'You already have a plan queued. Cancel it first to queue a different plan.' });
+        }
+
+        const trialEnd = Math.floor(activeSub.currentPeriodEnd.getTime() / 1000);
+        session = await stripeService.createQueuedCheckoutSession(stripeCustomerId, planId, trialEnd, successUrl, cancelUrl);
+      } else {
+        session = await stripeService.createCheckoutSession(stripeCustomerId, planId, successUrl, cancelUrl);
+      }
       logger.info(`[CHECKOUT] Session created: ${session.id}`);
     } catch (sessionError) {
       logger.error('[CHECKOUT] Session creation failed:', {
@@ -124,17 +146,24 @@ const subscriptionController = {
   }),
 
   /**
-   * Get the current user's most recent subscription
+   * Get the current user's most recent subscription.
+   * Excludes queued plans (isQueuedPlan: true) from the primary result and
+   * returns them separately as queuedPlan in the response data.
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
     // PLATFORM POLICY: Only active/trialing (past_due auto-canceled)
+    // Exclude queued plans from primary result
     let subscription = await Subscription.findOne({
       userId: req.user.id,
       status: { $in: ['active', 'trialing'] },
+      isQueuedPlan: { $ne: true },
     }).sort({ utcCreatedAt: -1 });
 
     if (!subscription) {
-      subscription = await Subscription.findOne({ userId: req.user.id }).sort({
+      subscription = await Subscription.findOne({
+        userId: req.user.id,
+        isQueuedPlan: { $ne: true },
+      }).sort({
         utcCreatedAt: -1,
       });
     }
@@ -180,9 +209,20 @@ const subscriptionController = {
       }
     }
 
+    // Check for a queued next plan (trialing, isQueuedPlan: true)
+    const queuedPlanDoc = await Subscription.findOne({
+      userId: req.user.id,
+      isQueuedPlan: true,
+      status: 'trialing',
+    }).lean();
+
+    const queuedPlan = queuedPlanDoc
+      ? { _id: queuedPlanDoc._id, plan: queuedPlanDoc.plan, currentPeriodEnd: queuedPlanDoc.currentPeriodEnd }
+      : null;
+
     res.json({
       success: true,
-      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) },
+      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription), queuedPlan },
     });
   }),
 
@@ -324,6 +364,8 @@ const subscriptionController = {
             );
           }
 
+          const isQueued = session.metadata?.is_queued === 'true';
+
           subscription = await Subscription.findOneAndUpdate(
             { stripeSubscriptionId: stripeSub.id },
             {
@@ -347,14 +389,18 @@ const subscriptionController = {
                 currency: priceItem?.price?.currency || 'jmd',
                 billingEnvironment: billingEnv,
                 checkoutSessionId: sessionId,
+                isQueuedPlan: isQueued,
               },
             },
             { upsert: true, new: true }
           );
 
-          await User.findByIdAndUpdate(user._id, {
-            $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
-          });
+          // For queued subs, do NOT update user.stripeSubscriptionId — the active sub still owns that reference
+          if (!isQueued) {
+            await User.findByIdAndUpdate(user._id, {
+              $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
+            });
+          }
         }
       }
     } catch (fetchErr) {
@@ -372,6 +418,47 @@ const subscriptionController = {
       success: true,
       data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) },
     });
+  }),
+
+  /**
+   * Cancel the user's queued (trialing, isQueuedPlan) subscription.
+   */
+  cancelQueuedPlan: asyncHandler(async (req, res) => {
+    const queued = await Subscription.findOne({
+      userId: req.user.id,
+      isQueuedPlan: true,
+      status: 'trialing',
+    });
+
+    if (!queued) {
+      throw new NotFoundError('No queued plan found');
+    }
+
+    if (queued.stripeSubscriptionId) {
+      try {
+        await stripeService.cancelSubscription(queued.stripeSubscriptionId, false);
+      } catch (stripeErr) {
+        const msg = stripeErr.message || '';
+        const alreadyGone =
+          msg.includes('already canceled') ||
+          msg.includes('No such subscription') ||
+          msg.includes('resource_missing');
+        if (!alreadyGone) {
+          logger.error('Stripe cancel queued plan failed (non-fatal)', { error: stripeErr.message });
+        }
+      }
+    }
+
+    await Subscription.findByIdAndUpdate(
+      queued._id,
+      {
+        $set: { status: 'canceled', canceledAt: new Date() },
+        $push: { statusHistory: { status: 'canceled', changedAt: new Date(), reason: 'User canceled queued plan' } },
+      },
+      { runValidators: false }
+    );
+
+    res.json({ success: true, message: 'Queued plan canceled' });
   }),
 
   /**

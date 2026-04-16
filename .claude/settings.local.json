@@ -29,7 +29,12 @@
       "Bash(node --check src/models/User.js)",
       "Bash(node --check src/controllers/authController.js)",
       "Bash(wc -l /c/Users/josia/jefitness/public/pages/*.html)",
-      "Bash(python _add_fonts.py)"
+      "Bash(python _add_fonts.py)",
+      "Bash(node --check src/models/Subscription.js)",
+      "Bash(node --check src/services/email.js)",
+      "Bash(node --check src/services/stripe.js)",
+      "Bash(node --check src/controllers/subscriptionController.js)",
+      "Bash(node --check src/routes/subscriptions.js)"
     ]
   },
   "enabledPlugins": {

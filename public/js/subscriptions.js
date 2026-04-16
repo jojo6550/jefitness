@@ -185,12 +185,19 @@ async function loadPlans() {
 function renderPlans() {
   if (!plansContainer) return;
 
-  // Only hide plans for truly active/trialing subs — past_due/paused users should still see plans
+  // Check for truly active/trialing subs (not queued plans)
   const blockingStatuses = ['active', 'trialing'];
-  if (userSubscriptions.some(sub => blockingStatuses.includes(sub.status))) {
+  const activeSub = userSubscriptions.find(sub => blockingStatuses.includes(sub.status) && !sub.isQueuedPlan);
+
+  // If active sub has a queued plan, hide plans section entirely (user already committed to next plan)
+  if (activeSub?.queuedPlan) {
     safeHide(getElement('plansSection'));
     return;
   }
+
+  // If no active sub, show normal subscribe view
+  const isQueueMode = !!activeSub;
+  const queueStartDate = isQueueMode ? safeFormatDate(activeSub.currentPeriodEnd) : null;
 
   plansContainer.innerHTML = '';
 
@@ -202,13 +209,22 @@ function renderPlans() {
   };
 
   availablePlans.forEach(plan => {
-    const isCurrent = hasActiveSubscription(plan.id);
+    const isCurrent = !isQueueMode && hasActiveSubscription(plan.id);
     const planId = plan.id || plan.name?.toLowerCase().replace(' ', '-');
     const durationInfo = planDurations[planId] || { months: 1, displayName: '1 Month' };
 
     // plan.amount is total amount in cents for the entire subscription period
     const totalDollars = (plan.amount || 0) / 100;
     const monthlyDollars = totalDollars / durationInfo.months;
+
+    let buttonLabel;
+    if (isCurrent) {
+      buttonLabel = 'Current Plan';
+    } else if (isQueueMode) {
+      buttonLabel = `Queue for ${queueStartDate}`;
+    } else {
+      buttonLabel = 'Subscribe Now';
+    }
 
     const card = document.createElement('div');
     card.className = 'col-lg-3 col-md-6 col-12';
@@ -226,20 +242,25 @@ function renderPlans() {
             ${durationInfo.months > 1 ? `<div class="plan-total text-muted small">Total: ${formatCurrency(totalDollars)}</div>` : ''}
           </div>
           <button class="btn btn-primary plan-button w-100 mt-4" ${isCurrent ? 'disabled' : ''}>
-            ${isCurrent ? 'Current Plan' : 'Subscribe Now'}
+            ${buttonLabel}
           </button>
         </div>
       </div>
     `;
 
     if (!isCurrent) {
-      card.querySelector('button').onclick = () => selectPlan(plan.id);
+      card.querySelector('button').onclick = () => selectPlan(plan.id, isQueueMode);
     }
 
     plansContainer.appendChild(card);
   });
 
   plansContainer.classList.remove('d-none');
+
+  // If queue mode, show plans section alongside the active sub section
+  if (isQueueMode) {
+    safeShow(getElement('plansSection'));
+  }
 }
 
 /* --------------------------------------------------
@@ -301,12 +322,13 @@ async function loadUserSubscriptions() {
     log('hasActiveSubscription:', hasActiveSubscription());
 
     if (hasActiveSubscription()) {
-      safeHide(getElement('plansSection'));
       safeShow(activeSubscriptionSection);
       renderActiveSubscriptionSummary();
+      renderPlans(); // renderPlans handles show/hide of plansSection based on queue state
     } else {
       safeShow(getElement('plansSection'));
       safeHide(activeSubscriptionSection);
+      renderPlans();
     }
   } catch (err) {
     console.error('Load subscriptions failed:', err);
@@ -380,6 +402,21 @@ function renderActiveSubscriptionSummary() {
                     <i class="bi bi-x-circle me-2"></i>Plan Canceled
                    </button>`)
           }
+          ${sub.queuedPlan
+            ? `<div class="mt-3 p-2 border rounded bg-light">
+                 <small class="text-muted d-block mb-1">Next Plan</small>
+                 <div class="d-flex align-items-center justify-content-between">
+                   <div>
+                     <strong>${(sub.queuedPlan.plan || '').replace('-', ' ').toUpperCase()}</strong>
+                     <div class="text-muted small">Starts ${safeFormatDate(sub.queuedPlan.currentPeriodEnd)}</div>
+                   </div>
+                   <button data-action="cancel-queued" data-sub-id="${sub.queuedPlan._id}" class="btn btn-outline-danger btn-sm ms-2" title="Remove queued plan">
+                     <i class="bi bi-x"></i>
+                   </button>
+                 </div>
+               </div>`
+            : ''
+          }
         </div>
       </div>
     </div>
@@ -390,19 +427,24 @@ function renderActiveSubscriptionSummary() {
    Plan Selection & Payment
 -------------------------------------------------- */
 
-async function selectPlan(planId) {
+async function selectPlan(planId, queueAfterCurrent = false) {
   selectedPlanId = planId;
 
   await loadUserSubscriptions();
 
-  if (hasActiveSubscription(planId)) {
+  if (!queueAfterCurrent && hasActiveSubscription(planId)) {
     showAlert('You already have this plan', 'warning');
     return;
   }
 
-  showAlert('Redirecting to secure checkout...', 'info');
+  showAlert(
+    queueAfterCurrent
+      ? 'Redirecting to set up your next plan...'
+      : 'Redirecting to secure checkout...',
+    'info'
+  );
   try {
-    const data = await SubscriptionService.createCheckout(planId);
+    const data = await SubscriptionService.createCheckout(planId, queueAfterCurrent);
     if (data?.data?.url) {
       setTimeout(() => { window.location.href = data.data.url; }, 800);
     } else {
@@ -428,6 +470,17 @@ function openCancelModal(subscriptionId) {
 
   const modal = new bootstrap.Modal(document.getElementById('cancelConfirmModal'));
   modal.show();
+}
+
+async function cancelQueuedPlan() {
+  try {
+    await SubscriptionService.cancelQueuedPlan();
+    showAlert('Queued plan removed', 'success');
+    setTimeout(loadUserSubscriptions, 800);
+  } catch (err) {
+    console.error('Cancel queued plan failed:', err);
+    showAlert(err.message || 'Failed to remove queued plan', 'error');
+  }
 }
 
 function renewSubscription() {
@@ -573,12 +626,13 @@ async function handleSuccessRedirect() {
       const data = await SubscriptionService.verifySession(sessionId);
 
       if (data.success && data.data) {
-        showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
-        userSubscriptions = [data.data];
-        safeHide(getElement('plansSection'));
-        safeShow(activeSubscriptionSection);
-        renderActiveSubscriptionSummary();
+        if (data.data.isQueuedPlan) {
+          showAlert(`${data.data.plan.replace('-', ' ')} plan queued — starts when your current plan ends.`, 'success');
+        } else {
+          showAlert(`Subscription activated successfully! ${data.data.plan.replace('-', ' ')} plan.`, 'success');
+        }
         window.history.replaceState({}, document.title, window.location.pathname);
+        await loadUserSubscriptions();
       } else {
         showAlert('Purchase completed but subscription not yet active. Refreshing status...', 'info');
         await loadUserSubscriptions();
@@ -615,6 +669,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       await downloadInvoices(subId);
     } else if (action === 'cancel-plan') {
       openCancelModal(subId);
+    } else if (action === 'cancel-queued') {
+      await cancelQueuedPlan();
     }
   });
 
