@@ -4,27 +4,23 @@
  * Centralized API calls for subscriptions
  */
 
+const getApiBase = () => window.ApiConfig ? window.ApiConfig.getAPI_BASE() : (window.API_BASE || '/api');
+
 const SubscriptionService = {
   getPlans: async () => {
-    const base = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : (window.API_BASE || '/api');
-    const res = await fetch(`${base}/api/v1/subscriptions/plans`, { credentials: 'include' });
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/plans`, { credentials: 'include' });
     return handleApiResponse(res);
   },
 
-getCurrentSubscription: async () => {
-    const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/current`,
-      { credentials: 'include' }
-    );
+  getCurrentSubscription: async () => {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/current`, { credentials: 'include' });
     return handleApiResponse(res);
   },
 
-createCheckout: async (planId, queueAfterCurrent = false) => {
-    const res = await fetch(`${API_BASE}/api/v1/subscriptions/checkout`, {
+  createCheckout: async (planId, queueAfterCurrent = false) => {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/checkout`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ plan: planId, queued: queueAfterCurrent })
     });
@@ -32,7 +28,7 @@ createCheckout: async (planId, queueAfterCurrent = false) => {
   },
 
   cancelQueuedPlan: async () => {
-    const res = await fetch(`${API_BASE}/api/v1/subscriptions/queued`, {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/queued`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -40,26 +36,20 @@ createCheckout: async (planId, queueAfterCurrent = false) => {
   },
 
   cancelSubscription: async (subscriptionId, atPeriodEnd = false) => {
-    const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/cancel/${subscriptionId}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ atPeriodEnd })
-      }
-    );
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/cancel/${subscriptionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ atPeriodEnd })
+    });
     return handleApiResponse(res);
   },
 
-verifySession: async (sessionId) => {
-    const res = await fetch(
-      `${API_BASE}/api/v1/subscriptions/verify-session/${sessionId}`,
-      {
-        method: 'POST',
-        credentials: 'include'
-      }
-    );
+  verifySession: async (sessionId) => {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/verify-session/${sessionId}`, {
+      method: 'POST',
+      credentials: 'include'
+    });
     return handleApiResponse(res);
   }
 };

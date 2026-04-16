@@ -50,6 +50,119 @@
 const express = require('express');
 
 const router = express.Router();
+
+/* --------------------------------------------------
+   Helpers
+-------------------------------------------------- */
+
+/** Normalize a date to YYYY-MM-DD string, handle string/Date/timestamp */
+function normalizeAppointmentDate(date) {
+  const normalized =
+    typeof date === 'string'
+      ? date.slice(0, 10)
+      : new Date(date).toISOString().slice(0, 10);
+  return new Date(normalized + 'T00:00:00.000Z');
+}
+
+/** Format date for email display */
+function formatApptDateForEmail(date) {
+  return new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+/** Extract and format appointment participant names */
+function extractApptNames(appointment) {
+  const clientName = appointment.clientId
+    ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}`
+    : 'Unknown Client';
+  const trainerName = appointment.trainerId
+    ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`
+    : 'Unknown Trainer';
+  return { clientName, trainerName };
+}
+
+/** Populate both clientId and trainerId on appointment */
+async function populateAppointmentParticipants(appointment, fields = {}) {
+  const clientFields = fields.client || 'firstName lastName email';
+  const trainerFields = fields.trainer || 'firstName lastName email';
+  await appointment.populate('clientId', clientFields);
+  await appointment.populate('trainerId', trainerFields);
+}
+
+/** Send appointment notification emails */
+async function sendApptEmails(appointment, action, clientName, trainerName, dateStr) {
+  const apptId = appointment._id.toString();
+  const apptDate = appointment.date instanceof Date
+    ? appointment.date.toISOString()
+    : appointment.date;
+  const { time, clientId, trainerId } = appointment;
+
+  if (action === 'created') {
+    // Confirm to client
+    if (clientId?.email) {
+      sendAppointmentConfirmationClient(
+        clientId.email, clientId.firstName, trainerName, dateStr, time, apptId, apptDate
+      ).catch(e => logger.warn('Failed to send booking confirmation', { error: e.message }));
+    }
+  } else if (action === 'cancelled') {
+    // Notify client
+    if (clientId?.email) {
+      sendAppointmentCancelledClient(
+        clientId.email, clientId.firstName, trainerName, dateStr, time, 'cancelled', apptId, apptDate
+      ).catch(e => logger.warn('Failed to send cancellation to client', { error: e.message }));
+    }
+    // Notify trainer if individual preference
+    if (trainerId?.trainerEmailPreference === 'individual' && trainerId?.email) {
+      sendAppointmentCancelledTrainer(
+        trainerId.email, trainerId.firstName, clientName, dateStr, time, 'cancelled', apptId, apptDate
+      ).catch(e => logger.warn('Failed to send cancellation to trainer', { error: e.message }));
+    }
+  } else if (action === 'deleted') {
+    // Notify both on deletion
+    if (clientId?.email) {
+      sendAppointmentCancelledClient(
+        clientId.email, clientId.firstName, trainerName, dateStr, time, 'deleted', apptId, apptDate
+      ).catch(e => logger.warn('Failed to send deletion to client', { error: e.message }));
+    }
+    if (trainerId?.trainerEmailPreference === 'individual' && trainerId?.email) {
+      sendAppointmentCancelledTrainer(
+        trainerId.email, trainerId.firstName, clientName, dateStr, time, 'deleted', apptId, apptDate
+      ).catch(e => logger.warn('Failed to send deletion to trainer', { error: e.message }));
+    }
+  } else if (action === 'updated') {
+    // Notify of changes
+    if (clientId?.email) {
+      sendAppointmentUpdatedClient(
+        clientId.email, clientId.firstName, trainerName, dateStr, time, apptId, apptDate
+      ).catch(e => logger.warn('Failed to send update to client', { error: e.message }));
+    }
+    if (trainerId?.trainerEmailPreference === 'individual' && trainerId?.email) {
+      sendAppointmentUpdatedTrainer(
+        trainerId.email, trainerId.firstName, clientName, dateStr, time, apptId, apptDate
+      ).catch(e => logger.warn('Failed to send update to trainer', { error: e.message }));
+    }
+  } else if (action === 'created_trainer_individual') {
+    // Only send individual trainer notification on creation
+    if (trainerId?.email && trainerId?.trainerEmailPreference === 'individual') {
+      sendNewAppointmentNotification(
+        trainerId.email, trainerId.firstName, clientName, dateStr, time, apptId, apptDate
+      ).catch(e => logger.warn('Failed to send individual appointment notification', { error: e.message }));
+    }
+  }
+}
+
+/** Validate status transition based on role */
+function validateStatusTransition(role, currentStatus, newStatus, trainerMatch, clientMatch) {
+  if (role === 'admin') return true;
+  if (role === 'trainer' && trainerMatch && ['completed', 'no_show', 'late'].includes(newStatus)) return true;
+  if (clientMatch && newStatus === 'cancelled') return true;
+  return false;
+}
 const Appointment = require('../models/Appointment');
 const TrainerAvailability = require('../models/TrainerAvailability');
 const User = require('../models/User');
@@ -449,15 +562,9 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ msg: 'Appointment not found' });
     }
 
-    // Allow access if user is the client or trainer of the appointment
-    const clientIdStr = appointment.clientId?._id?.toString();
-    const trainerIdStr = appointment.trainerId?._id?.toString();
-
-    if (!clientIdStr && !trainerIdStr) {
-      return res.status(404).json({ msg: 'Appointment participants not found' });
-    }
-
-    if (clientIdStr !== req.user.id && trainerIdStr !== req.user.id) {
+    const isOwner = [appointment.clientId?._id, appointment.trainerId?._id]
+      .some(id => id?.toString() === req.user.id);
+    if (!isOwner) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
@@ -472,23 +579,12 @@ router.post('/', requireActiveSubscription, async (req, res) => {
   try {
     const { trainerId, date, time, notes } = req.body;
 
-    // Validate required fields before any normalization to avoid RangeError on undefined date
     if (!trainerId || !date || !time) {
-      logger.warn('Validation failed: missing required fields', {
-        trainerId,
-        date,
-        time,
-      });
+      logger.warn('Validation failed: missing required fields', { trainerId, date, time });
       return res.status(400).json({ msg: 'Please provide all required fields' });
     }
 
-    // Normalize date to YYYY-MM-DD (strip any time component the client may have included)
-    const normalizedDate =
-      typeof date === 'string'
-        ? date.slice(0, 10)
-        : new Date(date).toISOString().slice(0, 10);
-    // Build an explicit UTC midnight Date for all DB operations — ensures consistent slot counting
-    const appointmentDate = new Date(normalizedDate + 'T00:00:00.000Z');
+    const appointmentDate = normalizeAppointmentDate(date);
 
     // Check if trainer exists and is trainer
     const trainer = await User.findById(trainerId);
@@ -516,12 +612,8 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       });
     }
 
-    // Set clientId from authenticated user
     const clientId = req.user.id;
-
-    // Check if this client already has an appointment on this date (across all trainers)
-    // Compute UTC start/end of the requested date to handle timezone issues
-    const dateStr = normalizedDate; // normalized YYYY-MM-DD (already stripped of time component)
+    const dateStr = appointmentDate.toISOString().slice(0, 10);
     const startOfDay = new Date(dateStr + 'T00:00:00.000Z');
     const endOfDay = new Date(dateStr + 'T23:59:59.999Z');
 
@@ -533,17 +625,13 @@ router.post('/', requireActiveSubscription, async (req, res) => {
 
     if (clientExistingOnDate) {
       logger.info('Client already has appointment on this day', {
-        clientId,
-        requestedDate: dateStr,
-        existingAppointmentId: clientExistingOnDate._id,
-        existingDate: clientExistingOnDate.date,
+        clientId, requestedDate: dateStr, existingAppointmentId: clientExistingOnDate._id,
       });
       return res.status(400).json({ msg: 'You can only book one appointment per day' });
     }
 
-    // Appointments must be booked at least one day in advance (no same-day bookings)
     const todayUTCStr = new Date().toISOString().slice(0, 10);
-    if (normalizedDate <= todayUTCStr) {
+    if (dateStr <= todayUTCStr) {
       return res
         .status(400)
         .json({ msg: 'Appointments must be booked at least one day in advance' });
@@ -584,85 +672,24 @@ router.post('/', requireActiveSubscription, async (req, res) => {
       await appointment.save();
     } catch (saveErr) {
       if (saveErr.code === 11000) {
-        // Unique index violation — slot was taken by a concurrent request
-        return res
-          .status(409)
-          .json({ msg: 'Time slot is fully booked (concurrent booking conflict)' });
+        return res.status(409).json({ msg: 'Time slot is fully booked (concurrent booking conflict)' });
       }
       throw saveErr;
     }
-    await appointment.populate('clientId', 'firstName lastName email');
-    await appointment.populate('trainerId', 'firstName lastName email');
 
-    // Log the successful booking
+    await populateAppointmentParticipants(appointment);
+    const { clientName, trainerName } = extractApptNames(appointment);
+    const emailDateStr = formatApptDateForEmail(appointment.date);
+
     logUserAction('book_appointment', req.user.id, {
       appointmentId: appointment._id,
-      clientName: `${appointment.clientId.firstName} ${appointment.clientId.lastName}`,
-      clientEmail: appointment.clientId.email,
-      trainerName: `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`,
-      trainerEmail: appointment.trainerId.email,
-      date,
-      time,
+      clientName, clientEmail: appointment.clientId.email,
+      trainerName, trainerEmail: appointment.trainerId.email,
+      date, time,
     });
 
-    // Always send booking confirmation to the client
-    if (appointment.clientId.email) {
-      try {
-        const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
-        const trainerName = `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`;
-        const aptDate = new Date(date);
-        const dateStr = aptDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          timeZone: 'UTC',
-        });
-        await sendAppointmentConfirmationClient(
-          appointment.clientId.email,
-          appointment.clientId.firstName,
-          trainerName,
-          dateStr,
-          time,
-          appointment._id.toString(),
-          date
-        );
-      } catch (emailErr) {
-        logger.warn('Failed to send booking confirmation to client', {
-          clientId: req.user.id,
-          error: emailErr.message,
-        });
-      }
-    }
-
-    // Send individual email notification if trainer prefers it
-    if (trainer.trainerEmailPreference === 'individual' && trainer.email) {
-      try {
-        const clientName = `${appointment.clientId.firstName} ${appointment.clientId.lastName}`;
-        const aptDate = new Date(date);
-        const dateStr = aptDate.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          timeZone: 'UTC',
-        });
-        await sendNewAppointmentNotification(
-          trainer.email,
-          trainer.firstName,
-          clientName,
-          dateStr,
-          time,
-          appointment._id.toString(),
-          date
-        );
-      } catch (emailErr) {
-        logger.warn('Failed to send individual appointment notification', {
-          trainerId,
-          error: emailErr.message,
-        });
-      }
-    }
+    await sendApptEmails(appointment, 'created', clientName, trainerName, emailDateStr);
+    await sendApptEmails(appointment, 'created_trainer_individual', clientName, trainerName, emailDateStr);
 
     res.status(201).json(appointment);
   } catch (err) {
@@ -705,160 +732,45 @@ router.put(
       if (date) appointment.date = date;
       if (time) appointment.time = time;
       if (status) {
-        // Allow admins to update any status
-        if (req.user.role === 'admin') {
-          appointment.status = status;
-        } else if (
-          req.user.role === 'trainer' &&
-          appointment.trainerId?.toString() === req.user.id
-        ) {
-          // Allow trainers to update status to completed, no_show, late
-          if (['completed', 'no_show', 'late'].includes(status)) {
-            appointment.status = status;
-          } else {
-            return res.status(400).json({
-              msg: 'Trainers can only update status to completed, no_show, or late',
-            });
-          }
-        } else if (req.user.id === appointment.clientId?.toString()) {
-          // Clients can only cancel
-          if (status === 'cancelled') {
-            appointment.status = status;
-          } else {
-            return res.status(400).json({ msg: 'Clients can only cancel appointments' });
-          }
-        } else {
-          return res.status(403).json({ msg: 'Access denied' });
+        const trainerMatch = appointment.trainerId?.toString() === req.user.id;
+        const clientMatch = appointment.clientId?.toString() === req.user.id;
+
+        if (!validateStatusTransition(req.user.role, appointment.status, status, trainerMatch, clientMatch)) {
+          const msg = req.user.role === 'trainer'
+            ? 'Trainers can only update status to completed, no_show, or late'
+            : req.user.role === 'client' ? 'Clients can only cancel appointments'
+            : 'Access denied';
+          return res.status(400).json({ msg });
         }
+        appointment.status = status;
       }
       if (notes !== undefined) appointment.notes = notes;
 
       await appointment.save();
-      await appointment.populate('clientId', 'firstName lastName email');
-      await appointment.populate(
-        'trainerId',
-        'firstName lastName email trainerEmailPreference'
-      );
+      await populateAppointmentParticipants(appointment, {
+        trainer: 'firstName lastName email trainerEmailPreference'
+      });
 
-      // Log the action
-      const logClientName = appointment.clientId
-        ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}`
-        : 'Unknown Client';
-      const logClientEmail = appointment.clientId?.email || '';
-      const logTrainerName = appointment.trainerId
-        ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`
-        : 'Unknown Trainer';
-      const logTrainerEmail = appointment.trainerId?.email || '';
+      const { clientName, trainerName } = extractApptNames(appointment);
+      const isClientCancelling = appointment.clientId?._id?.toString() === req.user.id && status === 'cancelled';
 
-      if (
-        appointment.clientId?._id?.toString() === req.user.id &&
-        status === 'cancelled'
-      ) {
+      if (isClientCancelling) {
         logUserAction('cancel_appointment', req.user.id, {
-          appointmentId: req.params.id,
-          clientName: logClientName,
-          clientEmail: logClientEmail,
-          trainerName: logTrainerName,
-          trainerEmail: logTrainerEmail,
+          appointmentId: req.params.id, clientName, clientEmail: appointment.clientId?.email,
+          trainerName, trainerEmail: appointment.trainerId?.email,
         });
       } else {
         logAdminAction('update_appointment', req.user.id, {
-          appointmentId: req.params.id,
-          clientName: logClientName,
-          clientEmail: logClientEmail,
-          trainerName: logTrainerName,
-          trainerEmail: logTrainerEmail,
-          updates: req.body,
+          appointmentId: req.params.id, clientName, clientEmail: appointment.clientId?.email,
+          trainerName, trainerEmail: appointment.trainerId?.email, updates: req.body,
         }, req);
       }
 
-      // Send email notifications
-      const aptDate = new Date(appointment.date);
-      const dateStr = aptDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'UTC',
-      });
-      const clientName = logClientName;
-      const trainerName = logTrainerName;
-
-      const apptId = appointment._id.toString();
-      const apptDate =
-        appointment.date instanceof Date
-          ? appointment.date.toISOString()
-          : appointment.date;
-
+      const emailDateStr = formatApptDateForEmail(appointment.date);
       if (status === 'cancelled') {
-        // Always notify client
-        if (appointment.clientId?.email) {
-          sendAppointmentCancelledClient(
-            appointment.clientId.email,
-            appointment.clientId.firstName,
-            trainerName,
-            dateStr,
-            appointment.time,
-            'cancelled',
-            apptId,
-            apptDate
-          ).catch(e =>
-            logger.warn('Failed to send cancellation email to client', {
-              error: e.message,
-            })
-          );
-        }
-        // Notify trainer only if they prefer individual emails
-        if (
-          appointment.trainerId?.trainerEmailPreference === 'individual' &&
-          appointment.trainerId?.email
-        ) {
-          sendAppointmentCancelledTrainer(
-            appointment.trainerId.email,
-            appointment.trainerId.firstName,
-            clientName,
-            dateStr,
-            appointment.time,
-            'cancelled',
-            apptId,
-            apptDate
-          ).catch(e =>
-            logger.warn('Failed to send cancellation email to trainer', {
-              error: e.message,
-            })
-          );
-        }
+        await sendApptEmails(appointment, 'cancelled', clientName, trainerName, emailDateStr);
       } else if (date || time) {
-        // Date/time was changed — notify both parties of the update
-        if (appointment.clientId?.email) {
-          sendAppointmentUpdatedClient(
-            appointment.clientId.email,
-            appointment.clientId.firstName,
-            trainerName,
-            dateStr,
-            appointment.time,
-            apptId,
-            apptDate
-          ).catch(e =>
-            logger.warn('Failed to send update email to client', { error: e.message })
-          );
-        }
-        if (
-          appointment.trainerId?.trainerEmailPreference === 'individual' &&
-          appointment.trainerId?.email
-        ) {
-          sendAppointmentUpdatedTrainer(
-            appointment.trainerId.email,
-            appointment.trainerId.firstName,
-            clientName,
-            dateStr,
-            appointment.time,
-            apptId,
-            apptDate
-          ).catch(e =>
-            logger.warn('Failed to send update email to trainer', { error: e.message })
-          );
-        }
+        await sendApptEmails(appointment, 'updated', clientName, trainerName, emailDateStr);
       }
 
       res.json(appointment);
@@ -877,109 +789,37 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ msg: 'Appointment not found' });
     }
 
-    // Allow delete if user is the trainer, the client, or an admin
-    if (
-      req.user.role !== 'admin' &&
-      appointment.trainerId?.toString() !== req.user.id &&
-      appointment.clientId?.toString() !== req.user.id
-    ) {
+    const isOwner = req.user.role === 'admin' ||
+      appointment.trainerId?.toString() === req.user.id ||
+      appointment.clientId?.toString() === req.user.id;
+
+    if (!isOwner) {
       return res.status(403).json({ msg: 'Access denied' });
     }
 
-    // Populate before deleting so we have names/emails for notifications and logging
-    await appointment.populate('clientId', 'firstName lastName email');
-    await appointment.populate(
-      'trainerId',
-      'firstName lastName email trainerEmailPreference'
-    );
+    await populateAppointmentParticipants(appointment, {
+      trainer: 'firstName lastName email trainerEmailPreference'
+    });
 
-    // Log the action
-    const clientName = appointment.clientId
-      ? `${appointment.clientId.firstName} ${appointment.clientId.lastName}`
-      : 'Unknown Client';
-    const clientEmail = appointment.clientId?.email || '';
-    const trainerName = appointment.trainerId
-      ? `${appointment.trainerId.firstName} ${appointment.trainerId.lastName}`
-      : 'Unknown Trainer';
-    const trainerEmail = appointment.trainerId?.email || '';
-    if (req.user.role === 'admin') {
+    const { clientName, trainerName } = extractApptNames(appointment);
+    const isAdminOrTrainer = req.user.role === 'admin' || appointment.trainerId?._id?.toString() === req.user.id;
+
+    if (isAdminOrTrainer) {
       logAdminAction('delete_appointment', req.user.id, {
-        appointmentId: req.params.id,
-        clientName,
-        clientEmail,
-        trainerName,
-        trainerEmail,
-      }, req);
-    } else if (
-      appointment.trainerId?._id?.toString() === req.user.id ||
-      appointment.trainerId?.toString() === req.user.id
-    ) {
-      logAdminAction('delete_appointment', req.user.id, {
-        appointmentId: req.params.id,
-        clientName,
-        clientEmail,
-        trainerName,
-        trainerEmail,
+        appointmentId: req.params.id, clientName, clientEmail: appointment.clientId?.email,
+        trainerName, trainerEmail: appointment.trainerId?.email,
       }, req);
     } else {
       logUserAction('delete_appointment', req.user.id, {
-        appointmentId: req.params.id,
-        clientName,
-        clientEmail,
-        trainerName,
-        trainerEmail,
+        appointmentId: req.params.id, clientName, clientEmail: appointment.clientId?.email,
+        trainerName, trainerEmail: appointment.trainerId?.email,
       });
     }
 
     await Appointment.findByIdAndDelete(req.params.id);
 
-    // Send deletion notifications
-    const aptDate = new Date(appointment.date);
-    const dateStr = aptDate.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'UTC',
-    });
-
-    const apptId = appointment._id.toString();
-    const apptDate =
-      appointment.date instanceof Date
-        ? appointment.date.toISOString()
-        : appointment.date;
-
-    if (appointment.clientId?.email) {
-      sendAppointmentCancelledClient(
-        appointment.clientId.email,
-        appointment.clientId.firstName,
-        trainerName,
-        dateStr,
-        appointment.time,
-        'deleted',
-        apptId,
-        apptDate
-      ).catch(e =>
-        logger.warn('Failed to send deletion email to client', { error: e.message })
-      );
-    }
-    if (
-      appointment.trainerId?.trainerEmailPreference === 'individual' &&
-      appointment.trainerId?.email
-    ) {
-      sendAppointmentCancelledTrainer(
-        appointment.trainerId.email,
-        appointment.trainerId.firstName,
-        clientName,
-        dateStr,
-        appointment.time,
-        'deleted',
-        apptId,
-        apptDate
-      ).catch(e =>
-        logger.warn('Failed to send deletion email to trainer', { error: e.message })
-      );
-    }
+    const emailDateStr = formatApptDateForEmail(appointment.date);
+    await sendApptEmails(appointment, 'deleted', clientName, trainerName, emailDateStr);
 
     res.json({ msg: 'Appointment deleted successfully' });
   } catch (err) {

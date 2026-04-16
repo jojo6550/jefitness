@@ -11,22 +11,23 @@ const { daysLeftUntil, calculateNextRenewalDate } = require('../utils/dateUtils'
 const StripePlan = require('../models/StripePlan');
 const { logger } = require('../services/logger');
 
-/** Compute daysLeft from a subscription's currentPeriodEnd (midnight-normalised, clamped to 0) */
-function computeDaysLeft(subscription) {
-  return daysLeftUntil(subscription.currentPeriodEnd);
-}
-
-/** Determine billing environment from Stripe secret key prefix */
-function getBillingEnv() {
-  return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
-}
-
 /** Map Stripe status to 3 states: active, cancelled, or trialing */
 function mapStripeStatusTo3States(stripeStatus) {
   if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
   if (stripeStatus === 'canceled') return 'cancelled';
   // past_due, incomplete, incomplete_expired, unpaid, paused → cancelled (no access)
   return 'cancelled';
+}
+
+/** Format appointment date for email display */
+function formatApptDateForEmail(date) {
+  return new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 const subscriptionController = {
@@ -59,22 +60,33 @@ const subscriptionController = {
       status: { $in: ['active', 'trialing'] },
     });
 
-    // Handle queued subscription upgrade (starts after current ends)
-    if (queued) {
-      if (!currentSub) {
-        return res.status(400).json({ 
-          error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
-        });
+      // Handle queued subscription upgrade (starts after current ends)
+      if (queued) {
+        if (!currentSub) {
+          return res.status(400).json({ 
+            error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
+          });
+        }
+        // Compute queued params
+        const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
+        
+        // Validate Stripe trial_end requirement: must be >= now + 2 days
+        const nowTimestamp = Math.floor(Date.now() / 1000);
+        const minTrialEnd = nowTimestamp + 172800; // 2 days in seconds
+        const daysLeft = daysLeftUntil(currentSub.currentPeriodEnd);
+        if (trialEndTimestamp < minTrialEnd) {
+          return res.status(400).json({ 
+            error: `Cannot queue upgrade: only ${daysLeft} days left. Need 2+ days. Subscribe directly or wait.` 
+          });
+        }
+        
+        const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
+        const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
+        // Create queued checkout session
+        const session = await stripeService.createQueuedCheckoutSession(customer.id, plan, trialEndTimestamp, successUrl, cancelUrl);
+        res.json({ sessionId: session.id, url: session.url });
+        return;
       }
-      // Compute queued params
-      const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
-      const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
-      // Create queued checkout session
-      const session = await stripeService.createQueuedCheckoutSession(customer.id, plan, trialEndTimestamp, successUrl, cancelUrl);
-      res.json({ sessionId: session.id, url: session.url });
-      return;
-    }
 
     // Normal immediate subscription - reject if active exists
     if (currentSub) {
@@ -118,13 +130,11 @@ const subscriptionController = {
       return res.json({ success: true, data: null });
     }
 
-    const daysLeft = computeDaysLeft(subscription);
-
     res.json({
       success: true,
       data: {
         ...subscription.toObject(),
-        daysLeft,
+        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
       },
     });
   }),
@@ -165,13 +175,11 @@ const subscriptionController = {
       return res.status(400).json({ error: 'Subscription not found' });
     }
 
-    const daysLeft = computeDaysLeft(subscription);
-
     res.json({
       success: true,
       data: {
         ...subscription.toObject(),
-        daysLeft,
+        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
       },
     });
   }),
@@ -266,12 +274,10 @@ const subscriptionController = {
     subscription.currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
     await subscription.save();
 
-    const daysLeft = computeDaysLeft(subscription);
-
     res.json({
       subscription: {
         ...subscription.toObject(),
-        daysLeft,
+        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
       },
     });
   }),
@@ -297,20 +303,16 @@ const subscriptionController = {
         subscription.stripeSubscriptionId
       );
 
-      const formattedInvoices = invoices
-        .map(invoice => ({
-          id: invoice.id,
-          number: invoice.number || invoice.id.slice(-8),
-          created: invoice.created * 1000, // Stripe seconds → JS ms
-          status: invoice.status,
-          amount_paid: invoice.amount_paid || 0,
-          total: invoice.amount_due || 0,
-          currency: invoice.currency,
-          invoice_pdf: invoice.invoice_pdf,
-          hosted_invoice_url: invoice.hosted_invoice_url,
-          pdf_url: invoice.invoice_pdf || invoice.hosted_invoice_url,
-        }))
-        .sort((a, b) => b.created - a.created); // Newest first
+      const formattedInvoices = invoices.map(i => ({
+        id: i.id,
+        number: i.number || i.id.slice(-8),
+        created: i.created * 1000,
+        status: i.status,
+        amount_paid: i.amount_paid || 0,
+        total: i.amount_due || 0,
+        currency: i.currency,
+        pdf_url: i.invoice_pdf || i.hosted_invoice_url,
+      })).sort((a, b) => b.created - a.created);
 
       res.json({ success: true, data: formattedInvoices });
     } catch (stripeError) {
@@ -324,12 +326,4 @@ const subscriptionController = {
 };
 
 module.exports = subscriptionController;
-
-// Export individual functions for testing
-module.exports.getCurrentSubscription = subscriptionController.getCurrentSubscription;
-module.exports.createCheckout = subscriptionController.createCheckout;
-module.exports.verifyCheckoutSession = subscriptionController.verifyCheckoutSession;
-module.exports.cancel = subscriptionController.cancel;
-module.exports.refresh = subscriptionController.refresh;
-module.exports.cancelQueuedPlan = subscriptionController.cancelQueuedPlan;
 

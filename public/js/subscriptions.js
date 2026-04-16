@@ -440,8 +440,6 @@ function renderActiveSubscriptionSummary() {
 async function selectPlan(planId, queueAfterCurrent = false) {
   selectedPlanId = planId;
 
-  await loadUserSubscriptions();
-
   if (!queueAfterCurrent && hasActiveSubscription(planId)) {
     showAlert('You already have this plan', 'warning');
     return;

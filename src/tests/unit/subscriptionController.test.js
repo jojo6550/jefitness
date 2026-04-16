@@ -179,7 +179,8 @@ describe('subscriptionController', () => {
     it('should create queued checkout session for upgrade with existing active subscription', async () => {
       mockReq.body = { plan: '3-month', queued: true };
 
-      const mockCurrentSub = { status: 'active' };
+      const futureDate = new Date(Date.now() + 10 * 86400000);
+      const mockCurrentSub = { status: 'active', currentPeriodEnd: futureDate };
       const mockCustomer = { id: 'cus_123' };
       const mockSession = { id: 'cs_queued_123', url: 'https://checkout.stripe.com/queued' };
 
@@ -191,7 +192,10 @@ describe('subscriptionController', () => {
 
       expect(stripeService.createQueuedCheckoutSession).toHaveBeenCalledWith(
         mockCustomer.id,
-        '3-month'
+        '3-month',
+        expect.any(Number),
+        expect.any(String),
+        expect.any(String)
       );
       expect(mockRes.json).toHaveBeenCalledWith({
         sessionId: 'cs_queued_123',
