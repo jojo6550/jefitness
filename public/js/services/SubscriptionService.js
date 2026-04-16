@@ -6,7 +6,8 @@
 
 const SubscriptionService = {
   getPlans: async () => {
-    const res = await fetch(`${API_BASE}/api/v1/subscriptions/plans`);
+    const base = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : (window.API_BASE || '/api');
+    const res = await fetch(`${base}/api/v1/subscriptions/plans`, { credentials: 'include' });
     return handleApiResponse(res);
   },
 

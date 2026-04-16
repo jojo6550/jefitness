@@ -20,20 +20,12 @@ function getBillingEnv() {
   return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 }
 
-/** Get days left until period end, clamped to 0 */
-function getDaysLeft(periodEnd) {
-  if (!periodEnd) return 0;
-  const now = new Date();
-  const diff = periodEnd.getTime() - now.getTime();
-  const days = Math.ceil(diff / 86400000);
-  return Math.max(0, days);
-}
-
 /** Map Stripe status to 3 states: active, cancelled, or trialing */
 function mapStripeStatusTo3States(stripeStatus) {
   if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
   if (stripeStatus === 'canceled') return 'cancelled';
-  return 'trialing';
+  // past_due, incomplete, incomplete_expired, unpaid, paused → cancelled (no access)
+  return 'cancelled';
 }
 
 const subscriptionController = {

@@ -598,7 +598,11 @@ async function handleConfirmCancel() {
     return;
   }
 
-  const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
+  const btn = document.getElementById('confirmCancelBtn');
+  const originalText = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling...'; }
+
+  const atPeriodEnd = document.getElementById('atPeriodEndCheck')?.checked ?? false;
 
   try {
     await SubscriptionService.cancelSubscription(currentSubscriptionId, atPeriodEnd);
@@ -609,11 +613,15 @@ async function handleConfirmCancel() {
     );
 
     bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
-    document.getElementById('atPeriodEndCheck').checked = false;
+    if (document.getElementById('atPeriodEndCheck')) {
+      document.getElementById('atPeriodEndCheck').checked = false;
+    }
     setTimeout(loadUserSubscriptions, 1000);
   } catch (err) {
     console.error('Cancel failed:', err);
     showAlert(err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 

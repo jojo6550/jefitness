@@ -409,38 +409,56 @@ function renderInvoices(invoices) {
   invoices.forEach(invoice => {
     const item = document.createElement('div');
     item.className = 'list-group-item d-flex justify-content-between align-items-center py-3';
-    
+
     const isPaid = invoice.status === 'paid';
     const statusClass = isPaid ? 'bg-success' : 'bg-warning';
     const statusText = isPaid ? 'Paid' : (invoice.status || 'Pending');
-    
-    item.innerHTML = `
-      <div class="d-flex align-items-center">
-        <div class="me-3">
-          <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 1.5rem;"></i>
-        </div>
-        <div>
-          <div class="fw-medium">Invoice #${invoice.number || invoice.id.slice(-8)}</div>
-          <small class="text-muted">${formatInvoiceDate(invoice.created || invoice.date)}</small>
-        </div>
-      </div>
-      <div class="d-flex align-items-center">
-        <div class="me-3 text-end">
-          <div class="fw-medium">${formatCurrency(invoice.amount_paid / 100 || invoice.total / 100)}</div>
-          <span class="badge ${statusClass}">${statusText}</span>
-        </div>
-        ${invoice.invoice_pdf || invoice.hosted_invoice_url ? `
-          <a href="${invoice.invoice_pdf || invoice.hosted_invoice_url}" 
-             class="btn btn-sm btn-outline-primary" 
-             target="_blank" 
-             rel="noopener noreferrer"
-             onclick="event.stopPropagation();">
-            <i class="bi bi-download me-1"></i>Download
-          </a>
-        ` : ''}
-      </div>
-    `;
+    const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url || '';
+    const safeUrl = pdfUrl.startsWith('https://') ? pdfUrl : '';
 
+    // Build DOM manually to prevent XSS via invoice fields
+    const left = document.createElement('div');
+    left.className = 'd-flex align-items-center';
+    left.innerHTML = '<div class="me-3"><i class="bi bi-file-earmark-pdf text-danger" style="font-size: 1.5rem;"></i></div>';
+
+    const meta = document.createElement('div');
+    const numDiv = document.createElement('div');
+    numDiv.className = 'fw-medium';
+    numDiv.textContent = 'Invoice #' + (invoice.number || invoice.id.slice(-8));
+    const dateSmall = document.createElement('small');
+    dateSmall.className = 'text-muted';
+    dateSmall.textContent = formatInvoiceDate(invoice.created || invoice.date);
+    meta.appendChild(numDiv);
+    meta.appendChild(dateSmall);
+    left.appendChild(meta);
+
+    const right = document.createElement('div');
+    right.className = 'd-flex align-items-center';
+    const amtDiv = document.createElement('div');
+    amtDiv.className = 'me-3 text-end';
+    const amtInner = document.createElement('div');
+    amtInner.className = 'fw-medium';
+    amtInner.textContent = formatCurrency((invoice.amount_paid || invoice.total || 0) / 100);
+    const badge = document.createElement('span');
+    badge.className = `badge ${statusClass}`;
+    badge.textContent = statusText;
+    amtDiv.appendChild(amtInner);
+    amtDiv.appendChild(badge);
+    right.appendChild(amtDiv);
+
+    if (safeUrl) {
+      const link = document.createElement('a');
+      link.href = safeUrl;
+      link.className = 'btn btn-sm btn-outline-primary';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.addEventListener('click', e => e.stopPropagation());
+      link.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+      right.appendChild(link);
+    }
+
+    item.appendChild(left);
+    item.appendChild(right);
     invoicesList.appendChild(item);
   });
 }
@@ -470,7 +488,11 @@ async function handleConfirmCancel() {
     return;
   }
 
-  const atPeriodEnd = document.getElementById('atPeriodEndCheck').checked;
+  const btn = document.getElementById('confirmCancelBtn');
+  const originalText = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling...'; }
+
+  const atPeriodEnd = document.getElementById('atPeriodEndCheck')?.checked ?? false;
 
   try {
     const res = await fetch(
@@ -495,13 +517,16 @@ async function handleConfirmCancel() {
     );
 
     bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
-    document.getElementById('atPeriodEndCheck').checked = false;
+    if (document.getElementById('atPeriodEndCheck')) {
+      document.getElementById('atPeriodEndCheck').checked = false;
+    }
 
-    // Reload subscription details
     await loadSubscription();
   } catch (err) {
     console.error('Cancel failed:', err);
     showAlert(err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 

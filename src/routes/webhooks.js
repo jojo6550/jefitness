@@ -175,7 +175,8 @@ router.post('/', webhookMiddleware, handleStripeWebhook);
 function mapStripeStatusTo3States(stripeStatus) {
   if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
   if (stripeStatus === 'canceled') return 'cancelled';
-  return 'trialing';
+  // past_due, incomplete, incomplete_expired, unpaid, paused → cancelled (no access)
+  return 'cancelled';
 }
 
 /**
@@ -312,19 +313,28 @@ async function handleSubscriptionUpsert(subscription) {
   // Sync subscription ID to user account data.
   // For queued plans that haven't activated yet, do NOT overwrite the active sub reference.
   if (!doc.isQueuedPlan) {
-    await User.findOneAndUpdate(
-      { _id: user._id },
-      {
-        $set: {
-          stripeSubscriptionId: subscription.id,
-          billingEnvironment: payload.billingEnvironment,
-        },
-      }
-    );
-    logger.info('User account synced', {
-      userId: user._id,
-      subscriptionId: subscription.id,
-    });
+    try {
+      await User.findOneAndUpdate(
+        { _id: user._id },
+        {
+          $set: {
+            stripeSubscriptionId: subscription.id,
+            billingEnvironment: payload.billingEnvironment,
+          },
+        }
+      );
+      logger.info('User account synced', {
+        userId: user._id,
+        subscriptionId: subscription.id,
+      });
+    } catch (syncErr) {
+      // Subscription doc is correct; user ref is stale. Re-run webhook or manual fix needed.
+      logger.error('CRITICAL: Subscription upserted but User sync failed — orphaned subscription risk', {
+        userId: user._id,
+        subscriptionId: subscription.id,
+        error: syncErr.message,
+      });
+    }
   }
 }
 
