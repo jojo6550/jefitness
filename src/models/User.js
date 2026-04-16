@@ -229,9 +229,15 @@ const UserSchema = new mongoose.Schema(
       ipAddress: { type: String },
       userAgent: { type: String },
     },
-    stripeCustomerId: { type: String, unique: true, sparse: true },
-    billingEnvironment: { type: String, enum: ['test', 'production'], default: 'test' },
-    stripeCheckoutSessionId: { type: String },
+    stripeCustomerId: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    billingEnvironment: {
+      type: String,
+      enum: ['test', 'production'],
+    },
     auditLog: [
       {
         action: { type: String, required: true },
