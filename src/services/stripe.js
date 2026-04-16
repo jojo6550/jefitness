@@ -573,7 +573,7 @@ async function createCheckoutSession(
         },
       ],
       success_url: `${process.env.APP_URL || 'http://localhost:3000'}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/subscriptions?canceled=true`,
+      cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/subscriptions?cancelled=true`,
       metadata: {
         plan: plan,
         priceId: priceId.slice(-8),

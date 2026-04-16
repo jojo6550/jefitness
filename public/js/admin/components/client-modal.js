@@ -29,7 +29,7 @@ window.AdminClientModal = (() => {
   function subStatusHtml(sub) {
     if (!sub) return '<span class="cm-pill cm-pill-gray">No Plan</span>';
     const days = daysLeft(sub.currentPeriodEnd);
-    if (sub.status === 'canceled') return '<span class="cm-pill cm-pill-red">Canceled</span>';
+    if (sub.status === 'cancelled') return '<span class="cm-pill cm-pill-red">Cancelled</span>';
     if (['active','trialing'].includes(sub.status)) {
       if (days !== null && days <= 14) return '<span class="cm-pill cm-pill-yellow">Expiring Soon</span>';
       return '<span class="cm-pill cm-pill-green">Active</span>';

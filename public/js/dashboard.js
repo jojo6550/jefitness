@@ -140,7 +140,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         const cancelData = await cancelRes.json();
 
         if (cancelData.success) {
-            window.Toast.success('Subscription canceled. You are now on the free tier.');
+            window.Toast.success('Subscription cancelled. You are now on the free tier.');
             // Reload subscription status
             await loadSubscriptionStatus();
         } else {

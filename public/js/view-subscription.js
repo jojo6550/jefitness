@@ -255,7 +255,7 @@ function renderSubscriptionDetails() {
   // Status Badge
   const statusEl = document.getElementById('subscriptionStatus');
   const isExpired = sub.daysLeft <= 0;
-  const isCanceled = sub.status === 'canceled';
+  const isCanceled = sub.status === 'cancelled';
   
   if (isExpired) {
     statusEl.className = 'badge bg-danger';
@@ -490,7 +490,7 @@ async function handleConfirmCancel() {
     showAlert(
       atPeriodEnd
         ? 'Subscription will end at the current period end date'
-        : 'Subscription canceled successfully',
+        : 'Subscription cancelled successfully',
       'success'
     );
 

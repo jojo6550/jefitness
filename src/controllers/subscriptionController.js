@@ -181,12 +181,12 @@ const subscriptionController = {
     const { atPeriodEnd } = req.body;
 
     const subscription = await Subscription.findOne({
-      _id: subscriptionId,
       userId: req.user._id,
+      status: { $in: ['active', 'trialing'] },
     });
 
     if (!subscription) {
-      return res.status(404).json({ error: 'Subscription not found' });
+      return res.status(404).json({ error: 'No active subscription found' });
     }
 
     if (atPeriodEnd) {

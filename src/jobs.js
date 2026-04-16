@@ -44,7 +44,7 @@ const cleanupExpiredSubscriptions = async () => {
         });
       } else {
         // Cancel subscription
-        sub.status = 'canceled';
+        sub.status = 'cancelled';
         sub.canceledAt = now;
         await sub.save();
         logger.info('Cancelled expired subscription', {

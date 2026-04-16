@@ -97,7 +97,7 @@ describe('Subscription Flow (Integration)', () => {
         if (currentRes.status === 200 && currentRes.body.data) {
           // If subscription exists, verify structure
           const sub = currentRes.body.data;
-          expect(['active', 'trialing', 'canceled']).toContain(sub.status);
+          expect(['active', 'trialing', 'cancelled']).toContain(sub.status);
           if (sub.plan) {
             expect(['1-month', '3-month', '6-month', '12-month']).toContain(sub.plan);
           }

@@ -73,7 +73,7 @@ async function handleApiResponse(response) {
 
   const data = await response.json();
   if (!response.ok) {
-    let errorMsg = data?.message || data?.error?.message || `HTTP ${response.status}`;
+    let errorMsg = data?.message || (typeof data?.error === 'string' ? data.error : data?.error?.message) || `HTTP ${response.status}`;
     if (response.status === 400 && errorMsg.includes('price')) {
       errorMsg = 'Subscription plans temporarily unavailable. Please contact support.';
     } else if (response.status === 401) {
@@ -604,7 +604,7 @@ async function handleConfirmCancel() {
     await SubscriptionService.cancelSubscription(currentSubscriptionId, atPeriodEnd);
 
     showAlert(
-      atPeriodEnd ? 'Subscription will end at period end' : 'Subscription canceled',
+      atPeriodEnd ? 'Subscription will end at period end' : 'Subscription cancelled',
       'success'
     );
 
@@ -625,10 +625,10 @@ async function handleSuccessRedirect() {
   const params = new URLSearchParams(window.location.search);
   const success = params.get('success');
   const sessionId = params.get('session_id');
-  const canceled = params.get('canceled');
+  const cancelled = params.get('cancelled');
 
-  if (canceled === 'true') {
-    showAlert('Subscription purchase canceled.', 'warning');
+  if (cancelled === 'true') {
+    showAlert('Subscription purchase cancelled.', 'warning');
     return;
   }
 

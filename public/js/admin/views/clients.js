@@ -26,7 +26,7 @@ window.AdminClients = (() => {
   function statusPill(sub) {
     if (!sub) return '<span class="pill pill-gray">No Plan</span>';
     const days = daysLeft(sub.currentPeriodEnd);
-    if (sub.status === 'canceled') return '<span class="pill pill-red">Canceled</span>';
+    if (sub.status === 'cancelled') return '<span class="pill pill-red">Cancelled</span>';
     if (['active', 'trialing'].includes(sub.status)) {
       if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
       return '<span class="pill pill-green">Active</span>';

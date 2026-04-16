@@ -41,7 +41,7 @@ describe('Cleanup Jobs', () => {
 
       await cleanupExpiredSubscriptions();
 
-      expect(mockSub.status).toBe('canceled');
+      expect(mockSub.status).toBe('cancelled');
       expect(mockSub.canceledAt).toBeDefined();
       expect(mockSub.save).toHaveBeenCalled();
     });
