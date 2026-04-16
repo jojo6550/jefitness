@@ -25,4 +25,5 @@ fixes
 .claude/settings.local.json
 .env.example
 scripts/
+!scripts/migrate-*.js
 .superpowers/brainstorm/
