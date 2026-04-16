@@ -20,6 +20,22 @@ function getBillingEnv() {
   return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'production';
 }
 
+/** Get days left until period end, clamped to 0 */
+function getDaysLeft(periodEnd) {
+  if (!periodEnd) return 0;
+  const now = new Date();
+  const diff = periodEnd.getTime() - now.getTime();
+  const days = Math.ceil(diff / 86400000);
+  return Math.max(0, days);
+}
+
+/** Map Stripe status to 3 states: active, cancelled, or trialing */
+function mapStripeStatusTo3States(stripeStatus) {
+  if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
+  if (stripeStatus === 'canceled') return 'cancelled';
+  return 'trialing';
+}
+
 const subscriptionController = {
   /**
    * Get available plans
@@ -30,632 +46,192 @@ const subscriptionController = {
   }),
 
   /**
-   * Create a Stripe Checkout session and return its URL.
-   * If queueAfterCurrent is true, creates a queued checkout with trial_end = current sub's period end.
+   * Create Stripe Checkout session for plan upgrade/purchase.
+   * Optionally queues plan to start after current subscription ends.
    */
   createCheckout: asyncHandler(async (req, res) => {
-    const { planId, queueAfterCurrent } = req.body;
-    logger.info(`[CHECKOUT] Request: userId=${req.user.id}, planId="${planId}"`);
+    const { plan, queued } = req.body;
 
-    const user = await User.findById(req.user.id).select('+stripeCustomerId');
-    if (!user) throw new ValidationError('User not found');
-
-    logger.info(
-      `[CHECKOUT] User ${user._id}: email=${user.email}, existingCustomerId=${user.stripeCustomerId || 'NONE'}`
-    );
-
-    let stripeCustomerId;
-
-    // Always refresh customer to avoid stale DB values
-    logger.info(`[CHECKOUT] Force refreshing customer via email: ${user.email}`);
-
-    try {
-      const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
-        userId: user._id.toString(),
-        app: 'jefitness',
-      });
-
-      stripeCustomerId = customer.id;
-      logger.info(`[CHECKOUT] Fresh customer: ${stripeCustomerId}`);
-
-      // Update user record with verified customer ID (idempotent)
-      if (user.stripeCustomerId !== stripeCustomerId) {
-        user.stripeCustomerId = stripeCustomerId;
-        user.billingEnvironment = getBillingEnv();
-        await user.save();
-        logger.info(`[CHECKOUT] Updated user.stripeCustomerId: ${stripeCustomerId}`);
-      }
-    } catch (customerError) {
-      logger.error('[CHECKOUT] Customer creation failed:', {
-        error: customerError.message,
-      });
-      return res.status(400).json({
-        success: false,
-        message: `Failed to create customer account: ${customerError.message}. Please try again or contact support.`,
-      });
+    if (!plan || !['1-month', '3-month', '6-month', '12-month'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const successUrl = `${baseUrl}/pages/subscriptions.html?success=true&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${baseUrl}/pages/subscriptions.html?canceled=true`;
+    // Get or create Stripe customer
+    const customer = await stripeService.createOrRetrieveCustomer(req.user.email);
 
-    logger.info(
-      `[CHECKOUT] Creating session: customer=${stripeCustomerId}, plan=${planId}`
-    );
-
-    let session;
-    try {
-      if (queueAfterCurrent) {
-        // Find the user's current active subscription to get the trial_end timestamp
-        const activeSub = await Subscription.findOne({
-          userId: req.user.id,
-          status: { $in: ['active', 'trialing'] },
-          isQueuedPlan: { $ne: true },
-        }).sort({ utcCreatedAt: -1 });
-
-        if (!activeSub) {
-          return res.status(400).json({ success: false, message: 'No active subscription to queue after' });
-        }
-
-        // Prevent double-queueing
-        const existingQueued = await Subscription.findOne({
-          userId: req.user.id,
-          isQueuedPlan: true,
-          status: 'trialing',
-        });
-        if (existingQueued) {
-          return res.status(400).json({ success: false, message: 'You already have a plan queued. Cancel it first to queue a different plan.' });
-        }
-
-        const trialEnd = Math.floor(activeSub.currentPeriodEnd.getTime() / 1000);
-        session = await stripeService.createQueuedCheckoutSession(stripeCustomerId, planId, trialEnd, successUrl, cancelUrl);
-      } else {
-        session = await stripeService.createCheckoutSession(stripeCustomerId, planId, successUrl, cancelUrl);
-      }
-      logger.info(`[CHECKOUT] Session created: ${session.id}`);
-    } catch (sessionError) {
-      logger.error('[CHECKOUT] Session creation failed:', {
-        error: sessionError.message,
-      });
-
-      // If customer specifically invalid, clear stale DB record
-      if (
-        sessionError.message.includes('Customer account invalid') ||
-        sessionError.message.includes('No such customer')
-      ) {
-        logger.info('[CHECKOUT] Clearing stale customerId from user');
-        user.stripeCustomerId = null;
-        await user.save();
-      }
-
-      return res.status(400).json({
-        success: false,
-        message: `Payment setup failed: ${sessionError.message}. Please refresh and try again.`,
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        sessionId: session.id,
-        url: session.url,
-        customerId: stripeCustomerId,
-        planId,
-      },
+    // Get current subscription if exists
+    const currentSub = await Subscription.findOne({
+      userId: req.user._id,
+      status: 'active',
     });
+
+    // Determine trial_end if queued
+    let trialEndTimestamp = null;
+    let metadata = { plan };
+    if (queued && currentSub && currentSub.currentPeriodEnd) {
+      trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
+      metadata.is_queued = 'true';
+    }
+
+    // Create Stripe checkout session
+    const session = await stripeService.createCheckoutSession(
+      customer.id,
+      plan,
+      trialEndTimestamp,
+      metadata
+    );
+
+    res.json({ sessionId: session.id, url: session.url });
   }),
 
   /**
-   * Get the current user's most recent subscription.
-   * Excludes queued plans (isQueuedPlan: true) from the primary result and
-   * returns them separately as queuedPlan in the response data.
+   * Get the current user's active subscription (single doc per user model).
+   * Returns null if no active subscription.
    */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    // PLATFORM POLICY: Only active/trialing (past_due auto-canceled)
-    // Exclude queued plans from primary result
-    let subscription = await Subscription.findOne({
-      userId: req.user.id,
+    const subscription = await Subscription.findOne({
+      userId: req.user._id,
       status: { $in: ['active', 'trialing'] },
-      isQueuedPlan: { $ne: true },
-    }).sort({ utcCreatedAt: -1 });
+    }).select('-__v');
 
     if (!subscription) {
-      subscription = await Subscription.findOne({
-        userId: req.user.id,
-        isQueuedPlan: { $ne: true },
-      }).sort({
-        utcCreatedAt: -1,
-      });
+      return res.json({ subscription: null });
     }
 
-    if (!subscription) return res.json({ success: true, data: null });
-
-    // Auto-heal: if active but currentPeriodEnd is missing or in the past, re-sync from Stripe
-    const activeStatuses = ['active', 'trialing'];
-    const periodEndInvalid =
-      !subscription.currentPeriodEnd || subscription.currentPeriodEnd <= new Date();
-
-    if (
-      activeStatuses.includes(subscription.status) &&
-      periodEndInvalid &&
-      subscription.stripeSubscriptionId
-    ) {
-      try {
-        const stripe = stripeService.getStripe();
-        if (stripe) {
-          const stripeSub = await stripe.subscriptions.retrieve(
-            subscription.stripeSubscriptionId
-          );
-          if (stripeSub?.current_period_end) {
-            subscription = await Subscription.findByIdAndUpdate(
-              subscription._id,
-              {
-                $set: {
-                  currentPeriodStart: stripeSub.current_period_start
-                    ? new Date(stripeSub.current_period_start * 1000)
-                    : subscription.currentPeriodStart,
-                  currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
-                  status: stripeSub.status,
-                },
-              },
-              { new: true }
-            );
-          }
-        }
-      } catch (healErr) {
-        logger.warn('[GET-SUBSCRIPTION] Auto-heal from Stripe failed:', {
-          error: healErr.message,
-        });
-      }
-    }
-
-    // Check for a queued next plan (trialing, isQueuedPlan: true)
-    const queuedPlanDoc = await Subscription.findOne({
-      userId: req.user.id,
-      isQueuedPlan: true,
-      status: 'trialing',
-    }).lean();
-
-    const queuedPlan = queuedPlanDoc
-      ? { _id: queuedPlanDoc._id, plan: queuedPlanDoc.plan, currentPeriodEnd: queuedPlanDoc.currentPeriodEnd }
-      : null;
+    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
 
     res.json({
-      success: true,
-      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription), queuedPlan },
+      subscription: {
+        ...subscription.toObject(),
+        daysLeft,
+      },
     });
   }),
 
   /**
    * Verify a completed Stripe Checkout session.
-   * Proactively upserts the subscription record so the user is never stuck in
-   * "not yet active" limbo if the webhook fires late.
+   * Returns the subscription if already created by webhook.
    */
   verifyCheckoutSession: asyncHandler(async (req, res) => {
-    const sessionId = req.params.sessionId.trim();
+    const { sessionId } = req.params;
 
-    logger.info(
-      `[VERIFY-SESSION] Starting verification for sessionId: ${sessionId}, userId: ${req.user.id}`
-    );
+    const session = await stripeService.getCheckoutSession(sessionId);
 
-    // Validate STRIPE_SECRET_KEY
-    if (!process.env.STRIPE_SECRET_KEY) {
-      logger.error('[VERIFY-SESSION] STRIPE_SECRET_KEY missing');
-      return res.status(500).json({
-        success: false,
-        message: 'Stripe configuration error. Please contact support.',
-      });
+    if (!session || session.payment_status !== 'paid') {
+      return res.status(400).json({ error: 'Invalid or unpaid session' });
     }
 
-    let session;
-    try {
-      session = await stripeService.getCheckoutSession(sessionId);
-    } catch (error) {
-      logger.error('[VERIFY-SESSION] Failed to fetch session:', {
-        error: error.message,
-        sessionId,
-      });
-      return res.status(400).json({
-        success: false,
-        message: `Session fetch failed: ${error.message}`,
-      });
+    // Verify ownership: session customer must match user's customer
+    const user = await User.findById(req.user._id);
+    if (!user.stripeCustomerId) {
+      // Create customer if missing
+      const customer = await stripeService.createOrRetrieveCustomer(user.email);
+      user.stripeCustomerId = customer.id;
+      await user.save();
     }
 
-    if (!session) {
-      logger.error('[VERIFY-SESSION] Session not found:', { sessionId });
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired checkout session',
-      });
+    if (session.customer !== user.stripeCustomerId) {
+      return res.status(403).json({ error: 'Customer mismatch' });
     }
 
-    if (!session.customer) {
-      logger.error('[VERIFY-SESSION] No customer in session:', { sessionId });
-      return res.status(400).json({
-        success: false,
-        message: 'Session missing customer information',
-      });
+    // Subscription was already created by webhook, just return it
+    const subscription = await Subscription.findOne({
+      userId: req.user._id,
+      stripeSubscriptionId: session.subscription,
+    });
+
+    if (!subscription) {
+      return res.status(400).json({ error: 'Subscription not found' });
     }
 
-    if (!session.subscription) {
-      logger.error('[VERIFY-SESSION] No subscription in session:', { sessionId });
-      return res.status(400).json({
-        success: false,
-        message: 'Session not linked to subscription',
-      });
-    }
-
-    if (session.payment_status !== 'paid' || session.mode !== 'subscription') {
-      logger.info('[VERIFY-SESSION] Session invalid:', {
-        sessionId,
-        payment_status: session.payment_status,
-        mode: session.mode,
-      });
-      return res.status(400).json({
-        success: false,
-        message: 'Payment not completed or invalid session type',
-      });
-    }
-
-    // Always re-fetch the subscription from Stripe on verify so period dates are
-    // guaranteed fresh (webhooks may have saved an incomplete record before
-    // Stripe finished setting up the subscription).
-    let subscription = null;
-    try {
-      logger.info('[VERIFY-SESSION] Fetching subscription from Stripe:', {
-        id: session.subscription,
-      });
-      const stripe = stripeService.getStripe();
-      if (!stripe) throw new Error('Stripe instance not available');
-
-      const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
-
-      if (stripeSub) {
-        const customerId =
-          session.customer && typeof session.customer === 'object'
-            ? session.customer.id
-            : session.customer;
-        const user = await User.findOne({ stripeCustomerId: customerId });
-        if (!user) {
-          logger.warn('[VERIFY-SESSION] No user found for Stripe customer — denying access', {
-            customer: session.customer,
-            authenticatedUserId: req.user.id,
-          });
-          return res.status(403).json({
-            success: false,
-            message: 'Session does not belong to the authenticated user',
-          });
-        } else if (user._id.toString() !== req.user.id) {
-          logger.warn('[VERIFY-SESSION] Authenticated user does not own this checkout session', {
-            authenticatedUserId: req.user.id,
-            sessionCustomerUserId: user._id,
-            sessionId,
-          });
-          return res.status(403).json({
-            success: false,
-            message: 'Session does not belong to the authenticated user',
-          });
-        } else {
-          const priceItem = stripeSub.items?.data[0];
-          const priceId = priceItem?.price?.id;
-          const billingEnv = getBillingEnv();
-          const planName = await stripeService.getPlanNameFromPriceId(priceId);
-
-          // Resolve period dates from Stripe; fall back to plan-interval arithmetic
-          // if Stripe hasn't set current_period_end yet (e.g. subscription still initialising).
-          const periodStart = stripeSub.current_period_start
-            ? new Date(stripeSub.current_period_start * 1000)
-            : new Date();
-          let periodEnd;
-          if (stripeSub.current_period_end) {
-            periodEnd = new Date(stripeSub.current_period_end * 1000);
-          } else {
-            const planRecord = await StripePlan.findOne({
-              stripePriceId: priceId,
-              active: true,
-            }).lean();
-            periodEnd = calculateNextRenewalDate(
-              periodStart,
-              planRecord?.interval || 'month',
-              planRecord?.intervalCount || 1
-            );
-            logger.warn(
-              `[VERIFY-SESSION] current_period_end missing from Stripe — computed from plan interval (${planRecord?.interval}x${planRecord?.intervalCount}): ${periodEnd.toISOString()}`
-            );
-          }
-
-          const isQueued = session.metadata?.is_queued === 'true';
-
-          subscription = await Subscription.findOneAndUpdate(
-            { stripeSubscriptionId: stripeSub.id },
-            {
-              $set: {
-                userId: user._id,
-                stripeCustomerId:
-                  typeof stripeSub.customer === 'object'
-                    ? stripeSub.customer.id
-                    : stripeSub.customer,
-                stripeSubscriptionId: stripeSub.id,
-                plan: planName,
-                stripePriceId: priceId,
-                currentPeriodStart: periodStart,
-                currentPeriodEnd: periodEnd,
-                status: stripeSub.status,
-                cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
-                canceledAt: stripeSub.canceled_at
-                  ? new Date(stripeSub.canceled_at * 1000)
-                  : null,
-                amount: priceItem?.price?.unit_amount || 0,
-                currency: priceItem?.price?.currency || 'jmd',
-                billingEnvironment: billingEnv,
-                checkoutSessionId: sessionId,
-                isQueuedPlan: isQueued,
-              },
-            },
-            { upsert: true, new: true }
-          );
-
-          // For queued subs, do NOT update user.stripeSubscriptionId — the active sub still owns that reference
-          if (!isQueued) {
-            await User.findByIdAndUpdate(user._id, {
-              $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
-            });
-          }
-        }
-      }
-    } catch (fetchErr) {
-      logger.error('[VERIFY-SESSION] Stripe fetch failed, falling back to DB:', {
-        error: fetchErr.message,
-      });
-      subscription = await Subscription.findOne({
-        stripeSubscriptionId: session.subscription,
-      });
-    }
-
-    if (!subscription) return res.json({ success: true, data: null });
+    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
 
     res.json({
-      success: true,
-      data: { ...subscription.toObject(), daysLeft: computeDaysLeft(subscription) },
+      subscription: {
+        ...subscription.toObject(),
+        daysLeft,
+      },
     });
   }),
 
   /**
    * Cancel the user's queued (trialing, isQueuedPlan) subscription.
+   * Kept for backward compatibility with existing routes.
    */
   cancelQueuedPlan: asyncHandler(async (req, res) => {
-    const queued = await Subscription.findOne({
-      userId: req.user.id,
-      isQueuedPlan: true,
-      status: 'trialing',
-    });
-
-    if (!queued) {
-      throw new NotFoundError('No queued plan found');
-    }
-
-    if (queued.stripeSubscriptionId) {
-      try {
-        await stripeService.cancelSubscription(queued.stripeSubscriptionId, false);
-      } catch (stripeErr) {
-        const msg = stripeErr.message || '';
-        const alreadyGone =
-          msg.includes('already canceled') ||
-          msg.includes('No such subscription') ||
-          msg.includes('resource_missing');
-        if (!alreadyGone) {
-          logger.error('Stripe cancel queued plan failed (non-fatal)', { error: stripeErr.message });
-        }
-      }
-    }
-
-    await Subscription.findByIdAndUpdate(
-      queued._id,
-      {
-        $set: { status: 'canceled', canceledAt: new Date() },
-        $push: { statusHistory: { status: 'canceled', changedAt: new Date(), reason: 'User canceled queued plan' } },
-      },
-      { runValidators: false }
-    );
-
-    res.json({ success: true, message: 'Queued plan canceled' });
+    return res.status(400).json({ error: 'Queued plans no longer supported in single-doc-per-user model' });
   }),
 
   /**
-   * Cancel a subscription by its DB ID
+   * Cancel a subscription by its DB ID.
+   * atPeriodEnd: if true, schedule cancellation at period end; if false, cancel immediately.
    */
   cancel: asyncHandler(async (req, res) => {
     const { subscriptionId } = req.params;
-    const atPeriodEnd = req.body.atPeriodEnd || false;
+    const { atPeriodEnd } = req.body;
 
     const subscription = await Subscription.findOne({
       _id: subscriptionId,
-      userId: req.user.id,
+      userId: req.user._id,
     });
 
     if (!subscription) {
-      throw new NotFoundError('Subscription not found or access denied');
+      return res.status(404).json({ error: 'Subscription not found' });
     }
 
-    // Cancel on Stripe first (source of truth)
-    if (subscription.stripeSubscriptionId) {
-      try {
-        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, atPeriodEnd);
-      } catch (stripeErr) {
-        const msg = stripeErr.message || '';
-        const alreadyGone =
-          msg.includes('already canceled') ||
-          msg.includes('No such subscription') ||
-          msg.includes('does not exist') ||
-          msg.includes('resource_missing');
-
-        if (!alreadyGone) {
-          // Non-fatal — log and continue so the DB record is still updated
-          logger.error('Stripe cancel error (non-fatal)', { error: stripeErr.message });
-        }
+    if (atPeriodEnd) {
+      // Set cancel_at_period_end on Stripe sub
+      if (subscription.stripeSubscriptionId) {
+        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, true);
       }
+      // DB will be updated by webhook when Stripe sends customer.subscription.updated
+      res.json({ message: 'Cancellation scheduled for period end' });
+    } else {
+      // Cancel immediately
+      if (subscription.stripeSubscriptionId) {
+        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, false);
+      }
+      // Update DB
+      subscription.status = 'cancelled';
+      subscription.canceledAt = new Date();
+      await subscription.save();
+
+      res.json({ message: 'Subscription cancelled immediately' });
     }
-
-    // Update DB record — use findByIdAndUpdate with runValidators:false to avoid
-    // Mongoose validation failures on older documents missing newly added fields
-    // When canceling at period end, keep status 'active' — cancelAtPeriodEnd:true is the signal.
-    // 'cancel_at_period_end' is not a valid Stripe/schema status and causes findOne queries to miss the subscription.
-    const newStatus = atPeriodEnd ? subscription.status : 'canceled';
-    const now = new Date();
-    const canceledAtUpdate = atPeriodEnd ? {} : { canceledAt: now };
-    await Subscription.findByIdAndUpdate(
-      subscription._id,
-      {
-        $set: {
-          status: newStatus,
-          ...canceledAtUpdate,
-          cancelAtPeriodEnd: atPeriodEnd
-        },
-        $push: {
-          statusHistory: {
-            status: newStatus,
-            changedAt: now,
-            reason: `User requested cancellation ${atPeriodEnd ? '(at period end)' : '(immediate)'}`,
-          },
-        },
-      },
-      { runValidators: false }
-    );
-
-    // Best-effort user record sync
-    try {
-      await User.findByIdAndUpdate(req.user.id, {
-        $set: { subscriptionStatus: newStatus },
-      });
-    } catch (userUpdateError) {
-      logger.error('Failed to update user record after cancel', {
-        error: userUpdateError.message,
-      });
-    }
-
-    res.json({ success: true, message: `Subscription ${atPeriodEnd ? 'scheduled to end at period end' : 'canceled successfully'}` });
   }),
 
   /**
-   * Force-sync subscription status from Stripe
+   * Refresh subscription status from Stripe and update DB.
+   * Returns the latest subscription state.
    */
   refresh: asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user.id).select(
-      'stripeSubscriptionId stripeCustomerId'
-    );
-
-    if (!user.stripeSubscriptionId && !user.stripeCustomerId) {
-      return res.json({
-        success: true,
-        data: null,
-        message: 'No Stripe subscription linked to account',
-      });
-    }
-
-    const stripe = stripeService.getStripe();
-    const ACTIVE_STRIPE_STATUSES = [
-      'active',
-      'trialing'
-    ];
-    let stripeSub = null;
-
-    try {
-      if (user.stripeSubscriptionId && stripe) {
-        const candidate = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        // Only use it if it's still in an active-like state
-        if (candidate && ACTIVE_STRIPE_STATUSES.includes(candidate.status)) {
-          stripeSub = candidate;
-        }
-      }
-
-      // If stored ID is missing, stale, or canceled — find the latest active sub via customer
-      if (!stripeSub && user.stripeCustomerId && stripe) {
-        for (const status of ['active', 'trialing', 'past_due', 'paused', 'incomplete']) {
-          const subs = await stripe.subscriptions.list({
-            customer: user.stripeCustomerId,
-            status,
-            limit: 1,
-          });
-          if (subs.data.length > 0) {
-            stripeSub = subs.data[0];
-            break;
-          }
-        }
-      }
-    } catch (err) {
-      logger.warn('Stripe subscription fetch failed', {
-        userId: req.user.id,
-        error: err.message,
-      });
-    }
-
-    if (!stripeSub) {
-      return res.json({
-        success: true,
-        data: null,
-        message: 'No active Stripe subscription found',
-      });
-    }
-
-    // Security: verify this Stripe subscription belongs to the requesting user's customer.
-    // stripeSub.customer can be an expanded object if Stripe auto-expands it — normalize to ID string.
-    const stripeSubCustomerId = typeof stripeSub.customer === 'object'
-      ? stripeSub.customer?.id
-      : stripeSub.customer;
-    if (stripeSubCustomerId !== user.stripeCustomerId) {
-      logger.warn('[REFRESH] Stripe subscription customer mismatch — possible data corruption', {
-        userId: user._id,
-        stripeSubId: stripeSub.id,
-        subCustomer: stripeSub.customer,
-        userCustomer: user.stripeCustomerId,
-      });
-      return res.json({
-        success: true,
-        data: null,
-        message: 'No active Stripe subscription found',
-      });
-    }
-
-    const priceItem = stripeSub.items?.data[0];
-    const priceId = priceItem?.price?.id;
-    const billingEnv = getBillingEnv();
-    const planName = await stripeService.getPlanNameFromPriceId(priceId);
-
-    const payload = {
-      userId: user._id,
-      stripeCustomerId: stripeSub.customer,
-      stripeSubscriptionId: stripeSub.id,
-      plan: planName,
-      stripePriceId: priceId,
-      currentPeriodStart: stripeSub.current_period_start
-        ? new Date(stripeSub.current_period_start * 1000)
-        : new Date(),
-      currentPeriodEnd: stripeSub.current_period_end
-        ? new Date(stripeSub.current_period_end * 1000)
-        : null,
-      status: stripeSub.status,
-      cancelAtPeriodEnd: stripeSub.cancel_at_period_end || false,
-      canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
-      amount: priceItem?.price?.unit_amount || 0,
-      currency: priceItem?.price?.currency || 'jmd',
-      billingEnvironment: billingEnv,
-      lastWebhookEventAt: new Date(),
-    };
-
-    const sub = await Subscription.findOneAndUpdate(
-      { stripeSubscriptionId: stripeSub.id },
-      { $set: payload },
-      { upsert: true, new: true }
-    );
-
-    await User.findByIdAndUpdate(user._id, {
-      $set: { stripeSubscriptionId: stripeSub.id, billingEnvironment: billingEnv },
+    const subscription = await Subscription.findOne({
+      userId: req.user._id,
     });
 
+    if (!subscription || !subscription.stripeSubscriptionId) {
+      return res.json({ subscription: null });
+    }
+
+    // Fetch latest from Stripe
+    const stripeSub = await stripeService.getSubscription(subscription.stripeSubscriptionId);
+
+    // Map Stripe status to 3 states
+    const status = mapStripeStatusTo3States(stripeSub.status);
+
+    // Update DB
+    subscription.status = status;
+    subscription.currentPeriodStart = new Date(stripeSub.current_period_start * 1000);
+    subscription.currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
+    await subscription.save();
+
+    const daysLeft = getDaysLeft(subscription.currentPeriodEnd);
+
     res.json({
-      success: true,
-      data: { ...sub.toObject(), daysLeft: computeDaysLeft(sub) },
-      message: 'Subscription refreshed from Stripe',
+      subscription: {
+        ...subscription.toObject(),
+        daysLeft,
+      },
     });
   }),
 
@@ -707,3 +283,10 @@ const subscriptionController = {
 };
 
 module.exports = subscriptionController;
+
+// Export individual functions for testing
+module.exports.getCurrentSubscription = subscriptionController.getCurrentSubscription;
+module.exports.createCheckout = subscriptionController.createCheckout;
+module.exports.verifyCheckoutSession = subscriptionController.verifyCheckoutSession;
+module.exports.cancel = subscriptionController.cancel;
+module.exports.refresh = subscriptionController.refresh;
