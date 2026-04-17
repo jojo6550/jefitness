@@ -242,72 +242,6 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
 }
 
 /**
- * Create a subscription for a customer
- * @param {string} customerId - Stripe customer ID
- * @param {string} plan - Subscription plan ('1-month', '3-month', '6-month', '12-month')
- * @returns {Promise<Object>} Stripe subscription object
- */
-async function createSubscription(customerId, plan) {
-  // This function is deprecated — all subscriptions go through createCheckoutSession.
-  // PRODUCT_IDS was removed; calling this will throw to surface the miscall clearly.
-  throw new Error('createSubscription is deprecated. Use createCheckoutSession instead.');
-  /* eslint-disable no-unreachable */
-  try {
-    logger.info('createSubscription called', { customerId, plan });
-
-    const productId = undefined; // PRODUCT_IDS removed — see deprecation above
-    logger.debug('Product ID for plan', { plan, productId });
-    if (!productId) {
-      throw new Error(`Invalid plan: ${plan}`);
-    }
-
-    const priceId = await getPriceIdForPlan(plan);
-    logger.debug('Price ID from DB', { plan, priceId });
-    if (!priceId) {
-      throw new Error(
-        `No active recurring price found for plan: ${plan} (check StripePlan DB)`
-      );
-    }
-
-    // Get customer to check default payment method
-    const customer = await getStripe().customers.retrieve(customerId);
-    logger.debug('Customer retrieved', { customerId: customer.id });
-    const defaultPaymentMethod = customer.invoice_settings?.default_payment_method;
-    logger.debug('Default payment method', { defaultPaymentMethod });
-
-    const subscriptionData = {
-      customer: customerId,
-      items: [
-        {
-          price: priceId,
-        },
-      ],
-      // Expand to get latest invoice and payment intent details
-      expand: ['latest_invoice.payment_intent'],
-      // Allow incomplete payment - customer can complete it later
-      payment_behavior: 'allow_incomplete',
-    };
-
-    // Set default payment method if available
-    if (defaultPaymentMethod) {
-      subscriptionData.default_payment_method = defaultPaymentMethod;
-    }
-
-    logger.debug('Creating subscription', { customerId, plan, priceId });
-    const subscription = await getStripe().subscriptions.create(subscriptionData);
-    logger.info('Subscription created', {
-      subscriptionId: subscription.id,
-      status: subscription.status,
-    });
-
-    return subscription;
-  } catch (error) {
-    logger.error('createSubscription error', { error: error.message });
-    throw new Error(`Failed to create subscription: ${error.message}`);
-  }
-}
-
-/**
  * Retrieve all subscriptions for a customer
  * @param {string} customerId - Stripe customer ID
  * @param {string} status - Filter by status (all, active, past_due, canceled, unpaid, paused)
@@ -1042,7 +976,6 @@ function formatProductsForFrontend(products) {
 module.exports = {
   getStripe,
   createOrRetrieveCustomer,
-  createSubscription,
   getCustomerSubscriptions,
   getSubscription,
   updateSubscription,
