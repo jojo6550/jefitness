@@ -10,7 +10,7 @@ const monitoringService = require('../services/monitoring');
 const requireConsent = (consentField, consentType, securityEvent, code, shortError, detailMessage, auditAction, extraAuditData) =>
   async (req, res, next) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user.id;
       if (!userId) {
         return res.status(401).json({ success: false, error: 'User authentication required' });
       }
@@ -93,7 +93,7 @@ const requireHealthDataConsent = requireConsent(
  */
 const requireMarketingConsent = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user.id;
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -141,7 +141,7 @@ const requireMarketingConsent = async (req, res, next) => {
  */
 const checkDataRestriction = async (req, res, next) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id; // optional chaining kept: unauthenticated requests are allowed through
     if (!userId) {
       return next();
     }

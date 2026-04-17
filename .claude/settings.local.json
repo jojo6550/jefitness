@@ -40,7 +40,13 @@
       "Bash(node:*)",
       "Bash(ls public/pages/*.html)",
       "Skill(claude-md-management:revise-claude-md)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(sed 's/[^A-Za-z_0-9].*//')",
+      "Bash(xargs -I {} basename {})",
+      "Bash(sed 's/.*:\\\\s*async//')",
+      "Bash(sed 's/:.*$//')",
+      "Bash(awk '{print $1}')",
+      "Bash(xargs basename *)"
     ]
   },
   "enabledPlugins": {
