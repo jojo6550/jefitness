@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'nutrition-history',
     'workout-progress',
     'client-profile',
-    'view-subscription',
     'onboarding',
   ];
 
