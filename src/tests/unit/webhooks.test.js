@@ -31,7 +31,10 @@ const stripe = require('stripe');
 // 🧪 MOCK MIDDLEWARE
 // --------------------
 jest.mock('../../middleware/auth', () => ({
-  auth: (req, res, next) => next(), // ✅ FIXED (this was breaking your tests)
+  auth: (req, res, next) => next(),
+}));
+
+jest.mock('../../services/webhookUtils', () => ({
   isWebhookEventProcessed: jest.fn(),
   markWebhookEventProcessed: jest.fn(),
 }));
@@ -86,7 +89,7 @@ const webhookRoute = require('../../routes/webhooks');
 const {
   isWebhookEventProcessed,
   markWebhookEventProcessed,
-} = require('../../middleware/auth');
+} = require('../../services/webhookUtils');
 const User = require('../../models/User');
 const { getPlanNameFromPriceId } = require('../../services/stripe');
 

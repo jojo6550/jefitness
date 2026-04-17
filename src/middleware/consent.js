@@ -7,149 +7,89 @@ const User = require('../models/User');
 const UserActionLog = require('../models/UserActionLog');
 const monitoringService = require('../services/monitoring');
 
-/**
- * Middleware to check if user has given general data processing consent
- */
-const requireDataProcessingConsent = async (req, res, next) => {
-  try {
-    const userId = req.user?.id || req.user?.user?.id;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required',
-      });
-    }
+const requireConsent = (consentField, securityEvent, code, errorMessage, auditAction, extraAuditData) =>
+  async (req, res, next) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User authentication required' });
+      }
 
-    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || (await User.findById(userId));
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found',
-      });
-    }
+      // Use user doc pre-fetched by auth middleware to avoid an extra DB query
+      const user = req.userDoc || (await User.findById(userId));
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
 
-    // Admin users are exempt from consent requirements — they manage platform data
-    if (user.role === 'admin') return next();
+      // Admin users are exempt from consent requirements — they manage platform data
+      if (user.role === 'admin') return next();
 
-    if (!user.dataProcessingConsent.given) {
-      monitoringService.recordSecurityEvent('consent_required', {
-        userId,
-        consentType: 'data_processing',
+      if (!user[consentField].given) {
+        monitoringService.recordSecurityEvent(securityEvent, {
+          userId,
+          consentType: consentField,
+          endpoint: req.path,
+          method: req.method,
+        });
+
+        return res.status(403).json({
+          success: false,
+          error: errorMessage,
+          code,
+          details: {
+            consentType: consentField,
+            message: errorMessage,
+          },
+        });
+      }
+
+      // Fire-and-forget audit log — do not block the request
+      logAuditEvent(user, auditAction, {
+        consentType: consentField,
+        ...(extraAuditData ? extraAuditData(user) : {}),
         endpoint: req.path,
         method: req.method,
+        ipAddress: getClientIP(req),
+        userAgent: req.get('User-Agent'),
       });
 
-      return res.status(403).json({
-        success: false,
-        error: 'Data processing consent required',
-        code: 'CONSENT_REQUIRED',
-        details: {
-          consentType: 'data_processing',
-          message:
-            'Please provide consent for data processing before accessing this service',
-        },
-      });
-    }
-
-    // Fire-and-forget audit log — do not block the request
-    logAuditEvent(user, 'consent_verified', {
-      consentType: 'data_processing',
-      endpoint: req.path,
-      method: req.method,
-      ipAddress: getClientIP(req),
-      userAgent: req.get('User-Agent'),
-    });
-
-    next();
-  } catch (error) {
-    monitoringService.recordError(error, {
-      context: 'consent_middleware',
-      userId: req.user?.id,
-      endpoint: req.path,
-    });
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error during consent verification',
-    });
-  }
-};
-
-/**
- * Middleware to check if user has given health data processing consent
- */
-const requireHealthDataConsent = async (req, res, next) => {
-  try {
-    const userId = req.user?.id || req.user?.user?.id;
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required',
-      });
-    }
-
-    // Use user doc pre-fetched by auth middleware to avoid an extra DB query
-    const user = req.userDoc || (await User.findById(userId));
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found',
-      });
-    }
-
-    // Admin users are exempt from consent requirements — they manage platform data
-    if (user.role === 'admin') return next();
-
-    if (!user.healthDataConsent.given) {
-      monitoringService.recordSecurityEvent('health_consent_required', {
-        userId,
-        consentType: 'health_data',
+      next();
+    } catch (error) {
+      monitoringService.recordError(error, {
+        context: `${consentField}_middleware`,
+        userId: req.user?.id,
         endpoint: req.path,
-        method: req.method,
       });
-
-      return res.status(403).json({
+      return res.status(500).json({
         success: false,
-        error: 'Health data processing consent required',
-        code: 'HEALTH_CONSENT_REQUIRED',
-        details: {
-          consentType: 'health_data',
-          message:
-            'Please provide consent for health data processing before accessing health-related features',
-        },
+        error: 'Internal server error during consent verification',
       });
     }
+  };
 
-    // Fire-and-forget audit log — do not block the request
-    logAuditEvent(user, 'health_data_accessed', {
-      consentType: 'health_data',
-      purpose: user.healthDataConsent.purpose,
-      endpoint: req.path,
-      method: req.method,
-      ipAddress: getClientIP(req),
-      userAgent: req.get('User-Agent'),
-    });
+const requireDataProcessingConsent = requireConsent(
+  'dataProcessingConsent',
+  'consent_required',
+  'CONSENT_REQUIRED',
+  'Please provide consent for data processing before accessing this service',
+  'consent_verified'
+);
 
-    next();
-  } catch (error) {
-    monitoringService.recordError(error, {
-      context: 'health_consent_middleware',
-      userId: req.user?.id,
-      endpoint: req.path,
-    });
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error during health consent verification',
-    });
-  }
-};
+const requireHealthDataConsent = requireConsent(
+  'healthDataConsent',
+  'health_consent_required',
+  'HEALTH_CONSENT_REQUIRED',
+  'Please provide consent for health data processing before accessing health-related features',
+  'health_data_accessed',
+  user => ({ purpose: user.healthDataConsent.purpose })
+);
 
 /**
  * Middleware to check if user has consented to marketing communications
  */
 const requireMarketingConsent = async (req, res, next) => {
   try {
-    const userId = req.user?.id || req.user?.user?.id;
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -197,7 +137,7 @@ const requireMarketingConsent = async (req, res, next) => {
  */
 const checkDataRestriction = async (req, res, next) => {
   try {
-    const userId = req.user?.id || req.user?.user?.id;
+    const userId = req.user?.id;
     if (!userId) {
       return next();
     }

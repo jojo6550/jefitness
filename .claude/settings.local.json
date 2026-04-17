@@ -39,7 +39,8 @@
       "Bash(curl -s http://localhost:10000/api/health)",
       "Bash(node:*)",
       "Bash(ls public/pages/*.html)",
-      "Skill(claude-md-management:revise-claude-md)"
+      "Skill(claude-md-management:revise-claude-md)",
+      "Bash(npx eslint:*)"
     ]
   },
   "enabledPlugins": {

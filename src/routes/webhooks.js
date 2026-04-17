@@ -6,7 +6,7 @@ const User = require('../models/User');
 const {
   isWebhookEventProcessed,
   markWebhookEventProcessed,
-} = require('../middleware/auth');
+} = require('../services/webhookUtils');
 const {
   ALLOWED_WEBHOOK_EVENTS: ALLOWED_EVENTS_ARRAY,
 } = require('../config/subscriptionConstants');

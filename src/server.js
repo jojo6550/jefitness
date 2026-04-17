@@ -36,7 +36,6 @@ const { logger } = require('./services/logger');
 const { requestLogger } = require('./middleware/requestLogger');
 const { sanitizeInput } = require('./middleware/sanitizeInput');
 const { preventNoSQLInjection } = require('./middleware/inputValidator');
-const csrfProtection = require('./middleware/csrf');
 const { corsOptions } = require('./middleware/corsConfig');
 const {
   requireDataProcessingConsent,
@@ -95,11 +94,10 @@ app.use(cors(corsOptions));
 app.use(nonceMiddleware);
 app.use(helmet(helmetOptions));
 
-// Logging, sanitization, security, and CSRF
+// Logging, sanitization, and security
 app.use(requestLogger);
 app.use(sanitizeInput);
 app.use(preventNoSQLInjection); // Apply globally for defense-in-depth
-app.use(csrfProtection.middleware());
 
 app.use(passport.initialize());
 
@@ -205,10 +203,6 @@ app.get('/api/health', async (req, res) => {
     checks,
     dbStatus: getDbStatus(),
   });
-});
-
-app.get('/api/v1/csrf-token', (req, res) => {
-  res.json({ success: true, token: res.locals.csrfToken });
 });
 
 app.get('/api/v1/nutrition/food-search', (req, res) => {
@@ -420,7 +414,6 @@ async function startServer() {
     const gracefulShutdown = async signal => {
       logger.info('Shutting down gracefully', { signal });
       stopFileWatching();
-      csrfProtection.stop();
 
       const SHUTDOWN_TIMEOUT = 10000; // 10 seconds
       const shutdownTimer = setTimeout(() => {

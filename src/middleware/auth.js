@@ -3,17 +3,8 @@ const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
 const { logger } = require('../services/logger');
-const WebhookEvent = require('../models/WebhookEvent');
 
-const {
-  AuthenticationError,
-  AuthorizationError,
-  NotFoundError,
-} = require('./errorHandler');
-
-// SECURITY: Webhook replay protection using MongoDB
-// Webhook events are persisted in the database with TTL for replay protection
-// This works across multiple server instances and survives restarts
+const { AuthenticationError } = require('./errorHandler');
 
 /**
  * SECURITY: Main authentication middleware
@@ -136,91 +127,28 @@ async function getUserTokenVersion(userId) {
 }
 
 /**
- * SECURITY: Admin role verification middleware
+ * SECURITY: Role verification middleware factory
  * CRITICAL: Always verify role from database, NEVER trust JWT claims alone
  * JWT claims can be stale if role was changed after token issuance
  */
-async function requireAdmin(req, res, next) {
-  // auth middleware already fetched a fresh role from DB and set req.user.role
-  if (req.user?.role !== 'admin') {
+const requireRole = (role, onDeny) => (req, res, next) => {
+  if (req.user?.role !== role) {
+    if (onDeny) onDeny(req);
     return res.status(403).json({
       success: false,
-      error: 'Access denied. Admin privileges required.',
+      error: `Access denied. ${role.charAt(0).toUpperCase() + role.slice(1)} privileges required.`,
     });
   }
   next();
-}
+};
 
-/**
- * SECURITY: Trainer role verification middleware
- * CRITICAL: Always verify role from database, NEVER trust JWT claims alone
- * JWT claims can be stale if role was changed after token issuance
- */
-async function requireTrainer(req, res, next) {
-  // auth middleware already fetched a fresh role from DB and set req.user.role
-  if (req.user?.role !== 'trainer') {
-    logger.warn('Security event: trainer_access_denied', {
-      userId: req.user?.id,
-      role: req.user?.role,
-    });
-    return res.status(403).json({
-      success: false,
-      error: 'Access denied. Trainer privileges required.',
-    });
-  }
-  next();
-}
-
-/**
- * SECURITY: Helper to check if webhook event has been processed (replay protection)
- * Uses MongoDB for persistence across server restarts and instances
- * @param {string} eventId - Stripe webhook event ID
- * @returns {Promise<boolean>} True if event was already processed
- */
-async function isWebhookEventProcessed(eventId) {
-  try {
-    const exists = await WebhookEvent.exists({ eventId });
-    return !!exists;
-  } catch (err) {
-    // If database is down, log error and fall back to safe behavior
-    // (reject the event to prevent potential duplicate processing)
-    logger.error('Failed to check webhook event status', { error: err.message });
-    return true; // Assume processed on error (safe failure)
-  }
-}
-
-/**
- * SECURITY: Mark webhook event as processed
- * Uses MongoDB TTL index for automatic cleanup after 24 hours
- * This prevents memory leaks and works across multiple server instances
- * @param {string} eventId - Stripe webhook event ID
- * @param {string} eventType - Type of webhook event
- * @returns {Promise<void>}
- */
-async function markWebhookEventProcessed(eventId, eventType = 'unknown') {
-  try {
-    // $setOnInsert is a no-op if doc already exists — atomic, race-condition safe
-    await WebhookEvent.findOneAndUpdate(
-      { eventId },
-      {
-        $setOnInsert: {
-          eventId,
-          eventType,
-          processedAt: new Date(),
-          // expiresAt defaults to 24h from now via schema default
-        },
-      },
-      { upsert: true }
-    );
-    logger.info('Webhook event marked as processed', { eventId });
-  } catch (err) {
-    // Log error but don't throw - webhook processing should continue
-    logger.error('Failed to mark webhook event as processed', {
-      eventId,
-      error: err.message,
-    });
-  }
-}
+const requireAdmin = requireRole('admin');
+const requireTrainer = requireRole('trainer', req =>
+  logger.warn('Security event: trainer_access_denied', {
+    userId: req.user?.id,
+    role: req.user?.role,
+  })
+);
 
 module.exports = {
   auth,
@@ -228,6 +156,4 @@ module.exports = {
   requireTrainer,
   incrementUserTokenVersion,
   getUserTokenVersion,
-  isWebhookEventProcessed,
-  markWebhookEventProcessed,
 };
