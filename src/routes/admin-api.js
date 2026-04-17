@@ -6,6 +6,7 @@ const {
   getMonthlyRevenue,
   bulkDeleteClients,
   createSubscription,
+  extendSubscription,
   getClientProfile,
 } = require('../controllers/adminController');
 
@@ -16,5 +17,6 @@ router.get('/revenue', getMonthlyRevenue);
 router.get('/clients/:id', getClientProfile);
 router.delete('/clients/bulk', bulkDeleteClients);
 router.post('/subscriptions', createSubscription);
+router.post('/subscriptions/:id/extend', extendSubscription);
 
 module.exports = router;
