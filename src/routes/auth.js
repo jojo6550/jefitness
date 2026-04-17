@@ -9,11 +9,12 @@ const router = express.Router();
 router.use(express.json({ limit: '10kb' }));
 router.use(express.urlencoded({ limit: '10kb', extended: false }));
 const { body } = require('express-validator');
-const bcrypt = require('bcryptjs');
 const passport = require('passport');
 const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 
 const authController = require('../controllers/authController');
+const { handleSocialCallback } = authController;
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -25,7 +26,7 @@ const COOKIE_OPTIONS = {
 function setAuthCookie(res, token) {
   res.cookie('token', token, COOKIE_OPTIONS);
 }
-const { auth, incrementUserTokenVersion } = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const { requireDbConnection } = require('../middleware/dbConnection');
 const {
   authLimiter,
@@ -34,7 +35,6 @@ const {
 } = require('../middleware/rateLimiter');
 const { handleValidationErrors } = require('../middleware/inputValidator');
 const User = require('../models/User');
-const { sendPasswordReset, sendEmailVerification } = require('../services/email');
 const { logger } = require('../services/logger');
 
 /**
@@ -126,59 +126,7 @@ router.post('/consent', auth, authController.grantConsent);
  *     summary: Verify email address using token from verification email
  *     tags: [Authentication]
  */
-router.get('/verify-email', requireDbConnection, async (req, res) => {
-  try {
-    const verificationToken = req.query.token;
-    if (!verificationToken) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Verification token is required.' });
-    }
-
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(verificationToken)
-      .digest('hex');
-
-    const user = await User.findOne({
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: new Date() },
-    }).select('+emailVerificationToken +emailVerificationExpires');
-
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Invalid or expired verification token.' });
-    }
-
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    setAuthCookie(res, token);
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (err) {
-    logger.error('Email verification error', { error: err.message });
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
+router.get('/verify-email', requireDbConnection, authController.verifyEmail);
 
 /**
  * @swagger
@@ -198,44 +146,7 @@ router.post(
       .normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
-  async (req, res) => {
-    try {
-      const user = await User.findOne({ email: req.body.email }).select(
-        '+emailVerificationToken +emailVerificationExpires'
-      );
-
-      // Always return 200 to avoid email enumeration
-      if (!user || user.isEmailVerified) {
-        return res.json({
-          success: true,
-          message: 'If that email exists and is unverified, a new link has been sent.',
-        });
-      }
-
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      user.emailVerificationToken = crypto
-        .createHash('sha256')
-        .update(rawToken)
-        .digest('hex');
-      user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      await user.save({ validateBeforeSave: false });
-
-      sendEmailVerification(user.email, user.firstName, rawToken).catch(err => {
-        logger.error('Failed to resend verification email', {
-          userId: user._id,
-          error: err.message,
-        });
-      });
-
-      res.json({
-        success: true,
-        message: 'If that email exists and is unverified, a new link has been sent.',
-      });
-    } catch (err) {
-      logger.error('Resend verification error', { error: err.message });
-      res.status(500).json({ success: false, error: 'Server error' });
-    }
-  }
+  authController.resendVerification
 );
 
 /**
@@ -312,50 +223,7 @@ router.post(
       .normalizeEmail({ gmail_remove_dots: false }),
     handleValidationErrors,
   ],
-  async (req, res) => {
-    try {
-      const user = await User.findOne({ email: req.body.email });
-      // Always return 200 to avoid email enumeration
-      if (!user) {
-        return res.json({
-          success: true,
-          message: 'If that email exists, a reset link has been sent.',
-        });
-      }
-
-      // Generate a raw token; store its SHA-256 hash in the DB
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-      user.passwordResetToken = hashedToken;
-      user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      await user.save({ validateBeforeSave: false });
-
-      try {
-        await sendPasswordReset(user.email, user.firstName, rawToken);
-      } catch (emailErr) {
-        logger.error('Failed to send password reset email', {
-          userId: user._id,
-          error: emailErr.message,
-        });
-        user.passwordResetToken = undefined;
-        user.resetPasswordExpires = undefined;
-        await user.save({ validateBeforeSave: false });
-        return res.status(500).json({
-          success: false,
-          error: 'Could not send reset email. Please try again.',
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'If that email exists, a reset link has been sent.',
-      });
-    } catch (err) {
-      logger.error('Forgot password error', { error: err.message });
-      res.status(500).json({ success: false, error: 'Server error' });
-    }
-  }
+  authController.forgotPassword
 );
 
 /**
@@ -376,90 +244,12 @@ router.post(
       .withMessage('Password must be at least 8 characters'),
     handleValidationErrors,
   ],
-  async (req, res) => {
-    try {
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(req.body.token)
-        .digest('hex');
-
-      const user = await User.findOne({
-        passwordResetToken: hashedToken,
-        resetPasswordExpires: { $gt: new Date() },
-      });
-
-      if (!user) {
-        return res
-          .status(400)
-          .json({ success: false, error: 'Invalid or expired reset token.' });
-      }
-
-      // Bump tokenVersion inline so it is atomic with the password save.
-      // Using a separate incrementUserTokenVersion call risks the bump silently
-      // failing (it swallows errors) while the password still saves, leaving old
-      // sessions valid. Inline bump guarantees both changes land in one document write.
-      user.password = req.body.password;
-      user.passwordResetToken = undefined;
-      user.resetPasswordExpires = undefined;
-      user.tokenVersion = (user.tokenVersion || 0) + 1;
-      await user.save();
-
-      res.json({ success: true, message: 'Password reset successfully. Please log in.' });
-    } catch (err) {
-      logger.error('Reset password error', { error: err.message });
-      res.status(500).json({ success: false, error: 'Server error' });
-    }
-  }
+  authController.resetPassword
 );
 
 // ============================
 // Social Login Routes (Passport.js redirect flow)
 // ============================
-
-/**
- * Shared callback handler — runs after any social provider authenticates.
- * req.user is set by Passport to { user, isNew } from verifyOrLinkSocialUser.
- */
-async function handleSocialCallback(req, res) {
-  try {
-    const { user, isNew } = req.user;
-
-    if (user.dataDeletedAt) {
-      return res.redirect('/login?error=account_not_found');
-    }
-
-    if (isNew) {
-      // New user must accept consent before getting a full session
-      const consentToken = jwt.sign(
-        { userId: user._id, consentPending: true },
-        process.env.JWT_SECRET,
-        { expiresIn: '10m' }
-      );
-      return res.redirect(`/consent?token=${encodeURIComponent(consentToken)}`);
-    }
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    setAuthCookie(res, token);
-    User.findByIdAndUpdate(user._id, { lastLoggedIn: new Date() }).catch(err =>
-      logger.warn('Failed to update lastLoggedIn for social user', {
-        userId: user._id,
-        error: err.message,
-      })
-    );
-    logger.info('✅ SOCIAL LOGIN SUCCESS', { userId: user._id, role: user.role });
-
-    // Role-based redirect mirrors the existing login redirect logic
-    const redirectMap = { admin: '/admin', trainer: '/trainer-dashboard' };
-    res.redirect(redirectMap[user.role] || '/dashboard');
-  } catch (err) {
-    logger.error('Social callback error', { error: err.message });
-    res.redirect('/login?error=social_auth_failed');
-  }
-}
 
 // Google
 router.get(
@@ -528,7 +318,6 @@ router.post(
 // ============================
 // 2FA Routes
 // ============================
-const QRCode = require('qrcode');
 
 // Per-tempToken brute-force protection: max 5 attempts per issued tempToken
 // Map key: `${userId}:${iat}` — unique per token issuance
