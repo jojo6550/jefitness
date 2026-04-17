@@ -7,7 +7,7 @@ const User = require('../models/User');
 const UserActionLog = require('../models/UserActionLog');
 const monitoringService = require('../services/monitoring');
 
-const requireConsent = (consentField, securityEvent, code, errorMessage, auditAction, extraAuditData) =>
+const requireConsent = (consentField, consentType, securityEvent, code, shortError, detailMessage, auditAction, extraAuditData) =>
   async (req, res, next) => {
     try {
       const userId = req.user?.id;
@@ -27,25 +27,25 @@ const requireConsent = (consentField, securityEvent, code, errorMessage, auditAc
       if (!user[consentField].given) {
         monitoringService.recordSecurityEvent(securityEvent, {
           userId,
-          consentType: consentField,
+          consentType,
           endpoint: req.path,
           method: req.method,
         });
 
         return res.status(403).json({
           success: false,
-          error: errorMessage,
+          error: shortError,
           code,
           details: {
-            consentType: consentField,
-            message: errorMessage,
+            consentType,
+            message: detailMessage,
           },
         });
       }
 
       // Fire-and-forget audit log — do not block the request
       logAuditEvent(user, auditAction, {
-        consentType: consentField,
+        consentType,
         ...(extraAuditData ? extraAuditData(user) : {}),
         endpoint: req.path,
         method: req.method,
@@ -69,16 +69,20 @@ const requireConsent = (consentField, securityEvent, code, errorMessage, auditAc
 
 const requireDataProcessingConsent = requireConsent(
   'dataProcessingConsent',
+  'data_processing',
   'consent_required',
   'CONSENT_REQUIRED',
+  'Data processing consent required',
   'Please provide consent for data processing before accessing this service',
   'consent_verified'
 );
 
 const requireHealthDataConsent = requireConsent(
   'healthDataConsent',
+  'health_data',
   'health_consent_required',
   'HEALTH_CONSENT_REQUIRED',
+  'Health data processing consent required',
   'Please provide consent for health data processing before accessing health-related features',
   'health_data_accessed',
   user => ({ purpose: user.healthDataConsent.purpose })
