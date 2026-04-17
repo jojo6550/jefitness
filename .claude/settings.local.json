@@ -46,7 +46,9 @@
       "Bash(sed 's/.*:\\\\s*async//')",
       "Bash(sed 's/:.*$//')",
       "Bash(awk '{print $1}')",
-      "Bash(xargs basename *)"
+      "Bash(xargs basename *)",
+      "Read(//c/Users/josia/.claude/plugins/cache/caveman/caveman/63e797cd753b/**)",
+      "Read(//c/Users/josia/.claude/plugins/cache/caveman/**)"
     ]
   },
   "enabledPlugins": {

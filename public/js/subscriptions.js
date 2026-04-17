@@ -177,7 +177,7 @@ async function loadPlans() {
     availablePlans = Object.entries(plansObj).map(([id, plan]) => ({ id, ...plan }));
     renderPlans();
   } catch (err) {
-    console.error('Load plans failed:', err);
+    if (DEBUG) console.error('Load plans failed:', err);
     showAlert('Failed to load subscription plans', 'error');
   } finally {
     safeHide(plansLoading);
@@ -329,7 +329,7 @@ async function loadUserSubscriptions() {
       renderPlans();
     }
   } catch (err) {
-    console.error('Load subscriptions failed:', err);
+    if (DEBUG) console.error('Load subscriptions failed:', err);
     safeShow(getElement('plansSection'));
     safeHide(activeSubscriptionSection);
   } finally {
@@ -459,7 +459,7 @@ async function selectPlan(planId, queueAfterCurrent = false) {
       throw new Error('Invalid checkout response');
     }
   } catch (err) {
-    console.error('Direct checkout failed:', err);
+    if (DEBUG) console.error('Direct checkout failed:', err);
     window.Toast.error(err.message || 'Checkout failed. Please try again.');
   }
 }
@@ -486,7 +486,7 @@ async function cancelQueuedPlan() {
     showAlert('Queued plan removed', 'success');
     setTimeout(loadUserSubscriptions, 800);
   } catch (err) {
-    console.error('Cancel queued plan failed:', err);
+    if (DEBUG) console.error('Cancel queued plan failed:', err);
     showAlert(err.message || 'Failed to remove queued plan', 'error');
   }
 }
@@ -613,7 +613,7 @@ async function handleConfirmCancel() {
     }
     setTimeout(loadUserSubscriptions, 1000);
   } catch (err) {
-    console.error('Cancel failed:', err);
+    if (DEBUG) console.error('Cancel failed:', err);
     showAlert(err.message, 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = originalText; }

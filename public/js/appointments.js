@@ -8,6 +8,8 @@ if (window.API_BASE?.startsWith('https://localhost')) {
     window.API_BASE = window.API_BASE.replace(/^https:/, 'http:');
 }
 
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 // ====== Helpers ======
 const escapeHtml = (str) => {
     const div = document.createElement('div');
@@ -68,7 +70,7 @@ async function checkSubscriptionStatus() {
         userSubscriptionStatus = isActive && isPeriodValid;
         return userSubscriptionStatus;
     } catch (err) {
-        console.error('Error checking subscription:', err);
+        if (isDev) console.error('Error checking subscription:', err);
         userSubscriptionStatus = false;
         return false;
     }

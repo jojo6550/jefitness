@@ -1,5 +1,6 @@
 
 window.API_BASE = window.ApiConfig.getAPI_BASE();
+const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 window.initDashboard = async () => {
     try {
@@ -43,7 +44,7 @@ async function loadSubscriptionStatus() {
     const upgradeBtn = document.getElementById('upgrade-subscription-btn');
 
     if (!statusElement || !actionsElement || !upgradeBtn) {
-        console.warn('Subscription status elements not found');
+        if (isDev) console.warn('Subscription status elements not found');
         return;
     }
 
@@ -92,7 +93,7 @@ async function loadSubscriptionStatus() {
             statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Unable to load</small></div>';
         }
     } catch (err) {
-        console.error('Error loading subscription status:', err);
+        if (isDev) console.error('Error loading subscription status:', err);
         statusElement.innerHTML = '<div class="text-center"><small class="text-muted">Error loading</small></div>';
     }
 }
@@ -148,7 +149,7 @@ document.getElementById('cancel-subscription-btn').addEventListener('click', asy
         }
 
     } catch (error) {
-        console.error('❌ Error canceling subscription:', error);
+        if (isDev) console.error('❌ Error canceling subscription:', error);
         window.Toast.error(`Failed to cancel subscription: ${error.message}`);
     }
 });
