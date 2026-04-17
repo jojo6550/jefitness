@@ -18,15 +18,7 @@ window.AdminLogs = (() => {
   let debounceTimer = null;
 
   const LEVEL_CLASSES = { error: 'log-error', warn: 'log-warn', info: 'log-info', debug: 'log-debug', http: 'log-http' };
-
-  function escapeHtml(str) {
-    return String(str ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
+  const { escapeHtml } = window.AdminViewHelpers;
 
   function buildParams(forExport = false) {
     const p = new URLSearchParams();

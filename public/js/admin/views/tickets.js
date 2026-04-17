@@ -20,11 +20,7 @@ window.AdminTickets = (() => {
     'general-inquiry': 'General Inquiry',
   };
 
-  function escapeHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = String(str ?? '');
-    return d.innerHTML;
-  }
+  const { escapeHtml } = window.AdminViewHelpers;
 
   function pillHtml(status) {
     const map = { draft: 'pill-gray', submitted: 'pill-red', seen: 'pill-yellow', resolved: 'pill-green' };
