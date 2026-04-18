@@ -60,7 +60,7 @@
     const sub = state.userSubscriptions[0];
     if (!sub) return;
 
-    const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
+    const planName = (sub.plan || 'Custom Plan').replace('-', ' ').toUpperCase();
 
     const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
     const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
@@ -134,7 +134,7 @@
                    <small class="text-muted d-block mb-1">Next Plan</small>
                    <div class="d-flex align-items-center justify-content-between">
                      <div>
-                       <strong>${(sub.queuedPlan.plan || '').replace('-', ' ').toUpperCase()}</strong>
+                       <strong>${(sub.queuedPlan.plan || 'Custom Plan').replace('-', ' ').toUpperCase()}</strong>
                        <div class="text-muted small">Starts ${safeFormatDate(sub.queuedPlan.currentPeriodEnd)}</div>
                      </div>
                      <button data-action="cancel-queued" data-sub-id="${sub.queuedPlan._id}" class="btn btn-outline-danger btn-sm ms-2" title="Remove queued plan">

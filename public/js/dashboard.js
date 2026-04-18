@@ -63,7 +63,7 @@ async function loadSubscriptionStatus() {
 
             if (subscription && subscription.status === 'active') {
                 // Display "Active Plan: X Months"
-                const planDisplay = subscription.plan.replace('-', ' ').toUpperCase();
+                const planDisplay = (subscription.plan || 'Custom Plan').replace('-', ' ').toUpperCase();
                 statusText = `Active Plan: ${planDisplay}`;
                 statusClass = 'text-success';
             } else if (subscription && (subscription.status === 'cancelled' || subscription.status === 'cancel_pending')) {

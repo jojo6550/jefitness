@@ -33,11 +33,12 @@ async function loadNavbarSubscriptionStatus() {
             let statusClass = 'bg-secondary';
 
             // 3-state model: active, trialing, cancelled
-            const { status, plan, cancelAtPeriodEnd, daysLeft } = subscription;
+                const { status, plan, cancelAtPeriodEnd, daysLeft } = subscription || {};
+                const safePlan = plan || 'Custom Plan';
             if (status === 'active') {
                 const dayText = daysLeft === 1 ? 'day' : 'days';
                 const suffix = daysLeft ? ` (${daysLeft} ${dayText})` : '';
-                statusText = cancelAtPeriodEnd ? `${plan} (Canceling)${suffix}` : `${plan} Plan${suffix}`;
+                statusText = cancelAtPeriodEnd ? `${safePlan} (Canceling)${suffix}` : `${safePlan} Plan${suffix}`;
                 statusClass = cancelAtPeriodEnd ? 'bg-warning text-dark' : 'bg-success';
             } else if (status === 'trialing') {
                 statusText = 'Pending';

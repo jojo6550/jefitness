@@ -172,7 +172,7 @@ async function createSubscription(req, res) {
           adminId,
           {
             userId,
-            plan: existingSub.plan,
+            plan: existingSub.plan || planKey,
             overrideDays: days,
             subscriptionId: existingSub._id.toString(),
             newPeriodEnd: newPeriodEnd.toISOString(),
@@ -209,8 +209,9 @@ async function createSubscription(req, res) {
     }).lean();
 
     if (!plan) {
-      return res.status(400).json({ msg: `No active Stripe plan found for ${planKey}` });
+      return res.status(400).json({ msg: `No active Stripe plan found for ${planKey}. Create StripePlan doc first.` });
     }
+    logger.debug('Found StripePlan for admin override', { planKey, stripePriceId: plan.stripePriceId });
 
     // Ensure Stripe customer exists (DEFENSIVE: verify even if DB has ID)
     let stripeCustomerId = user.stripeCustomerId;
@@ -319,6 +320,7 @@ async function createSubscription(req, res) {
     // Upsert Subscription document
     // Status: 'active' if overrideDays (immediate access), else 'trialing'
     const subStatus = overrideDays !== undefined ? 'active' : 'trialing';
+    logger.info('Admin upserting subscription', { userId: user._id.toString(), planKey, plan: plan ? plan.name || planKey : 'MISSING_PLAN', overrideDays, stripeSubscriptionId: stripeSub.id });
     await Subscription.findOneAndUpdate(
       { userId: user._id },
       {
