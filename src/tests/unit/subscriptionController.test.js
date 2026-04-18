@@ -152,7 +152,11 @@ describe('subscriptionController', () => {
       await createCheckout(mockReq, mockRes, mockNext);
 
       expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(
-        mockReq.user.email
+        mockReq.user.email,
+        null,
+        expect.objectContaining({
+          userId: expect.any(String)
+        })
       );
       expect(stripeService.createCheckoutSession).toHaveBeenCalledWith(
         mockCustomer.id,
@@ -389,7 +393,13 @@ describe('subscriptionController', () => {
 
       await verifyCheckoutSession(mockReq, mockRes, mockNext);
 
-      expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(mockUser.email);
+      expect(stripeService.createOrRetrieveCustomer).toHaveBeenCalledWith(
+        mockUser.email,
+        null,
+        expect.objectContaining({
+          userId: expect.any(String)
+        })
+      );
       expect(mockUser.save).toHaveBeenCalled();
       expect(mockRes.json).toHaveBeenCalledWith({
         success: true,

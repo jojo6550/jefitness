@@ -20,15 +20,28 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
     // accidentally reuse a test customer in production or vice versa.
     const isLive = !process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_');
     const allCustomers = await stripe.customers.list({ email, limit: 100 });
-    const matchingCustomers = allCustomers.data.filter(c => c.livemode === isLive);
+    const isApp = 'jefitness';
+    const matchingCustomers = allCustomers.data.filter(c => c.livemode === isLive && c.metadata?.app === isApp);
+
+    logger.debug('Customer search results', {
+      email,
+      isLive,
+      total: allCustomers.data.length,
+      matching: matchingCustomers.length,
+      app: isApp
+    });
 
     let customer;
     if (matchingCustomers.length > 0) {
       customer = matchingCustomers[0];
-      // Update metadata if provided
-      if (Object.keys(metadata).length > 0) {
-        customer = await stripe.customers.update(customer.id, { metadata });
-      }
+      // Always ensure app metadata
+      const appMetadata = {
+        ...customer.metadata,
+        app: 'jefitness',
+        ...(metadata.userId && { userId: metadata.userId }),
+        source: 'jefitness_app'
+      };
+      customer = await stripe.customers.update(customer.id, { metadata: appMetadata });
       // Attach payment method if provided and not already attached
       if (paymentMethodId) {
         try {
@@ -43,6 +56,12 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
       }
     } else {
       // Create new customer
+      const appMetadata = {
+        app: 'jefitness',
+        ...(metadata.userId && { userId: metadata.userId }),
+        source: 'jefitness_app',
+        ...metadata
+      };
       customer = await stripe.customers.create({
         email,
         ...(paymentMethodId && {
@@ -51,8 +70,9 @@ async function createOrRetrieveCustomer(email, paymentMethodId = null, metadata 
             default_payment_method: paymentMethodId,
           },
         }),
-        metadata,
+        metadata: appMetadata,
       });
+      logger.info('Created new jefitness customer', { customerId: customer.id, email });
     }
 
     return customer;
@@ -80,7 +100,7 @@ async function getOrCreateProductCustomer(email, name = null) {
       email: email,
       limit: 100,
     });
-    const matchingCustomers = existingCustomers.data.filter(c => c.livemode === isLive);
+    const matchingCustomers = existingCustomers.data.filter(c => c.livemode === isLive && c.metadata?.app === 'jefitness');
 
     if (matchingCustomers.length > 0) {
       logger.debug('Found existing Stripe customer', {

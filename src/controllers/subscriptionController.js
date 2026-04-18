@@ -35,8 +35,10 @@ const subscriptionController = {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    // Get or create Stripe customer
-    const customer = await stripeService.createOrRetrieveCustomer(req.user.email);
+    // Get or create Stripe customer with userId metadata
+    const customer = await stripeService.createOrRetrieveCustomer(req.user.email, null, {
+      userId: req.user._id.toString()
+    });
 
     // Get current subscription if exists
     const currentSub = await Subscription.findOne({
@@ -147,7 +149,9 @@ const subscriptionController = {
     const user = await User.findById(req.user._id);
     if (!user.stripeCustomerId) {
       // Create customer if missing
-      const customer = await stripeService.createOrRetrieveCustomer(user.email);
+      const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
+        userId: req.user._id.toString()
+      });
       user.stripeCustomerId = customer.id;
       await user.save();
     }

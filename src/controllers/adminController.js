@@ -478,10 +478,63 @@ async function extendSubscription(req, res, next) {
   }
 }
 
+async function reLinkCustomer(req, res) {
+  try {
+    const { userId } = req.body;
+    const adminId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ msg: 'userId required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ msg: 'Cannot re-link admin accounts' });
+    }
+
+    const stripeService = require('../services/stripe');
+    // Create fresh customer with jefitness metadata (old ID cleared)
+    user.stripeCustomerId = null;
+    await user.save();
+
+    const customer = await stripeService.createOrRetrieveCustomer(user.email, null, {
+      userId: user._id.toString()
+    });
+
+    user.stripeCustomerId = customer.id;
+    await user.save();
+
+    logger.logAdminAction(
+      'stripe_customer_relink',
+      adminId,
+      {
+        userId,
+        oldCustomerId: null, // cleared
+        newCustomerId: customer.id
+      },
+      req
+    );
+
+    res.json({
+      msg: 'Stripe customer re-linked successfully',
+      customerId: customer.id,
+      email: customer.email
+    });
+  } catch (err) {
+    logger.error('Re-link customer failed', { error: err.message });
+    res.status(500).json({ msg: 'Re-link failed' });
+  }
+}
+
 module.exports = {
   getMonthlyRevenue,
   bulkDeleteClients,
   createSubscription,
   getClientProfile,
   extendSubscription,
+  reLinkCustomer,
 };
