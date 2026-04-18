@@ -30,7 +30,7 @@
       }
     } catch (err) {
       if (DEBUG) console.error('Direct checkout failed:', err);
-      window.Toast.error(err.message || 'Checkout failed. Please try again.');
+      showAlert(err.message || 'Checkout failed. Please try again.', 'error');
     }
   }
 

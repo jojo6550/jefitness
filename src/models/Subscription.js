@@ -24,8 +24,11 @@ const subscriptionSchema = new mongoose.Schema(
       default: 'trialing',
       index: true,
     },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
     canceledAt: Date,
     checkoutSessionId: String,
+    isQueuedPlan: { type: Boolean, default: false },
+    lastWebhookEventAt: Date,
     queuedPlan: {
       plan: String,
       stripeSubscriptionId: String,

@@ -6,15 +6,22 @@
 
 const getApiBase = () => window.ApiConfig ? window.ApiConfig.getAPI_BASE() : (window.API_BASE || '/api');
 
+const handle = (res) => {
+  if (!window.SubShared || typeof window.SubShared.handleApiResponse !== 'function') {
+    throw new Error('SubShared not loaded. Ensure subscriptions/shared.js loads before SubscriptionService callers.');
+  }
+  return window.SubShared.handleApiResponse(res);
+};
+
 const SubscriptionService = {
   getPlans: async () => {
     const res = await fetch(`${getApiBase()}/api/v1/subscriptions/plans`, { credentials: 'include' });
-    return handleApiResponse(res);
+    return handle(res);
   },
 
   getCurrentSubscription: async () => {
     const res = await fetch(`${getApiBase()}/api/v1/subscriptions/current`, { credentials: 'include' });
-    return handleApiResponse(res);
+    return handle(res);
   },
 
   createCheckout: async (planId, queueAfterCurrent = false) => {
@@ -24,7 +31,7 @@ const SubscriptionService = {
       credentials: 'include',
       body: JSON.stringify({ plan: planId, queued: queueAfterCurrent })
     });
-    return handleApiResponse(res);
+    return handle(res);
   },
 
   cancelQueuedPlan: async () => {
@@ -32,7 +39,7 @@ const SubscriptionService = {
       method: 'DELETE',
       credentials: 'include',
     });
-    return handleApiResponse(res);
+    return handle(res);
   },
 
   cancelSubscription: async (subscriptionId, atPeriodEnd = false) => {
@@ -42,7 +49,7 @@ const SubscriptionService = {
       credentials: 'include',
       body: JSON.stringify({ atPeriodEnd })
     });
-    return handleApiResponse(res);
+    return handle(res);
   },
 
   verifySession: async (sessionId) => {
@@ -50,7 +57,7 @@ const SubscriptionService = {
       method: 'POST',
       credentials: 'include'
     });
-    return handleApiResponse(res);
+    return handle(res);
   }
 };
 

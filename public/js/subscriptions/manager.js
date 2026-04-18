@@ -17,35 +17,6 @@
     DEBUG,
   } = window.SubShared;
 
-  async function refreshSubscription() {
-    try {
-      log('Refreshing subscription from Stripe...');
-      const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/refresh`, {
-        credentials: 'include'
-      });
-
-      const data = await handleApiResponse(response);
-      log('Refresh response:', data);
-
-      if (data.success && data.data) {
-        state.userSubscriptions = [data.data];
-        showAlert(data.message || 'Subscription refreshed successfully!', 'success');
-        renderActiveSubscriptionSummary();
-        return true;
-      } else {
-        showAlert(data.message || 'No subscription found in Stripe', 'info');
-        state.userSubscriptions = [];
-        safeShow(getElement('plansSection'));
-        safeHide(getElement('activeSubscriptionSection'));
-        return false;
-      }
-    } catch (err) {
-      console.error('Refresh failed:', err);
-      showAlert(`Refresh failed: ${err.message}`, 'error');
-      return false;
-    }
-  }
-
   async function loadUserSubscriptions() {
     if (state.isLoadingSubscriptions) {
       log('loadUserSubscriptions - already loading, skipping');
@@ -231,7 +202,7 @@
     container.appendChild(heading);
 
     invoices.forEach(invoice => {
-      const pdfUrl = invoice.invoice_pdf || invoice.hosted_invoice_url;
+      const pdfUrl = invoice.pdf_url || invoice.invoice_pdf || invoice.hosted_invoice_url;
       if (!pdfUrl) return;
 
       const date = parseDate(invoice.created, new Date()).toLocaleDateString();
@@ -331,7 +302,6 @@
   }
 
   window.SubManager = {
-    refreshSubscription,
     loadUserSubscriptions,
     renderActiveSubscriptionSummary,
     openCancelModal,

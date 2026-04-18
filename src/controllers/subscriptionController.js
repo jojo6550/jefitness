@@ -238,41 +238,6 @@ const subscriptionController = {
   }),
 
   /**
-   * Refresh subscription status from Stripe and update DB.
-   * Returns the latest subscription state.
-   */
-  refresh: asyncHandler(async (req, res) => {
-    const subscription = await Subscription.findOne({
-      userId: req.user._id,
-    });
-
-    if (!subscription || !subscription.stripeSubscriptionId) {
-      return res.json({ subscription: null });
-    }
-
-    // Fetch latest from Stripe
-    const stripeSub = await stripeService.getSubscription(
-      subscription.stripeSubscriptionId
-    );
-
-    // Map Stripe status to 3 states
-    const status = mapStripeStatusTo3States(stripeSub.status);
-
-    // Update DB
-    subscription.status = status;
-    subscription.currentPeriodStart = new Date(stripeSub.current_period_start * 1000);
-    subscription.currentPeriodEnd = new Date(stripeSub.current_period_end * 1000);
-    await subscription.save();
-
-    res.json({
-      subscription: {
-        ...subscription.toObject(),
-        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
-      },
-    });
-  }),
-
-  /**
    * Get Stripe invoices for a user's subscription.
    * Verifies ownership before fetching.
    */

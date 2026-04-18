@@ -51,7 +51,9 @@
       "Read(//c/Users/josia/.claude/plugins/cache/caveman/**)",
       "Bash(awk '{print $3}')",
       "Bash(awk '{print $NF}')",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Bash(git -C C:/Users/josia/jefitness log --oneline -5 -- CLAUDE.md)",
+      "Bash(git -C C:/Users/josia/jefitness show 16cedd8:CLAUDE.md)"
     ]
   },
   "enabledPlugins": {
