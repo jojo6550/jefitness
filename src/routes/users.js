@@ -37,6 +37,7 @@
  */
 
 const express = require('express');
+
 const { body } = require('express-validator');
 
 const router = express.Router();
@@ -278,7 +279,10 @@ router.put(
   '/:id',
   validateObjectId('id'),
   [
-    body('firstName').optional().isLength({ min: 1 }).withMessage('First name is required'),
+    body('firstName')
+      .optional()
+      .isLength({ min: 1 })
+      .withMessage('First name is required'),
     body('lastName').optional().isLength({ min: 1 }).withMessage('Last name is required'),
     body('email').optional().isEmail().withMessage('Please include a valid email'),
     body('goals').optional().isString().withMessage('Goals must be a string'),
@@ -504,7 +508,10 @@ router.post(
   '/measurements',
   allowOnlyFields(['date', 'weight', 'neck', 'waist', 'hips', 'chest', 'notes'], true),
   [
-    body('weight').optional().isFloat({ min: 0 }).withMessage('Weight must be a positive number'),
+    body('weight')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Weight must be a positive number'),
     body('neck').optional().isFloat({ min: 0 }),
     body('waist').optional().isFloat({ min: 0 }),
     body('hips').optional().isFloat({ min: 0 }),

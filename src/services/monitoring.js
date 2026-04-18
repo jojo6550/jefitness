@@ -1,6 +1,4 @@
 const os = require('os');
-const fs = require('fs');
-const path = require('path');
 
 const winston = require('winston');
 
@@ -64,8 +62,10 @@ class MonitoringService {
    */
   setupSentry() {
     if (process.env.SENTRY_DSN) {
+      // eslint-disable-next-line n/no-missing-require
       const Sentry = require('@sentry/node');
       const logger = require('./logger').logger;
+      // eslint-disable-next-line n/no-missing-require
       const { nodeProfilingIntegration } = require('@sentry/profiling-node');
 
       Sentry.init({
@@ -222,7 +222,7 @@ class MonitoringService {
   /**
    * Contain the data breach
    */
-  containDataBreach(event, details) {
+  containDataBreach(event, _details) {
     // Implement immediate containment measures
     switch (event) {
       case 'unauthorized_access':
@@ -258,7 +258,7 @@ class MonitoringService {
     // Send to compliance team
     if (process.env.COMPLIANCE_WEBHOOK_URL) {
       try {
-        const response = await fetch(process.env.COMPLIANCE_WEBHOOK_URL, {
+        await fetch(process.env.COMPLIANCE_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

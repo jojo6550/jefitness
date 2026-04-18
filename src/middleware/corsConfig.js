@@ -3,8 +3,6 @@
  * Configures Cross-Origin Resource Sharing with security best practices
  */
 
-const cors = require('cors');
-
 const { logger } = require('../services/logger');
 
 /**

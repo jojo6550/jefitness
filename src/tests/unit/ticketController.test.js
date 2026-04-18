@@ -20,7 +20,11 @@ jest.mock('../../middleware/errorHandler', () => {
 const SupportTicket = require('../../models/SupportTicket');
 const User = require('../../models/User');
 const { logUserAction, logAdminAction } = require('../../services/logger');
-const { sendNewTicketAdmin, sendTicketReceived, sendTicketFulfilled } = require('../../services/email');
+const {
+  sendNewTicketAdmin,
+  sendTicketReceived,
+  sendTicketFulfilled,
+} = require('../../services/email');
 const {
   createTicket,
   getMyTickets,
@@ -76,7 +80,9 @@ describe('ticketController', () => {
     it('throws ValidationError when required fields missing', async () => {
       mockReq.body = { subject: 'Test' };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError when subject exceeds 120 chars', async () => {
@@ -86,7 +92,9 @@ describe('ticketController', () => {
         category: 'general-inquiry',
       };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError when description exceeds 2000 chars', async () => {
@@ -96,13 +104,17 @@ describe('ticketController', () => {
         category: 'billing-issue',
       };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError for invalid category', async () => {
       mockReq.body = { subject: 'Sub', description: 'Desc', category: 'fake-category' };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError for invalid status', async () => {
@@ -113,19 +125,29 @@ describe('ticketController', () => {
         status: 'pending',
       };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(createTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('creates draft without sending emails', async () => {
       const ticket = makeTicket({ status: 'draft' });
       SupportTicket.create.mockResolvedValue(ticket);
-      mockReq.body = { subject: 'Bug found', description: 'Details here', category: 'bug-report' };
+      mockReq.body = {
+        subject: 'Bug found',
+        description: 'Details here',
+        category: 'bug-report',
+      };
 
       await createTicket(mockReq, mockRes);
 
       expect(sendNewTicketAdmin).not.toHaveBeenCalled();
       expect(sendTicketReceived).not.toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith('save_ticket_draft', mockReq.user.id, expect.any(Object));
+      expect(logUserAction).toHaveBeenCalledWith(
+        'save_ticket_draft',
+        mockReq.user.id,
+        expect.any(Object)
+      );
       expect(mockRes.status).toHaveBeenCalledWith(201);
     });
 
@@ -133,9 +155,18 @@ describe('ticketController', () => {
       const ticket = makeTicket({ status: 'submitted' });
       SupportTicket.create.mockResolvedValue(ticket);
       SupportTicket.countDocuments.mockResolvedValue(0);
-      const user = { _id: mockUserId, email: 'u@test.com', firstName: 'Jo', lastName: 'Jo' };
+      const user = {
+        _id: mockUserId,
+        email: 'u@test.com',
+        firstName: 'Jo',
+        lastName: 'Jo',
+      };
       User.findById.mockReturnValue({ lean: jest.fn().mockResolvedValue(user) });
-      User.find.mockReturnValue({ lean: jest.fn().mockResolvedValue([{ email: 'admin@test.com', firstName: 'Admin' }]) });
+      User.find.mockReturnValue({
+        lean: jest
+          .fn()
+          .mockResolvedValue([{ email: 'admin@test.com', firstName: 'Admin' }]),
+      });
       mockReq.body = {
         subject: 'Bug found',
         description: 'Details here',
@@ -147,7 +178,11 @@ describe('ticketController', () => {
 
       expect(sendNewTicketAdmin).toHaveBeenCalled();
       expect(sendTicketReceived).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith('submit_support_ticket', mockReq.user.id, expect.any(Object));
+      expect(logUserAction).toHaveBeenCalledWith(
+        'submit_support_ticket',
+        mockReq.user.id,
+        expect.any(Object)
+      );
     });
 
     it('throws 429 AppError when rate limit reached', async () => {
@@ -206,16 +241,22 @@ describe('ticketController', () => {
     it('throws AuthorizationError when ticket belongs to different user', async () => {
       mockReq.params = { id: new mongoose.Types.ObjectId().toString() };
       const ticket = makeTicket({ userId: new mongoose.Types.ObjectId() });
-      SupportTicket.findById.mockReturnValue({ lean: jest.fn().mockResolvedValue(ticket) });
+      SupportTicket.findById.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(ticket),
+      });
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(getMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(getMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        AuthorizationError
+      );
     });
 
     it('returns ticket for owner', async () => {
       mockReq.params = { id: new mongoose.Types.ObjectId().toString() };
       const ticket = makeTicket({ userId: mockUserId });
-      SupportTicket.findById.mockReturnValue({ lean: jest.fn().mockResolvedValue(ticket) });
+      SupportTicket.findById.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(ticket),
+      });
 
       await getMyTicket(mockReq, mockRes);
 
@@ -231,7 +272,9 @@ describe('ticketController', () => {
       SupportTicket.findById.mockResolvedValue(null);
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(updateMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(updateMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('throws AuthorizationError when not owner', async () => {
@@ -240,7 +283,9 @@ describe('ticketController', () => {
       SupportTicket.findById.mockResolvedValue(ticket);
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(updateMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(updateMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        AuthorizationError
+      );
     });
 
     it('throws AppError 400 when ticket is not a draft', async () => {
@@ -262,7 +307,11 @@ describe('ticketController', () => {
 
       expect(ticket.subject).toBe('Updated subject');
       expect(ticket.save).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith('update_ticket_draft', mockReq.user.id, expect.any(Object));
+      expect(logUserAction).toHaveBeenCalledWith(
+        'update_ticket_draft',
+        mockReq.user.id,
+        expect.any(Object)
+      );
     });
 
     it('transitions draft to submitted and sends emails', async () => {
@@ -279,7 +328,11 @@ describe('ticketController', () => {
 
       expect(ticket.status).toBe('submitted');
       expect(sendNewTicketAdmin).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith('submit_support_ticket', mockReq.user.id, expect.any(Object));
+      expect(logUserAction).toHaveBeenCalledWith(
+        'submit_support_ticket',
+        mockReq.user.id,
+        expect.any(Object)
+      );
     });
   });
 
@@ -291,20 +344,28 @@ describe('ticketController', () => {
       SupportTicket.findById.mockResolvedValue(null);
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(deleteMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(deleteMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('throws AuthorizationError when not owner', async () => {
       mockReq.params = { id: new mongoose.Types.ObjectId().toString() };
-      SupportTicket.findById.mockResolvedValue(makeTicket({ userId: new mongoose.Types.ObjectId() }));
+      SupportTicket.findById.mockResolvedValue(
+        makeTicket({ userId: new mongoose.Types.ObjectId() })
+      );
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(deleteMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(deleteMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        AuthorizationError
+      );
     });
 
     it('throws AppError 400 when ticket is not a draft', async () => {
       mockReq.params = { id: new mongoose.Types.ObjectId().toString() };
-      SupportTicket.findById.mockResolvedValue(makeTicket({ userId: mockUserId, status: 'submitted' }));
+      SupportTicket.findById.mockResolvedValue(
+        makeTicket({ userId: mockUserId, status: 'submitted' })
+      );
 
       const { AppError } = require('../../middleware/errorHandler');
       await expect(deleteMyTicket(mockReq, mockRes)).rejects.toBeInstanceOf(AppError);
@@ -318,8 +379,15 @@ describe('ticketController', () => {
       await deleteMyTicket(mockReq, mockRes);
 
       expect(ticket.deleteOne).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith('delete_ticket_draft', mockReq.user.id, expect.any(Object));
-      expect(mockRes.json).toHaveBeenCalledWith({ success: true, data: { message: 'Draft deleted.' } });
+      expect(logUserAction).toHaveBeenCalledWith(
+        'delete_ticket_draft',
+        mockReq.user.id,
+        expect.any(Object)
+      );
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: true,
+        data: { message: 'Draft deleted.' },
+      });
     });
   });
 
@@ -336,8 +404,8 @@ describe('ticketController', () => {
         lean: jest.fn().mockResolvedValue(tickets),
       });
       SupportTicket.countDocuments
-        .mockResolvedValueOnce(1)   // total
-        .mockResolvedValueOnce(1);  // unreadCount
+        .mockResolvedValueOnce(1) // total
+        .mockResolvedValueOnce(1); // unreadCount
 
       await adminGetTickets(mockReq, mockRes);
 
@@ -345,7 +413,12 @@ describe('ticketController', () => {
       expect(call.success).toBe(true);
       expect(call.data.tickets).toHaveLength(1);
       expect(call.data).toHaveProperty('unreadCount');
-      expect(logAdminAction).toHaveBeenCalledWith('view_support_tickets', mockReq.user.id, expect.any(Object), mockReq);
+      expect(logAdminAction).toHaveBeenCalledWith(
+        'view_support_tickets',
+        mockReq.user.id,
+        expect.any(Object),
+        mockReq
+      );
     });
 
     it('applies status filter from query', async () => {
@@ -361,7 +434,9 @@ describe('ticketController', () => {
 
       await adminGetTickets(mockReq, mockRes);
 
-      expect(SupportTicket.find).toHaveBeenCalledWith(expect.objectContaining({ status: 'submitted' }));
+      expect(SupportTicket.find).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'submitted' })
+      );
     });
   });
 
@@ -376,7 +451,9 @@ describe('ticketController', () => {
       });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(adminGetTicket(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(adminGetTicket(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('auto-advances submitted to seen', async () => {
@@ -394,7 +471,12 @@ describe('ticketController', () => {
         mockReq.params.id,
         expect.objectContaining({ status: 'seen' })
       );
-      expect(logAdminAction).toHaveBeenCalledWith('view_support_ticket', mockReq.user.id, expect.any(Object), mockReq);
+      expect(logAdminAction).toHaveBeenCalledWith(
+        'view_support_ticket',
+        mockReq.user.id,
+        expect.any(Object),
+        mockReq
+      );
     });
 
     it('does not update status when already seen', async () => {
@@ -420,7 +502,9 @@ describe('ticketController', () => {
       mockReq.body = {};
 
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError when status is not resolved', async () => {
@@ -428,7 +512,9 @@ describe('ticketController', () => {
       mockReq.body = { status: 'seen' };
 
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws ValidationError when adminNote exceeds 1000 chars', async () => {
@@ -436,7 +522,9 @@ describe('ticketController', () => {
       mockReq.body = { status: 'resolved', adminNote: 'a'.repeat(1001) };
 
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws NotFoundError when ticket not found', async () => {
@@ -451,7 +539,9 @@ describe('ticketController', () => {
       });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('throws AppError when ticket not in submitted/seen state', async () => {
@@ -463,7 +553,9 @@ describe('ticketController', () => {
       });
 
       const { AppError } = require('../../middleware/errorHandler');
-      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(AppError);
+      await expect(adminUpdateTicketStatus(mockReq, mockRes)).rejects.toBeInstanceOf(
+        AppError
+      );
     });
 
     it('resolves ticket, sets resolvedAt, sends email, calls logAdminAction', async () => {
@@ -471,7 +563,12 @@ describe('ticketController', () => {
       mockReq.body = { status: 'resolved', adminNote: 'Issue fixed.' };
       const ticket = makeTicket({
         status: 'seen',
-        userId: { _id: mockUserId, email: 'user@test.com', firstName: 'Jo', lastName: 'Jo' },
+        userId: {
+          _id: mockUserId,
+          email: 'user@test.com',
+          firstName: 'Jo',
+          lastName: 'Jo',
+        },
       });
       SupportTicket.findById.mockReturnValue({
         populate: jest.fn().mockResolvedValue(ticket),
@@ -484,7 +581,12 @@ describe('ticketController', () => {
       expect(ticket.adminNote).toBe('Issue fixed.');
       expect(ticket.save).toHaveBeenCalled();
       expect(sendTicketFulfilled).toHaveBeenCalled();
-      expect(logAdminAction).toHaveBeenCalledWith('resolve_support_ticket', mockReq.user.id, expect.any(Object), mockReq);
+      expect(logAdminAction).toHaveBeenCalledWith(
+        'resolve_support_ticket',
+        mockReq.user.id,
+        expect.any(Object),
+        mockReq
+      );
     });
   });
 });

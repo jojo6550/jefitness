@@ -72,10 +72,15 @@ async function bulkDeleteClients(req, res) {
     await Subscription.deleteMany({ userId: { $in: safeIds } });
     await User.deleteMany({ _id: { $in: safeIds } });
 
-    logger.logAdminAction('bulk_delete_clients', adminId, {
-      deletedCount: safeIds.length,
-      userIds: safeIds,
-    }, req);
+    logger.logAdminAction(
+      'bulk_delete_clients',
+      adminId,
+      {
+        deletedCount: safeIds.length,
+        userIds: safeIds,
+      },
+      req
+    );
 
     res.json({
       msg: `Deleted ${safeIds.length} client(s)`,
@@ -162,13 +167,18 @@ async function createSubscription(req, res) {
           { new: true }
         );
 
-        logger.logAdminAction('subscription_extended', adminId, {
-          userId,
-          plan: existingSub.plan,
-          overrideDays: days,
-          subscriptionId: existingSub._id.toString(),
-          newPeriodEnd: newPeriodEnd.toISOString(),
-        }, req);
+        logger.logAdminAction(
+          'subscription_extended',
+          adminId,
+          {
+            userId,
+            plan: existingSub.plan,
+            overrideDays: days,
+            subscriptionId: existingSub._id.toString(),
+            newPeriodEnd: newPeriodEnd.toISOString(),
+          },
+          req
+        );
 
         return res.json({
           msg: 'Subscription extended successfully',
@@ -343,13 +353,18 @@ async function createSubscription(req, res) {
       $set: { stripeSubscriptionId: stripeSub.id },
     });
 
-    logger.logAdminAction('subscription_created', adminId, {
-      userId,
-      planKey,
-      overrideDays: overrideDays !== undefined ? parseInt(overrideDays, 10) : null,
-      stripeSubscriptionId: stripeSub.id,
-      periodEnd: periodEnd.toISOString(),
-    }, req);
+    logger.logAdminAction(
+      'subscription_created',
+      adminId,
+      {
+        userId,
+        planKey,
+        overrideDays: overrideDays !== undefined ? parseInt(overrideDays, 10) : null,
+        stripeSubscriptionId: stripeSub.id,
+        periodEnd: periodEnd.toISOString(),
+      },
+      req
+    );
 
     res.json({
       msg: 'Subscription created successfully',
@@ -439,12 +454,17 @@ async function extendSubscription(req, res, next) {
     subscription.currentPeriodEnd = newPeriodEnd;
     await subscription.save();
 
-    logger.logAdminAction('subscription_extended', adminId, {
-      subscriptionId: subscriptionId.toString(),
-      daysToAdd,
-      newPeriodEnd: newPeriodEnd.toISOString(),
-      plan: subscription.plan,
-    }, req);
+    logger.logAdminAction(
+      'subscription_extended',
+      adminId,
+      {
+        subscriptionId: subscriptionId.toString(),
+        daysToAdd,
+        newPeriodEnd: newPeriodEnd.toISOString(),
+        plan: subscription.plan,
+      },
+      req
+    );
 
     res.json({
       message: `Extended by ${daysToAdd} days`,

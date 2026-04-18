@@ -1,4 +1,5 @@
 const { logger } = require('../logger');
+
 const { getStripe } = require('./client');
 const { getPriceIdForPlan } = require('./pricing');
 

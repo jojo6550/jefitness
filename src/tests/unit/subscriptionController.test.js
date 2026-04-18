@@ -182,7 +182,10 @@ describe('subscriptionController', () => {
       const futureDate = new Date(Date.now() + 10 * 86400000);
       const mockCurrentSub = { status: 'active', currentPeriodEnd: futureDate };
       const mockCustomer = { id: 'cus_123' };
-      const mockSession = { id: 'cs_queued_123', url: 'https://checkout.stripe.com/queued' };
+      const mockSession = {
+        id: 'cs_queued_123',
+        url: 'https://checkout.stripe.com/queued',
+      };
 
       stripeService.createOrRetrieveCustomer.mockResolvedValue(mockCustomer);
       Subscription.findOne.mockResolvedValue(mockCurrentSub);
@@ -199,7 +202,7 @@ describe('subscriptionController', () => {
       );
       expect(mockRes.json).toHaveBeenCalledWith({
         sessionId: 'cs_queued_123',
-        url: 'https://checkout.stripe.com/queued'
+        url: 'https://checkout.stripe.com/queued',
       });
       expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
@@ -211,12 +214,12 @@ describe('subscriptionController', () => {
       await createCheckout(mockReq, mockRes, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({ 
-        error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error:
+          'No active subscription to queue upgrade after. Subscribe directly instead.',
       });
       expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
-
 
     it('should handle all valid plans', async () => {
       const plans = ['1-month', '3-month', '6-month', '12-month'];

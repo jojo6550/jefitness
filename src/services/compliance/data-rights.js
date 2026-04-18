@@ -6,7 +6,9 @@ const { logUserAction } = require('../logger');
 const logger = monitoringService.logger;
 
 function userDisplayName(user) {
-  return user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  return user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : 'Unknown';
 }
 
 /**
@@ -132,10 +134,16 @@ async function requestDataErasure(userId, reason, ipAddress, userAgent) {
       throw new Error('User not found');
     }
 
-    await UserActionLog.logAction(userId, 'data_erasure_requested', ipAddress, userAgent, {
-      right: 'erasure',
-      reason,
-    });
+    await UserActionLog.logAction(
+      userId,
+      'data_erasure_requested',
+      ipAddress,
+      userAgent,
+      {
+        right: 'erasure',
+        reason,
+      }
+    );
     logUserAction('data_erasure_requested', userId, {
       userName: userDisplayName(user),
       userEmail: user?.email || 'Unknown',

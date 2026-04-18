@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const mockUser = {
   _id: new mongoose.Types.ObjectId(),
   stripeCustomerId: 'cus_test',

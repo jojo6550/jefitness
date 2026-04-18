@@ -4,7 +4,6 @@
  */
 
 const { validationResult } = require('express-validator');
-const { ipKeyGenerator } = require('express-rate-limit');
 
 const { logger } = require('../services/logger');
 
@@ -42,7 +41,7 @@ const dangerousFields = [
 const stripDangerousFields = (req, res, next) => {
   if (req.body && typeof req.body === 'object') {
     dangerousFields.forEach(field => {
-      if (req.body.hasOwnProperty(field)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
         logger.warn('Security event: dangerous_field_stripped', {
           field,
           userId: req.user?.id || 'anonymous',
@@ -181,7 +180,7 @@ const preventNoSQLInjection = (req, res, next) => {
       logger.warn('Security: Invalid object in checkForInjection', {
         path,
         typeofObj: typeof obj,
-        path: req?.path,
+        reqPath: req?.path,
       });
       return null;
     }

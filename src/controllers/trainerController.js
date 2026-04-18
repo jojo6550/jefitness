@@ -8,7 +8,7 @@ const {
   NotFoundError,
   AuthorizationError,
 } = require('../middleware/errorHandler');
-const { logUserAction } = require('../services/logger');
+const { logger, logUserAction } = require('../services/logger');
 
 const trainerController = {
   /**

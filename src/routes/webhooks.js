@@ -329,11 +329,14 @@ async function handleSubscriptionUpsert(subscription) {
       });
     } catch (syncErr) {
       // Subscription doc is correct; user ref is stale. Re-run webhook or manual fix needed.
-      logger.error('CRITICAL: Subscription upserted but User sync failed — orphaned subscription risk', {
-        userId: user._id,
-        subscriptionId: subscription.id,
-        error: syncErr.message,
-      });
+      logger.error(
+        'CRITICAL: Subscription upserted but User sync failed — orphaned subscription risk',
+        {
+          userId: user._id,
+          subscriptionId: subscription.id,
+          error: syncErr.message,
+        }
+      );
     }
   }
 }
@@ -622,6 +625,7 @@ async function handleCheckoutSessionCompleted(session) {
       );
 
       if (!alreadyPurchased) {
+        // eslint-disable-next-line n/no-missing-require
         const Program = require('../models/Program');
         const program = await Program.findById(programId);
 

@@ -12,7 +12,7 @@ const {
   sendTicketReceived,
   sendTicketFulfilled,
 } = require('../services/email');
-const { logger, logUserAction, logAdminAction } = require('../services/logger');
+const { logUserAction, logAdminAction } = require('../services/logger');
 
 const CATEGORY_LABELS = {
   'bug-report': 'Bug Report',

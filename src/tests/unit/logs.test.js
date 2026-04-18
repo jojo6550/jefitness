@@ -21,7 +21,7 @@ describe('Log model static methods used by logs route', () => {
     Log.countDocuments.mockResolvedValue(0);
 
     const query = {};
-    if ('error') query.level = 'error';
+    query.level = 'error';
     expect(query.level).toBe('error');
   });
 

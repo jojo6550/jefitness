@@ -2,13 +2,8 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const stripeService = require('../services/stripe');
 const { getPrimaryAppUrl } = require('../config/security');
-const {
-  asyncHandler,
-  ValidationError,
-  NotFoundError,
-} = require('../middleware/errorHandler');
-const { daysLeftUntil, calculateNextRenewalDate } = require('../utils/dateUtils');
-const StripePlan = require('../models/StripePlan');
+const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
+const { daysLeftUntil } = require('../utils/dateUtils');
 const { logger } = require('../services/logger');
 
 /** Map Stripe status to 3 states: active, cancelled, or trialing */
@@ -17,17 +12,6 @@ function mapStripeStatusTo3States(stripeStatus) {
   if (stripeStatus === 'canceled') return 'cancelled';
   // past_due, incomplete, incomplete_expired, unpaid, paused → cancelled (no access)
   return 'cancelled';
-}
-
-/** Format appointment date for email display */
-function formatApptDateForEmail(date) {
-  return new Date(date).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
 }
 
 const subscriptionController = {
@@ -40,7 +24,7 @@ const subscriptionController = {
   }),
 
   /**
- * Create Stripe Checkout session for subscription.
+   * Create Stripe Checkout session for subscription.
    * If queued=true and active sub exists: queues upgrade after current ends.
    * Else: immediate subscription (rejects if active).
    */
@@ -60,38 +44,46 @@ const subscriptionController = {
       status: { $in: ['active', 'trialing'] },
     });
 
-      // Handle queued subscription upgrade (starts after current ends)
-      if (queued) {
-        if (!currentSub) {
-          return res.status(400).json({ 
-            error: 'No active subscription to queue upgrade after. Subscribe directly instead.' 
-          });
-        }
-        // Compute queued params
-        const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
-        
-        // Validate Stripe trial_end requirement: must be >= now + 2 days
-        const nowTimestamp = Math.floor(Date.now() / 1000);
-        const minTrialEnd = nowTimestamp + 172800; // 2 days in seconds
-        const daysLeft = daysLeftUntil(currentSub.currentPeriodEnd);
-        if (trialEndTimestamp < minTrialEnd) {
-          return res.status(400).json({
-            error: `You need to queue upgrades 2+ days before expiry. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.`
-          });
-        }
-        
-        const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
-        const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
-        // Create queued checkout session
-        const session = await stripeService.createQueuedCheckoutSession(customer.id, plan, trialEndTimestamp, successUrl, cancelUrl);
-        res.json({ sessionId: session.id, url: session.url });
-        return;
+    // Handle queued subscription upgrade (starts after current ends)
+    if (queued) {
+      if (!currentSub) {
+        return res.status(400).json({
+          error:
+            'No active subscription to queue upgrade after. Subscribe directly instead.',
+        });
       }
+      // Compute queued params
+      const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
+
+      // Validate Stripe trial_end requirement: must be >= now + 2 days
+      const nowTimestamp = Math.floor(Date.now() / 1000);
+      const minTrialEnd = nowTimestamp + 172800; // 2 days in seconds
+      const daysLeft = daysLeftUntil(currentSub.currentPeriodEnd);
+      if (trialEndTimestamp < minTrialEnd) {
+        return res.status(400).json({
+          error: `You need to queue upgrades 2+ days before expiry. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.`,
+        });
+      }
+
+      const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
+      // Create queued checkout session
+      const session = await stripeService.createQueuedCheckoutSession(
+        customer.id,
+        plan,
+        trialEndTimestamp,
+        successUrl,
+        cancelUrl
+      );
+      res.json({ sessionId: session.id, url: session.url });
+      return;
+    }
 
     // Normal immediate subscription - reject if active exists
     if (currentSub) {
-      return res.status(400).json({ 
-        error: 'Already have active subscription. Complete/cancel current plan first or contact support.' 
+      return res.status(400).json({
+        error:
+          'Already have active subscription. Complete/cancel current plan first or contact support.',
       });
     }
 
@@ -108,7 +100,6 @@ const subscriptionController = {
     );
 
     res.json({ sessionId: session.id, url: session.url });
-
   }),
 
   /**
@@ -192,7 +183,7 @@ const subscriptionController = {
     const queuedSub = await Subscription.findOne({
       userId: req.user._id,
       status: 'trialing',
-      isQueuedPlan: true
+      isQueuedPlan: true,
     });
 
     if (!queuedSub) {
@@ -203,9 +194,9 @@ const subscriptionController = {
     await queuedSub.deleteOne();
     logger.info(`[SUBSCRIPTIONS] Queued subscription deleted for user ${req.user._id}`);
 
-    res.json({ 
-      success: true, 
-      message: 'Queued subscription cancelled successfully' 
+    res.json({
+      success: true,
+      message: 'Queued subscription cancelled successfully',
     });
   }),
 
@@ -214,7 +205,6 @@ const subscriptionController = {
    * atPeriodEnd: if true, schedule cancellation at period end; if false, cancel immediately.
    */
   cancel: asyncHandler(async (req, res) => {
-    const { subscriptionId } = req.params;
     const { atPeriodEnd } = req.body;
 
     const subscription = await Subscription.findOne({
@@ -303,16 +293,18 @@ const subscriptionController = {
         subscription.stripeSubscriptionId
       );
 
-      const formattedInvoices = invoices.map(i => ({
-        id: i.id,
-        number: i.number || i.id.slice(-8),
-        created: i.created * 1000,
-        status: i.status,
-        amount_paid: i.amount_paid || 0,
-        total: i.amount_due || 0,
-        currency: i.currency,
-        pdf_url: i.invoice_pdf || i.hosted_invoice_url,
-      })).sort((a, b) => b.created - a.created);
+      const formattedInvoices = invoices
+        .map(i => ({
+          id: i.id,
+          number: i.number || i.id.slice(-8),
+          created: i.created * 1000,
+          status: i.status,
+          amount_paid: i.amount_paid || 0,
+          total: i.amount_due || 0,
+          currency: i.currency,
+          pdf_url: i.invoice_pdf || i.hosted_invoice_url,
+        }))
+        .sort((a, b) => b.created - a.created);
 
       res.json({ success: true, data: formattedInvoices });
     } catch (stripeError) {
@@ -326,4 +318,3 @@ const subscriptionController = {
 };
 
 module.exports = subscriptionController;
-

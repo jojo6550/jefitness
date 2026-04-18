@@ -1,4 +1,5 @@
 const WebhookEvent = require('../models/WebhookEvent');
+
 const { logger } = require('./logger');
 
 /**

@@ -3,15 +3,11 @@ const cron = require('node-cron');
 const Subscription = require('./models/Subscription');
 const User = require('./models/User');
 const { logSecurityEvent, logger } = require('./services/logger');
-const stripeService = require('./services/stripe');
 const {
   sendSubscriptionReminder,
   sendTrainerDailySchedule,
 } = require('./services/email');
 const Appointment = require('./models/Appointment');
-
-/** Subscription statuses considered still active in Stripe */
-const STRIPE_ACTIVE_STATUSES = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
 
 /**
  * Daily cleanup for expired subscriptions.

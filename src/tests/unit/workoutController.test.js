@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 jest.mock('../../models/User');
-jest.mock('sanitize-html', () => (str) => str);
+jest.mock('sanitize-html', () => str => str);
 jest.mock('../../services/logger', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
   logUserAction: jest.fn(),
@@ -24,7 +24,7 @@ const {
 
 function makeSubdocArray(items) {
   const arr = [...items];
-  arr.id = (searchId) =>
+  arr.id = searchId =>
     arr.find(item => item._id.toString() === searchId.toString()) ?? null;
   return arr;
 }
@@ -101,7 +101,9 @@ describe('workoutController', () => {
     it('throws NotFoundError when user not found', async () => {
       mockReq.body = {
         workoutName: 'Push Day',
-        exercises: [{ exerciseName: 'Push-up', sets: [{ setNumber: 1, reps: 20, weight: 0 }] }],
+        exercises: [
+          { exerciseName: 'Push-up', sets: [{ setNumber: 1, reps: 20, weight: 0 }] },
+        ],
       };
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(null) });
       const { NotFoundError } = require('../../middleware/errorHandler');
@@ -116,14 +118,18 @@ describe('workoutController', () => {
 
       mockReq.body = {
         workoutName: 'Push Day',
-        exercises: [{ exerciseName: 'Bench Press', sets: [{ setNumber: 1, reps: 10, weight: 80 }] }],
+        exercises: [
+          { exerciseName: 'Bench Press', sets: [{ setNumber: 1, reps: 10, weight: 80 }] },
+        ],
       };
 
       await logWorkout(mockReq, mockRes);
 
       expect(mockUser.save).toHaveBeenCalled();
       expect(mockRes.status).toHaveBeenCalledWith(201);
-      expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({ success: true })
+      );
     });
 
     it('calls logUserAction with workout_logged', async () => {
@@ -131,7 +137,9 @@ describe('workoutController', () => {
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
       mockReq.body = {
         workoutName: 'Pull Day',
-        exercises: [{ exerciseName: 'Pull-up', sets: [{ setNumber: 1, reps: 8, weight: 0 }] }],
+        exercises: [
+          { exerciseName: 'Pull-up', sets: [{ setNumber: 1, reps: 8, weight: 0 }] },
+        ],
       };
 
       await logWorkout(mockReq, mockRes);
@@ -196,7 +204,9 @@ describe('workoutController', () => {
     it('throws ValidationError for invalid ObjectId', async () => {
       mockReq.params = { id: 'bad-id' };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws NotFoundError when workout not found', async () => {
@@ -206,7 +216,9 @@ describe('workoutController', () => {
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('throws NotFoundError when workout is soft-deleted', async () => {
@@ -217,7 +229,9 @@ describe('workoutController', () => {
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(getWorkoutById(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('returns workout for valid id', async () => {
@@ -239,7 +253,9 @@ describe('workoutController', () => {
     it('throws ValidationError for invalid ObjectId', async () => {
       mockReq.params = { id: 'not-valid' };
       const { ValidationError } = require('../../middleware/errorHandler');
-      await expect(deleteWorkout(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
+      await expect(deleteWorkout(mockReq, mockRes)).rejects.toBeInstanceOf(
+        ValidationError
+      );
     });
 
     it('throws NotFoundError when workout not found', async () => {
@@ -263,8 +279,15 @@ describe('workoutController', () => {
 
       expect(workout.deletedAt).toBeInstanceOf(Date);
       expect(mockUser.save).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith(mockReq.user.id, 'workout_deleted', expect.any(Object));
-      expect(mockRes.json).toHaveBeenCalledWith({ success: true, message: 'Workout deleted successfully' });
+      expect(logUserAction).toHaveBeenCalledWith(
+        mockReq.user.id,
+        'workout_deleted',
+        expect.any(Object)
+      );
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Workout deleted successfully',
+      });
     });
   });
 
@@ -299,13 +322,15 @@ describe('workoutController', () => {
     it('computes maxWeight and totalReps correctly', async () => {
       mockReq.params = { exerciseName: 'Bench Press' };
       const workout = makeWorkout({
-        exercises: [{
-          exerciseName: 'Bench Press',
-          sets: [
-            { setNumber: 1, reps: 10, weight: 100, completed: true },
-            { setNumber: 2, reps: 8, weight: 120, completed: true },
-          ],
-        }],
+        exercises: [
+          {
+            exerciseName: 'Bench Press',
+            sets: [
+              { setNumber: 1, reps: 10, weight: 100, completed: true },
+              { setNumber: 2, reps: 8, weight: 120, completed: true },
+            ],
+          },
+        ],
       });
       const mockUser = makeUser({ workoutLogs: makeSubdocArray([workout]) });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -353,7 +378,12 @@ describe('workoutController', () => {
 
     it('identifies mostTrainedExercise correctly', async () => {
       const w1 = makeWorkout({ exercises: [{ exerciseName: 'Squat', sets: [] }] });
-      const w2 = makeWorkout({ exercises: [{ exerciseName: 'Squat', sets: [] }, { exerciseName: 'Bench', sets: [] }] });
+      const w2 = makeWorkout({
+        exercises: [
+          { exerciseName: 'Squat', sets: [] },
+          { exerciseName: 'Bench', sets: [] },
+        ],
+      });
       const mockUser = makeUser({ workoutLogs: makeSubdocArray([w1, w2]) });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
 

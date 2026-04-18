@@ -41,7 +41,12 @@ class ComplianceService {
     return dataRights.requestDataAccess(userId, ipAddress, userAgent);
   }
   requestDataRectification(userId, rectificationData, ipAddress, userAgent) {
-    return dataRights.requestDataRectification(userId, rectificationData, ipAddress, userAgent);
+    return dataRights.requestDataRectification(
+      userId,
+      rectificationData,
+      ipAddress,
+      userAgent
+    );
   }
   requestDataErasure(userId, reason, ipAddress, userAgent) {
     return dataRights.requestDataErasure(userId, reason, ipAddress, userAgent);

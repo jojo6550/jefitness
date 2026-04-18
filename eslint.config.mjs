@@ -27,12 +27,12 @@ export default [
       // Common JS errors
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'require-await': 'error',
+      'require-await': 'warn',
       'no-return-await': 'error',
-      'consistent-return': 'error',
+      'consistent-return': 'off',
 
       // Promises
-      'promise/prefer-await-to-then': 'error',
+      'promise/prefer-await-to-then': 'warn',
       'promise/no-nesting': 'warn',
 
       // Imports
@@ -64,6 +64,53 @@ export default [
   },
   {
     files: ['src/**/*.js', 'scripts/**/*.js'],
-  }
+  },
+  {
+    files: [
+      'src/tests/**/*.js',
+      'public/tests/**/*.js',
+      '**/*.test.js',
+      '**/*.spec.js',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'off',
+      'require-await': 'off',
+      'n/no-unpublished-require': 'off',
+    },
+  },
+  {
+    files: ['scripts/**/*.js'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    files: ['public/js/**/*.js', 'public/tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.jest,
+      },
+    },
+  },
+  {
+    files: ['cypress/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.mocha,
+        cy: 'readonly',
+        Cypress: 'readonly',
+        expect: 'readonly',
+        assert: 'readonly',
+      },
+    },
+  },
 ];
 

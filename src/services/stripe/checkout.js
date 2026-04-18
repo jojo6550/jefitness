@@ -1,5 +1,6 @@
 const { getPrimaryAppUrl } = require('../../config/security');
 const { logger } = require('../logger');
+
 const { getStripe } = require('./client');
 const { getPlanPricing } = require('./pricing');
 

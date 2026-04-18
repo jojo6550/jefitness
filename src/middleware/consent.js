@@ -7,12 +7,24 @@ const User = require('../models/User');
 const UserActionLog = require('../models/UserActionLog');
 const monitoringService = require('../services/monitoring');
 
-const requireConsent = (consentField, consentType, securityEvent, code, shortError, detailMessage, auditAction, extraAuditData) =>
+const requireConsent =
+  (
+    consentField,
+    consentType,
+    securityEvent,
+    code,
+    shortError,
+    detailMessage,
+    auditAction,
+    extraAuditData
+  ) =>
   async (req, res, next) => {
     try {
       const userId = req.user.id;
       if (!userId) {
-        return res.status(401).json({ success: false, error: 'User authentication required' });
+        return res
+          .status(401)
+          .json({ success: false, error: 'User authentication required' });
       }
 
       // Use user doc pre-fetched by auth middleware to avoid an extra DB query

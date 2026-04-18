@@ -399,7 +399,7 @@ async function startServer() {
             // Also ping MongoDB to prevent connection from going cold
             await mongoose.connection.db.command({ ping: 1 });
             logger.info('Self-ping sent');
-          } catch (err) {
+          } catch {
             // Silent fail - do not log errors
           }
         },
@@ -413,7 +413,6 @@ async function startServer() {
 
     const gracefulShutdown = async signal => {
       logger.info('Shutting down gracefully', { signal });
-      stopFileWatching();
 
       const SHUTDOWN_TIMEOUT = 10000; // 10 seconds
       const shutdownTimer = setTimeout(() => {

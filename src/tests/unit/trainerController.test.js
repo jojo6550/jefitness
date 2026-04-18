@@ -65,7 +65,9 @@ describe('trainerController', () => {
       });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(trainerController.getMe(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(trainerController.getMe(mockReq, mockRes)).rejects.toBeInstanceOf(
+        NotFoundError
+      );
     });
 
     it('returns trainer info with trainerId field', async () => {
@@ -82,10 +84,12 @@ describe('trainerController', () => {
 
       await trainerController.getMe(mockReq, mockRes);
 
-      expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
-        trainerId: mockTrainerId,
-        firstName: 'John',
-      }));
+      expect(mockRes.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trainerId: mockTrainerId,
+          firstName: 'John',
+        })
+      );
     });
   });
 
@@ -121,16 +125,18 @@ describe('trainerController', () => {
     });
 
     it('computes completionRate correctly', async () => {
-      Appointment.aggregate.mockResolvedValue([{
-        totalAppointments: 10,
-        completedAppointments: 8,
-        scheduledAppointments: 2,
-        cancelledAppointments: 0,
-        noShowAppointments: 0,
-        lateAppointments: 0,
-        uniqueClients: 3,
-        upcomingAppointments: [],
-      }]);
+      Appointment.aggregate.mockResolvedValue([
+        {
+          totalAppointments: 10,
+          completedAppointments: 8,
+          scheduledAppointments: 2,
+          cancelledAppointments: 0,
+          noShowAppointments: 0,
+          lateAppointments: 0,
+          uniqueClients: 3,
+          upcomingAppointments: [],
+        },
+      ]);
 
       await trainerController.getDashboard(mockReq, mockRes);
 
@@ -146,7 +152,12 @@ describe('trainerController', () => {
       const clientId = new mongoose.Types.ObjectId();
       Appointment.find.mockResolvedValue([{ clientId }]);
       User.countDocuments.mockResolvedValue(1);
-      const client = { _id: clientId, firstName: 'Jane', lastName: 'Doe', email: 'jane@test.com' };
+      const client = {
+        _id: clientId,
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@test.com',
+      };
       User.find.mockReturnValue({
         select: jest.fn().mockReturnThis(),
         sort: jest.fn().mockReturnThis(),
@@ -192,7 +203,9 @@ describe('trainerController', () => {
       mockFindByIdChain(null);
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(trainerController.getAppointmentById(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(
+        trainerController.getAppointmentById(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('throws AuthorizationError when appointment belongs to different trainer', async () => {
@@ -201,7 +214,9 @@ describe('trainerController', () => {
       mockFindByIdChain(appt);
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(trainerController.getAppointmentById(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        trainerController.getAppointmentById(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it('returns appointment when trainer matches', async () => {
@@ -224,17 +239,21 @@ describe('trainerController', () => {
       Appointment.findById.mockResolvedValue(null);
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(trainerController.updateAppointment(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(
+        trainerController.updateAppointment(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it('throws AuthorizationError when not trainer\'s appointment', async () => {
+    it("throws AuthorizationError when not trainer's appointment", async () => {
       mockReq.params = { id: new mongoose.Types.ObjectId().toString() };
       mockReq.body = { status: 'completed' };
       const appt = makeAppointment({ trainerId: new mongoose.Types.ObjectId() });
       Appointment.findById.mockResolvedValue(appt);
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(trainerController.updateAppointment(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        trainerController.updateAppointment(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it('updates status and statusUpdatedAt', async () => {
@@ -245,8 +264,19 @@ describe('trainerController', () => {
       // populate mocks are no-ops; controller accesses trainerId.firstName etc (undefined is fine)
       appt.populate.mockResolvedValue(undefined);
       // after populate, simulate populated fields so logUserAction has something to work with
-      appt.clientId = { _id: new mongoose.Types.ObjectId(), firstName: 'C', lastName: 'L', email: 'c@t.com' };
-      appt.trainerId = { _id: mockTrainerId, toString: () => mockTrainerId.toString(), firstName: 'T', lastName: 'R', email: 't@t.com' };
+      appt.clientId = {
+        _id: new mongoose.Types.ObjectId(),
+        firstName: 'C',
+        lastName: 'L',
+        email: 'c@t.com',
+      };
+      appt.trainerId = {
+        _id: mockTrainerId,
+        toString: () => mockTrainerId.toString(),
+        firstName: 'T',
+        lastName: 'R',
+        email: 't@t.com',
+      };
       Appointment.findById.mockResolvedValue(appt);
 
       await trainerController.updateAppointment(mockReq, mockRes);
@@ -261,8 +291,19 @@ describe('trainerController', () => {
       mockReq.body = { notes: 'New note' };
       const appt = makeAppointment({ trainerId: mockTrainerId, notes: 'Existing note' });
       appt.populate.mockResolvedValue(undefined);
-      appt.clientId = { _id: new mongoose.Types.ObjectId(), firstName: 'C', lastName: 'L', email: 'c@t.com' };
-      appt.trainerId = { _id: mockTrainerId, toString: () => mockTrainerId.toString(), firstName: 'T', lastName: 'R', email: 't@t.com' };
+      appt.clientId = {
+        _id: new mongoose.Types.ObjectId(),
+        firstName: 'C',
+        lastName: 'L',
+        email: 'c@t.com',
+      };
+      appt.trainerId = {
+        _id: mockTrainerId,
+        toString: () => mockTrainerId.toString(),
+        firstName: 'T',
+        lastName: 'R',
+        email: 't@t.com',
+      };
       Appointment.findById.mockResolvedValue(appt);
 
       await trainerController.updateAppointment(mockReq, mockRes);
@@ -275,8 +316,19 @@ describe('trainerController', () => {
       mockReq.body = { status: 'completed' };
       const appt = makeAppointment({ trainerId: mockTrainerId });
       appt.populate.mockResolvedValue(undefined);
-      appt.clientId = { _id: new mongoose.Types.ObjectId(), firstName: 'C', lastName: 'L', email: 'c@t.com' };
-      appt.trainerId = { _id: mockTrainerId, toString: () => mockTrainerId.toString(), firstName: 'T', lastName: 'R', email: 't@t.com' };
+      appt.clientId = {
+        _id: new mongoose.Types.ObjectId(),
+        firstName: 'C',
+        lastName: 'L',
+        email: 'c@t.com',
+      };
+      appt.trainerId = {
+        _id: mockTrainerId,
+        toString: () => mockTrainerId.toString(),
+        firstName: 'T',
+        lastName: 'R',
+        email: 't@t.com',
+      };
       Appointment.findById.mockResolvedValue(appt);
 
       await trainerController.updateAppointment(mockReq, mockRes);
@@ -297,7 +349,9 @@ describe('trainerController', () => {
       Appointment.exists.mockResolvedValue(null);
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(trainerController.getClientInfo(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        trainerController.getClientInfo(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it('throws NotFoundError when client not found', async () => {
@@ -308,7 +362,9 @@ describe('trainerController', () => {
       Subscription.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue(null) });
 
       const { NotFoundError } = require('../../middleware/errorHandler');
-      await expect(trainerController.getClientInfo(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
+      await expect(
+        trainerController.getClientInfo(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('returns client with appointment history and counts', async () => {
@@ -323,11 +379,10 @@ describe('trainerController', () => {
       };
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(client) });
 
-      const appointments = [
-        { status: 'completed' },
-        { status: 'scheduled' },
-      ];
-      Appointment.find.mockReturnValue({ sort: jest.fn().mockResolvedValue(appointments) });
+      const appointments = [{ status: 'completed' }, { status: 'scheduled' }];
+      Appointment.find.mockReturnValue({
+        sort: jest.fn().mockResolvedValue(appointments),
+      });
       Subscription.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue(null) });
 
       await trainerController.getClientInfo(mockReq, mockRes);
@@ -361,7 +416,10 @@ describe('trainerController', () => {
     });
 
     it('returns 400 for invalid status', async () => {
-      mockReq.body = { appointmentIds: [new mongoose.Types.ObjectId().toString()], status: 'unknown' };
+      mockReq.body = {
+        appointmentIds: [new mongoose.Types.ObjectId().toString()],
+        status: 'unknown',
+      };
 
       await trainerController.bulkUpdateAppointments(mockReq, mockRes);
 
@@ -375,7 +433,9 @@ describe('trainerController', () => {
       Appointment.find.mockResolvedValue([{ _id: id1 }]); // only 1 found, 2 requested
 
       const { AuthorizationError } = require('../../middleware/errorHandler');
-      await expect(trainerController.bulkUpdateAppointments(mockReq, mockRes)).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        trainerController.bulkUpdateAppointments(mockReq, mockRes)
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it('calls updateMany and returns updatedCount', async () => {

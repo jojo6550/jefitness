@@ -6,7 +6,9 @@ const { logUserAction } = require('../logger');
 const logger = monitoringService.logger;
 
 function userDisplayName(user) {
-  return user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'Unknown';
+  return user?.firstName && user?.lastName
+    ? `${user.firstName} ${user.lastName}`
+    : 'Unknown';
 }
 
 /**

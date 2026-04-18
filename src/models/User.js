@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 const bcrypt = require('bcryptjs');
 
@@ -146,7 +145,7 @@ const UserSchema = new mongoose.Schema(
     gender: { type: String, enum: ['male', 'female'] },
     phone: {
       type: String,
-      match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number'],
+      match: [/^\+?[\d\s\-()]+$/, 'Please enter a valid phone number'],
     },
     activityStatus: {
       type: String,
@@ -365,7 +364,7 @@ UserSchema.methods.getActiveSubscription = async function () {
   if (!this._id) return null;
   // PLATFORM POLICY: Only active/trialing grant access (past_due auto-canceled by cron)
   const ACTIVE_STATUSES = ['active', 'trialing'];
-  return await Subscription.findOne({
+  return Subscription.findOne({
     userId: this._id,
     status: { $in: ACTIVE_STATUSES },
   }).sort({ currentPeriodEnd: -1 });

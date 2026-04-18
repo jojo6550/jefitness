@@ -1,5 +1,6 @@
 const StripePlan = require('../../models/StripePlan');
 const { logger } = require('../logger');
+
 const { getStripe } = require('./client');
 
 // Price caching for getPlanPricing() - 5min TTL in-memory
@@ -31,7 +32,7 @@ async function getPriceIdForPlan(plan) {
       type: 'recurring',
     }).lean();
     return planRecord?.stripePriceId || null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

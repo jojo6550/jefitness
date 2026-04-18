@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 jest.mock('../../models/User');
-jest.mock('sanitize-html', () => (str) => str);
+jest.mock('sanitize-html', () => str => str);
 jest.mock('../../services/logger', () => ({
   logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
   logUserAction: jest.fn(),
@@ -24,7 +24,7 @@ const {
 
 function makeSubdocArray(items) {
   const arr = [...items];
-  arr.id = (searchId) =>
+  arr.id = searchId =>
     arr.find(item => item._id.toString() === searchId.toString()) ?? null;
   return arr;
 }
@@ -69,7 +69,10 @@ describe('nutritionController', () => {
     });
 
     it('throws ValidationError for invalid mealType', async () => {
-      mockReq.body = { mealType: 'brunch', foods: [{ foodName: 'Apple', calories: 100 }] };
+      mockReq.body = {
+        mealType: 'brunch',
+        foods: [{ foodName: 'Apple', calories: 100 }],
+      };
       const { ValidationError } = require('../../middleware/errorHandler');
       await expect(logMeal(mockReq, mockRes)).rejects.toBeInstanceOf(ValidationError);
     });
@@ -99,7 +102,10 @@ describe('nutritionController', () => {
     });
 
     it('throws NotFoundError when user not found', async () => {
-      mockReq.body = { mealType: 'breakfast', foods: [{ foodName: 'Egg', calories: 80 }] };
+      mockReq.body = {
+        mealType: 'breakfast',
+        foods: [{ foodName: 'Egg', calories: 80 }],
+      };
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(null) });
       const { NotFoundError } = require('../../middleware/errorHandler');
       await expect(logMeal(mockReq, mockRes)).rejects.toBeInstanceOf(NotFoundError);
@@ -108,7 +114,12 @@ describe('nutritionController', () => {
     it('creates meal log successfully and returns 201', async () => {
       const mealId = new mongoose.Types.ObjectId();
       const mockUser = makeUser();
-      mockUser.mealLogs.push({ _id: mealId, mealType: 'breakfast', foods: [], totalCalories: 150 });
+      mockUser.mealLogs.push({
+        _id: mealId,
+        mealType: 'breakfast',
+        foods: [],
+        totalCalories: 150,
+      });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
 
       mockReq.body = {
@@ -164,8 +175,22 @@ describe('nutritionController', () => {
       const id1 = new mongoose.Types.ObjectId();
       const id2 = new mongoose.Types.ObjectId();
       const meals = makeSubdocArray([
-        { _id: id1, mealType: 'breakfast', date: new Date(), totalCalories: 300, foods: [], deletedAt: null },
-        { _id: id2, mealType: 'lunch', date: new Date(), totalCalories: 500, foods: [], deletedAt: new Date() },
+        {
+          _id: id1,
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 300,
+          foods: [],
+          deletedAt: null,
+        },
+        {
+          _id: id2,
+          mealType: 'lunch',
+          date: new Date(),
+          totalCalories: 500,
+          foods: [],
+          deletedAt: new Date(),
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -180,8 +205,22 @@ describe('nutritionController', () => {
 
     it('filters by mealType query param', async () => {
       const meals = makeSubdocArray([
-        { _id: new mongoose.Types.ObjectId(), mealType: 'breakfast', date: new Date(), totalCalories: 300, foods: [], deletedAt: null },
-        { _id: new mongoose.Types.ObjectId(), mealType: 'dinner', date: new Date(), totalCalories: 600, foods: [], deletedAt: null },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 300,
+          foods: [],
+          deletedAt: null,
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'dinner',
+          date: new Date(),
+          totalCalories: 600,
+          foods: [],
+          deletedAt: null,
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -241,7 +280,14 @@ describe('nutritionController', () => {
       const mealId = new mongoose.Types.ObjectId();
       mockReq.params = { id: mealId.toString() };
       const meals = makeSubdocArray([
-        { _id: mealId, mealType: 'lunch', date: new Date(), totalCalories: 400, foods: [], deletedAt: new Date() },
+        {
+          _id: mealId,
+          mealType: 'lunch',
+          date: new Date(),
+          totalCalories: 400,
+          foods: [],
+          deletedAt: new Date(),
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -253,7 +299,14 @@ describe('nutritionController', () => {
     it('returns meal for valid id', async () => {
       const mealId = new mongoose.Types.ObjectId();
       mockReq.params = { id: mealId.toString() };
-      const meal = { _id: mealId, mealType: 'snack', date: new Date(), totalCalories: 150, foods: [], deletedAt: null };
+      const meal = {
+        _id: mealId,
+        mealType: 'snack',
+        date: new Date(),
+        totalCalories: 150,
+        foods: [],
+        deletedAt: null,
+      };
       const meals = makeSubdocArray([meal]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -286,7 +339,14 @@ describe('nutritionController', () => {
     it('soft-deletes meal, saves, calls logUserAction', async () => {
       const mealId = new mongoose.Types.ObjectId();
       mockReq.params = { id: mealId.toString() };
-      const meal = { _id: mealId, mealType: 'breakfast', date: new Date(), totalCalories: 200, foods: [], deletedAt: null };
+      const meal = {
+        _id: mealId,
+        mealType: 'breakfast',
+        date: new Date(),
+        totalCalories: 200,
+        foods: [],
+        deletedAt: null,
+      };
       const mockUser = makeUser({ mealLogs: makeSubdocArray([meal]) });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
 
@@ -294,8 +354,15 @@ describe('nutritionController', () => {
 
       expect(meal.deletedAt).toBeInstanceOf(Date);
       expect(mockUser.save).toHaveBeenCalled();
-      expect(logUserAction).toHaveBeenCalledWith(mockReq.user.id, 'meal_deleted', expect.any(Object));
-      expect(mockRes.json).toHaveBeenCalledWith({ success: true, message: 'Meal deleted successfully' });
+      expect(logUserAction).toHaveBeenCalledWith(
+        mockReq.user.id,
+        'meal_deleted',
+        expect.any(Object)
+      );
+      expect(mockRes.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Meal deleted successfully',
+      });
     });
   });
 
@@ -322,7 +389,14 @@ describe('nutritionController', () => {
 
     it('excludes soft-deleted meals from stats', async () => {
       const meals = makeSubdocArray([
-        { _id: new mongoose.Types.ObjectId(), mealType: 'breakfast', date: new Date(), totalCalories: 500, foods: [{ foodName: 'Eggs' }], deletedAt: new Date() },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 500,
+          foods: [{ foodName: 'Eggs' }],
+          deletedAt: new Date(),
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -335,9 +409,30 @@ describe('nutritionController', () => {
 
     it('computes mealTypeBreakdown correctly', async () => {
       const meals = makeSubdocArray([
-        { _id: new mongoose.Types.ObjectId(), mealType: 'breakfast', date: new Date(), totalCalories: 300, foods: [{ foodName: 'Toast' }], deletedAt: null },
-        { _id: new mongoose.Types.ObjectId(), mealType: 'breakfast', date: new Date(), totalCalories: 250, foods: [{ foodName: 'Bagel' }], deletedAt: null },
-        { _id: new mongoose.Types.ObjectId(), mealType: 'lunch', date: new Date(), totalCalories: 600, foods: [{ foodName: 'Sandwich' }], deletedAt: null },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 300,
+          foods: [{ foodName: 'Toast' }],
+          deletedAt: null,
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 250,
+          foods: [{ foodName: 'Bagel' }],
+          deletedAt: null,
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'lunch',
+          date: new Date(),
+          totalCalories: 600,
+          foods: [{ foodName: 'Sandwich' }],
+          deletedAt: null,
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
@@ -351,8 +446,22 @@ describe('nutritionController', () => {
 
     it('returns topFoods by frequency', async () => {
       const meals = makeSubdocArray([
-        { _id: new mongoose.Types.ObjectId(), mealType: 'breakfast', date: new Date(), totalCalories: 300, foods: [{ foodName: 'Oats' }, { foodName: 'Banana' }], deletedAt: null },
-        { _id: new mongoose.Types.ObjectId(), mealType: 'lunch', date: new Date(), totalCalories: 400, foods: [{ foodName: 'Oats' }], deletedAt: null },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'breakfast',
+          date: new Date(),
+          totalCalories: 300,
+          foods: [{ foodName: 'Oats' }, { foodName: 'Banana' }],
+          deletedAt: null,
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          mealType: 'lunch',
+          date: new Date(),
+          totalCalories: 400,
+          foods: [{ foodName: 'Oats' }],
+          deletedAt: null,
+        },
       ]);
       const mockUser = makeUser({ mealLogs: meals });
       User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue(mockUser) });
