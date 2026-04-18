@@ -48,7 +48,10 @@
       "Bash(awk '{print $1}')",
       "Bash(xargs basename *)",
       "Read(//c/Users/josia/.claude/plugins/cache/caveman/caveman/63e797cd753b/**)",
-      "Read(//c/Users/josia/.claude/plugins/cache/caveman/**)"
+      "Read(//c/Users/josia/.claude/plugins/cache/caveman/**)",
+      "Bash(awk '{print $3}')",
+      "Bash(awk '{print $NF}')",
+      "Bash(git restore *)"
     ]
   },
   "enabledPlugins": {
