@@ -19,6 +19,8 @@
     "test:verbose": "jest --verbose",
     "start": "node src/server.js",
     "build:css": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --watch",
+    "build:css:prod": "tailwindcss -i ./public/styles/tailwind.css -o ./public/dist/styles.css --minify",
+    "build": "npm run cache:bust && npm run build:css:prod",
     "cache:bust": "node scripts/bust-cache.js",
     "sync:plans": "node scripts/cli-commands.js sync",
     "list:plans": "node scripts/cli-commands.js list",

@@ -57,6 +57,7 @@
         const data = await window.API.auth.login(email, password);
         const { user } = data.data || data;
         const userRole = user.role || 'user';
+        localStorage.setItem('userRole', userRole);
 
         const userName = user.firstName || 'User';
         window.Toast.success(`Welcome back, ${userName}!`);
