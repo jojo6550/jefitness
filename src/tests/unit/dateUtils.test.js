@@ -2,17 +2,16 @@ const {
   daysLeftUntil,
   daysBetween,
   calculateSubscriptionEndDate,
+  addFixedMonths,
+  addFixedYears,
+  addDays,
+  isLeapYear,
 } = require('../../utils/dateUtils');
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Returns a Date that is `n` calendar days from today, normalised to local
- * midnight.  Using setDate() ensures DST-safe calendar arithmetic — the same
- * technique used internally by daysLeftUntil / daysBetween.
- */
 function daysFromNow(n) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -37,7 +36,7 @@ describe('daysLeftUntil', () => {
     expect(daysLeftUntil(daysFromNow(-1))).toBe(0);
   });
 
-  it('returns 0 when period ends today ("Renews Today" state)', () => {
+  it('returns 0 when period ends today', () => {
     expect(daysLeftUntil(daysFromNow(0))).toBe(0);
   });
 
@@ -53,8 +52,8 @@ describe('daysLeftUntil', () => {
     expect(daysLeftUntil(daysFromNow(90))).toBe(90);
   });
 
-  it('returns 365 for a 12-month (annual) subscription', () => {
-    expect(daysLeftUntil(daysFromNow(365))).toBe(365);
+  it('returns 358 for a 12-month (fixed-month rule) subscription', () => {
+    expect(daysLeftUntil(daysFromNow(358))).toBe(358);
   });
 });
 
@@ -64,7 +63,7 @@ describe('daysLeftUntil', () => {
 
 describe('daysBetween', () => {
   it('returns 0 for the same date', () => {
-    const d = new Date(2026, 0, 1); // Jan 1 2026
+    const d = new Date(2026, 0, 1);
     expect(daysBetween(d, d)).toBe(0);
   });
 
@@ -94,60 +93,146 @@ describe('daysBetween', () => {
 });
 
 // ---------------------------------------------------------------------------
-// calculateSubscriptionEndDate — plan duration correctness
+// isLeapYear
+// ---------------------------------------------------------------------------
+
+describe('isLeapYear', () => {
+  it('2024 is leap', () => expect(isLeapYear(2024)).toBe(true));
+  it('2025 not leap', () => expect(isLeapYear(2025)).toBe(false));
+  it('2026 not leap', () => expect(isLeapYear(2026)).toBe(false));
+  it('2028 is leap', () => expect(isLeapYear(2028)).toBe(true));
+  it('2100 not leap (century non-400)', () => expect(isLeapYear(2100)).toBe(false));
+  it('2000 is leap (century-400)', () => expect(isLeapYear(2000)).toBe(true));
+});
+
+// ---------------------------------------------------------------------------
+// addDays
+// ---------------------------------------------------------------------------
+
+describe('addDays', () => {
+  it('adds 30 days', () => {
+    const start = new Date(2026, 3, 18); // Apr 18 2026
+    const result = addDays(start, 30);
+    expect(daysBetween(start, result)).toBe(30);
+  });
+  it('adds 0 days = same date', () => {
+    const start = new Date(2026, 0, 1);
+    expect(addDays(start, 0).getTime()).toBe(start.getTime());
+  });
+  it('throws on invalid date', () => {
+    expect(() => addDays(null, 5)).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addFixedMonths — 30 days/month, Feb real length
+// ---------------------------------------------------------------------------
+
+describe('addFixedMonths', () => {
+  it('1 month from Apr 18 2026 (non-Feb) → 30 days later', () => {
+    const start = new Date(2026, 3, 18);
+    expect(daysBetween(start, addFixedMonths(start, 1))).toBe(30);
+  });
+
+  it('1 month from Feb 1 2026 (non-leap) → 28 days later', () => {
+    const start = new Date(2026, 1, 1);
+    expect(daysBetween(start, addFixedMonths(start, 1))).toBe(28);
+  });
+
+  it('1 month from Feb 1 2028 (leap) → 29 days later', () => {
+    const start = new Date(2028, 1, 1);
+    expect(daysBetween(start, addFixedMonths(start, 1))).toBe(29);
+  });
+
+  it('3 months from Jan 1 2026 (spans Feb non-leap) → 30+28+30 = 88 days', () => {
+    const start = new Date(2026, 0, 1);
+    expect(daysBetween(start, addFixedMonths(start, 3))).toBe(88);
+  });
+
+  it('3 months from Jan 1 2028 (spans Feb leap) → 30+29+30 = 89 days', () => {
+    const start = new Date(2028, 0, 1);
+    expect(daysBetween(start, addFixedMonths(start, 3))).toBe(89);
+  });
+
+  it('6 months from Apr 18 2026 (no Feb) → 6*30 = 180 days', () => {
+    const start = new Date(2026, 3, 18);
+    expect(daysBetween(start, addFixedMonths(start, 6))).toBe(180);
+  });
+
+  it('6 months from Oct 1 2026 (spans Feb 2027) → 5*30 + 28 = 178 days', () => {
+    const start = new Date(2026, 9, 1);
+    expect(daysBetween(start, addFixedMonths(start, 6))).toBe(178);
+  });
+
+  it('throws on invalid date', () => {
+    expect(() => addFixedMonths(null, 1)).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// addFixedYears
+// ---------------------------------------------------------------------------
+
+describe('addFixedYears', () => {
+  it('1 year from Jan 1 2026 (non-leap Feb) → 11*30 + 28 = 358 days', () => {
+    const start = new Date(2026, 0, 1);
+    expect(daysBetween(start, addFixedYears(start, 1))).toBe(358);
+  });
+
+  it('1 year from Jan 1 2028 (leap Feb) → 11*30 + 29 = 359 days', () => {
+    const start = new Date(2028, 0, 1);
+    expect(daysBetween(start, addFixedYears(start, 1))).toBe(359);
+  });
+
+  it('1 year from Mar 1 2026 (spans Feb 2027 non-leap) → 358 days', () => {
+    const start = new Date(2026, 2, 1);
+    expect(daysBetween(start, addFixedYears(start, 1))).toBe(358);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// calculateSubscriptionEndDate — fixed-month rule
 // ---------------------------------------------------------------------------
 
 describe('calculateSubscriptionEndDate', () => {
-  // Use local-time constructor (timezone-safe; matches the local arithmetic
-  // used inside addMonths / addYears).
-  const march31 = new Date(2026, 2, 31); // March 31, 2026
-
-  it('1-month: March 31 → April 30 (no overflow into May)', () => {
-    const result = calculateSubscriptionEndDate('1-month', march31);
-    expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(3); // April (0-indexed)
-    expect(result.getDate()).toBe(30);
+  it('1-month from Apr 18 2026 → 30 days later', () => {
+    const start = new Date(2026, 3, 18);
+    const result = calculateSubscriptionEndDate('1-month', start);
+    expect(daysBetween(start, result)).toBe(30);
   });
 
-  it('3-month: March 31 → June 30', () => {
-    const result = calculateSubscriptionEndDate('3-month', march31);
-    expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(5); // June
-    expect(result.getDate()).toBe(30);
+  it('1-month from Feb 1 2026 (non-leap) → 28 days later', () => {
+    const start = new Date(2026, 1, 1);
+    const result = calculateSubscriptionEndDate('1-month', start);
+    expect(daysBetween(start, result)).toBe(28);
   });
 
-  it('6-month: March 31 → September 30', () => {
-    const result = calculateSubscriptionEndDate('6-month', march31);
-    expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(8); // September
-    expect(result.getDate()).toBe(30);
+  it('3-month from Jan 1 2026 → 88 days (spans Feb non-leap)', () => {
+    const start = new Date(2026, 0, 1);
+    const result = calculateSubscriptionEndDate('3-month', start);
+    expect(daysBetween(start, result)).toBe(88);
   });
 
-  it('12-month: March 31, 2026 → March 31, 2027', () => {
-    const result = calculateSubscriptionEndDate('12-month', march31);
-    expect(result.getFullYear()).toBe(2027);
-    expect(result.getMonth()).toBe(2); // March
-    expect(result.getDate()).toBe(31);
+  it('6-month from Apr 18 2026 → 180 days (no Feb)', () => {
+    const start = new Date(2026, 3, 18);
+    const result = calculateSubscriptionEndDate('6-month', start);
+    expect(daysBetween(start, result)).toBe(180);
   });
 
-  it('1-month edge case: Jan 31 → Feb 28 (no overflow into March)', () => {
-    const jan31 = new Date(2026, 0, 31);
-    const result = calculateSubscriptionEndDate('1-month', jan31);
-    expect(result.getFullYear()).toBe(2026);
-    expect(result.getMonth()).toBe(1); // February
-    expect(result.getDate()).toBe(28);
+  it('12-month from Jan 1 2026 → 358 days', () => {
+    const start = new Date(2026, 0, 1);
+    const result = calculateSubscriptionEndDate('12-month', start);
+    expect(daysBetween(start, result)).toBe(358);
   });
 
-  it('12-month leap year: Feb 29, 2024 → Feb 28, 2025 (non-leap clamp)', () => {
-    const leapDay = new Date(2024, 1, 29); // Feb 29, 2024
-    const result = calculateSubscriptionEndDate('12-month', leapDay);
-    expect(result.getFullYear()).toBe(2025);
-    expect(result.getMonth()).toBe(1); // February
-    expect(result.getDate()).toBe(28);
+  it('12-month from Jan 1 2028 → 359 days (leap Feb)', () => {
+    const start = new Date(2028, 0, 1);
+    const result = calculateSubscriptionEndDate('12-month', start);
+    expect(daysBetween(start, result)).toBe(359);
   });
 
   it('throws for an unknown plan name', () => {
-    expect(() => calculateSubscriptionEndDate('2-month', march31)).toThrow();
+    expect(() => calculateSubscriptionEndDate('2-month', new Date(2026, 2, 31))).toThrow();
   });
 
   it('throws for a null start date', () => {

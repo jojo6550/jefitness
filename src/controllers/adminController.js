@@ -2,7 +2,7 @@ const User = require('../models/User');
 const Subscription = require('../models/Subscription');
 const StripePlan = require('../models/StripePlan');
 const { logger } = require('../services/logger');
-const { daysLeftUntil, addMonths, addYears } = require('../utils/dateUtils');
+const { daysLeftUntil, addFixedMonths, addFixedYears, addDays } = require('../utils/dateUtils');
 
 let _stripeClient = null;
 function getStripeClient() {
@@ -146,7 +146,7 @@ async function createSubscription(req, res) {
     if (overrideDays !== undefined) {
       const days = parseInt(overrideDays, 10);
       const now = new Date();
-      const newPeriodEnd = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+      const newPeriodEnd = addDays(now, days);
 
       const existingSub = await user.getActiveSubscription();
       if (!existingSub) {
@@ -264,18 +264,15 @@ async function createSubscription(req, res) {
     const now = new Date();
     let trialEndDate;
     if (overrideDays !== undefined) {
-      // overrideDays is an admin override — use exact day count via addMonths approximation isn't needed;
-      // for arbitrary day counts we add days at the millisecond level which is fine (admin-only path).
-      trialEndDate = new Date(
-        now.getTime() + parseInt(overrideDays, 10) * 24 * 60 * 60 * 1000
-      );
+      // Admin override — exact day count.
+      trialEndDate = addDays(now, parseInt(overrideDays, 10));
     } else {
-      // Standard plan: use calendar-safe arithmetic from dateUtils
+      // Standard plan: fixed-month rule (30 days/month, Feb real length).
       const planIntervalMap = {
-        '1-month': () => addMonths(now, 1),
-        '3-month': () => addMonths(now, 3),
-        '6-month': () => addMonths(now, 6),
-        '12-month': () => addYears(now, 1),
+        '1-month': () => addFixedMonths(now, 1),
+        '3-month': () => addFixedMonths(now, 3),
+        '6-month': () => addFixedMonths(now, 6),
+        '12-month': () => addFixedYears(now, 1),
       };
       trialEndDate = planIntervalMap[planKey]();
     }
@@ -447,9 +444,7 @@ async function extendSubscription(req, res, next) {
         .json({ error: 'Can only extend active or trialing subscriptions' });
     }
 
-    const newPeriodEnd = new Date(
-      subscription.currentPeriodEnd.getTime() + daysToAdd * 86400000
-    );
+    const newPeriodEnd = addDays(subscription.currentPeriodEnd, daysToAdd);
 
     subscription.currentPeriodEnd = newPeriodEnd;
     await subscription.save();

@@ -8,13 +8,32 @@ window.AdminSubModal = (() => {
   const API = window.ApiConfig.getAPI_BASE();
 
   const PLAN_META = {
-    '1-month':  { label: '1 Month',   days: 30,  badge: null },
-    '3-month':  { label: '3 Months',  days: 90,  badge: 'POPULAR' },
-    '6-month':  { label: '6 Months',  days: 180, badge: null },
-    '12-month': { label: '12 Months', days: 365, badge: 'BEST VALUE' },
+    '1-month':  { label: '1 Month',   months: 1,  badge: null },
+    '3-month':  { label: '3 Months',  months: 3,  badge: 'POPULAR' },
+    '6-month':  { label: '6 Months',  months: 6,  badge: null },
+    '12-month': { label: '12 Months', months: 12, badge: 'BEST VALUE' },
   };
 
-  let PLANS = Object.entries(PLAN_META).map(([key, m]) => ({ key, ...m, price: '...' }));
+  // Mirrors server-side dateUtils.addFixedMonths: 30 days/month, Feb real length.
+  function isLeapYear(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function computeFixedDays(startDate, months) {
+    const startMonth = startDate.getMonth();
+    const startYear = startDate.getFullYear();
+    let total = 0;
+    for (let i = 0; i < months; i++) {
+      const m = (startMonth + i) % 12;
+      const y = startYear + Math.floor((startMonth + i) / 12);
+      total += m === 1 ? (isLeapYear(y) ? 29 : 28) : 30;
+    }
+    return total;
+  }
+
+  let PLANS = Object.entries(PLAN_META).map(([key, m]) => ({
+    key,
+    ...m,
+    days: computeFixedDays(new Date(), m.months),
+    price: '...',
+  }));
   let selectedPlan = PLANS[1];
   let context = null;
   let isBulk = false;
@@ -48,13 +67,18 @@ window.AdminSubModal = (() => {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
+  function planDays(plan) {
+    return computeFixedDays(new Date(), plan.months);
+  }
+
   function getEffectiveDays() {
     const toggle = document.getElementById('override-toggle');
+    const planDefault = planDays(selectedPlan);
     if (toggle && toggle.checked) {
       const val = parseInt(document.getElementById('days-input').value, 10);
-      return isNaN(val) || val < 1 ? selectedPlan.days : val;
+      return isNaN(val) || val < 1 ? planDefault : val;
     }
-    return selectedPlan.days;
+    return planDefault;
   }
 
   function renderPlanGrid() {
@@ -104,7 +128,7 @@ window.AdminSubModal = (() => {
     document.getElementById('plan-grid').innerHTML = renderPlanGrid();
     document.getElementById('override-toggle').checked = false;
     document.getElementById('days-row').style.display = 'none';
-    document.getElementById('days-input').value = selectedPlan.days;
+    document.getElementById('days-input').value = planDays(selectedPlan);
     document.getElementById('sub-summary').innerHTML = renderSummary();
     modal.classList.add('visible');
     _wireEvents();
@@ -120,7 +144,7 @@ window.AdminSubModal = (() => {
         selectedPlan = PLANS.find((p) => p.key === tile.dataset.plan);
         document.querySelectorAll('.plan-tile').forEach((t) => t.classList.remove('selected'));
         tile.classList.add('selected');
-        document.getElementById('days-input').value = selectedPlan.days;
+        document.getElementById('days-input').value = planDays(selectedPlan);
         updateSummary();
       });
     });
