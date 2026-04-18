@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: jefitness
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: npm ci --no-audit --no-fund --prefer-offline && npm run build
+    startCommand: npm start
+    healthCheckPath: https://jefitnessja.com/api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NPM_CONFIG_AUDIT
+        value: false
+      - key: NPM_CONFIG_FUND
+        value: false

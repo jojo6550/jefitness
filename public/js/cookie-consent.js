@@ -48,10 +48,12 @@ class CookieConsentManager {
     async checkAuthStatus() {
         this.userToken = null; // cookie is automatic, no need to pass it around
         this.isLoggedIn = false;
+        if (!localStorage.getItem('userRole')) return;
         try {
             const api = window.ApiConfig?.getAPI_BASE() || '';
             const res = await fetch(`${api}/api/v1/auth/me`, { credentials: 'include' });
             if (res.ok) this.isLoggedIn = true;
+            else localStorage.removeItem('userRole');
         } catch {}
     }
 
