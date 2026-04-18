@@ -18,16 +18,77 @@ function calculateSubscriptionEndDate(plan, startDate) {
 
   switch (plan) {
     case '1-month':
-      return addMonths(start, 1);
+      return addFixedMonths(start, 1);
     case '3-month':
-      return addMonths(start, 3);
+      return addFixedMonths(start, 3);
     case '6-month':
-      return addMonths(start, 6);
+      return addFixedMonths(start, 6);
     case '12-month':
-      return addYears(start, 1);
+      return addFixedYears(start, 1);
     default:
       throw new Error(`Unknown plan: ${plan}`);
   }
+}
+
+/**
+ * Check if a given year is a leap year (Gregorian rule).
+ * @param {number} year
+ * @returns {boolean}
+ */
+function isLeapYear(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+/**
+ * Add months using a fixed-day rule: each month counts as 30 days, except
+ * February which counts as its real length (28 non-leap, 29 leap). Walks
+ * month-by-month so that periods spanning multiple Februaries are correct.
+ * DST-safe: purely ms-based addition; `daysBetween` normalises on render.
+ *
+ * @param {Date} date
+ * @param {number} months
+ * @returns {Date}
+ */
+function addFixedMonths(date, months) {
+  if (!date || !(date instanceof Date) || isNaN(date)) {
+    throw new Error('Invalid date provided');
+  }
+  const startMonth = date.getMonth();
+  const startYear = date.getFullYear();
+  let totalDays = 0;
+  for (let i = 0; i < months; i++) {
+    const m = (startMonth + i) % 12;
+    const y = startYear + Math.floor((startMonth + i) / 12);
+    let d = 30;
+    if (m === 1) d = isLeapYear(y) ? 29 : 28;
+    totalDays += d;
+  }
+  return new Date(date.getTime() + totalDays * 86400000);
+}
+
+/**
+ * Add N years using the fixed-month rule (12 × addFixedMonths).
+ * Result: 358 days (normal) or 359 days (spans leap Feb) per year.
+ * @param {Date} date
+ * @param {number} years
+ * @returns {Date}
+ */
+function addFixedYears(date, years) {
+  return addFixedMonths(date, years * 12);
+}
+
+/**
+ * Add N whole days to a date via midnight-preserving ms math.
+ * Preferred over raw `Date.now() + N * 86400000` per project convention.
+ * @param {Date} date
+ * @param {number} days
+ * @returns {Date}
+ */
+function addDays(date, days) {
+  if (!date || !(date instanceof Date) || isNaN(date)) {
+    throw new Error('Invalid date provided');
+  }
+  return new Date(date.getTime() + days * 86400000);
 }
 
 /**
@@ -111,9 +172,9 @@ function calculateNextRenewalDate(periodEnd, interval, intervalCount = 1) {
   }
   switch (interval) {
     case 'month':
-      return addMonths(periodEnd, intervalCount);
+      return addFixedMonths(periodEnd, intervalCount);
     case 'year':
-      return addYears(periodEnd, intervalCount);
+      return addFixedYears(periodEnd, intervalCount);
     default:
       throw new Error(`Unsupported interval: ${interval}`);
   }
@@ -138,5 +199,9 @@ module.exports = {
   daysLeftUntil,
   addMonths,
   addYears,
+  addFixedMonths,
+  addFixedYears,
+  addDays,
+  isLeapYear,
   daysBetween,
 };
