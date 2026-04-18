@@ -6,7 +6,7 @@
 let bypassCacheEnabled = false;
 
 // Cache versioning
-const CACHE_VERSION = 'da51edc';
+const CACHE_VERSION = '3ad2e18';
 const STATIC_CACHE = `jefitness-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `jefitness-dynamic-v${CACHE_VERSION}`;
 
