@@ -82,6 +82,100 @@
             <p>Expert guidance tailored to your fitness journey. Meet our team and manage your schedule in one place.</p>
         </div>
 
+        <!-- Booking Instructions -->
+        <section class="booking-instructions mb-5" aria-labelledby="bookingHelpHeading">
+            <div class="accordion accordion-flush" id="bookingHelpAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="bookingHelpHeading">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#bookingHelpBody"
+                                aria-expanded="false" aria-controls="bookingHelpBody">
+                            <i class="bi bi-info-circle me-2"></i>
+                            How to Book an Appointment &amp; Booking Rules
+                        </button>
+                    </h2>
+                    <div id="bookingHelpBody" class="accordion-collapse collapse"
+                         aria-labelledby="bookingHelpHeading" data-bs-parent="#bookingHelpAccordion">
+                        <div class="accordion-body">
+
+                            <!-- Steps -->
+                            <h3 class="booking-help-heading">How to Book</h3>
+                            <ol class="booking-help-list mb-4">
+                                <li>Click <strong>New Booking</strong> at the top-right of the <em>Your Schedule</em> section.</li>
+                                <li>Select a trainer from the dropdown.</li>
+                                <li>Choose a date — must be <strong>tomorrow or later</strong>.</li>
+                                <li>Pick a time — only the trainer's available hours on that day appear.</li>
+                                <li>Add optional notes, click <strong>Confirm Booking</strong>, then approve the confirmation pop-up.</li>
+                            </ol>
+
+                            <!-- Policies -->
+                            <h3 class="booking-help-heading">Booking Policies</h3>
+                            <ul class="booking-help-list mb-4">
+                                <li><strong>Active subscription required</strong> — account must be on an active or trialing plan.</li>
+                                <li><strong>One appointment per day</strong> — you can only have one non-cancelled booking per calendar day.</li>
+                                <li><strong>Book at least one day in advance</strong> — same-day bookings are not accepted.</li>
+                                <li><strong>On-the-hour only</strong> — times like 7:00 or 9:00 are valid; half-hours are not.</li>
+                                <li><strong>Slot capacity</strong> — each hourly slot holds up to 6 clients by default (trainers may adjust this).</li>
+                                <li><strong>Trainer hours vary by day</strong> — a trainer may be off on certain weekdays or have a limited window (e.g. 7:00–15:00).</li>
+                            </ul>
+
+                            <!-- Error reference -->
+                            <h3 class="booking-help-heading">Common Errors &amp; How to Fix Them</h3>
+                            <div class="table-responsive">
+                                <table class="table table-sm booking-help-table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Error message</th>
+                                            <th>What it means</th>
+                                            <th>Fix</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>Active subscription required</code></td>
+                                            <td>Your subscription is inactive or expired.</td>
+                                            <td>Go to <a href="/subscriptions" class="booking-help-link">Subscription</a> and upgrade your plan.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>You can only book one appointment per day</code></td>
+                                            <td>You already have an upcoming booking on that date.</td>
+                                            <td>Pick a different date, or cancel your existing appointment first.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Appointments must be booked at least one day in advance</code></td>
+                                            <td>You selected today or a past date.</td>
+                                            <td>Choose tomorrow or any future date.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Appointments can only be booked on the hour</code></td>
+                                            <td>A non-hour time was submitted (shouldn't happen via the dropdown — may be a browser issue).</td>
+                                            <td>Reload the page and try again using the time dropdown.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Time slot is fully booked (max 6)</code></td>
+                                            <td>That hour with that trainer is at full capacity.</td>
+                                            <td>Pick a different hour or a different day.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Trainer is only available from X:00 to Y:00 on this day</code></td>
+                                            <td>The time you chose is outside the trainer's posted hours for that weekday.</td>
+                                            <td>Select a time within the trainer's available window shown in the dropdown.</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>Trainer is not available on this day</code></td>
+                                            <td>The trainer has no schedule set for that weekday.</td>
+                                            <td>Choose a different date or a different trainer.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Subscription Lock Message -->
         <div id="subscriptionLock" class="alert bg-secondary border-warning text-center mb-6 fade-in d-none" role="alert">
             <div class="d-flex align-items-center justify-content-center flex-column py-3">

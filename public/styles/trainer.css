@@ -202,3 +202,113 @@
     filter: brightness(1.1);
     color: #0a0a0b;
 }
+
+/* ── Booking Instructions Accordion ── */
+.booking-instructions .accordion-item {
+    background-color: #111113;
+    border: 1px solid #1e1e24;
+    border-radius: 0.875rem !important;
+    overflow: hidden;
+}
+
+@media (min-width: 576px) {
+    .booking-instructions .accordion-item { border-radius: 1rem !important; }
+}
+
+.booking-instructions .accordion-button {
+    background-color: #111113;
+    color: #f1f5f9;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    border-radius: 0 !important;
+    box-shadow: none;
+}
+
+@media (min-width: 576px) {
+    .booking-instructions .accordion-button { font-size: 1.1rem; }
+}
+
+.booking-instructions .accordion-button::after {
+    filter: invert(1) sepia(1) saturate(3) hue-rotate(160deg);
+}
+
+.booking-instructions .accordion-button:not(.collapsed) {
+    background-color: #111113;
+    color: #22d3ee;
+    border-bottom: 1px solid #1e1e24;
+}
+
+.booking-instructions .accordion-body {
+    background-color: #111113;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    padding: 1.25rem 1rem;
+}
+
+@media (min-width: 576px) {
+    .booking-instructions .accordion-body { padding: 1.5rem; }
+}
+
+.booking-help-heading {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #22d3ee;
+    margin-bottom: 0.6rem;
+}
+
+@media (min-width: 576px) {
+    .booking-help-heading { font-size: 1rem; }
+}
+
+.booking-help-list {
+    padding-left: 1.25rem;
+    line-height: 1.75;
+}
+
+.booking-help-list li { margin-bottom: 0.2rem; }
+
+.booking-help-list strong { color: #f1f5f9; }
+
+.booking-help-table {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+@media (min-width: 576px) {
+    .booking-help-table { font-size: 0.875rem; }
+}
+
+.booking-help-table thead th {
+    color: #64748b;
+    background-color: rgba(30, 30, 36, 0.5);
+    border-bottom-color: #1e1e24;
+    white-space: nowrap;
+    padding: 0.65rem 0.75rem;
+}
+
+.booking-help-table tbody tr { border-bottom-color: #1e1e24; }
+
+.booking-help-table tbody td {
+    padding: 0.65rem 0.75rem;
+    vertical-align: top;
+}
+
+.booking-help-table code {
+    font-size: 0.78rem;
+    color: #fbbf24;
+    background-color: rgba(251, 191, 36, 0.08);
+    padding: 0.1em 0.35em;
+    border-radius: 0.25rem;
+}
+
+.booking-help-link {
+    color: #22d3ee;
+    text-decoration: none;
+}
+
+.booking-help-link:hover { text-decoration: underline; }
