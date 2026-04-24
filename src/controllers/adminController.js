@@ -399,8 +399,11 @@ async function getClientProfile(req, res) {
         .lean(),
       Subscription.findOne({
         userId: id,
-        status: { $in: ['active', 'trialing'] },
-      }).lean(),
+        $or: [
+          { status: { $in: ['active', 'trialing'] } },
+          { status: 'cancelled', currentPeriodEnd: { $gte: new Date(Date.now() - 90 * 86400000) } },
+        ],
+      }).sort({ currentPeriodEnd: -1 }).lean(),
     ]);
 
     if (!user) return res.status(404).json({ msg: 'Client not found' });
