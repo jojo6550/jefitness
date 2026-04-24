@@ -1,7 +1,7 @@
 const express = require('express');
 
 const Subscription = require('../models/Subscription');
-const { logger } = require('../services/logger');
+const { logger, logSecurityEvent } = require('../services/logger');
 const User = require('../models/User');
 const {
   isWebhookEventProcessed,
@@ -43,7 +43,7 @@ async function handleStripeWebhook(req, res) {
 
   // SECURITY: Verify webhook signature is present
   if (!sig) {
-    logger.warn('Security event: webhook_signature_missing', { ip: req.ip || 'unknown' });
+    logSecurityEvent('WEBHOOK_SIGNATURE_MISSING', null, { ip: req.ip || 'unknown' }, req).catch(() => {});
     return res.status(400).send('Webhook signature missing');
   }
 
@@ -64,18 +64,13 @@ async function handleStripeWebhook(req, res) {
     // req.body is a raw Buffer here because this route is registered before express.json().
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    logger.error('Security event: webhook_signature_verification_failed', {
-      error: err.message,
-      ip: req.ip,
-    });
+    logSecurityEvent('WEBHOOK_SIGNATURE_INVALID', null, { error: err.message, ip: req.ip }, req).catch(() => {});
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   // SECURITY: Validate event structure
   if (!event || !event.id || !event.type || !event.data || !event.data.object) {
-    logger.error('Security event: invalid_webhook_event_structure', {
-      eventId: event?.id || 'unknown',
-    });
+    logSecurityEvent('WEBHOOK_INVALID_STRUCTURE', null, { eventId: event?.id || 'unknown' }, req).catch(() => {});
     return res.status(400).send('Invalid event structure');
   }
 

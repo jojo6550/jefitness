@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/User');
-const { logger } = require('../services/logger');
+const { logger, logSecurityEvent } = require('../services/logger');
 
 const { AuthenticationError } = require('./errorHandler');
 
@@ -60,7 +60,7 @@ async function auth(req, res, next) {
 
     // SECURITY: Reject tokens with outdated version
     if (tokenVersion < currentVersion) {
-      logger.warn('Security event: outdated_token_rejected', { userId });
+      logSecurityEvent('OUTDATED_TOKEN_REJECTED', userId, { tokenVersion, currentVersion }, req).catch(() => {});
       throw new AuthenticationError('Token has been revoked. Please log in again.');
     }
 
@@ -76,11 +76,13 @@ async function auth(req, res, next) {
   } catch (err) {
     // SECURITY: Don't leak error details about JWT internals
     if (err.name === 'TokenExpiredError') {
+      logSecurityEvent('JWT_EXPIRED', 'unknown', { ip: req.ip }, req).catch(() => {});
       return res.status(401).json({
         success: false,
         error: 'Your session has expired. Please log in again.',
       });
     }
+    logSecurityEvent('JWT_INVALID', 'unknown', { ip: req.ip, error: err.message }, req).catch(() => {});
     return res.status(401).json({
       success: false,
       error: 'Invalid session. Please log in again.',
@@ -104,7 +106,7 @@ async function incrementUserTokenVersion(userId) {
     user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
 
-    logger.info('Security event: token_version_incremented', {
+    logger.info('TOKEN_VERSION_INCREMENTED', {
       userId,
       newVersion: user.tokenVersion,
     });
@@ -144,10 +146,10 @@ const requireRole = (role, onDeny) => (req, res, next) => {
 
 const requireAdmin = requireRole('admin');
 const requireTrainer = requireRole('trainer', req =>
-  logger.warn('Security event: trainer_access_denied', {
-    userId: req.user?.id,
+  logSecurityEvent('UNAUTHORIZED_ROLE_ACCESS', req.user?.id, {
     role: req.user?.role,
-  })
+    required: 'trainer',
+  }, req).catch(() => {})
 );
 
 module.exports = {

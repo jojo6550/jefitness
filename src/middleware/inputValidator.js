@@ -5,7 +5,7 @@
 
 const { validationResult } = require('express-validator');
 
-const { logger } = require('../services/logger');
+const { logger, logSecurityEvent } = require('../services/logger');
 
 /**
  * SECURITY: Dangerous fields that could lead to privilege escalation
@@ -42,11 +42,7 @@ const stripDangerousFields = (req, res, next) => {
   if (req.body && typeof req.body === 'object') {
     dangerousFields.forEach(field => {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        logger.warn('Security event: dangerous_field_stripped', {
-          field,
-          userId: req.user?.id || 'anonymous',
-          path: req.path,
-        });
+        logSecurityEvent('DANGEROUS_FIELD_STRIPPED', req.user?.id || 'anonymous', { field, path: req.path }, req).catch(() => {});
         delete req.body[field];
       }
     });

@@ -224,6 +224,7 @@ class Logger {
       gdpr_data_export: () => 'User requested GDPR data export',
       gdpr_data_deletion: () =>
         `User requested account deletion${details.reason ? ` (reason: ${details.reason})` : ''}`,
+      email_verified: () => 'User verified email address',
     };
     const builder = messages[action];
     return builder ? builder() : action.replace(/_/g, ' ');
@@ -240,17 +241,28 @@ class Logger {
   }
 
   _getSecuritySeverity(eventType) {
-    const critical = ['AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH'];
-    const warnings = ['AUTH_MULTIPLE_FAILED', 'RATE_LIMIT_EXCEEDED'];
+    const critical = [
+      'AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH',
+      'JWT_INVALID', 'WEBHOOK_SIGNATURE_INVALID', 'OUTDATED_TOKEN_REJECTED',
+    ];
+    const high = [
+      'AUTH_MULTIPLE_FAILED', 'RATE_LIMIT_EXCEEDED',
+      'AUTH_RATE_LIMIT_EXCEEDED', 'ADMIN_RATE_LIMIT_EXCEEDED',
+      'DANGEROUS_FIELD_STRIPPED', 'PASSWORD_RESET_SUCCESS',
+      'USER_LOGOUT', 'PASSWORD_RESET_RATE_LIMIT_EXCEEDED',
+      'CHECKOUT_RATE_LIMIT_EXCEEDED', 'WEBHOOK_SIGNATURE_MISSING',
+      'UNAUTHORIZED_ROLE_ACCESS',
+    ];
     if (critical.includes(eventType)) return 'critical';
-    if (warnings.includes(eventType)) return 'high';
+    if (high.includes(eventType)) return 'high';
     return 'medium';
   }
 
   _isCriticalSecurityEvent(eventType) {
-    return ['AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH'].includes(
-      eventType
-    );
+    return [
+      'AUTH_FAILED_LOGIN', 'AUTH_ACCOUNT_LOCKED', 'DATA_BREACH',
+      'JWT_INVALID', 'WEBHOOK_SIGNATURE_INVALID',
+    ].includes(eventType);
   }
 
   async _asyncLogToDB(level, message, meta) {
