@@ -156,11 +156,16 @@ const subscriptionController = {
       return res.status(403).json({ error: 'Customer mismatch' });
     }
 
-    // Subscription was already created by webhook, just return it
-    const subscription = await Subscription.findOne({
-      userId: req.user._id,
-      stripeSubscriptionId: session.subscription,
-    });
+    // Webhook fires asynchronously — poll DB briefly to let it catch up
+    let subscription = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      subscription = await Subscription.findOne({
+        userId: req.user._id,
+        stripeSubscriptionId: session.subscription,
+      });
+      if (subscription) break;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     if (!subscription) {
       return res.status(400).json({ error: 'Subscription not found' });
@@ -190,9 +195,13 @@ const subscriptionController = {
       return res.status(404).json({ error: 'No queued subscription found' });
     }
 
-    // Delete queued subscription record (no Stripe cancel needed for trial/queued)
+    // Cancel Stripe subscription before removing DB record to prevent billing after trial ends
+    if (queuedSub.stripeSubscriptionId) {
+      await stripeService.cancelSubscription(queuedSub.stripeSubscriptionId, false);
+    }
+
     await queuedSub.deleteOne();
-    logger.info(`[SUBSCRIPTIONS] Queued subscription deleted for user ${req.user._id}`);
+    logger.info(`[SUBSCRIPTIONS] Queued subscription cancelled and deleted for user ${req.user._id}`);
 
     res.json({
       success: true,

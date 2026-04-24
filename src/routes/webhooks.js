@@ -288,6 +288,7 @@ async function handleSubscriptionUpsert(subscription) {
     ...clearQueuedFlag,
   };
   if (isQueued) {
+    updatePayload.isQueuedPlan = true;
     updatePayload.queuedPlan = queuedPlanData;
   }
 
