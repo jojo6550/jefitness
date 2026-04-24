@@ -125,7 +125,7 @@ const startRenewalReminderJob = () => {
       }
     } catch (err) {
       logger.error('Renewal reminder job error', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+      logSecurityEvent('SYSTEM_JOB_ERROR', null, {
         jobName: 'renewalReminder',
         error: err.message,
       });
@@ -208,7 +208,7 @@ const startTrainerDailyEmailJob = () => {
       }
     } catch (err) {
       logger.error('Error in trainer daily email job', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+      logSecurityEvent('SYSTEM_JOB_ERROR', null, {
         jobName: 'trainerDailyEmail',
         error: err.message,
       });

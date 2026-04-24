@@ -117,7 +117,7 @@ const errorHandler = (err, req, res, next) => {
     if (logSecurityEvent) {
       logSecurityEvent(
         err instanceof AuthenticationError ? 'AUTH_ERROR' : 'AUTHORIZATION_ERROR',
-        req.user?.id || 'unknown',
+        req.user?.id || null,
         { message, ...context },
         req
       ).catch(securityLogError => {

@@ -42,7 +42,7 @@ const stripDangerousFields = (req, res, next) => {
   if (req.body && typeof req.body === 'object') {
     dangerousFields.forEach(field => {
       if (Object.prototype.hasOwnProperty.call(req.body, field)) {
-        logSecurityEvent('DANGEROUS_FIELD_STRIPPED', req.user?.id || 'anonymous', { field, path: req.path }, req).catch(() => {});
+        logSecurityEvent('DANGEROUS_FIELD_STRIPPED', req.user?.id || null, { field, path: req.path }, req).catch(() => {});
         delete req.body[field];
       }
     });
@@ -77,7 +77,7 @@ const allowOnlyFields = (allowedFields = [], strict = false) => {
         if (strict) {
           logger.warn('Security event: disallowed_fields_rejected', {
             fields: disallowedFields,
-            userId: req.user?.id || 'anonymous',
+            userId: req.user?.id || null,
             path: req.path,
           });
           return res.status(400).json({
@@ -88,7 +88,7 @@ const allowOnlyFields = (allowedFields = [], strict = false) => {
         } else {
           logger.warn('Security event: disallowed_fields_stripped', {
             fields: disallowedFields,
-            userId: req.user?.id || 'anonymous',
+            userId: req.user?.id || null,
             path: req.path,
           });
           disallowedFields.forEach(field => delete req.body[field]);
@@ -217,7 +217,7 @@ const preventNoSQLInjection = (req, res, next) => {
     if (bodyCheck) {
       logger.warn('Security event: nosql_injection_attempt', {
         detail: bodyCheck,
-        userId: req.user?.id || 'anonymous',
+        userId: req.user?.id || null,
         path: req.path,
       });
       return res.status(400).json({
@@ -233,7 +233,7 @@ const preventNoSQLInjection = (req, res, next) => {
     if (queryCheck) {
       logger.warn('Security event: nosql_injection_attempt', {
         detail: queryCheck,
-        userId: req.user?.id || 'anonymous',
+        userId: req.user?.id || null,
         path: req.path,
       });
       return res.status(400).json({
@@ -302,7 +302,7 @@ const validateSortParam = (allowedFields = []) => {
       if (fieldName.includes('$')) {
         logger.warn('Security event: invalid_sort_field', {
           field: fieldName,
-          userId: req.user?.id || 'anonymous',
+          userId: req.user?.id || null,
           path: req.path,
         });
         return res.status(400).json({
