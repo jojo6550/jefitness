@@ -285,7 +285,7 @@ class Logger {
         action: meta.action || null,
         displayTimestamp: this._formatDisplayTimestamp(now),
         timestamp: now,
-        userId: meta.userId || null,
+        userId: mongoose.isValidObjectId(meta.userId) ? meta.userId : null,
         ip: meta.ip || null,
         userAgent: meta.userAgent || null,
         requestId: meta.requestId || null,

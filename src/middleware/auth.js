@@ -61,7 +61,10 @@ async function auth(req, res, next) {
     // SECURITY: Reject tokens with outdated version
     if (tokenVersion < currentVersion) {
       logSecurityEvent('OUTDATED_TOKEN_REJECTED', userId, { tokenVersion, currentVersion }, req).catch(() => {});
-      throw new AuthenticationError('Token has been revoked. Please log in again.');
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid session. Please log in again.',
+      });
     }
 
     req.user = decoded;
@@ -76,13 +79,16 @@ async function auth(req, res, next) {
   } catch (err) {
     // SECURITY: Don't leak error details about JWT internals
     if (err.name === 'TokenExpiredError') {
-      logSecurityEvent('JWT_EXPIRED', 'unknown', { ip: req.ip }, req).catch(() => {});
+      logSecurityEvent('JWT_EXPIRED', null, { ip: req.ip }, req).catch(() => {});
       return res.status(401).json({
         success: false,
         error: 'Your session has expired. Please log in again.',
       });
     }
-    logSecurityEvent('JWT_INVALID', 'unknown', { ip: req.ip, error: err.message }, req).catch(() => {});
+    // AuthenticationError was already logged at throw site; avoid double-logging
+    if (!(err instanceof AuthenticationError)) {
+      logSecurityEvent('JWT_INVALID', null, { ip: req.ip, error: err.message }, req).catch(() => {});
+    }
     return res.status(401).json({
       success: false,
       error: 'Invalid session. Please log in again.',
