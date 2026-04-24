@@ -13,14 +13,17 @@ window.AdminViewHelpers = (() => {
 
   function daysLeft(isoDate) {
     if (!isoDate) return null;
-    return Math.max(0, Math.ceil((new Date(isoDate) - Date.now()) / 86400000));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(isoDate); end.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.ceil((end - start) / 86400000));
   }
 
   function statusPill(subscription) {
     if (!subscription) return '<span class="pill pill-gray">No Plan</span>';
-    const days = daysLeft(subscription.currentPeriodEnd);
     if (subscription.status === 'cancelled') return '<span class="pill pill-red">Cancelled</span>';
     if (['active', 'trialing'].includes(subscription.status)) {
+      const days = daysLeft(subscription.currentPeriodEnd);
+      if (days !== null && days <= 0) return '<span class="pill pill-red">Expired</span>';
       if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
       return '<span class="pill pill-green">Active</span>';
     }

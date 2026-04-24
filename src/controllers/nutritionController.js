@@ -70,7 +70,7 @@ const nutritionController = {
     await user.save();
 
     const createdLog = user.mealLogs[user.mealLogs.length - 1];
-    logUserAction(userId, 'meal_logged', {
+    logUserAction('meal_logged', userId, {
       userName: `${user.firstName} ${user.lastName}`,
       userEmail: user.email,
       mealType,
@@ -167,7 +167,7 @@ const nutritionController = {
     meal.deletedAt = new Date();
     await user.save();
 
-    logUserAction(req.user.id, 'meal_deleted', {
+    logUserAction('meal_deleted', req.user.id, {
       userName: `${user.firstName} ${user.lastName}`,
       userEmail: user.email,
       mealId: id,

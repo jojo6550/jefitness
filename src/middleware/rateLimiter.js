@@ -1,7 +1,7 @@
 const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = require('express-rate-limit');
 
-const { logger } = require('../services/logger');
+const { logSecurityEvent } = require('../services/logger');
 
 /**
  * SECURITY: Production-ready identity-aware rate limit key generator (v7+ compatible)
@@ -41,11 +41,7 @@ const authLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: auth_rate_limit_exceeded', {
-      identifier,
-      ip: clientIP,
-      path: req.path,
-    });
+    logSecurityEvent('AUTH_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: clientIP, path: req.path, identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -67,11 +63,7 @@ const signupLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: signup_rate_limit_exceeded', {
-      identifier,
-      ip: clientIP,
-      path: req.path,
-    });
+    logSecurityEvent('SIGNUP_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: clientIP, path: req.path, identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -93,10 +85,7 @@ const passwordResetLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: password_reset_rate_limit_exceeded', {
-      identifier,
-      ip: clientIP,
-    });
+    logSecurityEvent('PASSWORD_RESET_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: clientIP, identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -119,11 +108,7 @@ const checkoutLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: checkout_rate_limit_exceeded', {
-      identifier,
-      ip: clientIP,
-      path: req.path,
-    });
+    logSecurityEvent('CHECKOUT_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: clientIP, path: req.path, identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -161,11 +146,7 @@ const adminLimiter = rateLimit({
   handler: (req, res, next, options) => {
     const identifier = identityAwareKeyGenerator(req);
     const clientIP = ipKeyGenerator(req);
-    logger.warn('Security: admin_rate_limit_exceeded', {
-      identifier,
-      ip: clientIP,
-      path: req.path,
-    });
+    logSecurityEvent('ADMIN_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: clientIP, path: req.path, identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });
@@ -181,7 +162,9 @@ const verificationPollLimiter = rateLimit({
   message: { msg: 'Too many verification checks. Please wait a moment.' },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (_req, res, _next, options) => {
+  handler: (req, res, _next, options) => {
+    const identifier = identityAwareKeyGenerator(req);
+    logSecurityEvent('VERIFICATION_POLL_RATE_LIMIT_EXCEEDED', req.user?.id || null, { ip: ipKeyGenerator(req), identifier }, req).catch(() => {});
     res.status(429).json({ ...options.message, code: 'RATE_LIMIT_EXCEEDED' });
   },
 });

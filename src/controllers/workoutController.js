@@ -69,7 +69,7 @@ const workoutController = {
     await user.save();
 
     const createdLog = user.workoutLogs[user.workoutLogs.length - 1];
-    logUserAction(userId, 'workout_logged', {
+    logUserAction('workout_logged', userId, {
       userName: `${user.firstName} ${user.lastName}`,
       userEmail: user.email,
       workoutName: workoutLog.workoutName,
@@ -164,7 +164,7 @@ const workoutController = {
     workout.deletedAt = new Date();
     await user.save();
 
-    logUserAction(userId, 'workout_deleted', {
+    logUserAction('workout_deleted', userId, {
       userName: `${user.firstName} ${user.lastName}`,
       userEmail: user.email,
       workoutId,

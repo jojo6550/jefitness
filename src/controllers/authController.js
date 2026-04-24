@@ -10,7 +10,7 @@ const {
   NotFoundError,
   ExternalServiceError,
 } = require('../middleware/errorHandler');
-const { logger } = require('../services/logger');
+const { logger, logUserAction, logSecurityEvent } = require('../services/logger');
 const { sendEmailVerification, sendPasswordReset } = require('../services/email');
 
 const COOKIE_OPTIONS = {
@@ -62,7 +62,7 @@ const authController = {
       .slice(0, 16);
 
     // Privacy-safe logging
-    logger.info('🔐 SIGNUP ATTEMPT START', {
+    logger.info('SIGNUP_ATTEMPT', {
       emailHash,
       hasPassword: !!password,
       clientRequestId,
@@ -76,7 +76,7 @@ const authController = {
     dbTime = performance.now() - dbStart;
     if (existingUser) {
       const totalTime = performance.now() - startTime;
-      logger.warn('❌ SIGNUP FAILED: User exists', {
+      logger.warn('SIGNUP_FAILED: email_exists', {
         emailHash,
         clientRequestId,
         timings: { dbTime: dbTime.toFixed(2), total: totalTime.toFixed(2) },
@@ -123,7 +123,7 @@ const authController = {
     const saveTime = performance.now() - saveStart;
 
     const totalTime = performance.now() - startTime;
-    logger.info('✅ SIGNUP SUCCESS', {
+    logger.info('SIGNUP_SUCCESS', {
       emailHash,
       userId: user._id,
       clientRequestId,
@@ -165,7 +165,7 @@ const authController = {
       .slice(0, 16);
 
     // Log ALL attempts (successful + failed) with correlation ID
-    logger.info('🔐 LOGIN ATTEMPT START', {
+    logger.info('LOGIN_ATTEMPT', {
       emailHash,
       clientRequestId,
       ip: req.ip,
@@ -184,7 +184,7 @@ const authController = {
       );
       dbTime = performance.now() - dbStart;
 
-      logger.debug('📊 LOGIN DB QUERY', {
+      logger.debug('LOGIN_DB_QUERY', {
         emailHash,
         clientRequestId,
         dbTime: dbTime.toFixed(2),
@@ -194,7 +194,7 @@ const authController = {
       // Auth check timing
       if (!user || !(await user.comparePassword(password))) {
         bcryptTime = performance.now() - dbStart;
-        logger.warn('❌ LOGIN FAILED', {
+        logger.warn('LOGIN_FAILED', {
           emailHash,
           clientRequestId,
           ip: req.ip,
@@ -209,7 +209,7 @@ const authController = {
 
       // Block unverified accounts
       if (!user.isEmailVerified) {
-        logger.warn('❌ LOGIN BLOCKED: email not verified', {
+        logger.warn('LOGIN_BLOCKED: email_unverified', {
           emailHash,
           clientRequestId,
           ip: req.ip,
@@ -225,7 +225,7 @@ const authController = {
       // JWT signing timing
       const jwtStart = performance.now();
       if (!process.env.JWT_SECRET) {
-        logger.error('❌ JWT_SECRET MISSING', { emailHash, clientRequestId });
+        logger.error('JWT_SECRET_MISSING', { emailHash, clientRequestId });
         throw new ExternalServiceError(
           'Authentication service',
           'Server configuration error: JWT_SECRET missing'
@@ -241,7 +241,7 @@ const authController = {
         );
         jwtTime = performance.now() - jwtStart;
         const totalTime = performance.now() - startTime;
-        logger.info('✅ LOGIN: 2FA REQUIRED', {
+        logger.info('LOGIN_2FA_REQUIRED', {
           emailHash,
           userId: user._id,
           clientRequestId,
@@ -258,7 +258,7 @@ const authController = {
       jwtTime = performance.now() - jwtStart;
 
       const totalTime = performance.now() - startTime;
-      logger.info('✅ LOGIN SUCCESS', {
+      logger.info('LOGIN_SUCCESS', {
         emailHash,
         userId: user._id,
         role: user.role,
@@ -297,7 +297,7 @@ const authController = {
       });
     } catch (loginError) {
       const totalTime = performance.now() - startTime;
-      logger.error('💥 LOGIN ERROR', {
+      logger.error('LOGIN_ERROR', {
         emailHash,
         clientRequestId,
         ip: req.ip,
@@ -332,6 +332,8 @@ const authController = {
       'healthDataConsent.userAgent': userAgent,
     });
 
+    logUserAction('data_processing_consent_granted', userId, {}, req);
+
     res.json({ success: true, message: 'Consent recorded successfully' });
   }),
 
@@ -341,6 +343,8 @@ const authController = {
   logout: asyncHandler(async (req, res) => {
     const { incrementUserTokenVersion } = require('../middleware/auth');
     await incrementUserTokenVersion(req.user.id);
+
+    logSecurityEvent('USER_LOGOUT', req.user.id, {}, req).catch(() => {});
 
     res.clearCookie('token', {
       httpOnly: true,
@@ -410,6 +414,8 @@ const authController = {
     };
     await user.save();
 
+    logUserAction('data_processing_consent_granted', user._id, { via: 'social' }, req);
+
     const token = jwt.sign(
       { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
       process.env.JWT_SECRET,
@@ -459,6 +465,8 @@ const authController = {
       user.emailVerificationToken = undefined;
       user.emailVerificationExpires = undefined;
       await user.save({ validateBeforeSave: false });
+
+      logUserAction('email_verified', user._id, {}, req);
 
       const token = jwt.sign(
         { id: user._id, role: user.role, tokenVersion: user.tokenVersion || 0 },
@@ -608,6 +616,8 @@ const authController = {
       user.tokenVersion = (user.tokenVersion || 0) + 1;
       await user.save();
 
+      logSecurityEvent('PASSWORD_RESET_SUCCESS', user._id, {}, req).catch(() => {});
+
       res.json({ success: true, message: 'Password reset successfully. Please log in.' });
     } catch (err) {
       logger.error('Reset password error', { error: err.message });
@@ -650,7 +660,7 @@ const authController = {
           error: err.message,
         })
       );
-      logger.info('✅ SOCIAL LOGIN SUCCESS', { userId: user._id, role: user.role });
+      logger.info('SOCIAL_LOGIN_SUCCESS', { userId: user._id, role: user.role });
 
       // Role-based redirect mirrors the existing login redirect logic
       const redirectMap = { admin: '/admin', trainer: '/trainer-dashboard' };

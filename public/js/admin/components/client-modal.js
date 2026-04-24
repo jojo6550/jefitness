@@ -23,14 +23,17 @@ window.AdminClientModal = (() => {
 
   function daysLeft(iso) {
     if (!iso) return null;
-    return Math.max(0, Math.ceil((new Date(iso) - Date.now()) / 86400000));
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(iso); end.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.ceil((end - start) / 86400000));
   }
 
   function subStatusHtml(sub) {
     if (!sub) return '<span class="cm-pill cm-pill-gray">No Plan</span>';
-    const days = daysLeft(sub.currentPeriodEnd);
     if (sub.status === 'cancelled') return '<span class="cm-pill cm-pill-red">Cancelled</span>';
     if (['active','trialing'].includes(sub.status)) {
+      const days = daysLeft(sub.currentPeriodEnd);
+      if (days !== null && days <= 0) return '<span class="cm-pill cm-pill-red">Expired</span>';
       if (days !== null && days <= 14) return '<span class="cm-pill cm-pill-yellow">Expiring Soon</span>';
       return '<span class="cm-pill cm-pill-green">Active</span>';
     }

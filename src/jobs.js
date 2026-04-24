@@ -8,6 +8,7 @@ const {
   sendTrainerDailySchedule,
 } = require('./services/email');
 const Appointment = require('./models/Appointment');
+const { daysBetween, addDays } = require('./utils/dateUtils');
 
 /**
  * Daily cleanup for expired subscriptions.
@@ -20,7 +21,7 @@ const cleanupExpiredSubscriptions = async () => {
 
     // Find all active subscriptions past their period end
     const expiredSubs = await Subscription.find({
-      status: 'active',
+      status: { $in: ['active', 'trialing'] },
       currentPeriodEnd: { $lt: now },
     });
 
@@ -55,7 +56,7 @@ const cleanupExpiredSubscriptions = async () => {
 };
 
 const startSubscriptionCleanupJob = () => {
-  cron.schedule('0 0 * * *', cleanupExpiredSubscriptions);
+  cron.schedule('0 * * * *', cleanupExpiredSubscriptions);
   logger.info('Subscription cleanup cron job scheduled', { schedule: '0 0 * * *' });
 };
 
@@ -83,55 +84,48 @@ const startRenewalReminderJob = () => {
       const now = new Date();
       const REMINDER_DAYS = [1, 3, 7];
 
-      for (const days of REMINDER_DAYS) {
-        const windowStart = new Date(now);
-        windowStart.setUTCDate(windowStart.getUTCDate() + days);
-        windowStart.setUTCHours(0, 0, 0, 0);
+      const broadEnd = addDays(now, Math.max(...REMINDER_DAYS) + 1);
+      const subs = await Subscription.find({
+        status: { $in: ['active', 'trialing'] },
+        cancelAtPeriodEnd: false,
+        currentPeriodEnd: { $gt: now, $lte: broadEnd },
+      });
 
-        const windowEnd = new Date(windowStart);
-        windowEnd.setUTCHours(23, 59, 59, 999);
+      for (const sub of subs) {
+        try {
+          const daysLeft = daysBetween(now, sub.currentPeriodEnd);
+          if (!REMINDER_DAYS.includes(daysLeft)) continue;
+          if (await userHasQueuedPlan(sub.userId)) continue;
 
-        const subs = await Subscription.find({
-          status: { $in: ['active', 'trialing'] },
-          cancelAtPeriodEnd: false,
-          currentPeriodEnd: { $gte: windowStart, $lte: windowEnd },
-        });
+          const user = await User.findById(sub.userId).select('firstName email');
+          if (!user || !user.email) continue;
 
-        for (const sub of subs) {
-          try {
-            // Suppress all reminders if user already has a queued next plan
-            if (await userHasQueuedPlan(sub.userId)) continue;
-
-            const user = await User.findById(sub.userId).select('firstName email');
-            if (!user || !user.email) continue;
-
-            const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            });
-            await sendSubscriptionReminder(
-              user.email,
-              user.firstName,
-              sub.plan,
-              days,
-              renewalDate
-            );
-            logger.info(`Renewal reminder sent (${days}d)`, {
-              userId: user._id,
-              subId: sub._id,
-            });
-          } catch (userErr) {
-            logger.error('Failed to send renewal reminder', {
-              subId: sub._id,
-              error: userErr.message,
-            });
-          }
+          const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+          await sendSubscriptionReminder(
+            user.email,
+            user.firstName,
+            sub.plan,
+            daysLeft,
+            renewalDate
+          );
+          logger.info(`Renewal reminder sent (${daysLeft}d)`, {
+            userId: user._id,
+            subId: sub._id,
+          });
+        } catch (userErr) {
+          logger.error('Failed to send renewal reminder', {
+            subId: sub._id,
+            error: userErr.message,
+          });
         }
       }
     } catch (err) {
       logger.error('Renewal reminder job error', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+      logSecurityEvent('SYSTEM_JOB_ERROR', null, {
         jobName: 'renewalReminder',
         error: err.message,
       });
@@ -214,7 +208,7 @@ const startTrainerDailyEmailJob = () => {
       }
     } catch (err) {
       logger.error('Error in trainer daily email job', { error: err.message });
-      logSecurityEvent('SYSTEM_JOB_ERROR', 'system', {
+      logSecurityEvent('SYSTEM_JOB_ERROR', null, {
         jobName: 'trainerDailyEmail',
         error: err.message,
       });

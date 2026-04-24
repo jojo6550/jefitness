@@ -31,7 +31,7 @@ const requestLogger = (req, res, next) => {
   if (isSensitive) {
     logger.http(`${req.method} ${req.path}`, {
       requestId: req.id,
-      userId: req.user?.id || 'anonymous',
+      userId: req.user?.id || null,
       ip: req.ip,
     });
   }
