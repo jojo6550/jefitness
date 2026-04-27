@@ -109,23 +109,10 @@ app.use(preventNoSQLInjection); // Apply globally for defense-in-depth
 
 app.use(passport.initialize());
 
-// Cache headers — let Cloudflare handle caching in production, no caching in dev
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV === 'production') {
-    // Production: let Cloudflare cache aggressively
-    res.set('Cache-Control', 'public, max-age=31536000, immutable');
-  } else {
-    // Development: no client-side caching for API endpoints, but dynamic HTML
-    if (req.path.startsWith('/api/')) {
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-    } else {
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-    }
-  }
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   next();
 });
 
