@@ -1,5 +1,4 @@
 const { getPaypalClient } = require('./client');
-const { getPrimaryAppUrl } = require('../../config/security');
 const { logger } = require('../logger');
 
 const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
@@ -39,9 +38,8 @@ async function createPaymentLink(planKey, planData, userId) {
       ],
       application_context: {
         brand_name: 'JeFitness',
-        return_url: `${getPrimaryAppUrl()}/subscriptions?success=true`,
-        cancel_url: `${getPrimaryAppUrl()}/subscriptions?cancelled=true`,
         user_action: 'PAY_NOW',
+        landing_page: 'NO_PREFERENCE',
       },
     };
 
