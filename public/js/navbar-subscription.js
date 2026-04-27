@@ -22,17 +22,13 @@ async function loadNavbarSubscriptionStatus() {
             let statusText = 'Free';
             let statusClass = 'bg-secondary';
 
-            // 3-state model: active, trialing, cancelled
-            const { status, plan, cancelAtPeriodEnd, daysLeft } = subscription;
-            if (status === 'active') {
+            const { active, daysLeft } = subscription;
+            if (active) {
                 const dayText = daysLeft === 1 ? 'day' : 'days';
                 const suffix = daysLeft ? ` (${daysLeft} ${dayText})` : '';
-                statusText = cancelAtPeriodEnd ? `${plan} (Canceling)${suffix}` : `${plan} Plan${suffix}`;
-                statusClass = cancelAtPeriodEnd ? 'bg-warning text-dark' : 'bg-success';
-            } else if (status === 'trialing') {
-                statusText = 'Pending';
-                statusClass = 'bg-info';
-            } else if (status === 'cancelled') {
+                statusText = `Active Plan${suffix}`;
+                statusClass = 'bg-success';
+            } else {
                 statusText = 'No Subscription';
                 statusClass = 'bg-secondary';
             }

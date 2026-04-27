@@ -52,11 +52,9 @@
         return false;
       }
 
-      const validStatuses = ['active', 'trialing', 'past_due', 'paused', 'incomplete'];
-      const isActive = validStatuses.includes(sub.status);
-      const isPeriodValid = !sub.currentPeriodEnd || new Date(sub.currentPeriodEnd) > new Date();
+      const isPeriodValid = !sub.expiresAt || new Date(sub.expiresAt) > new Date();
 
-      state.userSubscriptionStatus = isActive && isPeriodValid;
+      state.userSubscriptionStatus = sub.active && isPeriodValid;
       return state.userSubscriptionStatus;
     } catch (err) {
       if (isDev) console.error('Error checking subscription:', err);

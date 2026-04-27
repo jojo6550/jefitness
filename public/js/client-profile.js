@@ -99,17 +99,14 @@
     if (!sub) {
       subEl.innerHTML = empty('💳', 'No active subscription');
     } else {
-      const days = daysLeft(sub.currentPeriodEnd);
-      const pct = Math.min(100, sub.plan
-        ? (days / { '1-month':30,'3-month':90,'6-month':180,'12-month':365 }[sub.plan] * 100)
-        : 50);
+      const days = daysLeft(sub.expiresAt);
+      const pct = Math.min(100, days !== null ? Math.max(0, days / 30 * 100) : 50);
       const barColor = days !== null && days <= 14 ? 'var(--amber)' : 'var(--green)';
       subEl.innerHTML = `
         <div class="data-grid">
-          ${cell('Plan', esc(sub.plan) || '—')}
-          ${cell('Status', esc(sub.status))}
-          ${cell('Period Start', fmtDate(sub.currentPeriodStart))}
-          ${cell('Period End', fmtDate(sub.currentPeriodEnd))}
+          ${cell('Status', sub.active ? 'Active' : 'Inactive')}
+          ${cell('Purchased', fmtDate(sub.purchasedAt))}
+          ${cell('Expires', fmtDate(sub.expiresAt))}
           ${cell('Days Left', days !== null ? `<span style="color:${barColor};font-family:var(--mono);font-weight:700">${days}d</span>` : '—')}
           ${cell('Amount', sub.amount ? `${(sub.amount / 100).toFixed(2)} ${(sub.currency || 'JMD').toUpperCase()}` : '—')}
         </div>
@@ -367,9 +364,9 @@
     if (client.isEmailVerified) meta.push(pill('Verified', 'hp-green'));
     if (client.subscription) {
       const sub = client.subscription;
-      const days = daysLeft(sub.currentPeriodEnd);
-      const cls = ['active','trialing'].includes(sub.status) ? (days <= 14 ? 'hp-amber' : 'hp-green') : 'hp-gray';
-      meta.push(pill(sub.plan || sub.status, cls));
+      const days = daysLeft(sub.expiresAt);
+      const cls = sub.active ? (days <= 14 ? 'hp-amber' : 'hp-green') : 'hp-gray';
+      meta.push(pill(sub.active ? 'Active' : 'Inactive', cls));
     }
     document.getElementById('hero-meta').innerHTML = meta.join('');
 

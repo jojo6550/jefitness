@@ -79,7 +79,7 @@ window.AdminOverview = (() => {
   function renderRecentClients(clients) {
     const rows = clients.map((c) => {
       const sub = c.subscription;
-      const days = sub ? daysLeft(sub.currentPeriodEnd) : null;
+      const days = sub ? daysLeft(sub.expiresAt) : null;
       const color = avatarColor(c.firstName);
       return `
         <tr>

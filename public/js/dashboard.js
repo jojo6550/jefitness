@@ -61,13 +61,13 @@ async function loadSubscriptionStatus() {
             let statusText = '';
             let statusClass = '';
 
-            if (subscription && subscription.status === 'active') {
-                // Display "Active Plan: X Months"
-                const planDisplay = (subscription.plan || 'Custom Plan').replace('-', ' ').toUpperCase();
-                statusText = `Active Plan: ${planDisplay}`;
+            if (subscription && subscription.active) {
+                const daysLeft = subscription.daysLeft;
+                const suffix = daysLeft ? ` (${daysLeft} day${daysLeft === 1 ? '' : 's'} left)` : '';
+                statusText = `Active Plan${suffix}`;
                 statusClass = 'text-success';
-            } else if (subscription && (subscription.status === 'cancelled' || subscription.status === 'cancel_pending')) {
-                statusText = `Canceled: ${subscription.plan}`;
+            } else if (subscription && !subscription.active && subscription.expiresAt) {
+                statusText = 'Subscription Expired';
                 statusClass = 'text-warning';
             } else {
                 statusText = 'Free Tier';
@@ -80,7 +80,7 @@ async function loadSubscriptionStatus() {
             actionsElement.classList.remove('d-none');
 
             // Show appropriate buttons based on subscription status
-            if (subscription && (subscription.status === 'active' || subscription.status === 'trialing')) {
+            if (subscription && subscription.active) {
                 document.getElementById('cancel-subscription-btn').classList.remove('d-none');
                 upgradeBtn.classList.add('d-none');
                 document.getElementById('subscription-card')?.classList.add('d-none');

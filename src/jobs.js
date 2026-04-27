@@ -12,43 +12,19 @@ const { daysBetween, addDays } = require('./utils/dateUtils');
 
 /**
  * Daily cleanup for expired subscriptions.
- * Runs every day at midnight. DB-only: activates queued plans or cancels expired subs.
- * No Stripe verification.
+ * Finds active subs past expiresAt and sets active = false.
  */
 const cleanupExpiredSubscriptions = async () => {
   try {
     const now = new Date();
 
-    // Find all active subscriptions past their period end
-    const expiredSubs = await Subscription.find({
-      status: { $in: ['active', 'trialing'] },
-      currentPeriodEnd: { $lt: now },
-    });
+    const result = await Subscription.updateMany(
+      { active: true, expiresAt: { $lt: now } },
+      { $set: { active: false } }
+    );
 
-    for (const sub of expiredSubs) {
-      if (sub.queuedPlan) {
-        // Activate queued plan
-        sub.plan = sub.queuedPlan.plan;
-        sub.stripeSubscriptionId = sub.queuedPlan.stripeSubscriptionId;
-        sub.stripePriceId = sub.queuedPlan.stripePriceId;
-        sub.currentPeriodStart = sub.currentPeriodEnd;
-        sub.currentPeriodEnd = sub.queuedPlan.currentPeriodEnd;
-        sub.queuedPlan = null;
-        await sub.save();
-        logger.info('Activated queued plan for subscription', {
-          subscriptionId: sub._id,
-          userId: sub.userId,
-        });
-      } else {
-        // Cancel subscription
-        sub.status = 'cancelled';
-        sub.canceledAt = now;
-        await sub.save();
-        logger.info('Cancelled expired subscription', {
-          subscriptionId: sub._id,
-          userId: sub.userId,
-        });
-      }
+    if (result.modifiedCount > 0) {
+      logger.info('Deactivated expired subscriptions', { count: result.modifiedCount });
     }
   } catch (error) {
     logger.error('cleanupExpiredSubscriptions error', { error: error.message });
@@ -59,19 +35,6 @@ const startSubscriptionCleanupJob = () => {
   cron.schedule('0 * * * *', cleanupExpiredSubscriptions);
   logger.info('Subscription cleanup cron job scheduled', { schedule: '0 0 * * *' });
 };
-
-/**
- * Returns true if the user has an upcoming queued plan (trialing, isQueuedPlan).
- * Used to suppress expiry reminder emails when a seamless transition is already set up.
- */
-async function userHasQueuedPlan(userId) {
-  const count = await Subscription.countDocuments({
-    userId,
-    isQueuedPlan: true,
-    status: 'trialing',
-  });
-  return count > 0;
-}
 
 /**
  * Daily reminder job — runs at 8 AM.
@@ -86,21 +49,19 @@ const startRenewalReminderJob = () => {
 
       const broadEnd = addDays(now, Math.max(...REMINDER_DAYS) + 1);
       const subs = await Subscription.find({
-        status: { $in: ['active', 'trialing'] },
-        cancelAtPeriodEnd: false,
-        currentPeriodEnd: { $gt: now, $lte: broadEnd },
+        active: true,
+        expiresAt: { $gt: now, $lte: broadEnd },
       });
 
       for (const sub of subs) {
         try {
-          const daysLeft = daysBetween(now, sub.currentPeriodEnd);
+          const daysLeft = daysBetween(now, sub.expiresAt);
           if (!REMINDER_DAYS.includes(daysLeft)) continue;
-          if (await userHasQueuedPlan(sub.userId)) continue;
 
           const user = await User.findById(sub.userId).select('firstName email');
           if (!user || !user.email) continue;
 
-          const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
+          const renewalDate = sub.expiresAt.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -108,7 +69,7 @@ const startRenewalReminderJob = () => {
           await sendSubscriptionReminder(
             user.email,
             user.firstName,
-            sub.plan,
+            'Membership',
             daysLeft,
             renewalDate
           );
@@ -230,26 +191,21 @@ const startTenMinuteReminderJob = () => {
       const windowEnd = new Date(now.getTime() + 11 * 60 * 1000);
 
       const subs = await Subscription.find({
-        status: { $in: ['active', 'trialing'] },
-        isQueuedPlan: { $ne: true },
-        cancelAtPeriodEnd: false,
-        currentPeriodEnd: { $gte: now, $lte: windowEnd },
-        remindersSent: { $ne: '10min' },
+        active: true,
+        expiresAt: { $gte: now, $lte: windowEnd },
       });
 
       if (!subs.length) return;
 
       for (const sub of subs) {
         try {
-          if (await userHasQueuedPlan(sub.userId)) continue;
-
           const user = await User.findById(sub.userId).select(
             'firstName email privacySettings'
           );
           if (!user?.email) continue;
           if (user.privacySettings?.marketingEmails === false) continue;
 
-          const renewalDate = sub.currentPeriodEnd.toLocaleDateString('en-US', {
+          const renewalDate = sub.expiresAt.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -258,15 +214,9 @@ const startTenMinuteReminderJob = () => {
           await sendSubscriptionReminder(
             user.email,
             user.firstName,
-            sub.plan,
+            'Membership',
             '10 minutes',
             renewalDate
-          );
-
-          await Subscription.findByIdAndUpdate(
-            sub._id,
-            { $addToSet: { remindersSent: '10min' } },
-            { runValidators: false }
           );
 
           logger.info('10-min expiry reminder sent', {
