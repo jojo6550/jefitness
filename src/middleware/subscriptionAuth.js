@@ -1,7 +1,6 @@
 /**
  * Middleware to enforce active subscription requirements
  * Protects routes that require a valid, active subscription
- * Stripe is the source of truth — status is verified from the Subscription collection (DB mirror of Stripe)
  */
 
 const Subscription = require('../models/Subscription');
@@ -19,15 +18,12 @@ const requireActiveSubscription = async (req, res, next) => {
   try {
     const subscription = await Subscription.findOne({
       userId: req.user._id,
-      status: { $in: ['active', 'trialing'] },
+      active: true,
+      expiresAt: { $gt: new Date() },
     });
 
     if (!subscription) {
       return res.status(403).json({ error: 'Active subscription required' });
-    }
-
-    if (subscription.currentPeriodEnd < new Date()) {
-      return res.status(403).json({ error: 'Subscription expired' });
     }
 
     req.subscription = subscription;
