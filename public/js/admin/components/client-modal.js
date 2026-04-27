@@ -30,14 +30,11 @@ window.AdminClientModal = (() => {
 
   function subStatusHtml(sub) {
     if (!sub) return '<span class="cm-pill cm-pill-gray">No Plan</span>';
-    if (sub.status === 'cancelled') return '<span class="cm-pill cm-pill-red">Cancelled</span>';
-    if (['active','trialing'].includes(sub.status)) {
-      const days = daysLeft(sub.currentPeriodEnd);
-      if (days !== null && days <= 0) return '<span class="cm-pill cm-pill-red">Expired</span>';
-      if (days !== null && days <= 14) return '<span class="cm-pill cm-pill-yellow">Expiring Soon</span>';
-      return '<span class="cm-pill cm-pill-green">Active</span>';
-    }
-    return `<span class="cm-pill cm-pill-gray">${esc(sub.status)}</span>`;
+    if (!sub.active) return '<span class="cm-pill cm-pill-red">Inactive</span>';
+    const days = daysLeft(sub.expiresAt);
+    if (days !== null && days <= 0) return '<span class="cm-pill cm-pill-red">Expired</span>';
+    if (days !== null && days <= 14) return '<span class="cm-pill cm-pill-yellow">Expiring Soon</span>';
+    return '<span class="cm-pill cm-pill-green">Active</span>';
   }
 
   function activityHtml(status) {
@@ -51,7 +48,7 @@ window.AdminClientModal = (() => {
 
   function renderContent(client) {
     const sub = client.subscription;
-    const days = sub ? daysLeft(sub.currentPeriodEnd) : null;
+    const days = sub ? daysLeft(sub.expiresAt) : null;
     const color = avatarColor(client.firstName);
     const initials = ((client.firstName?.[0] || '') + (client.lastName?.[0] || '')).toUpperCase() || '?';
     const daysColor = days !== null && days <= 14 ? '#fbbf24' : '#4ade80';

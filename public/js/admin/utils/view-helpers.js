@@ -20,14 +20,11 @@ window.AdminViewHelpers = (() => {
 
   function statusPill(subscription) {
     if (!subscription) return '<span class="pill pill-gray">No Plan</span>';
-    if (subscription.status === 'cancelled') return '<span class="pill pill-red">Cancelled</span>';
-    if (['active', 'trialing'].includes(subscription.status)) {
-      const days = daysLeft(subscription.currentPeriodEnd);
-      if (days !== null && days <= 0) return '<span class="pill pill-red">Expired</span>';
-      if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
-      return '<span class="pill pill-green">Active</span>';
-    }
-    return `<span class="pill pill-gray">${escapeHtml(subscription?.status)}</span>`;
+    if (!subscription.active) return '<span class="pill pill-red">Inactive</span>';
+    const days = daysLeft(subscription.expiresAt);
+    if (days !== null && days <= 0) return '<span class="pill pill-red">Expired</span>';
+    if (days !== null && days <= 14) return '<span class="pill pill-yellow">Expiring</span>';
+    return '<span class="pill pill-green">Active</span>';
   }
 
   function avatarColor(name) {
