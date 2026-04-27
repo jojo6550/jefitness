@@ -94,6 +94,11 @@
     }).format(amount);
   }
 
+  function formatJMD(amount) {
+    if (typeof amount !== 'number' || isNaN(amount)) return 'J$0';
+    return 'J$' + new Intl.NumberFormat('en-JM').format(Math.round(amount));
+  }
+
   function parseDate(value, fallback) {
     if (!value) return fallback;
     if (typeof value === 'string') {
@@ -131,6 +136,7 @@
     showAlert,
     log,
     formatCurrency,
+    formatJMD,
     parseDate,
     safeFormatDate,
     hasActiveSubscription,

@@ -14,6 +14,7 @@ const subscriptionController = {
           acc[key] = {
             durationDays: config.durationDays,
             price: config.price,
+            priceJMD: config.priceJMD,
             currency: config.currency,
           };
           return acc;

@@ -5,7 +5,7 @@
     safeShow,
     safeHide,
     showAlert,
-    formatCurrency,
+    formatJMD,
     hasActiveSubscription,
     DEBUG,
   } = window.SubShared;
@@ -44,9 +44,8 @@
       const planId = plan.id;
       const meta = planMeta[planId] || { months: 1, displayName: '1 Month', featured: false };
 
-      // plan.price is in dollars (not cents) based on subscriptionConstants.js
-      const totalDollars = plan.price || 0;
-      const monthlyDollars = totalDollars / meta.months;
+      const totalJMD = plan.priceJMD || 0;
+      const monthlyJMD = totalJMD / meta.months;
 
       const isCurrent = hasCurrent;
       const buttonLabel = isCurrent ? 'Current Plan' : 'Get Started';
@@ -63,10 +62,10 @@
                 <span class="duration-badge">${meta.displayName}</span>
               </div>
               <div class="plan-price mb-1">
-                <div class="price-main">${formatCurrency(monthlyDollars)}</div>
+                <div class="price-main">${formatJMD(monthlyJMD)}</div>
                 <div class="price-period">/mo</div>
               </div>
-              ${meta.months > 1 ? `<div class="plan-total">Total: ${formatCurrency(totalDollars)}</div>` : '<div class="plan-total">&nbsp;</div>'}
+              ${meta.months > 1 ? `<div class="plan-total">Total: ${formatJMD(totalJMD)}</div>` : '<div class="plan-total">&nbsp;</div>'}
               <ul class="plan-features mt-3">
                 <li>Personal trainer access</li>
                 <li>Workout tracking</li>
