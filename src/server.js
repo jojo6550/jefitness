@@ -160,9 +160,6 @@ app.use((req, res, next) => {
 // -----------------------------
 // Health & CSRF
 // -----------------------------
-let paymentHealthCache = { result: null, checkedAt: 0 };
-const PAYMENT_HEALTH_TTL = 5 * 60 * 1000;
-
 app.get('/api/health', async (req, res) => {
   const checks = {
     db: isDbConnected(),
@@ -171,27 +168,18 @@ app.get('/api/health', async (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   };
 
-  // Check payment provider connectivity (PayPal or Stripe)
-  const now = Date.now();
-  if (now - paymentHealthCache.checkedAt > PAYMENT_HEALTH_TTL) {
-    try {
-      if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET) {
-        const paypalService = require('./services/paypal');
-        const client = paypalService.getPaypalClient();
-        if (client) {
-          paymentHealthCache = { result: true, checkedAt: now };
-        } else {
-          paymentHealthCache = { result: false, checkedAt: now };
-        }
-      } else {
-        paymentHealthCache = { result: false, checkedAt: now };
-      }
-    } catch (err) {
-      logger.warn('Payment provider health check failed', { error: err.message });
-      paymentHealthCache = { result: false, checkedAt: now };
+  try {
+    if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET) {
+      const paypalService = require('./services/paypal');
+      const client = paypalService.getPaypalClient();
+      checks.payment = !!client;
+    } else {
+      checks.payment = false;
     }
+  } catch (err) {
+    logger.warn('Payment provider health check failed', { error: err.message });
+    checks.payment = false;
   }
-  checks.payment = paymentHealthCache.result;
 
   const allHealthy = checks.db && checks.payment;
   res.status(allHealthy ? 200 : 503).json({

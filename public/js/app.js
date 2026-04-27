@@ -1,44 +1,7 @@
-// Service Worker Registration for PWA
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('[App] SW registered:', registration);
-        // Re-apply persisted bypass flag after page reload
-        if (localStorage.getItem('sw-bypass-cache') === 'true') {
-          navigator.serviceWorker.ready.then(reg => {
-            reg.active?.postMessage({ type: 'BYPASS_CACHE' });
-            console.log('[App] SW cache bypass re-applied from localStorage');
-          });
-        }
-      })
-      .catch(err => console.warn('[App] SW registration failed:', err));
-  });
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-// Cache control commands (available in DevTools console)
-window.jefitness = {
-  disableCache() {
-    localStorage.setItem('sw-bypass-cache', 'true');
-    navigator.serviceWorker.ready.then(reg => {
-      reg.active?.postMessage({ type: 'BYPASS_CACHE' });
-      console.log('[jefitness] Cache disabled. Run jefitness.enableCache() to restore.');
-    });
-  },
-  enableCache() {
-    localStorage.removeItem('sw-bypass-cache');
-    navigator.serviceWorker.ready.then(reg => {
-      reg.active?.postMessage({ type: 'ENABLE_CACHE' });
-      console.log('[jefitness] Cache enabled.');
-    });
-  },
-  clearCache() {
-    navigator.serviceWorker.ready.then(reg => {
-      reg.active?.postMessage({ type: 'FORCE_REFRESH' });
-      console.log('[jefitness] All caches cleared.');
-    });
-  }
-};
 // PWA Install Prompt
 let deferredPrompt;
 
