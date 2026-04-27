@@ -6,7 +6,7 @@ async function loadNavbarSubscriptionStatus() {
 
     try {
         window.API_BASE = window.ApiConfig.getAPI_BASE();
-        const response = await fetch(`${window.API_BASE}/v1/subscriptions/current`, { credentials: 'include' });
+        const response = await fetch(`${window.API_BASE}/api/v1/subscriptions/current`, { credentials: 'include' });
 
         if (response.status === 401 || response.status === 403) {
             statusElement.textContent = 'Not logged in';

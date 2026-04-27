@@ -5,6 +5,17 @@ const { logger } = require('../logger');
 const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
 const { OrdersCreateRequest, OrdersCaptureRequest, OrdersGetRequest } = checkoutNodeJssdk.orders;
 
+const PAYPAL_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), ms)
+    ),
+  ]);
+}
+
 async function createPaymentLink(planKey, planData, userId) {
   try {
     const client = getPaypalClient();
@@ -69,7 +80,7 @@ async function capturePayment(orderId) {
     const request = new OrdersCaptureRequest(orderId);
     request.requestBody({});
 
-    const response = await client.execute(request);
+    const response = await withTimeout(client.execute(request), PAYPAL_TIMEOUT_MS, 'capturePayment');
 
     logger.debug('PayPal order captured', {
       orderId,
@@ -94,7 +105,7 @@ async function getOrderDetails(orderId) {
     }
 
     const request = new OrdersGetRequest(orderId);
-    const response = await client.execute(request);
+    const response = await withTimeout(client.execute(request), PAYPAL_TIMEOUT_MS, 'getOrderDetails');
 
     return response.result;
   } catch (error) {

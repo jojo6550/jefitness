@@ -51,15 +51,14 @@ const securityConfig = {
 
         scriptSrc: [
           "'self'",
-          "'sha256-ieoeWczDHkReVBsRBqaal5AFMlBtNjMzgwKvLqi/tSU='",
-          (_req, res) => `'nonce-${res.locals.cspNonce}'`,
+          "'unsafe-inline'",
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://unpkg.com',
           'https://www.paypal.com',
           'https://www.paypalobjects.com',
         ],
-        scriptSrcAttr: [(_req, res) => `'nonce-${res.locals.cspNonce}'`],
+        scriptSrcAttr: ["'unsafe-inline'"],
         styleSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
           "'self'",
@@ -75,6 +74,7 @@ const securityConfig = {
           'https://www.paypal.com',
           'https://api.paypal.com',
           'https://api.sandbox.paypal.com',
+          'https://www.sandbox.paypal.com',
           ...getAppOrigins(),
         ],
         frameSrc: [
