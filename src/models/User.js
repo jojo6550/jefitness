@@ -236,10 +236,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       sparse: true,
       unique: true,
-    },
-    billingEnvironment: {
-      type: String,
-      enum: ['test', 'production'],
+      // DEPRECATED: Kept for backward compatibility with existing data
     },
     auditLog: [
       {

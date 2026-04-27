@@ -1,293 +1,138 @@
 const Subscription = require('../models/Subscription');
-const User = require('../models/User');
-const stripeService = require('../services/stripe');
-const { getPrimaryAppUrl } = require('../config/security');
-const { asyncHandler, NotFoundError } = require('../middleware/errorHandler');
+const paypalService = require('../services/paypal');
+const { PLANS } = require('../config/subscriptionConstants');
+const { asyncHandler } = require('../middleware/errorHandler');
 const { daysLeftUntil } = require('../utils/dateUtils');
 const { logger } = require('../services/logger');
 
-/** Map Stripe status to 3 states: active, cancelled, or trialing */
-function mapStripeStatusTo3States(stripeStatus) {
-  if (stripeStatus === 'active' || stripeStatus === 'trialing') return 'active';
-  if (stripeStatus === 'canceled') return 'cancelled';
-  // past_due, incomplete, incomplete_expired, unpaid, paused → cancelled (no access)
-  return 'cancelled';
-}
-
 const subscriptionController = {
-  /**
-   * Get available plans
-   */
   getPlans: asyncHandler(async (req, res) => {
-    const plans = await stripeService.getPlanPricing();
-    res.json({ success: true, data: { plans } });
+    res.json({
+      success: true,
+      data: {
+        plans: Object.entries(PLANS).reduce((acc, [key, config]) => {
+          acc[key] = {
+            durationDays: config.durationDays,
+            price: config.price,
+            currency: config.currency,
+          };
+          return acc;
+        }, {}),
+      },
+    });
   }),
 
-  /**
-   * Create Stripe Checkout session for subscription.
-   * If queued=true and active sub exists: queues upgrade after current ends.
-   * Else: immediate subscription (rejects if active).
-   */
   createCheckout: asyncHandler(async (req, res) => {
-    const { plan, queued } = req.body;
+    const { plan } = req.body;
 
-    if (!plan || !['1-month', '3-month', '6-month', '12-month'].includes(plan)) {
+    if (!plan || !PLANS[plan]) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    // Get or create Stripe customer
-    const customer = await stripeService.createOrRetrieveCustomer(req.user.email);
+    const planData = PLANS[plan];
 
-    // Get current subscription if exists
-    const currentSub = await Subscription.findOne({
-      userId: req.user._id,
-      status: { $in: ['active', 'trialing'] },
-    });
+    try {
+      const paymentLink = await paypalService.createPaymentLink(plan, planData, req.user._id.toString());
 
-    // Handle queued subscription upgrade (starts after current ends)
-    if (queued) {
-      if (!currentSub) {
-        return res.status(400).json({
-          error:
-            'No active subscription to queue upgrade after. Subscribe directly instead.',
-        });
-      }
-      // Compute queued params
-      const trialEndTimestamp = Math.floor(currentSub.currentPeriodEnd.getTime() / 1000);
-
-      // Validate Stripe trial_end requirement: must be >= now + 2 days
-      const nowTimestamp = Math.floor(Date.now() / 1000);
-      const minTrialEnd = nowTimestamp + 172800; // 2 days in seconds
-      const daysLeft = daysLeftUntil(currentSub.currentPeriodEnd);
-      if (trialEndTimestamp < minTrialEnd) {
-        return res.status(400).json({
-          error: `You need to queue upgrades 2+ days before expiry. You have ${daysLeft} day${daysLeft === 1 ? '' : 's'} left.`,
-        });
-      }
-
-      const successUrl = `${getPrimaryAppUrl()}/subscriptions?success=true&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${getPrimaryAppUrl()}/subscriptions?cancelled=true`;
-      // Create queued checkout session
-      const session = await stripeService.createQueuedCheckoutSession(
-        customer.id,
-        plan,
-        trialEndTimestamp,
-        successUrl,
-        cancelUrl
-      );
-      res.json({ sessionId: session.id, url: session.url });
-      return;
-    }
-
-    // Normal immediate subscription - reject if active exists
-    if (currentSub) {
-      return res.status(400).json({
-        error:
-          'Already have active subscription. Complete/cancel current plan first or contact support.',
+      res.json({
+        success: true,
+        data: {
+          orderId: paymentLink.orderId,
+          approvalLink: paymentLink.approvalLink,
+        },
       });
+    } catch (error) {
+      logger.error('Checkout creation failed', { plan, error: error.message });
+      res.status(500).json({ error: 'Failed to create payment link' });
     }
-
-    // Always immediate billing (no trial_end)
-    const trialEndTimestamp = null;
-    const metadata = { plan };
-
-    // Create Stripe checkout session
-    const session = await stripeService.createCheckoutSession(
-      customer.id,
-      plan,
-      trialEndTimestamp,
-      metadata
-    );
-
-    res.json({ sessionId: session.id, url: session.url });
   }),
 
-  /**
-   * Get the current user's active subscription (single doc per user model).
-   * Returns null if no active subscription.
-   */
   getCurrentSubscription: asyncHandler(async (req, res) => {
-    logger.debug('getCurrentSubscription', {
-      userId: req.user._id,
-      type: typeof req.user._id,
-    });
-
     const subscription = await Subscription.findOne({
       userId: req.user._id,
-      status: { $in: ['active', 'trialing'] },
     }).select('-__v');
 
     if (!subscription) {
       return res.json({ success: true, data: null });
     }
 
-    res.json({
-      success: true,
-      data: {
-        ...subscription.toObject(),
-        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
-      },
-    });
-  }),
-
-  /**
-   * Verify a completed Stripe Checkout session.
-   * Returns the subscription if already created by webhook.
-   */
-  verifyCheckoutSession: asyncHandler(async (req, res) => {
-    const { sessionId } = req.params;
-
-    const session = await stripeService.getCheckoutSession(sessionId);
-
-    if (!session || session.payment_status !== 'paid') {
-      return res.status(400).json({ error: 'Invalid or unpaid session' });
-    }
-
-    // Verify ownership: session customer must match user's customer
-    const user = await User.findById(req.user._id);
-    if (!user.stripeCustomerId) {
-      // Create customer if missing
-      const customer = await stripeService.createOrRetrieveCustomer(user.email);
-      user.stripeCustomerId = customer.id;
-      await user.save();
-    }
-
-    if (session.customer !== user.stripeCustomerId) {
-      return res.status(403).json({ error: 'Customer mismatch' });
-    }
-
-    // Webhook fires asynchronously — poll DB briefly to let it catch up
-    let subscription = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      subscription = await Subscription.findOne({
-        userId: req.user._id,
-        stripeSubscriptionId: session.subscription,
-      });
-      if (subscription) break;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    if (!subscription) {
-      return res.status(400).json({ error: 'Subscription not found' });
-    }
+    const daysLeft = daysLeftUntil(subscription.expiresAt);
+    const isActive = subscription.active && subscription.expiresAt > new Date();
 
     res.json({
       success: true,
       data: {
         ...subscription.toObject(),
-        daysLeft: daysLeftUntil(subscription.currentPeriodEnd),
+        active: isActive,
+        daysLeft: Math.max(0, daysLeft),
       },
     });
   }),
 
-  /**
-   * Cancel the user's queued (trialing, isQueuedPlan) subscription.
-   * Kept for backward compatibility with existing routes.
-   */
-  cancelQueuedPlan: asyncHandler(async (req, res) => {
-    const queuedSub = await Subscription.findOne({
-      userId: req.user._id,
-      status: 'trialing',
-      isQueuedPlan: true,
-    });
+  verifyPayment: asyncHandler(async (req, res) => {
+    const { orderId } = req.params;
 
-    if (!queuedSub) {
-      return res.status(404).json({ error: 'No queued subscription found' });
-    }
-
-    // Cancel Stripe subscription before removing DB record to prevent billing after trial ends
-    if (queuedSub.stripeSubscriptionId) {
-      await stripeService.cancelSubscription(queuedSub.stripeSubscriptionId, false);
-    }
-
-    await queuedSub.deleteOne();
-    logger.info(`[SUBSCRIPTIONS] Queued subscription cancelled and deleted for user ${req.user._id}`);
-
-    res.json({
-      success: true,
-      message: 'Queued subscription cancelled successfully',
-    });
-  }),
-
-  /**
-   * Cancel a subscription by its DB ID.
-   * atPeriodEnd: if true, schedule cancellation at period end; if false, cancel immediately.
-   */
-  cancel: asyncHandler(async (req, res) => {
-    const { atPeriodEnd } = req.body;
-
-    const subscription = await Subscription.findOne({
-      userId: req.user._id,
-      status: { $in: ['active', 'trialing'] },
-    });
-
-    if (!subscription) {
-      return res.status(404).json({ error: 'No active subscription found' });
-    }
-
-    if (atPeriodEnd) {
-      // Set cancel_at_period_end on Stripe sub
-      if (subscription.stripeSubscriptionId) {
-        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, true);
-      }
-      // DB will be updated by webhook when Stripe sends customer.subscription.updated
-      res.json({ message: 'Cancellation scheduled for period end' });
-    } else {
-      // Cancel immediately
-      if (subscription.stripeSubscriptionId) {
-        await stripeService.cancelSubscription(subscription.stripeSubscriptionId, false);
-      }
-      // Update DB
-      subscription.status = 'cancelled';
-      subscription.canceledAt = new Date();
-      await subscription.save();
-
-      res.json({ message: 'Subscription cancelled immediately' });
-    }
-  }),
-
-  /**
-   * Get Stripe invoices for a user's subscription.
-   * Verifies ownership before fetching.
-   */
-  getSubscriptionInvoices: asyncHandler(async (req, res) => {
-    const { subscriptionId } = req.params; // Stripe subscription ID (sub_xxx)
-
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: subscriptionId,
-      userId: req.user.id,
-    });
-
-    if (!subscription) {
-      throw new NotFoundError('Subscription not found or access denied');
+    if (!orderId) {
+      return res.status(400).json({ error: 'Missing orderId' });
     }
 
     try {
-      const invoices = await stripeService.getSubscriptionInvoices(
-        subscription.stripeSubscriptionId
-      );
+      const order = await paypalService.getOrderDetails(orderId);
 
-      const formattedInvoices = invoices
-        .map(i => ({
-          id: i.id,
-          number: i.number || i.id.slice(-8),
-          created: i.created * 1000,
-          status: i.status,
-          amount_paid: i.amount_paid || 0,
-          total: i.amount_due || 0,
-          currency: i.currency,
-          pdf_url: i.invoice_pdf || i.hosted_invoice_url,
-        }))
-        .sort((a, b) => b.created - a.created);
+      if (order.status !== 'APPROVED' && order.status !== 'COMPLETED') {
+        return res.status(400).json({ error: 'Payment not approved' });
+      }
 
-      res.json({ success: true, data: formattedInvoices });
-    } catch (stripeError) {
-      logger.error(`[INVOICES] Stripe error for sub ${subscriptionId}:`, {
-        error: stripeError.message,
+      let subscription = await Subscription.findOne({ userId: req.user._id });
+
+      if (!subscription) {
+        subscription = new Subscription({
+          userId: req.user._id,
+        });
+      }
+
+      const purchaseUnit = order.purchase_units?.[0];
+      const planKey = order.purchase_units?.[0]?.description?.split(' - ')?.[0] || 'custom';
+      const planData = PLANS[planKey] || PLANS['1-month'];
+
+      subscription.paypalTransactionId = orderId;
+      subscription.amount = parseFloat(purchaseUnit?.amount?.value || 0);
+      subscription.currency = purchaseUnit?.amount?.currency_code || 'USD';
+      subscription.purchasedAt = new Date();
+      subscription.expiresAt = new Date(Date.now() + planData.durationDays * 24 * 60 * 60 * 1000);
+      subscription.active = true;
+
+      await subscription.save();
+
+      res.json({
+        success: true,
+        data: {
+          ...subscription.toObject(),
+          daysLeft: planData.durationDays,
+        },
       });
-      // Graceful fallback — frontend handles an empty array
-      res.json({ success: true, data: [], message: 'No invoices available' });
+    } catch (error) {
+      logger.error('Payment verification failed', { orderId, error: error.message });
+      res.status(500).json({ error: 'Failed to verify payment' });
     }
+  }),
+
+  cancel: asyncHandler(async (req, res) => {
+    const subscription = await Subscription.findOne({
+      userId: req.user._id,
+    });
+
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found' });
+    }
+
+    subscription.active = false;
+    await subscription.save();
+
+    res.json({
+      success: true,
+      message: 'Subscription cancelled',
+    });
   }),
 };
 

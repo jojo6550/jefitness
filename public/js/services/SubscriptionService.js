@@ -1,7 +1,6 @@
-
 /**
  * SubscriptionService.js
- * Centralized API calls for subscriptions
+ * Centralized API calls for subscriptions (PayPal one-time payments)
  */
 
 const getApiBase = () => window.ApiConfig ? window.ApiConfig.getAPI_BASE() : (window.API_BASE || '/api');
@@ -24,36 +23,26 @@ const SubscriptionService = {
     return handle(res);
   },
 
-  createCheckout: async (planId, queueAfterCurrent = false) => {
+  createCheckout: async (planId) => {
     const res = await fetch(`${getApiBase()}/api/v1/subscriptions/checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ plan: planId, queued: queueAfterCurrent })
+      body: JSON.stringify({ plan: planId })
     });
     return handle(res);
   },
 
-  cancelQueuedPlan: async () => {
-    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/queued`, {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-    return handle(res);
-  },
-
-  cancelSubscription: async (subscriptionId, atPeriodEnd = false) => {
-    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/cancel/${subscriptionId}`, {
+  verifyPayment: async (orderId) => {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/verify-payment/${orderId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ atPeriodEnd })
+      credentials: 'include'
     });
     return handle(res);
   },
 
-  verifySession: async (sessionId) => {
-    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/verify-session/${sessionId}`, {
+  cancelSubscription: async () => {
+    const res = await fetch(`${getApiBase()}/api/v1/subscriptions/cancel`, {
       method: 'POST',
       credentials: 'include'
     });
