@@ -14,6 +14,11 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
 
+    document.getElementById('checkoutModal')
+      ?.addEventListener('hide.bs.modal', () => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;

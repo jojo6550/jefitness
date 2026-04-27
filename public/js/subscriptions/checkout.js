@@ -32,9 +32,10 @@
     document.getElementById('checkout-plan-name').textContent = planMeta[planId] || planId;
     document.getElementById('checkout-plan-price').textContent = window.SubShared.formatCurrency(plan.price || 0);
 
-    // Reset modal state: show loading, hide buttons
+    // Reset modal state: show loading, hide buttons and error
     safeShow(getElement('checkout-loading'));
     safeHide(getElement('checkout-buttons'));
+    safeHide(getElement('checkout-error'));
     document.getElementById('paypal-button-container').innerHTML = '';
     document.getElementById('card-button-container').innerHTML = '';
 
@@ -51,8 +52,10 @@
       renderPayPalButtons(orderId);
     } catch (err) {
       if (DEBUG) console.error('Checkout init failed:', err);
-      showAlert(err.message || 'Failed to initialize checkout. Please try again.', 'error');
-      getModal().hide();
+      safeHide(getElement('checkout-loading'));
+      const errMsg = getElement('checkout-error-msg');
+      if (errMsg) errMsg.textContent = err.message || 'Failed to initialize checkout. Please try again.';
+      safeShow(getElement('checkout-error'));
     }
   }
 
