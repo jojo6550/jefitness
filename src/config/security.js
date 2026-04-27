@@ -57,6 +57,7 @@ const securityConfig = {
           'https://unpkg.com',
           'https://www.paypal.com',
           'https://www.paypalobjects.com',
+          'https://static.cloudflareinsights.com',
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrcAttr: ["'unsafe-inline'"],
