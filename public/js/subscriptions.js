@@ -21,12 +21,8 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
       const { action, subId } = btn.dataset;
       e.preventDefault();
 
-      if (action === 'download-invoices') {
-        await window.SubManager.downloadInvoices(subId);
-      } else if (action === 'cancel-plan') {
+      if (action === 'cancel-plan') {
         window.SubManager.openCancelModal(subId);
-      } else if (action === 'cancel-queued') {
-        await window.SubManager.cancelQueuedPlan();
       }
     });
 

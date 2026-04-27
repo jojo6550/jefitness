@@ -60,52 +60,33 @@
     const sub = state.userSubscriptions[0];
     if (!sub) return;
 
-    const planName = (sub.plan || 'Subscription').replace('-', ' ').toUpperCase();
-
-    const defaultEnd = new Date(Date.now() + 30 * 86_400_000);
-    const periodEnd = parseDate(sub.currentPeriodEnd, defaultEnd);
+    const expiresAt = parseDate(sub.expiresAt, new Date(Date.now() + 30 * 86_400_000));
     const daysLeft = sub.daysLeft ?? 0;
+    const isActive = sub.active && expiresAt > new Date();
 
-    const subStatus = sub.status;
-    const isSubActive = isActive(subStatus);
-    const isSubCancelled = isCancelled(subStatus);
-    const isSubTrialing = isTrialing(subStatus);
-
-    let statusClass, statusText;
-    if (isSubActive) {
-      statusClass = 'active';
-      statusText = 'ACTIVE';
-    } else if (isSubTrialing) {
-      statusClass = 'warning';
-      statusText = 'TRIALING';
-    } else if (isSubCancelled) {
-      statusClass = 'expired';
-      statusText = 'CANCELLED';
-    } else {
-      statusClass = 'expired';
-      statusText = 'UNKNOWN';
-    }
+    const statusClass = isActive ? 'active' : 'expired';
+    const statusText = isActive ? 'ACTIVE' : 'EXPIRED';
 
     activeSubscriptionSummary.innerHTML = `
       <div class="row g-4 align-items-center">
         <div class="col-lg-8">
           <div class="subscription-summary-card">
             <div class="subscription-header">
-              <h3 class="subscription-title">${planName}</h3>
+              <h3 class="subscription-title">Subscription</h3>
               <span class="status-badge status-${statusClass}">${statusText}</span>
             </div>
             <div class="subscription-details">
               <div class="detail-item">
-                <span class="detail-label">Monthly Cost</span>
-                <span class="detail-value">${formatCurrency((sub.amount || 0) / 100, sub.currency || 'JMD')}</span>
+                <span class="detail-label">Cost</span>
+                <span class="detail-value">${formatCurrency(sub.amount || 0, sub.currency || 'USD')}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Next Billing Date</span>
-              <span class="detail-value">${safeFormatDate(periodEnd)}</span>
+                <span class="detail-label">Expires</span>
+                <span class="detail-value">${safeFormatDate(expiresAt)}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Days Remaining</span>
-  <span class="detail-value">${daysLeft > 0 ? `${daysLeft} days` : (daysLeft === 0 ? 'Renews Today' : 'Expired')}</span>
+                <span class="detail-value">${daysLeft > 0 ? `${daysLeft} days` : 'Expired'}</span>
               </div>
             </div>
           </div>
@@ -113,36 +94,14 @@
 
         <div class="col-lg-4">
           <div class="actions-card">
-            <h5 class="mb-3 fw-bold">Manage Your Plan</h5>
-            <button data-action="download-invoices" data-sub-id="${sub.stripeSubscriptionId}" class="btn btn-outline-primary w-100 mb-2 btn-sm">
-              <i class="bi bi-download me-2"></i>Download Invoices
-            </button>
-            ${!isSubCancelled && sub.stripeSubscriptionId
+            <h5 class="mb-3 fw-bold">Manage</h5>
+            ${isActive
               ? `<button data-action="cancel-plan" data-sub-id="${sub._id}" class="btn btn-outline-danger w-100 btn-sm">
-                  <i class="bi bi-trash me-2"></i>Cancel Plan
+                  <i class="bi bi-trash me-2"></i>Cancel
                  </button>`
-              : (isSubCancelled
-                  ? `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
-                      <i class="bi bi-x-circle me-2"></i>Plan Cancelled
-                     </button>`
-                  : `<button class="btn btn-outline-warning w-100 btn-sm" disabled title="Subscription incomplete - contact support">
-                      <i class="bi bi-exclamation-triangle me-2"></i>Incomplete Subscription
-                     </button>`)
-            }
-            ${sub.queuedPlan
-              ? `<div class="mt-3 p-2 border rounded bg-light">
-                   <small class="text-muted d-block mb-1">Next Plan</small>
-                   <div class="d-flex align-items-center justify-content-between">
-                     <div>
-                       <strong>${(sub.queuedPlan.plan || '').replace('-', ' ').toUpperCase()}</strong>
-                       <div class="text-muted small">Starts ${safeFormatDate(sub.queuedPlan.currentPeriodEnd)}</div>
-                     </div>
-                     <button data-action="cancel-queued" data-sub-id="${sub.queuedPlan._id}" class="btn btn-outline-danger btn-sm ms-2" title="Remove queued plan">
-                       <i class="bi bi-x"></i>
-                     </button>
-                   </div>
-                 </div>`
-              : ''
+              : `<button class="btn btn-outline-secondary w-100 btn-sm" disabled>
+                  <i class="bi bi-x-circle me-2"></i>Expired
+                 </button>`
             }
           </div>
         </div>

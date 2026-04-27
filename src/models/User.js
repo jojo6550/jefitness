@@ -359,12 +359,11 @@ UserSchema.index({ 'mealLogs.date': -1 }, { sparse: true });
 UserSchema.methods.getActiveSubscription = async function () {
   const Subscription = require('./Subscription');
   if (!this._id) return null;
-  // PLATFORM POLICY: Only active/trialing grant access (past_due auto-canceled by cron)
-  const ACTIVE_STATUSES = ['active', 'trialing'];
   return Subscription.findOne({
     userId: this._id,
-    status: { $in: ACTIVE_STATUSES },
-  }).sort({ currentPeriodEnd: -1 });
+    active: true,
+    expiresAt: { $gt: new Date() },
+  });
 };
 
 UserSchema.methods.hasActiveSubscription = async function () {
@@ -377,16 +376,14 @@ UserSchema.methods.getSubscriptionInfo = async function () {
   if (!activeSub) {
     return {
       hasSubscription: false,
-      plan: null,
       expiresAt: null,
       message: 'No active subscription',
     };
   }
   return {
     hasSubscription: true,
-    plan: activeSub.plan,
-    expiresAt: activeSub.currentPeriodEnd,
-    displayText: `Active Plan: ${activeSub.plan}`,
+    expiresAt: activeSub.expiresAt,
+    displayText: 'Active Subscription',
   };
 };
 
