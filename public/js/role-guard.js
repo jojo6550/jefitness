@@ -24,8 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isProtected) {
     const api = window.ApiConfig?.getAPI_BASE() || '';
     fetch(`${api}/api/v1/auth/me`, { credentials: 'include' })
-      .catch(() => {
-        window.location.href = '/login';
-      });
+      .then(res => { if (!res.ok) window.location.href = '/login'; })
+      .catch(() => { window.location.href = '/login'; });
   }
 });

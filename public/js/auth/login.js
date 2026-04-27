@@ -5,6 +5,20 @@
 
     const { redirectByRole, setLoadingState } = window.AuthShared;
 
+    // Redirect already-authenticated users away from the login page
+    const api = window.ApiConfig?.getAPI_BASE() || '';
+    fetch(`${api}/api/v1/auth/me`, { credentials: 'include' })
+      .then(res => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then(data => {
+        if (data?.data?.role) {
+          window.location.replace(redirectByRole(data.data.role));
+        }
+      })
+      .catch(() => {});
+
     const emailInput = document.getElementById('inputEmail');
     const passwordInput = document.getElementById('inputPassword');
     const emailError = document.getElementById('emailError');
