@@ -3,19 +3,17 @@
 
   const state = {
     selectedPlanId: null,
-    currentSubscriptionId: null,
     availablePlans: [],
     userSubscriptions: [],
     isLoadingSubscriptions: false,
   };
 
-  const isActive = (status) => status === 'active';
-  const isCancelled = (status) => status === 'cancelled';
-  const isTrialing = (status) => status === 'trialing';
+  const isActive = (active) => active === true;
+  const isCancelled = (active) => active === false;
 
   function getElement(id, fallback = null) {
     const el = document.getElementById(id);
-    if (!el) console.warn(`Element #${id} not found`);
+    if (!el && DEBUG) console.warn(`Element #${id} not found`);
     return el || fallback;
   }
 
@@ -36,16 +34,14 @@
 
     if (!contentType.includes('application/json')) {
       const text = await response.text();
-      console.error('Non-JSON response:', text.slice(0, 500));
+      if (DEBUG) console.error('Non-JSON response:', text.slice(0, 500));
       throw new Error(`Server error (${response.status}). Please try again.`);
     }
 
     const data = await response.json();
     if (!response.ok) {
       let errorMsg = data?.message || (typeof data?.error === 'string' ? data.error : data?.error?.message) || `HTTP ${response.status}`;
-      if (response.status === 400 && errorMsg.includes('price')) {
-        errorMsg = 'Subscription plans temporarily unavailable. Please contact support.';
-      } else if (response.status === 401) {
+      if (response.status === 401) {
         errorMsg = 'Session expired. Please log in again.';
       } else if (response.status === 500) {
         errorMsg = 'Server error. Please try again in a moment.';
@@ -90,9 +86,9 @@
     if (DEBUG) console.log(...args);
   }
 
-  function formatCurrency(amount, currency = 'JMD') {
-    if (typeof amount !== 'number' || isNaN(amount)) return 'J$0.00';
-    return new Intl.NumberFormat('en-JM', {
+  function formatCurrency(amount, currency = 'USD') {
+    if (typeof amount !== 'number' || isNaN(amount)) return '$0.00';
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency
     }).format(amount);
@@ -119,11 +115,8 @@
     return parsed && !isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : '—';
   }
 
-  function hasActiveSubscription(planId = null) {
-    return state.userSubscriptions.some(sub =>
-      (isActive(sub.status) || isTrialing(sub.status)) &&
-      (!planId || sub.plan === planId)
-    );
+  function hasActiveSubscription() {
+    return state.userSubscriptions.some(sub => isActive(sub.active) && new Date(sub.expiresAt) > new Date());
   }
 
   window.SubShared = {
@@ -131,7 +124,6 @@
     state,
     isActive,
     isCancelled,
-    isTrialing,
     getElement,
     safeShow,
     safeHide,

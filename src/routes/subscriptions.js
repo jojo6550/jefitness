@@ -16,6 +16,10 @@ router.use(stripDangerousFields);
 
 router.get('/plans', subscriptionController.getPlans);
 
+router.get('/config/paypal-client-id', (req, res) => {
+  res.json({ clientId: process.env.PAYPAL_CLIENT_ID || '' });
+});
+
 router.post(
   '/checkout',
   auth,

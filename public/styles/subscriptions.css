@@ -410,3 +410,53 @@
 }
 
 .sub-footer-link:hover { color: #22d3ee; }
+
+/* ── Checkout Modal ── */
+.checkout-modal-header { border-bottom: 1px solid #1e1e24 !important; }
+.checkout-modal-title  { color: #22d3ee; }
+
+.checkout-plan-summary {
+    background: rgba(34, 211, 238, 0.06);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.checkout-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.checkout-divider::before,
+.checkout-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #1e1e24;
+}
+
+#paypal-button-container,
+#card-button-container {
+    min-height: 48px;
+}
+
+/* ── Popular badge on plan cards ── */
+.plan-popular-badge {
+    display: inline-block;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    margin-bottom: 0.75rem;
+}

@@ -14,15 +14,12 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
 
-    document.addEventListener('click', async (e) => {
+    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
-
-      const { action, subId } = btn.dataset;
       e.preventDefault();
-
-      if (action === 'cancel-plan') {
-        window.SubManager.openCancelModal(subId);
+      if (btn.dataset.action === 'cancel-plan') {
+        window.SubManager.openCancelModal();
       }
     });
 
