@@ -60,10 +60,18 @@ const app = express();
 
 // Validate critical environment variables at startup
 function validateConfig() {
-  const required = ['JWT_SECRET', 'STRIPE_SECRET_KEY', 'MONGO_URI'];
-  const missing = required.filter(key => !process.env[key]);
-  if (missing.length > 0) {
-    throw new Error(`Critical environment variables missing: ${missing.join(', ')}`);
+  const required = ['JWT_SECRET', 'MONGO_URI'];
+  const paymentRequired = ['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET'];
+
+  const missingRequired = required.filter(key => !process.env[key]);
+  const missingPayment = paymentRequired.filter(key => !process.env[key]);
+
+  if (missingRequired.length > 0) {
+    throw new Error(`Critical environment variables missing: ${missingRequired.join(', ')}`);
+  }
+
+  if (missingPayment.length > 0) {
+    logger.warn('PayPal not fully configured', { missing: missingPayment });
   }
 }
 
@@ -165,11 +173,8 @@ app.use((req, res, next) => {
 // -----------------------------
 // Health & CSRF
 // -----------------------------
-// Cache Stripe connectivity result for 5 minutes to avoid a live API call on
-// every health ping (keep-alive fires every 10 min; transient blips shouldn't
-// flip the health status on every single request).
-let stripeHealthCache = { result: null, checkedAt: 0 };
-const STRIPE_HEALTH_TTL = 5 * 60 * 1000; // 5 minutes
+let paymentHealthCache = { result: null, checkedAt: 0 };
+const PAYMENT_HEALTH_TTL = 5 * 60 * 1000;
 
 app.get('/api/health', async (req, res) => {
   const checks = {
@@ -179,25 +184,29 @@ app.get('/api/health', async (req, res) => {
     environment: process.env.NODE_ENV || 'development',
   };
 
-  // Check Stripe API connectivity (cached)
+  // Check payment provider connectivity (PayPal or Stripe)
   const now = Date.now();
-  if (now - stripeHealthCache.checkedAt > STRIPE_HEALTH_TTL) {
+  if (now - paymentHealthCache.checkedAt > PAYMENT_HEALTH_TTL) {
     try {
-      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
-        maxNetworkRetries: 0, // no retries — this is a probe, not a critical call
-        timeout: 5000,
-      });
-      await stripe.customers.list({ limit: 1 });
-      stripeHealthCache = { result: true, checkedAt: now };
+      if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET) {
+        const paypalService = require('./services/paypal');
+        const client = paypalService.getPaypalClient();
+        if (client) {
+          paymentHealthCache = { result: true, checkedAt: now };
+        } else {
+          paymentHealthCache = { result: false, checkedAt: now };
+        }
+      } else {
+        paymentHealthCache = { result: false, checkedAt: now };
+      }
     } catch (err) {
-      logger.warn('Stripe API health check failed', { error: err.message });
-      stripeHealthCache = { result: false, checkedAt: now };
+      logger.warn('Payment provider health check failed', { error: err.message });
+      paymentHealthCache = { result: false, checkedAt: now };
     }
   }
-  checks.stripe = stripeHealthCache.result;
+  checks.payment = paymentHealthCache.result;
 
-  // Overall status
-  const allHealthy = checks.db && checks.stripe;
+  const allHealthy = checks.db && checks.payment;
   res.status(allHealthy ? 200 : 503).json({
     status: allHealthy ? 'healthy' : 'degraded',
     checks,
@@ -378,16 +387,8 @@ async function startServer() {
     startTrainerDailyEmailJob();
     startTenMinuteReminderJob();
 
-    // Sync Stripe plans to DB on every startup so StripePlan collection is always current.
-    try {
-      const { syncStripeToDB } = require('../scripts/sync-stripe-to-db');
-      await syncStripeToDB({ skipConnect: true });
-      logger.info('STARTUP: Stripe plan sync complete');
-    } catch (syncErr) {
-      logger.warn('STARTUP: Stripe plan sync failed (non-fatal)', {
-        error: syncErr.message,
-      });
-    }
+    // Plans are now hardcoded in config/subscriptionConstants.js
+    logger.info('STARTUP: Plans loaded from configuration');
 
     // Keep-alive pings for production (prevents sleep on free hosts like Render)
     if (process.env.NODE_ENV === 'production') {

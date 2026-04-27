@@ -1,25 +1,37 @@
-// DEPRECATED: PLAN_MAP replaced with stripeService.getPlanNameFromPriceId(priceId)
-// const PLAN_MAP = {
-//   [process.env.STRIPE_PRICE_1_MONTH]: '1-month',
-//   [process.env.STRIPE_PRICE_3_MONTH]: '3-month',
-//   [process.env.STRIPE_PRICE_6_MONTH]: '6-month',
-//   [process.env.STRIPE_PRICE_12_MONTH]: '12-month',
-// };
+const PLANS = {
+  '1-month': {
+    durationDays: 30,
+    price: 115.00,
+    priceJMD: 18000,
+    currency: 'USD',
+  },
+  '3-month': {
+    durationDays: 90,
+    price: 230.00,
+    priceJMD: 36000,
+    currency: 'USD',
+  },
+  '6-month': {
+    durationDays: 180,
+    price: 459.00,
+    priceJMD: 72000,
+    currency: 'USD',
+  },
+  '12-month': {
+    durationDays: 365,
+    price: 765.00,
+    priceJMD: 120000,
+    currency: 'USD',
+  },
+};
 
 const ALLOWED_WEBHOOK_EVENTS = [
-  'customer.created',
-  'customer.subscription.created',
-  'customer.subscription.updated',
-  'customer.subscription.deleted',
-  'invoice.created',
-  'invoice.paid',
-  'invoice.payment_succeeded',
-  'invoice.payment_failed',
-  'payment_intent.succeeded',
-  'payment_intent.payment_failed',
-  'checkout.session.completed',
+  'PAYMENT.SALE.COMPLETED',
+  'PAYMENT.SALE.DENIED',
+  'PAYMENT.SALE.REFUNDED',
 ];
 
 module.exports = {
+  PLANS,
   ALLOWED_WEBHOOK_EVENTS,
 };

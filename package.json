@@ -40,6 +40,7 @@
   },
   "homepage": "https://github.com/jojo6550/jojo6550.github.io#readme",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.1",
     "bcryptjs": "^3.0.2",
     "bull": "^4.12.2",
     "compression": "^1.8.1",

@@ -83,7 +83,7 @@ window.AdminClients = (() => {
   // ── Table rendering ──────────────────────────────────────
   function renderRow(client) {
     const sub = client.subscription;
-    const days = sub ? daysLeft(sub.currentPeriodEnd) : null;
+    const days = sub ? daysLeft(sub.expiresAt) : null;
     const color = avatarColor(client.firstName);
     const isSelected = state.selected.has(client._id);
     const daysColor = days !== null && days <= 14 ? '#fbbf24' : '#4ade80';

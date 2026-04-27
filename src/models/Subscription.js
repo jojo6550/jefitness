@@ -9,49 +9,22 @@ const subscriptionSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-    stripeCustomerId: String,
-    stripeSubscriptionId: String,
-    plan: {
-      type: String,
-      enum: ['1-month', '3-month', '6-month', '12-month'],
-    },
-    stripePriceId: String,
-    currentPeriodStart: Date,
-    currentPeriodEnd: Date,
-    status: {
-      type: String,
-      enum: ['active', 'cancelled', 'trialing'],
-      default: 'trialing',
+    active: {
+      type: Boolean,
+      default: false,
       index: true,
     },
-    cancelAtPeriodEnd: { type: Boolean, default: false },
-    canceledAt: Date,
-    checkoutSessionId: String,
-    isQueuedPlan: { type: Boolean, default: false },
-    lastWebhookEventAt: Date,
-    queuedPlan: {
-      plan: String,
-      stripeSubscriptionId: String,
-      stripePriceId: String,
-      currentPeriodEnd: Date,
+    expiresAt: {
+      type: Date,
+      required: true,
+      index: true,
     },
+    paypalTransactionId: String,
     amount: { type: Number, default: 0 },
     currency: { type: String, default: 'jmd' },
-    billingEnvironment: {
-      type: String,
-      enum: ['test', 'production'],
-    },
-    statusHistory: [
-      {
-        status: String,
-        changedAt: Date,
-        reason: String,
-      },
-    ],
+    purchasedAt: Date,
   },
   { timestamps: { currentTime: () => new Date() } }
 );
-
-subscriptionSchema.index({ status: 1, currentPeriodEnd: 1 });
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

@@ -14,19 +14,17 @@ window.API_BASE = window.ApiConfig ? window.ApiConfig.getAPI_BASE() : '/api';
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       });
 
-    document.addEventListener('click', async (e) => {
+    document.getElementById('checkoutModal')
+      ?.addEventListener('hide.bs.modal', () => {
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      });
+
+    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
-
-      const { action, subId } = btn.dataset;
       e.preventDefault();
-
-      if (action === 'download-invoices') {
-        await window.SubManager.downloadInvoices(subId);
-      } else if (action === 'cancel-plan') {
-        window.SubManager.openCancelModal(subId);
-      } else if (action === 'cancel-queued') {
-        await window.SubManager.cancelQueuedPlan();
+      if (btn.dataset.action === 'cancel-plan') {
+        window.SubManager.openCancelModal();
       }
     });
 
