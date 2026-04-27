@@ -129,7 +129,13 @@ app.get('/favicon.ico', (req, res) => {
 });
 
 // Static files
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res, filePath) => {
+    if (/\.(js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    }
+  }
+}));
 
 // -----------------------------
 // Clean URL handler for frontend pages
