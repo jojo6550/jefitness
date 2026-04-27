@@ -2,15 +2,15 @@ const { getPaypalClient } = require('./client');
 const { getPrimaryAppUrl } = require('../../config/security');
 const { logger } = require('../logger');
 
+const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
+const { OrdersCreateRequest, OrdersCaptureRequest, OrdersGetRequest } = checkoutNodeJssdk.orders;
+
 async function createPaymentLink(planKey, planData, userId) {
   try {
     const client = getPaypalClient();
     if (!client) {
       throw new Error('PayPal not initialized');
     }
-
-    const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-    const OrdersCreateRequest = checkoutNodeJssdk.orders.OrdersCreateRequest;
 
     const request = new OrdersCreateRequest();
     request.prefer('return=representation');
@@ -66,9 +66,6 @@ async function capturePayment(orderId) {
       throw new Error('PayPal not initialized');
     }
 
-    const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-    const OrdersCaptureRequest = checkoutNodeJssdk.orders.OrdersCaptureRequest;
-
     const request = new OrdersCaptureRequest(orderId);
     request.requestBody({});
 
@@ -95,9 +92,6 @@ async function getOrderDetails(orderId) {
     if (!client) {
       throw new Error('PayPal not initialized');
     }
-
-    const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-    const OrdersGetRequest = checkoutNodeJssdk.orders.OrdersGetRequest;
 
     const request = new OrdersGetRequest(orderId);
     const response = await client.execute(request);
