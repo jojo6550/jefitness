@@ -114,16 +114,16 @@ router.get('/', async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    // Join subscription for each client: active/trialing always; cancelled within 90 days
+    // Join subscription for each client
     const userIds = users.map(u => u._id);
     const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000);
     const subs = await Subscription.find({
       userId: { $in: userIds },
       $or: [
-        { status: { $in: ['active', 'trialing'] } },
-        { status: 'cancelled', currentPeriodEnd: { $gte: ninetyDaysAgo } },
+        { active: true },
+        { active: false, expiresAt: { $gte: ninetyDaysAgo } },
       ],
-    }).sort({ currentPeriodEnd: -1 }).lean();
+    }).sort({ expiresAt: -1 }).lean();
 
     const subByUser = {};
     for (const sub of subs) {
