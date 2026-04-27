@@ -7,6 +7,7 @@ const {
 } = require('../services/webhookUtils');
 const {
   ALLOWED_WEBHOOK_EVENTS: ALLOWED_EVENTS_ARRAY,
+  PLANS,
 } = require('../config/subscriptionConstants');
 const paypalService = require('../services/paypal');
 
@@ -15,32 +16,28 @@ const router = express.Router();
 const webhookSecret = process.env.PAYPAL_WEBHOOK_ID;
 const ALLOWED_WEBHOOK_EVENTS = new Set(ALLOWED_EVENTS_ARRAY);
 
+// Raw body needed for signature verification
 const webhookMiddleware = express.json();
 
 async function handlePaypalWebhook(req, res) {
-  const webhook_id = webhookSecret;
-  let event;
-
   if (!webhookSecret) {
     logger.error('PayPal webhook secret not configured');
     return res.status(500).send('Webhook secret not configured');
   }
 
+  // Verify PayPal signature
   try {
-    const client = paypalService.getPaypalClient();
-    if (!client) {
-      logger.error('PayPal not initialized');
-      return res.status(500).send('PayPal not configured');
+    const valid = await paypalService.verifyWebhookSignature(req.headers, req.body, webhookSecret);
+    if (!valid) {
+      logSecurityEvent('WEBHOOK_SIGNATURE_INVALID', null, { headers: req.headers }, req).catch(() => {});
+      return res.status(400).send('Invalid webhook signature');
     }
-
-    const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-    const WebhookEvent = checkoutNodeJssdk.orders;
-
-    event = req.body;
   } catch (err) {
-    logSecurityEvent('WEBHOOK_SIGNATURE_INVALID', null, { error: err.message }, req).catch(() => {});
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    logger.error('Webhook signature verification failed', { error: err.message });
+    return res.status(400).send(`Webhook verification error: ${err.message}`);
   }
+
+  const event = req.body;
 
   if (!event || !event.id || !event.event_type) {
     logSecurityEvent('WEBHOOK_INVALID_STRUCTURE', null, { eventId: event?.id }, req).catch(() => {});
@@ -50,10 +47,6 @@ async function handlePaypalWebhook(req, res) {
   logger.info('PayPal webhook received', { eventType: event.event_type, eventId: event.id });
 
   if (!ALLOWED_WEBHOOK_EVENTS.has(event.event_type)) {
-    logger.warn('Unhandled webhook event type', {
-      eventType: event.event_type,
-      eventId: event.id,
-    });
     return res.status(200).json({ received: true, processed: false });
   }
 
@@ -67,11 +60,12 @@ async function handlePaypalWebhook(req, res) {
     await markWebhookEventProcessed(event.id, event.event_type);
 
     switch (event.event_type) {
-      case 'PAYMENT.SALE.COMPLETED':
-        await handleSaleCompleted(event.resource);
+      case 'PAYMENT.CAPTURE.COMPLETED':
+        await handleCaptureCompleted(event.resource);
         break;
-      case 'PAYMENT.SALE.REFUNDED':
-        await handleSaleRefunded(event.resource);
+      case 'PAYMENT.CAPTURE.REFUNDED':
+      case 'PAYMENT.CAPTURE.DENIED':
+        await handleCaptureInvalidated(event.resource);
         break;
     }
 
@@ -91,51 +85,75 @@ router.post('/', webhookMiddleware, handlePaypalWebhook);
 
 // ===== HELPERS =====
 
-async function handleSaleCompleted(sale) {
-  logger.info('PayPal sale completed', { saleId: sale.id });
+// custom_id format: "userId:planKey" (set during checkout creation)
+function parseCustomId(customId) {
+  if (!customId) return { userId: null, planKey: null };
+  const idx = customId.indexOf(':');
+  if (idx === -1) return { userId: customId, planKey: null };
+  return { userId: customId.slice(0, idx), planKey: customId.slice(idx + 1) };
+}
 
-  if (!sale.custom) {
-    logger.warn('Sale has no userId', { saleId: sale.id });
+async function handleCaptureCompleted(capture) {
+  logger.info('PayPal capture completed', { captureId: capture.id });
+
+  const { userId, planKey } = parseCustomId(capture.custom_id);
+
+  if (!userId) {
+    logger.warn('Capture has no userId in custom_id', { captureId: capture.id });
     return;
   }
 
-  let subscription = await Subscription.findOne({ userId: sale.custom });
+  const planData = PLANS[planKey] || PLANS['1-month'];
+  const now = new Date();
 
-  if (!subscription) {
-    logger.warn('Subscription not found for completed sale', { userId: sale.custom });
-    return;
-  }
-
-  subscription.active = true;
-  await subscription.save();
+  const subscription = await Subscription.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        active: true,
+        expiresAt: new Date(now.getTime() + planData.durationDays * 24 * 60 * 60 * 1000),
+        paypalTransactionId: capture.id,
+        amount: parseFloat(capture.amount?.value || 0),
+        currency: capture.amount?.currency_code || 'USD',
+        purchasedAt: now,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 
   logger.info('Subscription activated via webhook', {
     subscriptionId: subscription._id,
-    saleId: sale.id,
+    captureId: capture.id,
+    userId,
+    planKey,
   });
 }
 
-async function handleSaleRefunded(sale) {
-  logger.info('PayPal sale refunded', { saleId: sale.id });
+async function handleCaptureInvalidated(capture) {
+  logger.info('PayPal capture invalidated', { captureId: capture.id });
 
-  if (!sale.custom) {
-    logger.warn('Refunded sale has no userId', { saleId: sale.id });
+  const { userId } = parseCustomId(capture.custom_id);
+
+  if (!userId) {
+    logger.warn('Capture has no userId in custom_id', { captureId: capture.id });
     return;
   }
 
-  let subscription = await Subscription.findOne({ userId: sale.custom });
+  const subscription = await Subscription.findOneAndUpdate(
+    { userId },
+    { $set: { active: false } },
+    { new: true }
+  );
 
   if (!subscription) {
-    logger.warn('Subscription not found for refunded sale', { userId: sale.custom });
+    logger.warn('Subscription not found for invalidated capture', { userId });
     return;
   }
 
-  subscription.active = false;
-  await subscription.save();
-
-  logger.info('Subscription deactivated via refund webhook', {
+  logger.info('Subscription deactivated via webhook', {
     subscriptionId: subscription._id,
-    saleId: sale.id,
+    captureId: capture.id,
+    userId,
   });
 }
 

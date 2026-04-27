@@ -93,8 +93,8 @@ const subscriptionController = {
       }
 
       const purchaseUnit = order.purchase_units?.[0];
-      const description = purchaseUnit?.description || '';
-      const planKey = description.split(' Subscription')[0] || 'custom';
+      const rawCustomId = purchaseUnit?.custom_id || '';
+      const planKey = rawCustomId.includes(':') ? rawCustomId.split(':')[1] : (rawCustomId || 'custom');
       const planData = PLANS[planKey] || PLANS['1-month'];
 
       subscription.paypalTransactionId = orderId;

@@ -33,7 +33,7 @@ async function createPaymentLink(planKey, planData, userId) {
             value: String(planData.price),
           },
           description: `${planKey} Subscription - ${planData.durationDays} days`,
-          custom_id: userId,
+          custom_id: `${userId}:${planKey}`,
         },
       ],
       application_context: {
@@ -78,7 +78,7 @@ async function capturePayment(orderId) {
     const request = new OrdersCaptureRequest(orderId);
     request.requestBody({});
 
-    const response = await withTimeout(client.execute(request), PAYPAL_TIMEOUT_MS, 'capturePayment');
+    const response = await withTimeout(client.execute(request), PAYPAL_TIMEOUT_MS);
 
     logger.debug('PayPal order captured', {
       orderId,
