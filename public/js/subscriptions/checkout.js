@@ -36,7 +36,6 @@
     safeShow(getElement('checkout-loading'));
     safeHide(getElement('checkout-buttons'));
     safeHide(getElement('checkout-error'));
-    document.getElementById('paypal-button-container').innerHTML = '';
     document.getElementById('card-button-container').innerHTML = '';
 
     getModal().show();
@@ -94,24 +93,7 @@
 
     const createOrder = () => orderId;
 
-    // PayPal wallet button
     if (window.paypal?.Buttons) {
-      paypal.Buttons({
-        createOrder,
-        onApprove,
-        onError,
-        onCancel,
-        style: {
-          layout: 'vertical',
-          color: 'gold',
-          shape: 'rect',
-          label: 'paypal',
-          height: 48,
-        },
-        fundingSource: paypal.FUNDING.PAYPAL,
-      }).render('#paypal-button-container');
-
-      // Debit / Credit Card button
       paypal.Buttons({
         createOrder,
         onApprove,

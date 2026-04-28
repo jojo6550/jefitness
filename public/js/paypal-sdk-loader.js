@@ -6,7 +6,7 @@
     const clientId = data.clientId || 'sb-test';
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&components=buttons`;
+      s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD&components=buttons&intent=capture&disable-funding=venmo,paylater`;
       s.onload = resolve;
       s.onerror = reject;
       document.head.appendChild(s);
