@@ -102,6 +102,15 @@ function capitalize(s) {
 async function init() {
   console.log('[ADMIN] init() START');
   
+  // Attach logout listener
+  const logoutBtn = document.getElementById('logoutButton');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.logoutUser();
+    });
+  }
+  
   const user = await checkAdminAuth();
   if (!user) {
     console.log('[ADMIN] init() ABORT: no user');

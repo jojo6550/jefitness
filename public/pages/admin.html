@@ -234,9 +234,13 @@
     <span class="nav-label">Tickets <span id="tickets-unread-badge" style="display:none;background:#f87171;color:#fff;border-radius:20px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px"></span></span>
   </button>
 
-  <div class="nav-divider"></div>
+<div class="nav-divider"></div>
 
   <div class="sidebar-bottom">
+    <button class="nav-item" id="logoutButton" title="Logout" aria-label="Logout">
+      <i class="bi bi-power nav-icon"></i>
+      <span class="nav-label">Logout</span>
+    </button>
     <div class="admin-avatar" id="admin-initials">AD</div>
   </div>
 </nav>
@@ -295,6 +299,7 @@
 
 <!-- ── Scripts ───────────────────────────────────────── -->
 <script src="/js/api.config.js?v=59b1a8e" data-cfasync="false"></script>
+<script src="/js/logout.js?v=59b1a8e" data-cfasync="false"></script>
 <script src="/js/admin/utils/view-helpers.js?v=59b1a8e" data-cfasync="false"></script>
 <script src="/js/admin/components/subscription-modal.js?v=59b1a8e" data-cfasync="false"></script>
 <script src="/js/admin/components/client-modal.js?v=59b1a8e" data-cfasync="false"></script>
